@@ -235,6 +235,7 @@ func BuildDefaultListenPortBundle() ([]byte, error) {
 					}},
 				TlsSettings: &TlsSettings{
 					ClientAuthentication: "Optional",
+					PrivateKeyReference:  PrivateKeyReference{ID: "00000000000000000000000000000002:ssl", ResourceURI: "http://ns.l7tech.com/2010/04/gateway-management/privateKeys"},
 					EnabledVersions: EnabledVersions{
 						StringValue: tlsVersions,
 					},
@@ -274,6 +275,7 @@ func BuildDefaultListenPortBundle() ([]byte, error) {
 					}},
 				TlsSettings: &TlsSettings{
 					ClientAuthentication: "Optional",
+					PrivateKeyReference:  PrivateKeyReference{ID: "00000000000000000000000000000002:ssl", ResourceURI: "http://ns.l7tech.com/2010/04/gateway-management/privateKeys"},
 					EnabledVersions: EnabledVersions{
 						StringValue: tlsVersions,
 					},

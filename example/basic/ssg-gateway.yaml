@@ -9,10 +9,7 @@ spec:
     secretName: gateway-license
   app:
     replicas: 1
-    #image: docker.io/caapim/gateway:10.1.00_CR3
-    image: harbor.sutraone.com/dev/gateway-cr3:1.0
-    imagePullSecrets:
-    - name: harbor-reg-cred
+    image: docker.io/caapim/gateway:10.1.00_CR3
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
     updateStrategy:

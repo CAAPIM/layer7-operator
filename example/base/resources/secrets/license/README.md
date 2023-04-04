@@ -1,0 +1,1 @@
+Place your Gateway license here as license.xml

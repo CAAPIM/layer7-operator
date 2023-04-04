@@ -11,8 +11,7 @@ spec:
     annotations:
       sidecar.opentelemetry.io/inject: "ssg"
     replicas: 2
-    # image: docker.io/caapim/gateway:10.1.00_CR2
-    image: harbor.sutraone.com/dev/gateway-otel:3.0
+    image: docker.io/caapim/gateway:10.1.00_CR3
     imagePullSecrets:
     - name: harbor-reg-cred
     imagePullPolicy: Always
@@ -128,7 +127,7 @@ spec:
       ## Reserved for future use
       graphman:
         enabled: true
-        initContainerImage: harbor.sutraone.com/operator/graphman-static-init:1.0.0
+        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.0
       cluster:
         #password: "mypassword"
         hostname: "gateway.brcmlabs.com"

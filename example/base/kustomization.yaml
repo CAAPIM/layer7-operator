@@ -1,5 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+resources:
+  - ./resources/serviceaccount/serviceaccount.yaml
 generatorOptions:
  disableNameSuffixHash: true
 secretGenerator:
@@ -12,15 +14,18 @@ secretGenerator:
   env: ./resources/secrets/gateway/graphman-encryption-secret.env
 - name: graphman-repository-secret
   env: ./resources/secrets/repository/graphman-repository-secret.env
-- name: harbor-reg-cred
-  type: kubernetes.io/dockerconfigjson
+- name: graphman-bootstrap-bundle
   files:
-  - ./resources/secrets/registry/.dockerconfigjson
+    - ./resources/secrets/bundles/cluster-property.json
+- name: restman-bootstrap-bundle
+  files:
+    - ./resources/secrets/bundles/cluster-property.bundle
+
 # Create a secret for the Ingress Resource
 # Uncomment this section to create your own certificate for the ingress controller.
-# - name: <secretName>
+# - name: gatewaytls
 #   files:
-#   - ../resources/secrets/tls/tls.crt
-#   - ../resources/secrets/tls/tls.key
+#   - ./resources/secrets/tls/tls.crt
+#   - ./resources/secrets/tls/tls.key
 #   type: "kubernetes.io/tls"
 

@@ -106,7 +106,7 @@ $ kubectl apply -f deploy/cw-bundle.yaml
 The Layer7 Operator <b>has not been published</b> to any Operator Catalogs, you can still deploy it using the operator-sdk cli. The only supported install mode in OpenShift is OwnNamespace.
 
 ```
-operator-sdk run bundle docker.io/layer7api/layer7-operator-bundle:v1.0.0 --install-mode OwnNamespace
+operator-sdk run bundle docker.io/layer7api/layer7-operator-bundle:v1.0.1 --install-mode OwnNamespace
 ```
 
 ### Create a Simple Gateway
@@ -180,7 +180,7 @@ $ kubectl port-forward svc/ssg 8443
 
 username: admin
 password: 7layer
-gateway: 35.189.116.20
+gateway: localhost
 ```
 
 5. Remove the Gateway Resource

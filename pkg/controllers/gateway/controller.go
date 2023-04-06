@@ -31,6 +31,7 @@ import (
 	"github.com/caapim/layer7-operator/pkg/gateway/hpa"
 	"github.com/caapim/layer7-operator/pkg/gateway/ingress"
 	"github.com/caapim/layer7-operator/pkg/gateway/monitoring"
+	"github.com/caapim/layer7-operator/pkg/gateway/pdb"
 	"github.com/caapim/layer7-operator/pkg/gateway/secrets"
 	"github.com/caapim/layer7-operator/pkg/gateway/service"
 	"github.com/caapim/layer7-operator/pkg/util"
@@ -41,6 +42,7 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -146,6 +148,11 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	err = reconcilePDB(r, ctx, gw)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	err = updateGatewayStatus(r, ctx, gw)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -212,11 +219,11 @@ func reconcileHPA(r *GatewayReconciler, ctx context.Context, gw *securityv1.Gate
 	err := r.Get(ctx, types.NamespacedName{Name: gw.Name, Namespace: gw.Namespace}, currHPA)
 	newHpa := hpa.NewHPA(gw)
 	if err != nil && k8serrors.IsNotFound(err) {
-		r.Log.Info("Creating HPA", "Name", gw.Name, "Namespace", gw.Namespace)
+		r.Log.Info("Creating Horizontal Pod Autoscaler", "Name", gw.Name, "Namespace", gw.Namespace)
 		ctrl.SetControllerReference(gw, newHpa, r.Scheme)
 		err = r.Create(ctx, newHpa)
 		if err != nil {
-			r.Log.Error(err, "Failed creating HPA", "Name", gw.Name, "Namespace", gw.Namespace)
+			r.Log.Error(err, "Failed creating Horizontal Pod Autoscaler", "Name", gw.Name, "Namespace", gw.Namespace)
 			return err
 		}
 		return nil
@@ -225,6 +232,43 @@ func reconcileHPA(r *GatewayReconciler, ctx context.Context, gw *securityv1.Gate
 	if !reflect.DeepEqual(currHPA, newHpa) {
 		ctrl.SetControllerReference(gw, newHpa, r.Scheme)
 		return r.Update(ctx, newHpa)
+	}
+	return nil
+}
+
+func reconcilePDB(r *GatewayReconciler, ctx context.Context, gw *securityv1.Gateway) error {
+	if !gw.Spec.App.PodDisruptionBudget.Enabled {
+		return nil
+	}
+	currPDB := &policyv1.PodDisruptionBudget{}
+	err := r.Get(ctx, types.NamespacedName{Name: gw.Name, Namespace: gw.Namespace}, currPDB)
+	newPDB := pdb.NewPDB(gw)
+	if err != nil && k8serrors.IsNotFound(err) {
+		r.Log.Info("Creating Pod Disruption Budget", "Name", gw.Name, "Namespace", gw.Namespace)
+		ctrl.SetControllerReference(gw, newPDB, r.Scheme)
+		err = r.Create(ctx, newPDB)
+		if err != nil {
+			r.Log.Error(err, "Failed creating Pod Disruption Budget", "Name", gw.Name, "Namespace", gw.Namespace)
+			return err
+		}
+		return nil
+	}
+
+	update := false
+
+	if currPDB.Spec.MaxUnavailable != newPDB.Spec.MaxUnavailable {
+		update = true
+		currPDB.Spec.MaxUnavailable = newPDB.Spec.MaxUnavailable
+	}
+
+	if currPDB.Spec.MinAvailable != newPDB.Spec.MinAvailable {
+		update = true
+		currPDB.Spec.MinAvailable = newPDB.Spec.MinAvailable
+	}
+
+	if update {
+		ctrl.SetControllerReference(gw, currPDB, r.Scheme)
+		return r.Update(ctx, currPDB)
 	}
 	return nil
 }

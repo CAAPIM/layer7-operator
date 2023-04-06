@@ -407,6 +407,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		ImagePullPolicy:          corev1.PullPolicy(gw.Spec.App.ImagePullPolicy),
 		TerminationMessagePath:   "/dev/termination-log",
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		SecurityContext:          &gw.Spec.App.ContainerSecurityContext,
 		Name:                     "gateway",
 		EnvFrom: []corev1.EnvFromSource{
 			{
@@ -476,9 +477,13 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            gw.Spec.App.ServiceAccountName,
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
-					SecurityContext:               &corev1.PodSecurityContext{},
+					SecurityContext:               &gw.Spec.App.PodSecurityContext,
+					TopologySpreadConstraints:     gw.Spec.App.TopologySpreadConstraints,
+					Tolerations:                   gw.Spec.App.Tolerations,
 					DNSPolicy:                     corev1.DNSClusterFirst,
 					RestartPolicy:                 corev1.RestartPolicyAlways,
+					Affinity:                      &gw.Spec.App.Affinity,
+					NodeSelector:                  gw.Spec.App.NodeSelector,
 					InitContainers:                initContainers,
 					Containers:                    containers,
 					Volumes:                       volumes,

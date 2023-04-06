@@ -10,19 +10,33 @@ spec:
   app:
     replicas: 1
     image: docker.io/caapim/gateway:10.1.00_CR3
+    # imagePullSecrets:
+    # - name: my-reg-cred
     imagePullPolicy: IfNotPresent
-    #serviceAccountName: ssg-serviceaccount
+    serviceAccountName: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 2
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: 0
     resources:
-      requests: {}
-      limits: {}
-    autoscaling:
-      enabled: false
-    bundle: []
+      requests:
+        memory: 4Gi
+        cpu: 2
+      limits:
+        memory: 4Gi
+        cpu: 2
+    bundle:
+      - type: restman
+        source: secret
+        name: restman-bootstrap-bundle
+      - type: graphman
+        source: secret
+        name: graphman-bootstrap-bundle
     repositoryReferences:
       - name: l7-gw-myframework
         enabled: true
@@ -44,16 +58,20 @@ spec:
           key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
     bootstrap:
       script:
-        enabled: false
-    initContainers: []
+        enabled: true
+    initContainers:
+    - name: gateway-init
+      image: harbor.sutraone.com/operator/gateway-init:1.0.4
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+      - name: config-directory
+        mountPath: /opt/docker/custom
     hazelcast:
       external: false
       endpoint: hazelcast.example.com:5701
     management:
       secretName: gateway-secret
-      #username: admin
-      #password: 7layer
-      # Management port requires a separate service...
+      # Management port requires a separate service.
       service:
         enabled: false
         #annotations:
@@ -66,18 +84,38 @@ spec:
           protocol: TCP   
       restman:
         enabled: false
-      ## Reserved for future use
       graphman:
         enabled: true
         initContainerImage: docker.io/layer7api/graphman-static-init:1.0.0
       cluster:
-        #password: 7layer
         hostname: gateway.brcmlabs.com
       database:
         enabled: false # this runs the gateway in dbbacked/ephemeral mode
       #  jdbcUrl: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
-      #  username: "gateway"
-      #  password: "ACm8BDr3Rfk2Flx9V"
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+      - name: https
+        port: 8443
+        targetPort: 8443
+        protocol: TCP
+      - name: management
+        port: 9443
+        targetPort: 9443
+        protocol: TCP
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      tls:
+      - hosts: 
+        - gateway.brcmlabs.com
+        secretName: default
+      rules:
+      - host: gateway.brcmlabs.com
     java:
       jvmHeap:
         calculate: true
@@ -93,10 +131,103 @@ spec:
       - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true 
       - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
     listenPorts:
-      harden: true
+      harden: false
       custom:
+        enabled: true
+      ports:
+      - name: Default HTTPS (8443)
+        port: "8443"
+        enabled: true
+        protocol: HTTPS
+        managementFeatures:
+        - Published service message input
+        # - Administrative access
+        # - Browser-based administration
+        # - Built-in services
+        properties:
+        - name: server
+          value: A
+        tls:
+          enabled: true
+          #privateKey: 00000000000000000000000000000002:ssl
+          clientAuthentication: Optional
+          versions:
+          - TLSv1.2
+          - TLSv1.3
+          useCipherSuitesOrder: true
+          cipherSuites:
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+      - name: Default HTTPS (9443)
+        port: "9443"
+        enabled: true
+        protocol: HTTPS
+        managementFeatures:
+        - Published service message input
+        - Administrative access
+        - Browser-based administration
+        - Built-in services
+        properties: []
+        # - name: server
+        #   value: B
+        tls:
+          enabled: true
+        # privateKey: 00000000000000000000000000000002:ssl
+          clientAuthentication: Optional
+          versions:
+          - TLSv1.2
+          - TLSv1.3
+          useCipherSuitesOrder: true
+          cipherSuites:
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+      - name: Default HTTP (8080)
+        port: "8080"
         enabled: false
-      ports: []
+        protocol: HTTP
+        managementFeatures:
+        - Published service message input
+        # - Administrative access
+        # - Browser-based administration
+        # - Built-in services
+        tls:
+          enabled: false
     cwp:
       enabled: true
       properties:
@@ -126,17 +257,43 @@ spec:
         javax.net.ssl.trustStoreType=jks
         com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
         # Additional properties go here
-    service:
-      # annotations:
-      type: LoadBalancer
-      ports:
-      - name: https
-        port: 8443
-        targetPort: 8443
-        protocol: TCP
-      - name: management
-        port: 9443
-        targetPort: 9443
-        protocol: TCP
-    ingress:
-      enabled: false
+    autoscaling:
+      enabled: true
+      hpa:
+        minReplicas: 2
+        maxReplicas: 3
+        metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 60
+        behavior:
+          scaleDown:
+            stabilizationWindowSeconds: 300
+            policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 60
+          scaleUp:
+            stabilizationWindowSeconds: 0
+            policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+    containerSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 3000
+      capabilities:
+        drop:
+        - ALL
+      allowPrivilegeEscalation: false
+    podSecurityContext:
+      runAsUser: 3000
+      runAsGroup: 3000
+      fsGroup: 3000
+    affinity: {}
+    nodeSelector: {}
+    tolerations: []
+    topologySpreadConstraints: []

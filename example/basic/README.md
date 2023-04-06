@@ -3,8 +3,8 @@ By the end of this example you should have a better understanding of the Layer7 
 
 
 ### Getting started
-1. Place a gateway v10 or v11 license in [resources/secrets/license/](./resources/secrets/license/) called license.xml.
-2. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [resources/secrets/tls](./resources/secrets/tls)
+1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+2. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
 
 
@@ -265,12 +265,26 @@ status:
 ```
 $ kubectl get svc
 
-NAME                                                 TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)                         AGE
-...
-ssg                                                  LoadBalancer   10.68.4.161    34.89.84.69   8443:31747/TCP,9443:30778/TCP   41m
+NAME  TYPE           CLUSTER-IP     EXTERNAL-IP         PORT(S)                         AGE
+ssg   LoadBalancer   10.68.4.161    ***34.89.84.69***   8443:31747/TCP,9443:30778/TCP   41m
 
+if your output looks like this that means you don't have an External IP Provisioner in your Kubernetes Cluster. You can still access your Gateway using port-forward.
+
+NAME  TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)                         AGE
+ssg   LoadBalancer   10.68.4.126   <PENDING>       8443:31384/TCP,9443:31359/TCP   7m39s
+```
+
+If EXTERNAL-IP is stuck in \<PENDING> state
+```
+$ kubectl port-forward svc/ssg 9443:9443
+```
+
+```
 $ curl https://34.89.84.69:8443/api1 -H "client-id: D63FA04C8447" -k
 
+or if you used port-forward
+
+$ curl https://localhost:9443/api1 -H "client-id: D63FA04C8447" -k
 {
   "client" : "D63FA04C8447",
   "plan" : "plan_a",
@@ -278,6 +292,28 @@ $ curl https://34.89.84.69:8443/api1 -H "client-id: D63FA04C8447" -k
   "myDemoConfigVal" : "suspiciousLlama"
 }
 ```
+##### Sign into Policy Manager
+Policy Manager access is less relevant in a deployment like this because we haven't specified an external MySQL database, any changes that we make will only apply to the Gateway that we're connected to and won't survive a restart. It is still useful to check what's been applied. In our configuration we set the following which overrides the default application port configuration.
+```
+...
+listenPorts:
+  harden: true
+...
+```
+This configuration removes port 2124, disables 8080 (HTTP) and hardens 8443 and 9443 where 9443 is the only port that allows a Policy Manager connection. The [advanced example](../advanced/ssg-gateway.yaml) shows how this can be customised with your own ports.
+
+```
+username: admin
+password: 7layer
+gateway: 35.189.116.20:9443
+```
+or if you used port-forward
+```
+username: admin
+password: 7layer
+gateway: localhost:9443
+```
+
 
 #### Remove Custom Resources
 ```

@@ -6,7 +6,7 @@ controllerManager:
   manager:
     image:
       repository: docker.io/layer7api/layer7-operator
-      tag: v1.0.0
+      tag: v1.0.1
     resources:
       limits:
         cpu: 500m

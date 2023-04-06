@@ -158,30 +158,37 @@ type Image struct {
 }
 
 type App struct {
-	Annotations          map[string]string             `json:"annotations,omitempty"`
-	Labels               map[string]string             `json:"labels,omitempty"`
-	ClusterProperties    ClusterProperties             `json:"cwp,omitempty"`
-	Java                 Java                          `json:"java,omitempty"`
-	Management           Management                    `json:"management,omitempty"`
-	System               System                        `json:"system,omitempty"`
-	UpdateStrategy       UpdateStrategy                `json:"updateStrategy,omitempty"`
-	Image                string                        `json:"image,omitempty"`
-	ImagePullSecrets     []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	ImagePullPolicy      corev1.PullPolicy             `json:"imagePullPolicy,omitempty"`
-	ListenPorts          ListenPorts                   `json:"listenPorts,omitempty"`
-	Replicas             int32                         `json:"replicas,omitempty"`
-	Service              Service                       `json:"service,omitempty"`
-	Bundle               []Bundle                      `json:"bundle,omitempty"`
-	RepositoryReferences []RepositoryReference         `json:"repositoryReferences,omitempty"`
-	Ingress              Ingress                       `json:"ingress,omitempty"`
-	Sidecars             []corev1.Container            `json:"sidecars,omitempty"`
-	InitContainers       []corev1.Container            `json:"initContainers,omitempty"`
-	Resources            PodResources                  `json:"resources,omitempty"`
-	Autoscaling          Autoscaling                   `json:"autoscaling,omitempty"`
-	ServiceAccountName   string                        `json:"serviceAccountName,omitempty"`
-	Hazelcast            Hazelcast                     `json:"hazelcast,omitempty"`
-	Bootstrap            Bootstrap                     `json:"bootstrap,omitempty"`
-	Monitoring           Monitoring                    `json:"monitoring,omitempty"`
+	Annotations               map[string]string                 `json:"annotations,omitempty"`
+	Labels                    map[string]string                 `json:"labels,omitempty"`
+	ClusterProperties         ClusterProperties                 `json:"cwp,omitempty"`
+	Java                      Java                              `json:"java,omitempty"`
+	Management                Management                        `json:"management,omitempty"`
+	System                    System                            `json:"system,omitempty"`
+	UpdateStrategy            UpdateStrategy                    `json:"updateStrategy,omitempty"`
+	Image                     string                            `json:"image,omitempty"`
+	ImagePullSecrets          []corev1.LocalObjectReference     `json:"imagePullSecrets,omitempty"`
+	ImagePullPolicy           corev1.PullPolicy                 `json:"imagePullPolicy,omitempty"`
+	ListenPorts               ListenPorts                       `json:"listenPorts,omitempty"`
+	Replicas                  int32                             `json:"replicas,omitempty"`
+	Service                   Service                           `json:"service,omitempty"`
+	Bundle                    []Bundle                          `json:"bundle,omitempty"`
+	RepositoryReferences      []RepositoryReference             `json:"repositoryReferences,omitempty"`
+	Ingress                   Ingress                           `json:"ingress,omitempty"`
+	Sidecars                  []corev1.Container                `json:"sidecars,omitempty"`
+	InitContainers            []corev1.Container                `json:"initContainers,omitempty"`
+	Resources                 PodResources                      `json:"resources,omitempty"`
+	Autoscaling               Autoscaling                       `json:"autoscaling,omitempty"`
+	ServiceAccountName        string                            `json:"serviceAccountName,omitempty"`
+	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
+	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
+	Monitoring                Monitoring                        `json:"monitoring,omitempty"`
+	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
+	PodSecurityContext        corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
+	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	Tolerations               []corev1.Toleration               `json:"tolerations,omitempty"`
+	Affinity                  corev1.Affinity                   `json:"affinity,omitempty"`
+	PodDisruptionBudget       PodDisruptionBudgetSpec           `json:"pdb,omitempty"`
+	NodeSelector              map[string]string                 `json:"nodeSelector,omitempty"`
 }
 
 type ClusterProperties struct {
@@ -346,13 +353,9 @@ type WebhookAuth struct {
 }
 
 type PodDisruptionBudgetSpec struct {
-	MinAvailable   *intstr.IntOrString `json:"minAvailable,omitempty"`
-	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
-}
-
-type PodAffinity struct {
-	TopologyKey *string          `json:"antiAffinityTopologyKey,omitempty"`
-	Advanced    *corev1.Affinity `json:"advanced,omitempty"`
+	Enabled        bool               `json:"enabled,omitempty"`
+	MinAvailable   intstr.IntOrString `json:"minAvailable,omitempty"`
+	MaxUnavailable intstr.IntOrString `json:"maxUnavailable,omitempty"`
 }
 
 type PodResources struct {

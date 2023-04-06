@@ -3854,7 +3854,7 @@ spec:
         - name: WATCH_NAMESPACE
           value: ""
         image: docker.io/layer7api/layer7-operator:v1.0.1
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
             path: /healthz

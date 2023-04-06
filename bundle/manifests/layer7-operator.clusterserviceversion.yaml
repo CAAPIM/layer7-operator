@@ -67,7 +67,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-04-04T22:11:51Z"
+    createdAt: "2023-04-06T15:44:23Z"
     operatorframework.io/suggested-namespace: layer7
     operators.operatorframework.io/builder: operator-sdk-v1.28.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -137,7 +137,7 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 image: docker.io/layer7api/layer7-operator:v1.0.1
-                imagePullPolicy: Always
+                imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
                     path: /healthz

@@ -105,13 +105,15 @@ status:
 ```
 $ kubectl apply -k example/basic/
 
-secret/gateway-license created
-secret/gateway-secret created
-secret/graphman-encryption-secret created
-secret/graphman-infra-secret created
-secret/harbor-reg-cred created
+serviceaccount/ssg-serviceaccount created
+secret/gateway-license configured
+secret/gateway-secret configured
+secret/graphman-bootstrap-bundle configured
+secret/graphman-encryption-secret configured
+secret/graphman-repository-secret configured
+secret/restman-bootstrap-bundle configured
 gateway.security.brcmlabs.com/ssg created
-repository.security.brcmlabs.com/graphman-infra created
+
 ```
 
 ##### Referencing the repositories we created
@@ -193,8 +195,8 @@ $ kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
 1.6805480465468638e+09  INFO    controllers.Gateway     Deployment hasn't been created yet      {"Name": "ssg", "Namespace": "layer7"}
 1.6805480466609669e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-repository-init-config", "Namespace": "layer7"}
 1.6805480466660128e+09  INFO    controllers.Gateway     Creating Deployment     {"Name": "ssg", "Namespace": "layer7"}
-1.6805480472615528e+09  INFO    controllers.Repository  Creating Storage Secret {"Name": "graphman-infra-repository", "Namespace": "layer7"}
-1.680548047275876e+09   INFO    controllers.Repository  Reconciled      {"Name": "graphman-infra", "Namespace": "layer7", "Commit": "4b6c3ff1f174e4095ceadb31153392084fbaa61b"}
+1.6805480472615528e+09  INFO    controllers.Repository  Creating Storage Secret {"Name": "l7-gw-myframework", "Namespace": "layer7"}
+1.680548047275876e+09   INFO    controllers.Repository  Reconciled      {"Name": "l7-gw-myframework", "Namespace": "layer7", "Commit": "4b6c3ff1f174e4095ceadb31153392084fbaa61b"}
 1.6805786502375867e+09  INFO    controllers.Gateway     Applying Latest Commit  {"Repo": "l7-gw-myapis", "Directory": "/", "Commit": "3791f11c9b588b383ce87535f46d4fc1526ae83b", "Pod": "ssg-57d96567cb-n24g9", "Name": "ssg", "Namespace": "layer7"}
 1.6805786509813132e+09  INFO    controllers.Gateway     Applying Latest Commit  {"Repo": "l7-gw-mysubscriptions", "Directory": "/", "Commit": "fd6b225159fcd8fccf4bd61e31f40cdac64eccfa", "Pod": "ssg-57d96567cb-n24g9", "Name": "ssg", "Namespace": "layer7"}
 ...
@@ -251,13 +253,13 @@ version: 10.1.00_CR3
 ###### Repository CR
 The Repository Controller keeps tracks the latest available commit, where it's stored (if it's less than 1mb we create a Kubernetes secret) and when it was last updated.
 ```
-$ kubectl get repository graphman-infra -oyaml
+$ kubectl get repository l7-gw-myapis -oyaml
 ...
 status:
-  commit: 4b6c3ff1f174e4095ceadb31153392084fbaa61b
-  name: graphman-infra
-  storageSecretName: graphman-infra-repository
-  updated: 2023-04-03 18:54:07.269503633 +0000 UTC m=+826.914772135
+  commit: 7332f861e11612a91ca9de6b079826b9377dae6a
+  name: l7-gw-myapis
+  storageSecretName: l7-gw-myapis-repository
+  updated: 2023-04-06 15:00:20.144406434 +0000 UTC m=+21.758241719
   vendor: Github
 ```
 

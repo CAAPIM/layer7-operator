@@ -41,11 +41,12 @@ metadata:
               }
             },
             "license": {
-              "accept": true,
+              "accept": false,
               "secretName": "gateway-license"
             },
             "version": "10.1.00_CR3"
-          }
+          },
+          "status": {}
         },
         {
           "apiVersion": "security.brcmlabs.com/v1",
@@ -67,7 +68,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-04-06T15:44:23Z"
+    createdAt: "2023-04-19T09:21:50Z"
     operatorframework.io/suggested-namespace: layer7
     operators.operatorframework.io/builder: operator-sdk-v1.28.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -81,6 +82,9 @@ spec:
       displayName: Gateway
       kind: Gateway
       name: gateways.security.brcmlabs.com
+      statusDescriptors:
+      - displayName: Host
+        path: host
       version: v1
     - description: Repository is the Schema for the repositories API
       displayName: Repository
@@ -416,7 +420,7 @@ spec:
   - layer7-operator
   links:
   - name: Layer7 Operator
-    url: https://github.com/gazza7205/layer7-operator
+    url: https://github.com/caapim/layer7-operator
   maintainers:
   - email: gary.vermeulen@broadcom.com
     name: Gary Vermeulen

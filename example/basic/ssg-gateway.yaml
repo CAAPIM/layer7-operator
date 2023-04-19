@@ -140,3 +140,13 @@ spec:
         protocol: TCP
     ingress:
       enabled: false
+    # containerSecurityContext:
+    #   runAsNonRoot: true
+    #   runAsUser: 1000669998
+    #   capabilities:
+    #     drop:
+    #     - ALL
+    #   allowPrivilegeEscalation: false
+    # podSecurityContext:
+    #   runAsUser: 1000669998
+    #   runAsGroup: 1000669998

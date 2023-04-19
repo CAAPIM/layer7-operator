@@ -22,19 +22,22 @@ import (
 
 // RepositorySpec defines the desired state of Repository
 type RepositorySpec struct {
-	// Custom Labels
+	//Labels - Custom Labels
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name
+	// Name Repository name
 	Name string `json:"name,omitempty"`
 	// Enabled - if enabled this repository will be synced
 	Enabled bool `json:"enabled,omitempty"`
 	// Endoint - Git repository endpoint
-	Endpoint             string               `json:"endpoint,omitempty"`
+	Endpoint string `json:"endpoint,omitempty"`
+	// LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
+	// This is not currently implemented
 	LocalReference       LocalReference       `json:"localReference,omitempty"`
 	RepositorySyncConfig RepositorySyncConfig `json:"sync,omitempty"`
 	// Branch - specify which branch to check out
-	Branch string         `json:"branch,omitempty"`
-	Auth   RepositoryAuth `json:"auth,omitempty"`
+	Branch string `json:"branch,omitempty"`
+	// Auth contains a reference to the credentials required to connect to your Git repository
+	Auth RepositoryAuth `json:"auth,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -44,8 +47,9 @@ type RepositorySpec struct {
 type Repository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   RepositorySpec   `json:"spec,omitempty"`
+	// Spec - Repository Spec
+	Spec RepositorySpec `json:"spec,omitempty"`
+	// Status - Repository Status
 	Status RepositoryStatus `json:"status,omitempty"`
 }
 

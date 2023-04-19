@@ -31,24 +31,10 @@ import (
 type GatewaySpec struct {
 	License License `json:"license,omitempty"`
 	App     App     `json:"app,omitempty"`
-	Version string  `json:"version,omitempty"`
-}
-
-// GatewayStatus defines the observed state of Gateway
-type GatewayStatus struct {
-	Host               string                       `json:"host,omitempty"`
-	Conditions         []appsv1.DeploymentCondition `json:"conditions,omitempty"`
-	Phase              corev1.PodPhase              `json:"phase,omitempty"`
-	Gateway            []GatewayState               `json:"gateway,omitempty"`
-	ObservedGeneration int64                        `json:"observedGeneration,omitempty"`
-	Ready              int32                        `json:"ready,omitempty"`
-	State              corev1.PodConditionType      `json:"state,omitempty"`
-	Replicas           int32                        `json:"replicas,omitempty"`
-	Version            string                       `json:"version,omitempty"`
-	Image              string                       `json:"image,omitempty"`
-	LabelSelectorPath  string                       `json:"labelSelectorPath,omitempty"`
-	ManagementPod      string                       `json:"managementPod,omitempty"`
-	RepositoryStatus   []GatewayRepositoryStatus    `json:"repositoryStatus,omitempty"`
+	// Version references the Gateway release that this Operator is intended to be used with
+	// while all supported container gateway versions will work, some functionality will not be available
+	// like bootstrapping graphman bundles which is currently unique to 10.1.00_CR3
+	Version string `json:"version,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -80,6 +66,24 @@ type GatewayState struct {
 	StartTime string          `json:"startTime,omitempty"`
 }
 
+// GatewayStatus defines the observed state of Gateway
+type GatewayStatus struct {
+	//+operator-sdk:csv:customresourcedefinitions:type=status
+	Host               string                       `json:"host,omitempty"`
+	Conditions         []appsv1.DeploymentCondition `json:"conditions,omitempty"`
+	Phase              corev1.PodPhase              `json:"phase,omitempty"`
+	Gateway            []GatewayState               `json:"gateway,omitempty"`
+	ObservedGeneration int64                        `json:"observedGeneration,omitempty"`
+	Ready              int32                        `json:"ready,omitempty"`
+	State              corev1.PodConditionType      `json:"state,omitempty"`
+	Replicas           int32                        `json:"replicas,omitempty"`
+	Version            string                       `json:"version,omitempty"`
+	Image              string                       `json:"image,omitempty"`
+	LabelSelectorPath  string                       `json:"labelSelectorPath,omitempty"`
+	ManagementPod      string                       `json:"managementPod,omitempty"`
+	RepositoryStatus   []GatewayRepositoryStatus    `json:"repositoryStatus,omitempty"`
+}
+
 // GatewayRepositoryStatus tracks the status of which Graphman repositories have been applied to the Gateway Resource.
 type GatewayRepositoryStatus struct {
 	Enabled bool   `json:"enabled"`
@@ -95,6 +99,7 @@ type GatewayRepositoryStatus struct {
 	Endpoint          string `json:"endpoint,omitempty"`
 }
 
+// Management defines configuration for Gateway Managment.
 type Management struct {
 	SecretName string   `json:"secretName,omitempty"`
 	Username   string   `json:"username,omitempty"`
@@ -106,15 +111,19 @@ type Management struct {
 	Service    Service  `json:"service,omitempty"`
 }
 
+// Restman is a Gateway Management interface that can be automatically provisioned.
 type Restman struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+// Graphman is a GraphQL Gateway Management interface that can be automatically provisioned.
+// The initContainer image is required for bootstrapping graphman bundles defined by the repository controller.
 type Graphman struct {
 	Enabled            bool   `json:"enabled,omitempty"`
 	InitContainerImage string `json:"initContainerImage,omitempty"`
 }
 
+// Bundle A Restman or Graphman bundle
 type Bundle struct {
 	Type      string    `json:"type,omitempty"`
 	Source    string    `json:"source,omitempty"`
@@ -123,27 +132,33 @@ type Bundle struct {
 	CSI       CSI       `json:"csi,omitempty"`
 }
 
+// ConfigMap
 type ConfigMap struct {
 	DefaultMode *int32 `json:"defaultMode,omitempty"`
 	Optional    bool   `json:"optional,omitempty"`
 	Name        string `json:"name,omitempty"`
 }
 
+// CSI
 type CSI struct {
 	Driver           string `json:"driver,omitempty"`
 	ReadOnly         bool   `json:"readOnly,omitempty"`
 	VolumeAttributes `json:"volumeAttributes,omitempty"`
 }
 
+// VolumeAtttributes
 type VolumeAttributes struct {
 	SecretProviderClass string `json:"secretProviderClass,omitempty"`
 }
 
+// License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license.
+// license.accept must be set to true or the Gateway will not start.
 type License struct {
 	Accept     bool   `json:"accept,omitempty"`
 	SecretName string `json:"secretName,omitempty"`
 }
 
+// Database configuration for the Gateway
 type Database struct {
 	Enabled  bool   `json:"enabled"`
 	JDBCUrl  string `json:"jdbcUrl,omitempty"`
@@ -151,12 +166,14 @@ type Database struct {
 	Password string `json:"password,omitempty"`
 }
 
+// Image is the Gateway Image
 type Image struct {
 	Registry   string `json:"registry"`
 	Repository string `json:"repository"`
 	Tag        string `json:"tag"`
 }
 
+// App contains Gateway specific deployment and application level configuration
 type App struct {
 	Annotations               map[string]string                 `json:"annotations,omitempty"`
 	Labels                    map[string]string                 `json:"labels,omitempty"`
@@ -191,11 +208,13 @@ type App struct {
 	NodeSelector              map[string]string                 `json:"nodeSelector,omitempty"`
 }
 
+// ClusterProperties are key value pairs of additional cluster-wide properties you wish to bootstrap to your Gateway.
 type ClusterProperties struct {
 	Enabled    bool       `json:"enabled,omitempty"`
 	Properties []Property `json:"properties,omitempty"`
 }
 
+// Property is a cluster-wide property k/v pair
 type Property struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
@@ -210,30 +229,35 @@ type Monitoring struct {
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor,omitempty"`
 }
 
+// Otel
 type Otel struct {
 	Collector Collector `json:"collector,omitempty"`
 }
 
+// Collector is an OpenTelemetryCollector Configuration
 type Collector struct {
 	//Name   string
 	Create bool `json:"create,omitempty"`
 }
 
+// ServiceMonitor is a Prom Service Monitor Configuration
 type ServiceMonitor struct {
 	//Name   string
 	Create bool `json:"create,omitempty"`
 }
 
+// Bootstrap - optionally add a bootstrap script to the Gateway that migrates configuration from /opt/docker/custom to the correct Container Gateway locations for bootstrap
 type Bootstrap struct {
 	Script BootstrapScript `json:"script,omitempty"`
 }
 
+// BootstrapScript - enable/disable this functionality
 type BootstrapScript struct {
 	Enabled bool `json:"enabled,omitempty"`
 	//Cleanup bool `json:"cleanup,omitempty"`
 }
 
-// Layer7 Gateway instantiates the following HTTP(s) ports by default
+// ListenPorts The Layer7 Gateway instantiates the following HTTP(s) ports by default
 // Harden applies the following changes, setting ports overrides this flag.
 // - 8080 (HTTP)
 //   - Disable
@@ -259,6 +283,7 @@ type ListenPorts struct {
 	Ports        []ListenPort     `json:"ports,omitempty"`
 }
 
+// CustomListenPort - enable/disable custom listen ports
 type CustomListenPort struct {
 	Enabled bool `json:"enabled,omitempty"`
 }

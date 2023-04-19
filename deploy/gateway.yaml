@@ -24,9 +24,10 @@ spec:
         targetPort: 9443
       type: LoadBalancer
   license:
-    accept: true
+    accept: false
     secretName: gateway-license
   version: 10.1.00_CR3
+status: {}
 ---
 apiVersion: security.brcmlabs.com/v1
 kind: Repository

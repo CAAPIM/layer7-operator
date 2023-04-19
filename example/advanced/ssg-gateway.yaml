@@ -282,17 +282,16 @@ spec:
             - type: Percent
               value: 100
               periodSeconds: 15
-    containerSecurityContext:
-      runAsNonRoot: true
-      runAsUser: 3000
-      capabilities:
-        drop:
-        - ALL
-      allowPrivilegeEscalation: false
-    podSecurityContext:
-      runAsUser: 3000
-      runAsGroup: 3000
-      fsGroup: 3000
+    # containerSecurityContext:
+    #   runAsNonRoot: true
+    #   runAsUser: 1000669998
+    #   capabilities:
+    #     drop:
+    #     - ALL
+    #   allowPrivilegeEscalation: false
+    # podSecurityContext:
+    #   runAsUser: 1000669998
+    #   runAsGroup: 1000669998
     affinity: {}
     nodeSelector: {}
     tolerations: []

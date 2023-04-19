@@ -2,11 +2,15 @@ apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
   name: ssg
+# spec Gateway Spec
 spec:
+  # version is the gateway version this operator has been validated against
   version: "10.1.00_CR3"
+  # license is reference to a Gateway v10/11.x license. license.accept must be set to true for the gateway to start.
   license:
-    accept: true
+    accept: false
     secretName: gateway-license
+  # app contains gateway application and deployment level specifications
   app:
     replicas: 1
     image: docker.io/caapim/gateway:10.1.00_CR3
@@ -28,3 +32,5 @@ spec:
         port: 9443
         targetPort: 9443
         protocol: TCP
+# status Gateway status
+status: {}

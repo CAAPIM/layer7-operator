@@ -32,10 +32,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: RepositorySpec defines the desired state of Repository
+            description: Spec - Repository Spec
             properties:
               auth:
-                description: RepositoryAuth
+                description: Auth contains a reference to the credentials required
+                  to connect to your Git repository
                 properties:
                   existingSecretName:
                     description: ExistingSecretName reference an existing secret
@@ -66,9 +67,12 @@ spec:
               labels:
                 additionalProperties:
                   type: string
-                description: Custom Labels
+                description: Labels - Custom Labels
                 type: object
               localReference:
+                description: LocalReference lets the Repository controller use a local
+                  Kubernetes Configmap/Secret as a repository source This is not currently
+                  implemented
                 properties:
                   configMapName:
                     type: string
@@ -76,7 +80,7 @@ spec:
                     type: string
                 type: object
               name:
-                description: Name
+                description: Name Repository name
                 type: string
               sync:
                 description: RepositorySyncConfig
@@ -89,7 +93,7 @@ spec:
                 type: object
             type: object
           status:
-            description: RepositoryStatus defines the observed state of Repository
+            description: Status - Repository Status
             properties:
               commit:
                 type: string

@@ -35,6 +35,8 @@ spec:
             description: GatewaySpec defines the desired state of Gateway
             properties:
               app:
+                description: App contains Gateway specific deployment and application
+                  level configuration
                 properties:
                   affinity:
                     description: Affinity is a group of affinity scheduling rules.
@@ -1572,8 +1574,12 @@ spec:
                         type: object
                     type: object
                   bootstrap:
+                    description: Bootstrap - optionally add a bootstrap script to
+                      the Gateway that migrates configuration from /opt/docker/custom
+                      to the correct Container Gateway locations for bootstrap
                     properties:
                       script:
+                        description: BootstrapScript - enable/disable this functionality
                         properties:
                           enabled:
                             type: boolean
@@ -1581,8 +1587,10 @@ spec:
                     type: object
                   bundle:
                     items:
+                      description: Bundle A Restman or Graphman bundle
                       properties:
                         configMap:
+                          description: ConfigMap
                           properties:
                             defaultMode:
                               format: int32
@@ -1593,12 +1601,14 @@ spec:
                               type: boolean
                           type: object
                         csi:
+                          description: CSI
                           properties:
                             driver:
                               type: string
                             readOnly:
                               type: boolean
                             volumeAttributes:
+                              description: VolumeAtttributes
                               properties:
                                 secretProviderClass:
                                   type: string
@@ -1784,11 +1794,14 @@ spec:
                         type: object
                     type: object
                   cwp:
+                    description: ClusterProperties are key value pairs of additional
+                      cluster-wide properties you wish to bootstrap to your Gateway.
                     properties:
                       enabled:
                         type: boolean
                       properties:
                         items:
+                          description: Property is a cluster-wide property k/v pair
                           properties:
                             name:
                               type: string
@@ -3294,21 +3307,23 @@ spec:
                       type: string
                     type: object
                   listenPorts:
-                    description: "Layer7 Gateway instantiates the following HTTP(s)
-                      ports by default Harden applies the following changes, setting
-                      ports overrides this flag. - 8080 (HTTP) - Disable - Allow Published
-                      Service Message input only \n - 8443 (HTTPS) - Remove Management
-                      Features (no Policy Manager Access) - Enables TLSv1.2,TLS1.3
-                      only - Disables insecure Cipher Suites \n - 9443 (HTTPS) - Enables
-                      TLSv1.2,TLS1.3 only - Disables insecure Cipher Suites \n - 2124
-                      (Inter-Node Communication) - Not created - if using an existing
-                      database 2124 will not be modified"
+                    description: "ListenPorts The Layer7 Gateway instantiates the
+                      following HTTP(s) ports by default Harden applies the following
+                      changes, setting ports overrides this flag. - 8080 (HTTP) -
+                      Disable - Allow Published Service Message input only \n - 8443
+                      (HTTPS) - Remove Management Features (no Policy Manager Access)
+                      - Enables TLSv1.2,TLS1.3 only - Disables insecure Cipher Suites
+                      \n - 9443 (HTTPS) - Enables TLSv1.2,TLS1.3 only - Disables insecure
+                      Cipher Suites \n - 2124 (Inter-Node Communication) - Not created
+                      - if using an existing database 2124 will not be modified"
                     properties:
                       cipherSuites:
                         items:
                           type: string
                         type: array
                       custom:
+                        description: CustomListenPort - enable/disable custom listen
+                          ports
                         properties:
                           enabled:
                             type: boolean
@@ -3330,6 +3345,8 @@ spec:
                               type: string
                             properties:
                               items:
+                                description: Property is a cluster-wide property k/v
+                                  pair
                                 properties:
                                   name:
                                     type: string
@@ -3366,6 +3383,7 @@ spec:
                         type: array
                     type: object
                   management:
+                    description: Management defines configuration for Gateway Managment.
                     properties:
                       cluster:
                         properties:
@@ -3375,6 +3393,7 @@ spec:
                             type: string
                         type: object
                       database:
+                        description: Database configuration for the Gateway
                         properties:
                           enabled:
                             type: boolean
@@ -3388,6 +3407,10 @@ spec:
                         - enabled
                         type: object
                       graphman:
+                        description: Graphman is a GraphQL Gateway Management interface
+                          that can be automatically provisioned. The initContainer
+                          image is required for bootstrapping graphman bundles defined
+                          by the repository controller.
                         properties:
                           enabled:
                             type: boolean
@@ -3397,6 +3420,8 @@ spec:
                       password:
                         type: string
                       restman:
+                        description: Restman is a Gateway Management interface that
+                          can be automatically provisioned.
                         properties:
                           enabled:
                             type: boolean
@@ -3442,8 +3467,10 @@ spec:
                       enabled:
                         type: boolean
                       otel:
+                        description: Otel
                         properties:
                           collector:
+                            description: Collector is an OpenTelemetryCollector Configuration
                             properties:
                               create:
                                 description: Name   string
@@ -3451,6 +3478,7 @@ spec:
                             type: object
                         type: object
                       serviceMonitor:
+                        description: ServiceMonitor is a Prom Service Monitor Configuration
                         properties:
                           create:
                             description: Name   string
@@ -5287,6 +5315,9 @@ spec:
                     type: object
                 type: object
               license:
+                description: License is reference to a Kubernetes Secret Containing
+                  a Gateway v10/11.x license. license.accept must be set to true or
+                  the Gateway will not start.
                 properties:
                   accept:
                     type: boolean
@@ -5294,6 +5325,10 @@ spec:
                     type: string
                 type: object
               version:
+                description: Version references the Gateway release that this Operator
+                  is intended to be used with while all supported container gateway
+                  versions will work, some functionality will not be available like
+                  bootstrapping graphman bundles which is currently unique to 10.1.00_CR3
                 type: string
             type: object
           status:

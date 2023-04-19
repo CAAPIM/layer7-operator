@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     operatorframework.io/suggested-namespace: layer7
-  name: layer7-operator.v0.0.0
+  name: layer7-operator.v1.0.1
   namespace: default
 spec:
   apiservicedefinitions: {}
@@ -15,6 +15,9 @@ spec:
       displayName: Gateway
       kind: Gateway
       name: gateways.security.brcmlabs.com
+      statusDescriptors:
+      - displayName: Host
+        path: host
       version: v1
     - description: Repository is the Schema for the repositories API
       displayName: Repository
@@ -44,7 +47,7 @@ spec:
   - layer7-operator
   links:
   - name: Layer7 Operator
-    url: https://github.com/gazza7205/layer7-operator
+    url: https://github.com/caapim/layer7-operator
   maintainers:
   - email: gary.vermeulen@broadcom.com
     name: Gary Vermeulen
@@ -52,4 +55,4 @@ spec:
   provider:
     name: Broadcom Software
     url: https://www.broadcom.com/
-  version: 0.0.0
+  version: 1.0.1

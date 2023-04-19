@@ -1,0 +1,32 @@
+name: Build Bundles
+on: push
+
+jobs:
+  run:
+    name: Build Deployment Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Prepare Bases
+        run: make version
+
+      - name: Generate Deployment Manifests
+        run: make generate-deployment generate-cw-deployment
+
+      - name: Generate Deployment Bundle
+        run: make generate-deployment-bundle generate-cw-deployment-bundle
+
+
+# ## Commit the /bundle changes to the repository
+#       - name: Update source code
+#         run: eslint "src/**" --fix
+
+#       - name: Commit changes
+#         uses: EndBug/add-and-commit@v9
+#         with:
+#           author_name: Your Name
+#           author_email: mail@example.com
+#           message: 'Your commit message'
+#           add: '*.js'

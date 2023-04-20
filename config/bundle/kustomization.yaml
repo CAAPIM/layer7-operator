@@ -48,5 +48,5 @@ resources:
 - ../operator
 images:
 - name: controller
-  newName: IMAGE_TAG_BASE
-  newTag: vVERSION
+  newName: docker.io/layer7api/layer7-operator
+  newTag: latest

@@ -3,7 +3,7 @@
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.3)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.3)
-VERSION ?= 1.0.1
+VERSION ?= latest
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -260,12 +260,12 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 version:
-	sed -i -e "s~IMAGE_TAG_BASE~${IMAGE_TAG_BASE}~g" config/operator/kustomization.yaml
-	sed -i -e "s~VERSION~${VERSION}~g" config/operator/kustomization.yaml
-	sed -i -e "s~IMAGE_TAG_BASE~${IMAGE_TAG_BASE}~g" config/cw-operator/kustomization.yaml
-	sed -i -e "s~VERSION~${VERSION}~g" config/cw-operator/kustomization.yaml
-	sed -i -e "s~IMAGE_TAG_BASE~${IMAGE_TAG_BASE}~g" config/bundle/kustomization.yaml
-	sed -i -e "s~VERSION~${VERSION}~g" config/bundle/kustomization.yaml
+	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/operator/kustomization.yaml
+	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/operator/kustomization.yaml
+	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/cw-operator/kustomization.yaml
+	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
+	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/bundle/kustomization.yaml
+	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/bundle/kustomization.yaml
 
 helmify:
 #$(call go-get-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify@v0.3.7)

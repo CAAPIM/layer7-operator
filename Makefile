@@ -262,6 +262,8 @@ catalog-push: ## Push a catalog image.
 version:
 	sed -i -e "s~IMAGE_TAG_BASE~${IMAGE_TAG_BASE}~g" config/operator/kustomization.yaml
 	sed -i -e "s~VERSION~${VERSION}~g" config/operator/kustomization.yaml
+	sed -i -e "s~IMAGE_TAG_BASE~${IMAGE_TAG_BASE}~g" config/cw-operator/kustomization.yaml
+	sed -i -e "s~VERSION~${VERSION}~g" config/cw-operator/kustomization.yaml
 	sed -i -e "s~IMAGE_TAG_BASE~${IMAGE_TAG_BASE}~g" config/bundle/kustomization.yaml
 	sed -i -e "s~VERSION~${VERSION}~g" config/bundle/kustomization.yaml
 

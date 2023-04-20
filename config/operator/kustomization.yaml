@@ -13,4 +13,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: IMAGE_TAG_BASE
-  newTag: vVERSION
+  newTag: VERSION

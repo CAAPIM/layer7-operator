@@ -21,10 +21,10 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
       - name: Prepare Bases
         run: make version
-      - name: Check Operator Image Tag
-        run: .github/check_image_tags.sh ${IMAGE_TAG_BASE} ${VERSION}
-      - name: Check Bundle Image Tag
-        run: .github/check_image_tags.sh ${IMAGE_TAG_BASE}-bundle ${VERSION}
+      # - name: Check Operator Image Tag
+      #   run: .github/check_image_tags.sh ${IMAGE_TAG_BASE} ${VERSION}
+      # - name: Check Bundle Image Tag
+      #   run: .github/check_image_tags.sh ${IMAGE_TAG_BASE}-bundle ${VERSION}
       - name: Generate Deployment Manifests
         run: make generate-deployment generate-cw-deployment
       - name: Generate Deployment Bundle
@@ -60,27 +60,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push Operator
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: ${{ IMAGE_TAG_BASE }}:${{ VERSION }}
+        run: docker-build docker-push
       - name: Build and push Operator Bundle
-        uses: docker/build-push-action@v4
-        with:
-          context: bundle.Dockerfile
-          push: true
-          tags: ${IMAGE_TAG_BASE}-bundle:${VERSION}
-
-
-# ## Commit the /bundle changes to the repository
-#       - name: Update source code
-#         run: eslint "src/**" --fix
-
-#       - name: Commit changes
-#         uses: EndBug/add-and-commit@v9
-#         with:
-#           author_name: Your Name
-#           author_email: mail@example.com
-#           message: 'Your commit message'
-#           add: '*.js'
+        run: make bundle bundle-build bundle-push

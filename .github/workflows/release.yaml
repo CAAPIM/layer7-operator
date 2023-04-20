@@ -60,6 +60,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push Operator
-        run: docker-build docker-push
+        run: make docker-build docker-push
       - name: Build and push Operator Bundle
-        run: make bundle bundle-build bundle-push
+        run: make bundle-build bundle-push

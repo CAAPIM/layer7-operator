@@ -259,7 +259,11 @@ catalog-build: opm ## Build a catalog image.
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
-
+version:
+	sed -i -e "s~IMAGE_TAG_BASE~${IMAGE_TAG_BASE}~g" config/operator/kustomization.yaml
+	sed -i -e "s~VERSION~${VERSION}~g" config/operator/kustomization.yaml
+	sed -i -e "s~IMAGE_TAG_BASE~${IMAGE_TAG_BASE}~g" config/bundle/kustomization.yaml
+	sed -i -e "s~VERSION~${VERSION}~g" config/bundle/kustomization.yaml
 
 helmify:
 #$(call go-get-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify@v0.3.7)

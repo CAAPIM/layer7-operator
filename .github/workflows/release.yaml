@@ -1,0 +1,86 @@
+name: Build Bundles
+on: 
+  push:
+    tags:
+      - "v*.*.*"
+jobs:
+  create-release:
+    name: Build Deployment Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        env:
+          VERSION: ${{ github.ref_name }}
+          IMAGE_TAG_BASE: docker.io/layerapi/layer7-operator
+        with:
+          fetch-depth: 0
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Prepare Bases
+        run: make version
+      - name: Check Operator Image Tag
+        run: .github/check_image_tags.sh ${IMAGE_TAG_BASE} ${VERSION}
+      - name: Check Bundle Image Tag
+        run: .github/check_image_tags.sh ${IMAGE_TAG_BASE}-bundle ${VERSION}
+      - name: Generate Deployment Manifests
+        run: make generate-deployment generate-cw-deployment
+      - name: Generate Deployment Bundle
+        run: make generate-deployment-bundle generate-cw-deployment-bundle
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            deploy/*
+  build-and-push-images:
+    name: Checkout repo
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+      IMAGE_TAG_BASE: docker.io/layerapi/layer7-operator
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push Operator
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${IMAGE_TAG_BASE}:${VERSION}
+      - name: Build and push Operator Bundle
+        uses: docker/build-push-action@v4
+        with:
+          context: bundle.Dockerfile
+          push: true
+          tags: ${IMAGE_TAG_BASE}-bundle:${VERSION}
+
+
+# ## Commit the /bundle changes to the repository
+#       - name: Update source code
+#         run: eslint "src/**" --fix
+
+#       - name: Commit changes
+#         uses: EndBug/add-and-commit@v9
+#         with:
+#           author_name: Your Name
+#           author_email: mail@example.com
+#           message: 'Your commit message'
+#           add: '*.js'

@@ -4,7 +4,6 @@
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.3)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.3)
 VERSION ?= latest
-
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:
@@ -261,10 +260,10 @@ catalog-push: ## Push a catalog image.
 
 version:
 	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/operator/kustomization.yaml
-	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/operator/kustomization.yaml
 	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/cw-operator/kustomization.yaml
-	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
 	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/bundle/kustomization.yaml
+	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/operator/kustomization.yaml
+	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
 	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/bundle/kustomization.yaml
 
 helmify:

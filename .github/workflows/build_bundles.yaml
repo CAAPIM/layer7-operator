@@ -1,30 +1,36 @@
-name: Build Bundles
-on: push
+# name: Build Bundles
+# on: 
+#   pull_request:
+#     branches: 
+#     - main
 
-jobs:
-  run:
-    name: Build Deployment Manifests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+# jobs:
+#   run:
+#     name: Build Deployment Manifests
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v3
+#         with:
+#           fetch-depth: 0
+#           # repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+#       - name: Configure Git
+#         run: |
+#           git config user.name "$GITHUB_ACTOR"
+#           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Prepare Bases
-        run: make version
+#       - name: Prepare Bases
+#         run: make version
+      
+#       - name: Check Target
+#         run: make check-target
 
-      - name: Generate Deployment Manifests
-        run: make generate-deployment generate-cw-deployment
+#       - name: Generate Deployment Manifests
+#         run: make generate-deployment generate-cw-deployment
 
-      - name: Generate Deployment Bundle
-        run: make generate-deployment-bundle generate-cw-deployment-bundle
+#       - name: Generate Deployment Bundle
+#         run: make generate-deployment-bundle generate-cw-deployment-bundle
 
 
 # ## Commit the /bundle changes to the repository

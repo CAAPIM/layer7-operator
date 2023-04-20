@@ -10,6 +10,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
         run: |
@@ -21,8 +22,6 @@ jobs:
 
       - name: Generate Deployment Manifests
         run: make generate-deployment generate-cw-deployment
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Deployment Bundle
         run: make generate-deployment-bundle generate-cw-deployment-bundle

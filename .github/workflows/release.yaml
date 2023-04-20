@@ -36,7 +36,7 @@ jobs:
           files: |
             deploy/*
   build-and-push-images:
-    name: Checkout repo
+    name: Build and Push Images
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ github.ref_name }}
@@ -64,7 +64,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${IMAGE_TAG_BASE}:${VERSION}
+          tags: ${{ IMAGE_TAG_BASE }}:${{ VERSION }}
       - name: Build and push Operator Bundle
         uses: docker/build-push-action@v4
         with:

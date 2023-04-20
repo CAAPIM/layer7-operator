@@ -7,12 +7,12 @@ jobs:
   create-release:
     name: Build Deployment Manifests
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+      IMAGE_TAG_BASE: docker.io/layer7api/layer7-operator
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-        env:
-          VERSION: ${{ github.ref_name }}
-          IMAGE_TAG_BASE: docker.io/layerapi/layer7-operator
         with:
           fetch-depth: 0
       - name: Configure Git
@@ -34,13 +34,13 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            deploy/*
+            deploy/bundle.yaml
   build-and-push-images:
     name: Build and Push Images
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ github.ref_name }}
-      IMAGE_TAG_BASE: docker.io/layerapi/layer7-operator
+      IMAGE_TAG_BASE: docker.io/layer7api/layer7-operator
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3

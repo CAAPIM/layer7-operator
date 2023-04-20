@@ -259,12 +259,12 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 version:
-	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/operator/kustomization.yaml
-	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/cw-operator/kustomization.yaml
-	sed -i '' "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/bundle/kustomization.yaml
-	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/operator/kustomization.yaml
-	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
-	sed -i '' "s~newTag:.*~newTag: ${VERSION}~g" config/bundle/kustomization.yaml
+	sed -i "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/operator/kustomization.yaml
+	sed -i "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/cw-operator/kustomization.yaml
+	sed -i "s~newName:.*~newName: ${IMAGE_TAG_BASE}~g" config/bundle/kustomization.yaml
+	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/operator/kustomization.yaml
+	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
+	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/bundle/kustomization.yaml
 
 helmify:
 #$(call go-get-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify@v0.3.7)

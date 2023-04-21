@@ -49,4 +49,4 @@ resources:
 images:
 - name: controller
   newName: docker.io/layer7api/layer7-operator
-  newTag: latest
+  newTag: main

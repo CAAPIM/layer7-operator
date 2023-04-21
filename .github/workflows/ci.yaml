@@ -31,7 +31,7 @@ jobs:
     name: Build and Push Images
     runs-on: ubuntu-latest
     env:
-      VERSION: $GITHUB_HEAD_REF
+      VERSION: ${GITHUB_HEAD_REF}
       IMAGE_TAG_BASE: docker.io/layer7api/layer7-operator
     steps:
       - name: Checkout repo

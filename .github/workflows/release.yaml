@@ -1,4 +1,4 @@
-name: Build Bundles
+name: Create Release
 on: 
   push:
     tags:

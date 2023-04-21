@@ -1,6 +1,6 @@
-name: Build Images
+name: Build PR Images
 on: 
-  push:
+  pull_request:
     branches:
       - main
       - develop

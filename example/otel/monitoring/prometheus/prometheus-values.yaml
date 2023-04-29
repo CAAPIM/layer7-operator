@@ -1,0 +1,80 @@
+prometheusOperator:
+  namespaces:
+    releaseNamespace: true
+    additional:
+    - kube-system
+    - layer7
+    - default
+  denyNamespaces: []
+  prometheusInstanceNamespaces: []
+  alertmanagerInstanceNamespaces: []
+  thanosRulerInstanceNamespaces: []
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+grafana:
+  enabled: true
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'layer7'
+        orgId: 1
+        folder: 'Layer7'
+        type: file
+        disableDeletion: true
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/layer7
+
+
+  dashboardsConfigMaps:
+    layer7: layer7-gateway-dashboard
+
+  adminPassword: 7layer
+
+  rbac:
+    ## If true, Grafana PSPs will be created
+    ##
+    pspEnabled: false
+
+  ingress:
+    ## If true, Grafana Ingress will be created
+    ##
+    enabled: true
+
+    ## IngressClassName for Grafana Ingress.
+    ## Should be provided if Ingress is enable.
+    ##
+    ingressClassName: nginx
+
+    ## Annotations for Grafana Ingress
+    ##
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+
+    ## Labels to be added to the Ingress
+    ##
+    labels: {}
+
+    ## Hostnames.
+    ## Must be provided if Ingress is enable.
+    ##
+    hosts:
+      - grafana.brcmlabs.com
+
+    ## Path for grafana ingress
+    path: /
+
+    ## TLS configuration for grafana Ingress
+    ## Secret must be manually created in the namespace
+    ##
+    tls:
+    - secretName: default
+      hosts:
+      - grafana.brcmlabs.com

@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: ssg
+  name: ssg
+spec:
+  endpoints:
+  - interval: 10s
+    path: /metrics
+    port: monitoring
+  jobLabel: ssg
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app.kubernetes.io/created-by: layer7-operator
+      app.kubernetes.io/managed-by: layer7-operator
+      app.kubernetes.io/name: ssg
+      app.kubernetes.io/part-of: ssg

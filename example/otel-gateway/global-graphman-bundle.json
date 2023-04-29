@@ -1,0 +1,15 @@
+{
+    "globalPolicies": [
+      {
+        "name": "message-completed",
+        "folderPath": "/global",
+        "goid": "278f6d2cbeb3e0e3b0d9cde605c8a711",
+        "guid": "b3ef3421-8151-4f85-99f8-1dacc7d65748",
+        "tag": "message-completed",
+        "checksum": "570bbce5b1062a17479465574ce046633823cebe",
+        "policy": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<wsp:Policy xmlns:L7p=\"http://www.layer7tech.com/ws/policy\" xmlns:wsp=\"http://schemas.xmlsoap.org/ws/2002/12/policy\">\n    <wsp:All wsp:Usage=\"Required\">\n        <L7p:CommentAssertion>\n            <L7p:Comment stringValue=\"Policy Fragment: message-completed\"/>\n        </L7p:CommentAssertion>\n        <L7p:OtelMeter>\n            <L7p:Attributes mapValue=\"included\">\n                <L7p:entry>\n                    <L7p:key stringValue=\"cluster\"/>\n                    <L7p:value stringValue=\"${gateway.cluster.hostname}\"/>\n                </L7p:entry>\n                <L7p:entry>\n                    <L7p:key stringValue=\"service_name\"/>\n                    <L7p:value stringValue=\"${service.name}\"/>\n                </L7p:entry>\n                <L7p:entry>\n                    <L7p:key stringValue=\"request_method\"/>\n                    <L7p:value stringValue=\"${request.http.method}\"/>\n                </L7p:entry>\n                <L7p:entry>\n                    <L7p:key stringValue=\"request_uri\"/>\n                    <L7p:value stringValue=\"${request.http.uri}\"/>\n                </L7p:entry>\n                <L7p:entry>\n                    <L7p:key stringValue=\"gateway_name\"/>\n                    <L7p:value stringValue=\"${ssgNode.name}\"/>\n                </L7p:entry>\n            </L7p:Attributes>\n            <L7p:Description stringValue=\"\"/>\n            <L7p:Name stringValue=\"http_request_total\"/>\n            <L7p:Type type=\"COUNTER\"/>\n        </L7p:OtelMeter>\n    </wsp:All>\n</wsp:Policy>\n"
+        }
+      }
+    ]
+  }

@@ -1,0 +1,52 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: ssg
+spec:
+  mode: sidecar
+  ports:
+  - port: 8889
+    name: prometheus
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    processors:
+      batch:
+    exporters:
+      logging:
+        loglevel: warn 
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        const_labels:
+          name: ssg
+      jaeger:
+        endpoint: simple-allinone-collector:14250
+        tls:
+          insecure: true
+    service:
+      telemetry:
+        logs:
+          level: "debug"
+        metrics:
+          address: "0.0.0.0:8888"
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [jaeger]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [prometheus, logging]
+        logs: 
+          receivers: [otlp]
+          exporters: [logging]
+    extensions:
+      health_check:
+      pprof:
+        endpoint: 0.0.0.0:1777
+      zpages:
+        endpoint: 0.0.0.0:55679

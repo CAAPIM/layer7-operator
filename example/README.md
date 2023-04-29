@@ -17,6 +17,7 @@ All examples use [kustomize](https://kustomize.io/). The basic example covers a 
 Gateways
 - [Basic](./basic)
 - [Advanced](./advanced)
+- [OTel Integration](./otel-gateway)
 
 Repositories (used in both examples)
 - [Repositories](./repositories/)

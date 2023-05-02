@@ -61,8 +61,14 @@ nodes:
 ```
 
 This process takes a few minutes to complete
+
+- navigate to the example directory
 ```
-$ make kind-cluster otel-example 
+cd example
+```
+- deploy the example
+```
+make kind-cluster otel-example 
 ```
 You will also need to add the following entries to your hosts file
 ```
@@ -99,7 +105,7 @@ nodes:
 
 This command creates a Kind Cluster called layer7. Kind should automatically configure your kubeconfig file so you can get started with commands as soon as it's ready
 ```
-$ kind create cluster --name layer7 --config ./example/kind-config.yaml
+kind create cluster --name layer7 --config ./example/kind-config.yaml
 
 Creating cluster "layer7" ...
  ✓ Ensuring node image (kindest/node:v1.25.3) 🖼 
@@ -118,7 +124,7 @@ Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/
 
 Confirm you can now access your Kind Cluster
 ```
-$ kubectl cluster-info
+kubectl cluster-info
 
 Kubernetes control plane is running at https://192.168.1.64:6443
 CoreDNS is running at https://192.168.1.64:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
@@ -131,12 +137,12 @@ These steps are based the official documentation for installing Cert-Manager [he
 
 - Deploy the Cert Manager Operator
 ```
-$ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
 ```
 
 ##### View CertManager Components
 ```
-$ kubectl get all -n cert-manager
+kubectl get all -n cert-manager
 
 NAME                                          READY   STATUS    RESTARTS   AGE
 pod/cert-manager-cainjector-5fcd49c96-r97pk   1/1     Running   0          34s
@@ -164,16 +170,16 @@ These steps are based the official documentation for installing Open Telemetry [
 
 - Install the Open Telemetry Operator.
 ```
-$ kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
+kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
 ```
 - Create an OpenTelemetryCollector resource
 ```
-$ kubectl apply -f ./example/otel/collector.yaml
+kubectl apply -f ./example/otel/collector.yaml
 ```
 
 ##### View Open Telemetry Components
 ```
-$ kubectl get all -n opentelemetry-operator-system
+kubectl get all -n opentelemetry-operator-system
 
 NAME                                                                READY   STATUS    RESTARTS      AGE
 pod/opentelemetry-operator-controller-manager-5d84764d4b-6zdtb      2/2     Running   18 (8d ago)   28d
@@ -194,20 +200,20 @@ These steps are based on instructions that can be found in the Prometheus Commun
 
 - Add the Prometheus Community Helm Chart repository
 ```
-$ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-$ helm repo update
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
 ```
 - Create a namespace called monitoring
 ```
-$ kubectl create ns monitoring
+kubectl create ns monitoring
 ```
 - Create the Layer7 Grafana Dashboard
 ```
-$ kubectl apply -k ./example/otel/monitoring/grafana/
+kubectl apply -k ./example/otel/monitoring/grafana/
 ```
 - Install the Prometheus Helm Chart in the monitoring namespace
 ```
-$ helm upgrade -i prometheus -f ./example/otel/monitoring/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
+helm upgrade -i prometheus -f ./example/otel/monitoring/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
 ```
 
 #### Install Jaeger
@@ -215,16 +221,16 @@ These steps are based on instructions that can be found in the Jaeger [documenta
 
 - Create a namespace called observability
 ```
-$ kubectl create namespace observability
+kubectl create namespace observability
 ```
 - Install the Jaeger Operator
 ```
-$ kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.44.0/jaeger-operator.yaml -n observability
+kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.44.0/jaeger-operator.yaml -n observability
 ```
 
 #### View Jaeger Components
 ```
-$ kubectl get all -n observability
+kubectl get all -n observability
 
 NAME                                      READY   STATUS    RESTARTS   AGE
 pod/jaeger-operator-6cf68b6f65-z8jtv      2/2     Running   0          16s
@@ -242,7 +248,7 @@ replicaset.apps/jaeger-operator-6cf68b6f65   1         1         1       17s
 
 - Deploy a Jaeger Custom Resource
 ```
-$ kubectl apply -f ./example/otel/observability/jaeger/jaeger.yaml
+kubectl apply -f ./example/otel/observability/jaeger/jaeger.yaml
 ```
 
 
@@ -259,12 +265,12 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-$ kubectl apply -f deploy/bundle.yaml
+kubectl apply -f deploy/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
 ```
-$ kubectl get pods
+kubectl get pods
 
 NAME                                                  READY   STATUS    RESTARTS   AGE
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          27s
@@ -278,7 +284,7 @@ This example ships with 3 pre-configured Graphman repositories. The repository c
 - [l7-gw-myapis](https://github.com/Gazza7205/l7GWMyAPIs)
 
 ```
-$ kubectl apply -k example/repositories
+kubectl apply -k example/repositories
 
 secret/gateway-license configured
 secret/gateway-secret unchanged
@@ -292,7 +298,7 @@ repository.security.brcmlabs.com/l7-gw-mysubscriptions created
 
 ##### Operator Logs
 ```
-$ kubectl logs <layer7-operator-pod> manager
+kubectl logs <layer7-operator-pod> manager
 
 ...
 1.6805762965185595e+09 INFO controllers.Repository Creating Storage Secret {"Name": "l7-gw-myapis-repository", "Namespace": "layer7"}
@@ -310,14 +316,14 @@ The Repository Controller keeps tracks the latest available commit, where it's s
 
 ***Note: If the repository exceeds 1mb in compressed format each Graphman Init Container will clone it at runtime. This represents a single point of failure if your Git Server is down, we recommended creating your own initContainer with the larger graphman bundle.***
 ```
-$ kubectl get repositories
+kubectl get repositories
 
 NAME                    AGE
 l7-gw-myapis            10s
 l7-gw-myframework       10s
 l7-gw-mysubscriptions   10s
 
-$ kubectl get repository l7-gw-myapis -oyaml
+kubectl get repository l7-gw-myapis -oyaml
 ...
 status:
   commit: 3791f11c9b588b383ce87535f46d4fc1526ae83b
@@ -329,7 +335,7 @@ status:
 
 #### Create a Gateway Custom Resource
 ```
-$ kubectl apply -k example/otel-gateway/
+kubectl apply -k example/otel-gateway/
 
 serviceaccount/ssg-serviceaccount created
 secret/gateway-license configured
@@ -370,7 +376,7 @@ repositoryReferences:
 
 ##### View your new Gateway
 ```
-$ kubectl get pods
+kubectl get pods
 
 NAME                                                  READY   STATUS    RESTARTS   AGE
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          15m
@@ -381,7 +387,7 @@ ssg-57d96567cb-n24g9                                  1/1     Running   0       
 Because we created the l7-gw-myframework repository reference with type 'static' the Layer7 Operator automatically injects an initContainer to bootstrap the repository to the Container Gateway.
 Note: the suffix here graphman-static-init-***c1b58adb6d*** is generated using all static commit ids, if a static repository changes the Gateway will be updated.
 ```
-$ kubectl describe pods ssg-57d96567cb-n24g9
+kubectl describe pods ssg-57d96567cb-n24g9
 
 ...
 Init Containers:
@@ -401,14 +407,14 @@ Init Containers:
 ##### View the Graphman InitContainer logs
 We should see that our static repository l7-gw-myframework has been picked up and moved to the bootstrap folder.
 ```
-$ kubectl logs ssg-57d96567cb-n24g9 graphman-static-init-c1b58adb6d
+kubectl logs ssg-57d96567cb-n24g9 graphman-static-init-c1b58adb6d
 
 l7-gw-myframework with 40kbs written to /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0/0_l7-gw-myframework.json
 ```
 
 ##### View the Operator logs
 ```
-$ kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
+kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
 
 ...
 1.6805472375519047e+09  INFO    Starting workers        {"controller": "gateway", "controllerGroup": "security.brcmlabs.com", "controllerKind": "Gateway", "worker count": 1}
@@ -434,7 +440,7 @@ $ kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
 ###### Gateway CR
 The Gateway Controller tracks gateway pods and the repositories that have been applied to the deployment
 ```
-$ kubectl get gateway ssg -oyaml
+kubectl get gateway ssg -oyaml
 
 status:
  ...
@@ -479,7 +485,7 @@ version: 10.1.00_CR3
 ###### Repository CR
 The Repository Controller keeps tracks the latest available commit, where it's stored (if it's less than 1mb we create a Kubernetes secret) and when it was last updated.
 ```
-$ kubectl get repository l7-gw-myapis -oyaml
+kubectl get repository l7-gw-myapis -oyaml
 ...
 status:
   commit: 7332f861e11612a91ca9de6b079826b9377dae6a
@@ -491,7 +497,7 @@ status:
 
 ##### Test your Gateway Deployment
 ```
-$ kubectl get ingress
+kubectl get ingress
 
 NAME   CLASS   HOSTS                  ADDRESS        PORTS     AGE
 ssg    nginx   gateway.brcmlabs.com   34.89.126.80   80, 443   54m
@@ -507,20 +513,20 @@ example
 ```
 Curl
 ```
-$ curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
+curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
 ```
 ##### Sign into Policy Manager
 Policy Manager access is less relevant in a deployment like this because we haven't specified an external MySQL database, any changes that we make will only apply to the Gateway that we're connected to and won't survive a restart. It is still useful to check what's been applied. We configured custom ports where we disabled Policy Manager access on 8443, we're also using an ingress controller meaning that port 9443 is not accessible without port forwarding.
 
 Port-Forward
 ```
-$ kubectl get pods
+kubectl get pods
 NAME                   READY   STATUS    RESTARTS   AGE
 ...
 ssg-7698bc565b-qrz5g   1/1     Running   0          54m
 ssg-7698bc565b-szrbj   1/1     Running   0          54m
 
-$ kubectl port-forward ssg-7698bc565b-szrbj 9443:9443
+kubectl port-forward ssg-7698bc565b-szrbj 9443:9443
 ```
 Policy Manager
 ```
@@ -547,26 +553,26 @@ password: 7layer
 #### Remove Custom Resources
 if you used the Kind example
 ```
-$ make uninstall
+make uninstall
 ```
 
 if you used your own Kubernetes Cluster
 
 ```
-$ kubectl delete -k example/otel-gateway
-$ kubectl delete -k example/repositories/
-$ kubectl delete -f ./otel/collector.yaml
-$ kubectl delete -f ./otel/observability/jaeger/jaeger.yaml
-$ kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-$ kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-$ kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
-$ helm uninstall prometheus -n monitoring
-$ kubectl delete -k ./otel/monitoring/grafana/
+kubectl delete -k example/otel-gateway
+kubectl delete -k example/repositories/
+kubectl delete -f ./otel/collector.yaml
+kubectl delete -f ./otel/observability/jaeger/jaeger.yaml
+kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
+helm uninstall prometheus -n monitoring
+kubectl delete -k ./otel/monitoring/grafana/
 ```
 
 ### Uninstall the Operator
 ```
-$ kubectl delete -f deploy/bundle.yaml
+kubectl delete -f deploy/bundle.yaml
 
 customresourcedefinition.apiextensions.k8s.io "gateways.security.brcmlabs.com" deleted
 customresourcedefinition.apiextensions.k8s.io "repositories.security.brcmlabs.com" deleted

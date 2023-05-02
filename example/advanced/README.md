@@ -18,7 +18,7 @@ By the end of this example you should have a better understanding of the Layer7 
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-$ kubectl apply -f deploy/bundle.yaml
+kubectl apply -f deploy/bundle.yaml
 
 customresourcedefinition.apiextensions.k8s.io/gateways.security.brcmlabs.com created
 customresourcedefinition.apiextensions.k8s.io/repositories.security.brcmlabs.com created
@@ -36,7 +36,7 @@ deployment.apps/layer7-operator-controller-manager created
 
 ##### Verify the Operator is up and running
 ```
-$ kubectl get pods
+kubectl get pods
 
 NAME                                                  READY   STATUS    RESTARTS   AGE
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          27s
@@ -50,7 +50,7 @@ This example ships with 3 pre-configured Graphman repositories. The repository c
 - [l7-gw-myapis](https://github.com/Gazza7205/l7GWMyAPIs)
 
 ```
-$ kubectl apply -k example/repositories
+kubectl apply -k example/repositories
 
 secret/gateway-license configured
 secret/gateway-secret unchanged
@@ -207,7 +207,7 @@ pdb:
 
 #### Deploy the Gateway CR
 ```
-$ kubectl apply -k example/advanced/
+kubectl apply -k example/advanced/
 
 serviceaccount/ssg-serviceaccount created
 secret/gateway-license configured
@@ -222,7 +222,7 @@ gateway.security.brcmlabs.com/ssg created
 ##### View your new Gateway
 In this example we're using an Autoscaler, 1 node will be present while the autoscaler is initially configured.
 ```
-$ kubectl get pods
+kubectl get pods
 NAME                   READY   STATUS    RESTARTS   AGE
 ...
 ssg-7698bc565b-qrz5g   1/1     Running   0          2m45s
@@ -230,12 +230,12 @@ ssg-7698bc565b-szrbj   1/1     Running   0          2m45s
 ```
 The Operator also keeps status of any given Gateway CR up-to-date so you also run the following
 ```
-$ kubectl get gateways
+kubectl get gateways
 NAME   AGE
 ssg    2m45s
 
 
-$ kubectl get gateway ssg -oyaml
+kubectl get gateway ssg -oyaml
 
 ...
 status:
@@ -272,7 +272,7 @@ status:
 
 ##### View the Operator logs
 ```
-$ kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
+kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
 
 ...
 1.6805472375519047e+09  INFO    Starting workers        {"controller": "gateway", "controllerGroup": "security.brcmlabs.com", "controllerKind": "Gateway", "worker count": 1}
@@ -298,7 +298,7 @@ $ kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
 ###### Gateway CR
 The Gateway Controller tracks gateway pods and the repositories that have been applied to the deployment
 ```
-$ kubectl get gateway ssg -oyaml
+kubectl get gateway ssg -oyaml
 
 status:
  ...
@@ -343,14 +343,14 @@ version: 10.1.00_CR3
 ###### Repository CR
 The Repository Controller keeps tracks the latest available commit, where it's stored (if it's less than 1mb we create a Kubernetes secret) and when it was last updated.
 ```
-$ kubectl get repositories
+kubectl get repositories
 
 NAME                    AGE
 l7-gw-myapis            10s
 l7-gw-myframework       10s
 l7-gw-mysubscriptions   10s
 
-$ kubectl get repository l7-gw-myapis -oyaml
+kubectl get repository l7-gw-myapis -oyaml
 ...
 status:
   commit: 3791f11c9b588b383ce87535f46d4fc1526ae83b
@@ -362,7 +362,7 @@ status:
 
 ##### Test your Gateway Deployment
 ```
-$ kubectl get ingress
+kubectl get ingress
 
 NAME   CLASS   HOSTS                  ADDRESS        PORTS     AGE
 ssg    nginx   gateway.brcmlabs.com   34.89.126.80   80, 443   54m
@@ -378,20 +378,20 @@ example
 ```
 Curl
 ```
-$ curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
+curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
 ```
 ##### Sign into Policy Manager
 Policy Manager access is less relevant in a deployment like this because we haven't specified an external MySQL database, any changes that we make will only apply to the Gateway that we're connected to and won't survive a restart. It is still useful to check what's been applied. We configured custom ports where we disabled Policy Manager access on 8443, we're also using an ingress controller meaning that port 9443 is not accessible without port forwarding.
 
 Port-Forward
 ```
-$ kubectl get pods
+kubectl get pods
 NAME                   READY   STATUS    RESTARTS   AGE
 ...
 ssg-7698bc565b-qrz5g   1/1     Running   0          54m
 ssg-7698bc565b-szrbj   1/1     Running   0          54m
 
-$ kubectl port-forward ssg-7698bc565b-szrbj 9443:9443
+kubectl port-forward ssg-7698bc565b-szrbj 9443:9443
 ```
 Policy Manager
 ```
@@ -402,8 +402,8 @@ gateway: localhost:9443
 
 #### Remove Custom Resources
 ```
-$ kubectl delete -k example/basic/
-$ kubectl delete -k example/repositories/
+kubectl delete -k example/basic/
+kubectl delete -k example/repositories/
 
 secret "gateway-license" deleted
 secret "gateway-secret" deleted
@@ -418,7 +418,7 @@ repository.security.brcmlabs.com "l7-gw-mysubscriptions" deleted
 
 ### Uninstall the Operator
 ```
-$ kubectl delete -f deploy/bundle.yaml
+kubectl delete -f deploy/bundle.yaml
 
 customresourcedefinition.apiextensions.k8s.io "gateways.security.brcmlabs.com" deleted
 customresourcedefinition.apiextensions.k8s.io "repositories.security.brcmlabs.com" deleted

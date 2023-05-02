@@ -68,8 +68,8 @@ There are currently two ways to deploy the Layer7 Gateway Operator. A Helm Chart
 ### Install with kubectl
 Clone this repository to get started
 ```
-$ git clone https://github.com/caapim/layer7-operator.git
-$ cd layer7-operator
+git clone https://github.com/caapim/layer7-operator.git
+cd layer7-operator
 ```
 bundle.yaml contains all of the manifests that the Layer7 Operator requires.
 
@@ -77,7 +77,7 @@ bundle.yaml contains all of the manifests that the Layer7 Operator requires.
 By default the Operator manages the namespace that it is deployed into and does not create any cluster roles/role bindings. 
 
 ```
-$ kubectl apply -f deploy/bundle.yaml
+kubectl apply -f deploy/bundle.yaml
 ```
 
 #### All/Multiple Namespaces
@@ -99,7 +99,7 @@ env:
 Once you have updated deploy/cw-bundle.yaml run the following command to install the Operator
 
 ```
-$ kubectl apply -f deploy/cw-bundle.yaml
+kubectl apply -f deploy/cw-bundle.yaml
 ```
 
 ### Install on OpenShift
@@ -155,7 +155,7 @@ EOF
 ```
 3. Get the LoadBalancer Address
 ```
-$ kubectl get svc
+kubectl get svc
 ```
 expected output
 ```
@@ -176,7 +176,7 @@ gateway: 35.189.116.20
 ```
 if you don't have an external ip
 ```
-$ kubectl port-forward svc/ssg 8443
+kubectl port-forward svc/ssg 8443
 
 username: admin
 password: 7layer
@@ -185,19 +185,19 @@ gateway: localhost
 
 5. Remove the Gateway Resource
 ```
-$ kubectl delete gateway ssg
+kubectl delete gateway ssg
 ```
 
 #### Remove the Operator
 if you installed the operator using kubectl
 ```
-$ kubectl delete -k deploy/bundle.yaml|cw-bundle.yaml
+kubectl delete -k deploy/bundle.yaml|cw-bundle.yaml
 ```
 
 if you installed the operator in Openshift
 
 ``` 
-$ operator-sdk cleanup <operatorPackageName> [flags]
+operator-sdk cleanup <operatorPackageName> [flags]
 ```
 
 # Watch this space for future updates.

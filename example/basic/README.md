@@ -20,7 +20,7 @@ By the end of this example you should have a better understanding of the Layer7 
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-$ kubectl apply -f deploy/bundle.yaml
+kubectl apply -f deploy/bundle.yaml
 
 customresourcedefinition.apiextensions.k8s.io/gateways.security.brcmlabs.com created
 customresourcedefinition.apiextensions.k8s.io/repositories.security.brcmlabs.com created
@@ -38,7 +38,7 @@ deployment.apps/layer7-operator-controller-manager created
 
 ##### Verify the Operator is up and running
 ```
-$ kubectl get pods
+kubectl get pods
 
 NAME                                                  READY   STATUS    RESTARTS   AGE
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          27s
@@ -52,7 +52,7 @@ This example ships with 3 pre-configured Graphman repositories. The repository c
 - [l7-gw-myapis](https://github.com/Gazza7205/l7GWMyAPIs)
 
 ```
-$ kubectl apply -k example/repositories
+kubectl apply -k example/repositories
 
 secret/gateway-license configured
 secret/gateway-secret unchanged
@@ -66,7 +66,7 @@ repository.security.brcmlabs.com/l7-gw-mysubscriptions created
 
 ##### Operator Logs
 ```
-$ kubectl logs <layer7-operator-pod> manager
+kubectl logs <layer7-operator-pod> manager
 
 ...
 1.6805762965185595e+09 INFO controllers.Repository Creating Storage Secret {"Name": "l7-gw-myapis-repository", "Namespace": "layer7"}
@@ -84,14 +84,14 @@ The Repository Controller keeps tracks the latest available commit, where it's s
 
 ***Note: If the repository exceeds 1mb in compressed format each Graphman Init Container will clone it at runtime. This represents a single point of failure if your Git Server is down, we recommended creating your own initContainer with the larger graphman bundle.***
 ```
-$ kubectl get repositories
+kubectl get repositories
 
 NAME                    AGE
 l7-gw-myapis            10s
 l7-gw-myframework       10s
 l7-gw-mysubscriptions   10s
 
-$ kubectl get repository l7-gw-myapis -oyaml
+kubectl get repository l7-gw-myapis -oyaml
 ...
 status:
   commit: 3791f11c9b588b383ce87535f46d4fc1526ae83b
@@ -103,7 +103,7 @@ status:
 
 #### Create a Gateway Custom Resource
 ```
-$ kubectl apply -k example/basic/
+kubectl apply -k example/basic/
 
 serviceaccount/ssg-serviceaccount created
 secret/gateway-license configured
@@ -144,7 +144,7 @@ repositoryReferences:
 
 ##### View your new Gateway
 ```
-$ kubectl get pods
+kubectl get pods
 
 NAME                                                  READY   STATUS    RESTARTS   AGE
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          15m
@@ -155,7 +155,7 @@ ssg-57d96567cb-n24g9                                  1/1     Running   0       
 Because we created the l7-gw-myframework repository reference with type 'static' the Layer7 Operator automatically injects an initContainer to bootstrap the repository to the Container Gateway.
 Note: the suffix here graphman-static-init-***c1b58adb6d*** is generated using all static commit ids, if a static repository changes the Gateway will be updated.
 ```
-$ kubectl describe pods ssg-57d96567cb-n24g9
+kubectl describe pods ssg-57d96567cb-n24g9
 
 ...
 Init Containers:
@@ -175,14 +175,14 @@ Init Containers:
 ##### View the Graphman InitContainer logs
 We should see that our static repository l7-gw-myframework has been picked up and moved to the bootstrap folder.
 ```
-$ kubectl logs ssg-57d96567cb-n24g9 graphman-static-init-c1b58adb6d
+kubectl logs ssg-57d96567cb-n24g9 graphman-static-init-c1b58adb6d
 
 l7-gw-myframework with 40kbs written to /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0/0_l7-gw-myframework.json
 ```
 
 ##### View the Operator logs
 ```
-$ kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
+kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
 
 ...
 1.6805472375519047e+09  INFO    Starting workers        {"controller": "gateway", "controllerGroup": "security.brcmlabs.com", "controllerKind": "Gateway", "worker count": 1}
@@ -208,7 +208,7 @@ $ kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
 ###### Gateway CR
 The Gateway Controller tracks gateway pods and the repositories that have been applied to the deployment
 ```
-$ kubectl get gateway ssg -oyaml
+kubectl get gateway ssg -oyaml
 
 status:
  ...
@@ -253,7 +253,7 @@ version: 10.1.00_CR3
 ###### Repository CR
 The Repository Controller keeps tracks the latest available commit, where it's stored (if it's less than 1mb we create a Kubernetes secret) and when it was last updated.
 ```
-$ kubectl get repository l7-gw-myapis -oyaml
+kubectl get repository l7-gw-myapis -oyaml
 ...
 status:
   commit: 7332f861e11612a91ca9de6b079826b9377dae6a
@@ -265,7 +265,7 @@ status:
 
 ##### Test your Gateway Deployment
 ```
-$ kubectl get svc
+kubectl get svc
 
 NAME  TYPE           CLUSTER-IP     EXTERNAL-IP         PORT(S)                         AGE
 ssg   LoadBalancer   10.68.4.161    ***34.89.84.69***   8443:31747/TCP,9443:30778/TCP   41m
@@ -278,15 +278,15 @@ ssg   LoadBalancer   10.68.4.126   <PENDING>       8443:31384/TCP,9443:31359/TCP
 
 If EXTERNAL-IP is stuck in \<PENDING> state
 ```
-$ kubectl port-forward svc/ssg 9443:9443
+kubectl port-forward svc/ssg 9443:9443
 ```
 
 ```
-$ curl https://34.89.84.69:8443/api1 -H "client-id: D63FA04C8447" -k
+curl https://34.89.84.69:8443/api1 -H "client-id: D63FA04C8447" -k
 
 or if you used port-forward
 
-$ curl https://localhost:9443/api1 -H "client-id: D63FA04C8447" -k
+curl https://localhost:9443/api1 -H "client-id: D63FA04C8447" -k
 {
   "client" : "D63FA04C8447",
   "plan" : "plan_a",
@@ -319,8 +319,8 @@ gateway: localhost:9443
 
 #### Remove Custom Resources
 ```
-$ kubectl delete -k example/basic/
-$ kubectl delete -k example/repositories/
+kubectl delete -k example/basic/
+kubectl delete -k example/repositories/
 
 secret "gateway-license" deleted
 secret "gateway-secret" deleted
@@ -335,7 +335,7 @@ repository.security.brcmlabs.com "l7-gw-mysubscriptions" deleted
 
 ### Uninstall the Operator
 ```
-$ kubectl delete -f deploy/bundle.yaml
+kubectl delete -f deploy/bundle.yaml
 
 customresourcedefinition.apiextensions.k8s.io "gateways.security.brcmlabs.com" deleted
 customresourcedefinition.apiextensions.k8s.io "repositories.security.brcmlabs.com" deleted

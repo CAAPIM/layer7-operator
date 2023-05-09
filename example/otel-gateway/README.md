@@ -4,9 +4,62 @@ By the end of this example you should have a better understanding of the how to 
 - CertManager Operator (required for OTel)
 - OpenTelemetry Operator
 - Prometheus Stack
+- Nginx (Ingress Controller)
 - Jaeger
 
 ![otel-example-overview](../images/otel-example-components-overview.png)
+
+## Prerequisites
+- Kubernetes v1.25+
+- Gateway v10/11.x License
+- Ingress Controller (You can also expose Gateway Services as L4 LoadBalancers)
+
+The OTel Example requires multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc.
+
+***NOTE:*** to keep things simple we use the default namespace when creating namespaced resources including the Layer7 Operator, Gateway, Repositories and Prometheus Service Monitor. If you'd like to use a different namespace then you will need to update the following.
+
+- [servicemonitor.yaml](../otel-gateway/servicemonitor.yaml)
+```
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: ssg
+  name: ssg
+spec:
+  endpoints:
+  - interval: 10s
+    path: /metrics
+    port: monitoring
+  jobLabel: ssg
+  namespaceSelector:
+    matchNames:
+    - default ==> change this to your namespace
+  selector:
+    matchLabels:
+      app.kubernetes.io/created-by: layer7-operator
+      app.kubernetes.io/managed-by: layer7-operator
+      app.kubernetes.io/name: ssg
+      app.kubernetes.io/part-of: ssg
+```
+
+- [prometheus-values.yaml](../otel/monitoring/prometheus/prometheus-values.yaml)
+```
+prometheusOperator:
+  namespaces:
+    releaseNamespace: true
+    additional:
+    - kube-system
+    - layer7
+    - default
+    - addyournamespacehere
+...
+```
+
+- Update your Kubectl context
+```
+kubectl config set-context --current --namespace=yournamespace
+```
 
 If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.io/) to try out this example!
 
@@ -15,16 +68,25 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
 2. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
 
+### Gateway Configuration
+- [Container Gateway](#container-gateway-configuration)
+- [OTel Collector](#otel-collector-configuration)
+- [Service Monitor](#service-monitor-configuration)
+- [Gateway Application](#gateway-application-configuration)
+- [Service Level](#service-level-configuration)
 
 ### Guide
-- [Quickstart](#quickstart)
-- [Deploy Kubernetes with Kind](#create-kind-cluster)
+- [Quickstart Kind](#quickstart-kind)
+- [Quickstart Existing Kubernetes Cluster](#quickstart-existing-cluster)
+
+### Monitoring/Observability Components
 - [Install Cert Manager](#install-cert-manager)
 - [Install Open Telemetry](#install-open-telemetry)
 - [Install Prometheus](#install-prometheus)
 - [Install Jaeger](#install-jaeger)
 - [Install an Ingress Controller(optional)](#install-nginx)
 
+### Layer7 Operator
 - [Deploy the Operator](#deploy-the-layer7-operator)
 - [Create Repositories](#create-repository-custom-resources)
 - [Create a Gateway](#create-a-gateway-custom-resource)
@@ -32,9 +94,166 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
 - [Remove Custom Resources](#remove-custom-resources)
 - [Uninstall the Operator CRs](#uninstall-the-operator)
 
+#### Container Gateway Configuration
+The container gateway configuration required for this integration is relatively simple. We will set some [environment variables](../base/resources/secrets/gateway/secret.env) that the Otel Agent present on the Container Gateway will use to send logs, traces and metrics to the Otel Collector sidecar.
 
-#### Quickstart
-We included a Makefile in the example directory that makes deploying this example a one step process. If you have access to a Docker Machine you can use [Kind](https://kind.sigs.k8s.io/) (Kubernetes in Docker). This example can optionally deploy a Kind Cluster for you (you just need to make sure that you've [installed Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation))
+```
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 ==> exposed by the Otel Sidecar (or otc-container)
+OTEL_METRICS_EXPORTER=otlp
+OTEL_TRACES_EXPORTER=otlp
+OTEL_SERVICE_NAME=ssg
+OTEL_RESOURCE_ATTRIBUTES=gateway.name=ssg,service.name=ssg,service.version=10.1.00_CR3,deployment.environment=development
+```
+
+We also need to expose a monitoring endpoint so that Prometheus can scrape the Gateway service
+```
+service:
+  type: LoadBalancer
+  ports:
+  ...
+  - name: monitoring
+    port: 8889
+    protocol: TCP
+```
+
+### OTel Collector Configuration
+The OpenTelemetry Operator will automatically inject a sidecar into the Gateway Pod with our [OTel configuration](../otel/collector.yaml). This configuration exposes a /metrics endpoint on the Gateway Pod on port 8889 for Prometheus to scrape.
+
+```
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+processors:
+  batch:
+exporters:
+  logging:
+    loglevel: warn 
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    const_labels:
+      name: ssg
+  jaeger:
+    endpoint: simple-allinone-collector:14250
+    tls:
+      insecure: true
+service:
+  telemetry:
+    logs:
+      level: "debug"
+    metrics:
+      address: "0.0.0.0:8888"
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, logging]
+    logs: 
+      receivers: [otlp]
+      exporters: [logging]
+extensions:
+  health_check:
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+```
+
+#### Service Monitor Configuration
+We need to tell Prometheus about the /metrics endpoint on the Gateway pod, we do this with a [ServiceMonitor](../otel-gateway/servicemonitor.yaml)
+
+```
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: ssg
+  name: ssg
+spec:
+  endpoints:
+  - interval: 10s ==> time between scrapes
+    path: /metrics ==> the time 
+    port: monitoring
+  jobLabel: ssg
+  namespaceSelector:
+    matchNames:
+    - default ==> if you are not using the default namespace you will need to update this
+  selector:
+    matchLabels:
+      app.kubernetes.io/created-by: layer7-operator
+      app.kubernetes.io/managed-by: layer7-operator
+      app.kubernetes.io/name: ssg
+      app.kubernetes.io/part-of: ssg
+```
+
+#### Gateway Application Configuration
+The Gateway requires Otel specific cluster-wide properties and an additional java arg for the OTel agent.
+
+- Java Args
+```
+java:
+  ...
+  extraArgs:
+  ...
+  - -javaagent:/opt/SecureSpan/Gateway/runtime/lib/otel/opentelemetry-javaagent-1.21.0.jar
+```
+
+- Cluster-Wide Properties
+```
+cwp:
+  enabled: true
+  properties:
+    ...
+    - name: otel.enabled
+      value: "true"
+    - name: otel.serviceMetricEnabled ==> enable/disable service metrics
+      value: "true"
+    - name: otel.traceEnabled ==> enable/disable traces
+      value: "true"
+    - name: otel.metricPrefix ==> custom metrics get this prefix
+      value: l7_
+    - name: otel.resourceAttributes
+      value: gateway.name=ssgNode.Name,service.name=ssg,service.version=10.1.00,deployment.environment=development
+    - name: otel.traceConfig ==> trace config allows you to switch on tracing for a specific API(s) by service URI
+      value: |
+        {
+         "services": [
+           {"url": ".*api.*"}
+         ],
+         "serviceTraceDetail": "Request - ${request.parameter.name}",
+         "policyTraceDetail" : "Count - ${someCtxVar}"
+        } 
+```
+
+
+#### Service Level Configuration
+The [global-graphman-bundle.json](../otel-gateway/global-graphman-bundle.json) contains a message-completed policy with a single Telemetry Metric assertion. This collects generic service level information that we use to populate the Grafana Dashboard. In our example we use message-completed because it only requires a change in one place, the Telemetry metric assertion can also be inserted into an existing service(s) to capture service specific metrics at any point that you wish to monitor.
+
+```
+{
+    "globalPolicies": [
+      {
+        "name": "message-completed",
+        "folderPath": "/global",
+        "goid": "278f6d2cbeb3e0e3b0d9cde605c8a711",
+        "guid": "b3ef3421-8151-4f85-99f8-1dacc7d65748",
+        "tag": "message-completed",
+        "checksum": "570bbce5b1062a17479465574ce046633823cebe",
+        "policy": {
+          "xml": "..."
+        }
+      }
+    ]
+  }
+```
+
+#### Quickstart Kind
+A Makefile is included in the example directory that makes deploying this example a one step process. If you have access to a Docker Machine you can use [Kind](https://kind.sigs.k8s.io/) (Kubernetes in Docker). This example can optionally deploy a Kind Cluster for you (you just need to make sure that you've [installed Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation))
 
 The kind configuration is in the base of the example folder. If your docker machine is remote (you are using a VM or remote machine) then uncomment the network section and set the apiServerAddress to the address of your VM/Remote machine
 ```
@@ -68,69 +287,53 @@ cd example
 ```
 - deploy the example
 ```
-make kind-cluster otel-example 
+make kind-cluster otel-example-kind
 ```
 You will also need to add the following entries to your hosts file
 ```
 127.0.0.1 gateway.brcmlabs.com jaeger.brcmlabs.com grafana.brcmlabs.com
 ```
 
+You can now move on to test your gateway deployment!
+- [Test Gateway Deployment](#test-your-gateway-deployment)
 
-#### Create Kind Cluster
-These steps will give you a Kubernetes Cluster that you can run this example in and easily teardown afterwards.
+#### Quickstart Existing Cluster
+This quickstart uses the Makefile to install of the necessary components into your Kubernetes Cluster.
 
-We use the following configuration for Kind. The extra port mappings allow us to access grafana, prometheus, jaeger and the gateway via a single address.
+- navigate to the example directory
 ```
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-#networking:
-#  apiServerAddress: "192.168.1.64"
-#  apiServerPort: 6443
-nodes:
-- role: control-plane
-  kubeadmConfigPatches:
-  - |
-    kind: InitConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        node-labels: "ingress-ready=true"
-  extraPortMappings:
-  - containerPort: 80
-    hostPort: 80
-    protocol: TCP
-  - containerPort: 443
-    hostPort: 443
-    protocol: TCP
+cd example
+```
+- deploy the example
+```
+make otel-example 
 ```
 
-This command creates a Kind Cluster called layer7. Kind should automatically configure your kubeconfig file so you can get started with commands as soon as it's ready
+If you don't already have an ingress controller you can deploy nginx with the following command
 ```
-kind create cluster --name layer7 --config ./example/kind-config.yaml
+make nginx
+```
+- Once nginx has been installed get the L4 LoadBalancer address
+```
+kubectl get svc -n ingress-nginx
+```
+output
+```
+NAME                                 TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
+ingress-nginx-controller             LoadBalancer   10.152.183.52    192.168.1.190   80:30183/TCP,443:30886/TCP   24m
+ingress-nginx-controller-admission   ClusterIP      10.152.183.132   <none>          443/TCP                      24m
+```
+- You probably don't have access to a DNS server for this demo so you will need to add the following entries to your hosts file
+```
+EXTERNAL-IP gateway.brcmlabs.com jaeger.brcmlabs.com grafana.brcmlabs.com
 
-Creating cluster "layer7" ...
- ✓ Ensuring node image (kindest/node:v1.25.3) 🖼 
- ✓ Preparing nodes 📦  
- ✓ Writing configuration 📜 
- ✓ Starting control-plane 🕹️ 
- ✓ Installing CNI 🔌 
- ✓ Installing StorageClass 💾 
-Set kubectl context to "kind-layer7"
-You can now use your cluster with:
-
-kubectl cluster-info --context kind-layer7
-
-Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+example
+192.168.1.190 gateway.brcmlabs.com jaeger.brcmlabs.com grafana.brcmlabs.com
 ```
 
-Confirm you can now access your Kind Cluster
-```
-kubectl cluster-info
+You can now move on to test your gateway deployment!
+- [Test Gateway Deployment](#test-your-gateway-deployment)
 
-Kubernetes control plane is running at https://192.168.1.64:6443
-CoreDNS is running at https://192.168.1.64:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
-
-To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
-```
 #### Install Cert Manager
 These steps are based the official documentation for installing Cert-Manager [here](https://cert-manager.io/docs/installation/). Cert-Manager is a pre-requisite for the Open Telemetry Operator.
 
@@ -251,12 +454,17 @@ replicaset.apps/jaeger-operator-6cf68b6f65   1         1         1       17s
 kubectl apply -f ./example/otel/observability/jaeger/jaeger.yaml
 ```
 
+- Create an ingress resource for Jaeger.
+```
+kubectl apply -f ./example/otel/observability/jaeger/ingress.yaml
+```
+
 
 #### Install Nginx
 This command will deploy an nginx ingress controller. If you already have nginx or another ingress controller running in your Kubernetes cluster you can safely ignore this step.
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 ```
 
 #### 
@@ -380,7 +588,7 @@ kubectl get pods
 
 NAME                                                  READY   STATUS    RESTARTS   AGE
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          15m
-ssg-57d96567cb-n24g9                                  1/1     Running   0          73s
+ssg-57d96567cb-n24g9                                  2/2     Running   0          73s
 ```
 
 ##### Static Graphman Repositories
@@ -515,6 +723,15 @@ Curl
 ```
 curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
 ```
+```
+{
+  "client" : "D63FA04C8447",
+  "plan" : "plan_a",
+  "service" : "hello api 1",
+  "myDemoConfigVal" : "Mondays"
+}
+```
+
 ##### Sign into Policy Manager
 Policy Manager access is less relevant in a deployment like this because we haven't specified an external MySQL database, any changes that we make will only apply to the Gateway that we're connected to and won't survive a restart. It is still useful to check what's been applied. We configured custom ports where we disabled Policy Manager access on 8443, we're also using an ingress controller meaning that port 9443 is not accessible without port forwarding.
 
@@ -523,7 +740,6 @@ Port-Forward
 kubectl get pods
 NAME                   READY   STATUS    RESTARTS   AGE
 ...
-ssg-7698bc565b-qrz5g   1/1     Running   0          54m
 ssg-7698bc565b-szrbj   1/1     Running   0          54m
 
 kubectl port-forward ssg-7698bc565b-szrbj 9443:9443
@@ -536,13 +752,13 @@ gateway: localhost:9443
 ```
 
 #### Access Jaeger
-Jaeger has been configured via ingress which should resolve to jaeger.brcmlabs.com. You can use Jaeger to view assertion level traces of the test policy we just tested with curl.
+Jaeger has been configured via ingress which should resolve to https://jaeger.brcmlabs.com. You can use Jaeger to view assertion level traces of the test policy we just tested with curl.
 
 ![jaeger](../images/jaeger.gif)
 
 
 #### Access Grafana
-Grafana has been configured via ingress which should resolve to grafana.brcmlabs.com. You can use Grafana to view Gateway service level + general metrics of your Gateway Deployment.
+Grafana has been configured via ingress which should resolve to https://grafana.brcmlabs.com. You can use Grafana to view Gateway service level + general metrics of your Gateway Deployment.
 
 ```
 username: admin
@@ -559,15 +775,17 @@ make uninstall
 if you used your own Kubernetes Cluster
 
 ```
-kubectl delete -k example/otel-gateway
-kubectl delete -k example/repositories/
-kubectl delete -f ./otel/collector.yaml
-kubectl delete -f ./otel/observability/jaeger/jaeger.yaml
-kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl delete -k ./example/otel-gateway
+kubectl delete -k ./example/repositories/
+kubectl delete -f ./example/otel/collector.yaml
+kubectl delete -f ./example/otel/observability/jaeger/jaeger.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
+kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
 helm uninstall prometheus -n monitoring
-kubectl delete -k ./otel/monitoring/grafana/
+kubectl delete -k ./example/otel/monitoring/grafana/
+kubectl delete ns monitoring
+kubectl delete ns observability
 ```
 
 ### Uninstall the Operator

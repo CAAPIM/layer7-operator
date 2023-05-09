@@ -117,16 +117,16 @@ spec:
             com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
-        - name: otel.metricPrefix
-          value: l7_
-        - name: otel.resourceAttributes
-          value: gateway.name=ssgNode.Name,service.name=ssg,service.version=10.1.00,deployment.environment=development
         - name: otel.enabled
           value: "true"
         - name: otel.serviceMetricEnabled
           value: "true"
         - name: otel.traceEnabled
           value: "true"
+        - name: otel.metricPrefix
+          value: l7_
+        - name: otel.resourceAttributes
+          value: gateway.name=ssgNode.Name,service.name=ssg,service.version=10.1.00,deployment.environment=development
         - name: otel.traceConfig
           value: |
             {

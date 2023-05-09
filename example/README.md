@@ -1,10 +1,14 @@
 # Layer7 Operator Examples
-These examples cover a broader set of the features that the Layer7 Operator provides and serve as a starting point for implementing these in your own environments.
+These examples cover a broader set of the features that the Layer7 Operator provides and serve as a starting point for implementing these in your own environments or just trying them out.
 
 ## Prerequisites
 - Kubernetes v1.25+
 - Gateway v10/11.x License
 - Ingress Controller (You can also expose Gateway Services as L4 LoadBalancers)
+
+The basic and advanced examples can be run in a single namespace, The OTel Examples require multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc..
+
+Each example also includes a [Kind](https://kind.sigs.k8s.io/) (Kubernetes in Docker) Quickstart which you can utilise if you have access to a Docker Machine.
 
 #### Getting started
 1. Place a gateway v10 or v11 license in [resources/secrets/license](./resources/secrets/license).
@@ -24,5 +28,4 @@ Repositories (used in both examples)
 
 #### Coming soon
 - OTel
-  - Prometheus/Granana
   - ECK (Elastic)

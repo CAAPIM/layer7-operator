@@ -1,7 +1,7 @@
 # Layer7 Gateway Operator
 The Layer7 Gateway Operator, built using the [Operator SDK](https://github.com/operator-framework/operator-sdk) covers all aspects of deploying, maintaining and upgrading API Gateways in Kubernetes.
 
-##### Note: The Operator currently supports ***Gateway 10.1.00_CR3 only***. All examples reference will reference that image for this release.
+##### Note: The Operator currently uses ***Gateway 10.1.00_CR3***. Gateway 10.1.00_CR3 has additional Graphman capabilities that we make use of to drive all of the examples. Additional versions of Gateway will work without that functionality. 
 
 ## About
 The Operator is currently in an Alpha state and therefore does not currently carry a support/maintenance statement. Please check out the [Gateway Helm Chart](https://github.com/CAAPIM/apim-charts/tree/stable/charts/gateway) for supported container Gateway Deployment options
@@ -52,15 +52,6 @@ The Layer7 Operator is restricted to manage the namespace it's deployed in by de
    - [Using OLM (Openshift)](#install-on-openshift)
  - [Create a Simple Gateway](#create-a-simple-gateway)
  - [More Examples](./example)
- <!-- - [Monitoring](#monitoring)
-   - [OTel (Open Telemetry)](#open-telemetry)
-     - [Install Open Telemetry](#install-open-telemetry)
-     - [OTel Collector Sidecar](#otel-collector-sidecar)
-     - [Gateway Configuration](#gateway-configuration)
-   - [Prometheus](#prometheus)
-     - [Install Prometheus](#install-prometheus)
-     - [Service Monitor](#service-monitor)
-     - [Grafana Dashboard](#grafana-dashboard) -->
 
 ## Installation
 There are currently two ways to deploy the Layer7 Gateway Operator. A Helm Chart will be available in the future.
@@ -199,27 +190,4 @@ if you installed the operator in Openshift
 ``` 
 operator-sdk cleanup <operatorPackageName> [flags]
 ```
-
-# Watch this space for future updates.
-
-### Monitoring
-
-
-#### Open Telemetry
-
-
-##### Install Open Telemetry
-
-##### Otel Collector Sidecar
-
-##### Gateway Configuration
-
-
-#### Prometheus
-##### Install Prometheus
-
-##### Service Monitor
-
-##### Grafana Dashboard
-
 

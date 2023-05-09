@@ -767,12 +767,17 @@ password: 7layer
 ![grafana](../images/grafana.gif)
 
 #### Remove Custom Resources
-if you used the Kind example
+If you used the Kind example
+```
+make uninstall-kind
+```
+
+If you used your own Kubernetes Cluster
 ```
 make uninstall
 ```
 
-if you used your own Kubernetes Cluster
+You can also run all of these steps manually. 
 
 ```
 kubectl delete -k ./example/otel-gateway

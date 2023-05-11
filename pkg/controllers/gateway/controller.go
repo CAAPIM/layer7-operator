@@ -206,7 +206,6 @@ func reconcileDynamicRepository(r *GatewayReconciler, ctx context.Context, gw *s
 				return err
 			}
 		}
-
 	}
 	return nil
 }
@@ -412,6 +411,12 @@ func reconcileDeployment(r *GatewayReconciler, ctx context.Context, gw *security
 	var cGatewayContainer corev1.Container
 	var nGatewayContainer corev1.Container
 
+	for k, v := range currDeployment.Spec.Template.Annotations {
+		if strings.Contains(k, "security.brcmlabs.com") {
+			dep.Spec.Template.Annotations[k] = v
+		}
+	}
+
 	for _, c := range currDeployment.Spec.Template.Spec.Containers {
 		if c.Name == "gateway" {
 			cGatewayContainer = c
@@ -452,6 +457,7 @@ func reconcileDeployment(r *GatewayReconciler, ctx context.Context, gw *security
 	}
 
 	if update {
+		r.Log.Info("Updating Gateway Deployment", "Name", gw.Name, "Namespace", gw.Namespace)
 		ctrl.SetControllerReference(gw, dep, r.Scheme)
 		return r.Update(ctx, dep)
 	}
@@ -734,7 +740,7 @@ func applyGraphmanBundleEphemeral(r *GatewayReconciler, ctx context.Context, gw 
 func applyGraphmanBundleDbBacked(r *GatewayReconciler, ctx context.Context, gw *securityv1.Gateway, repoRef securityv1.RepositoryReference, commit string) error {
 	notify := false
 	notificationMessage := map[string]string{}
-	patch := fmt.Sprintf("{\"metadata\": {\"labels\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, commit)
+	patch := fmt.Sprintf("{\"spec\": { \"template\": {\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, commit)
 
 	gatewayDeployment, err := getGatewayDeployment(r, ctx, gw)
 
@@ -747,7 +753,7 @@ func applyGraphmanBundleDbBacked(r *GatewayReconciler, ctx context.Context, gw *
 		return nil
 	}
 
-	currentCommit := gatewayDeployment.Labels["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
+	currentCommit := gatewayDeployment.Spec.Template.Annotations["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
 	if currentCommit == commit {
 		return nil
 	}
@@ -782,7 +788,7 @@ func applyGraphmanBundleDbBacked(r *GatewayReconciler, ctx context.Context, gw *
 
 	if err := r.Client.Patch(context.Background(), &gatewayDeployment,
 		client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-		r.Log.Error(err, "Failed to update deployment label", "Namespace", gw.Namespace, "Name", gw.Name)
+		r.Log.Error(err, "Failed to update deployment annotations", "Namespace", gw.Namespace, "Name", gw.Name)
 		return err
 	}
 

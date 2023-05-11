@@ -377,12 +377,14 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		initContainers = append(initContainers, corev1.Container{
 			Name:            "graphman-static-init-" + commits[30:],
 			Image:           gw.Spec.App.Management.Graphman.InitContainerImage,
-			ImagePullPolicy: corev1.PullAlways,
+			ImagePullPolicy: corev1.PullIfNotPresent,
 			VolumeMounts:    gmanInitContainerVolumeMounts,
 			Env: []corev1.EnvVar{{
 				Name:  "BOOTSTRAP_BASE",
 				Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
 			}},
+			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		})
 	}
 
@@ -390,17 +392,6 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		Requests: gw.Spec.App.Resources.Requests,
 		Limits:   gw.Spec.App.Resources.Limits,
 	}
-
-	// if gw.Spec.App.Repository.Enabled && gw.Spec.App.Repository.Method == "init" {
-	// 	init := gw.Spec.App.Repository.Init
-	// 	env := []corev1.EnvVar{{Name: "GIT_REPO_URL", Value: gw.Spec.App.Repository.URL}, {Name: "BUNDLE_DIR", Value: gw.Spec.App.Repository.BundleDirectory}}
-	// 	init.Env = append(init.Env, env...)
-	// 	initContainers = append(initContainers, init)
-	// 	volumeMounts = append(volumeMounts, init.VolumeMounts...)
-	// 	for v := range init.VolumeMounts {
-	// 		volumes = append(volumes, corev1.Volume{Name: init.VolumeMounts[v].Name, VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}})
-	// 	}
-	// }
 
 	gateway := corev1.Container{
 		Image:                    image,

@@ -298,7 +298,13 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	}
 
 	containers := []corev1.Container{}
-	initContainers := gw.Spec.App.InitContainers
+	initContainers := []corev1.Container{}
+	for _, ic := range gw.Spec.App.InitContainers {
+		ic.TerminationMessagePath = corev1.TerminationMessagePathDefault
+		ic.TerminationMessagePolicy = corev1.TerminationMessageReadFile
+		initContainers = append(initContainers, ic)
+	}
+
 	graphmanInitContainer := false
 	commits := ""
 	gmanInitContainerVolumeMounts := []corev1.VolumeMount{}
@@ -420,10 +426,10 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 					Command: []string{"/bin/bash", "/opt/docker/rc.d/diagnostic/health_check.sh"},
 				},
 			},
-			InitialDelaySeconds: 60,
+			InitialDelaySeconds: 45,
 			TimeoutSeconds:      1,
-			PeriodSeconds:       10,
-			FailureThreshold:    20,
+			PeriodSeconds:       15,
+			FailureThreshold:    25,
 			SuccessThreshold:    1,
 		},
 		ReadinessProbe: &corev1.Probe{
@@ -432,10 +438,10 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 					Command: []string{"/bin/bash", "/opt/docker/rc.d/diagnostic/health_check.sh"},
 				},
 			},
-			InitialDelaySeconds: 60,
+			InitialDelaySeconds: 45,
 			TimeoutSeconds:      1,
-			PeriodSeconds:       10,
-			FailureThreshold:    20,
+			PeriodSeconds:       15,
+			FailureThreshold:    25,
 			SuccessThreshold:    1,
 		},
 		Resources: resources,

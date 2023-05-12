@@ -2,9 +2,12 @@ package util
 
 import (
 	"crypto/rand"
+	"crypto/sha1"
 	"encoding/hex"
 	"encoding/xml"
+	"fmt"
 	"strconv"
+	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 )
@@ -103,24 +106,26 @@ type EnabledFeatures struct {
 	StringValue []string `xml:"l7:StringValue"`
 }
 
-func BuildCWPBundle(cwps map[string]string) ([]byte, error) {
+func BuildCWPBundle(cwps []securityv1.Property) ([]byte, string, error) {
 	refs := References{}
 	items := []Item{}
 	mapping := []Mapping{}
+	cwpIds := []string{}
 
-	for cwp, val := range cwps {
+	for _, cwp := range cwps {
 		randomId, err := randToken(16)
+		cwpIds = append(cwpIds, randomId)
 
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
 		resource := Resource{ClusterProperty: &ClusterProperty{
 			ID:    randomId,
-			Name:  cwp,
-			Value: val,
+			Name:  cwp.Name,
+			Value: cwp.Value,
 		}}
-		items = append(items, Item{Name: cwp,
+		items = append(items, Item{Name: cwp.Name,
 			ID:       randomId,
 			Type:     "CLUSTER_PROPERTY",
 			Resource: resource,
@@ -131,7 +136,7 @@ func BuildCWPBundle(cwps map[string]string) ([]byte, error) {
 			StringValue: "name",
 		}, {
 			Key:         "MapTo",
-			StringValue: cwp,
+			StringValue: cwp.Name,
 		},
 		}
 
@@ -155,16 +160,27 @@ func BuildCWPBundle(cwps map[string]string) ([]byte, error) {
 
 	bundleBytes, err := xml.Marshal(bundle)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return bundleBytes, nil
+
+	bundleString := string(bundleBytes)
+	for _, cwpId := range cwpIds {
+		bundleString = strings.ReplaceAll(bundleString, cwpId, "")
+	}
+
+	h := sha1.New()
+	h.Write([]byte(bundleString))
+	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+
+	return bundleBytes, sha1Sum, nil
 
 }
 
-func BuildDefaultListenPortBundle() ([]byte, error) {
+func BuildDefaultListenPortBundle() ([]byte, string, error) {
 	trafficId, _ := randToken(16)
 	managementId, _ := randToken(16)
 	plaintextId, _ := randToken(16)
+	portIds := []string{trafficId, managementId, plaintextId}
 
 	cipherSuites := []string{
 		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
@@ -352,19 +368,30 @@ func BuildDefaultListenPortBundle() ([]byte, error) {
 
 	bundleBytes, err := xml.Marshal(bundle)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return bundleBytes, nil
+	bundleString := string(bundleBytes)
+	for _, portId := range portIds {
+		bundleString = strings.ReplaceAll(bundleString, portId, "")
+	}
+
+	h := sha1.New()
+	h.Write([]byte(bundleString))
+	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+
+	return bundleBytes, sha1Sum, nil
 }
 
-func BuildCustomListenPortBundle(gw *securityv1.Gateway) ([]byte, error) {
+func BuildCustomListenPortBundle(gw *securityv1.Gateway) ([]byte, string, error) {
 	refs := References{}
 	items := []Item{}
 	mapping := []Mapping{}
+	portIds := []string{}
 
 	for _, port := range gw.Spec.App.ListenPorts.Ports {
 		portId, _ := randToken(16)
+		portIds = append(portIds, portId)
 		newPort := Item{
 			Name: port.Name,
 			ID:   portId,
@@ -435,8 +462,17 @@ func BuildCustomListenPortBundle(gw *securityv1.Gateway) ([]byte, error) {
 
 	bundleBytes, err := xml.Marshal(bundle)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return bundleBytes, nil
+	bundleString := string(bundleBytes)
+	for _, portId := range portIds {
+		bundleString = strings.ReplaceAll(bundleString, portId, "")
+	}
+
+	h := sha1.New()
+	h.Write([]byte(bundleString))
+	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+
+	return bundleBytes, sha1Sum, nil
 }

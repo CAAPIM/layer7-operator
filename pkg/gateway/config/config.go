@@ -1,7 +1,9 @@
 package config
 
 import (
+	"crypto/sha1"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -30,6 +32,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 	javaArgs := strings.Join(gw.Spec.App.Java.ExtraArgs, " ")
 	data := make(map[string]string)
 	jvmHeap := setJVMHeapSize(gw)
+	dataCheckSum := ""
 	switch name {
 	case gw.Name + "-system":
 		data["system.properties"] = gw.Spec.App.System.Properties
@@ -53,21 +56,17 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			data["EXTRA_JAVA_ARGS"] = javaArgs + " -Dcom.l7tech.server.extension.sharedCounterProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedKeyValueStoreProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedClusterInfoProvider=externalhazelcast"
 		}
 	case gw.Name + "-cwp-bundle":
-		props := map[string]string{}
-
-		for _, p := range gw.Spec.App.ClusterProperties.Properties {
-			props[p.Name] = p.Value
-		}
-		bundle, _ := util.BuildCWPBundle(props)
+		bundle := []byte{}
+		bundle, dataCheckSum, _ = util.BuildCWPBundle(gw.Spec.App.ClusterProperties.Properties)
 		data["cwp.bundle"] = string(bundle)
 	case gw.Name + "-listen-port-bundle":
 		bundle := []byte{}
 
 		if !gw.Spec.App.ListenPorts.Custom.Enabled {
-			bundle, _ = util.BuildDefaultListenPortBundle()
+			bundle, dataCheckSum, _ = util.BuildDefaultListenPortBundle()
 
 		} else {
-			bundle, _ = util.BuildCustomListenPortBundle(gw)
+			bundle, dataCheckSum, _ = util.BuildCustomListenPortBundle(gw)
 		}
 
 		data["listen-ports.bundle"] = string(bundle)
@@ -99,11 +98,20 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["config.json"] = string(initContainerStaticConfigBytes)
 	}
 
+	if dataCheckSum == "" {
+		dataBytes, _ := json.Marshal(data)
+		h := sha1.New()
+		h.Write(dataBytes)
+		sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+		dataCheckSum = sha1Sum
+	}
+
 	cmap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: gw.Namespace,
-			Labels:    util.DefaultLabels(gw.Name, gw.Spec.App.Labels),
+			Name:        name,
+			Namespace:   gw.Namespace,
+			Labels:      util.DefaultLabels(gw.Name, gw.Spec.App.Labels),
+			Annotations: map[string]string{"checksum/data": dataCheckSum},
 		},
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",

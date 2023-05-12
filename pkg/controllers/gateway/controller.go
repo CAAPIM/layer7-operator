@@ -288,10 +288,11 @@ func reconcileConfigMap(r *GatewayReconciler, name string, ctx context.Context, 
 		return nil
 	}
 
-	if !reflect.DeepEqual(currMap.Data, cm.Data) {
+	if cm.ObjectMeta.Annotations["checksum/data"] != currMap.ObjectMeta.Annotations["checksum/data"] {
 		ctrl.SetControllerReference(gw, cm, r.Scheme)
 		return r.Update(ctx, cm)
 	}
+
 	return nil
 }
 

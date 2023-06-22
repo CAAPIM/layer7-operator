@@ -18,11 +18,14 @@ package gateway
 
 import (
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -30,14 +33,11 @@ import (
 	"github.com/caapim/layer7-operator/pkg/gateway/config"
 	"github.com/caapim/layer7-operator/pkg/gateway/hpa"
 	"github.com/caapim/layer7-operator/pkg/gateway/ingress"
-	"github.com/caapim/layer7-operator/pkg/gateway/monitoring"
 	"github.com/caapim/layer7-operator/pkg/gateway/pdb"
 	"github.com/caapim/layer7-operator/pkg/gateway/secrets"
 	"github.com/caapim/layer7-operator/pkg/gateway/service"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-logr/logr"
-	otelv1alpha1 "github.com/open-telemetry/opentelemetry-operator/apis/v1alpha1"
-	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -53,8 +53,9 @@ import (
 // GatewayReconciler reconciles a Gateway object
 type GatewayReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
+	muTasks sync.Mutex
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -65,7 +66,8 @@ type GatewayReconciler struct {
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	_ = r.Log.WithValues("gateway", req.NamespacedName)
-
+	r.muTasks.Lock()
+	defer r.muTasks.Unlock()
 	gw, err := getGateway(r, ctx, req.NamespacedName)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -79,16 +81,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, err
-	}
-
-	err = reconcileServiceMonitor(r, ctx, gw)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	err = reconcileOtelCollector(r, ctx, gw)
-	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -179,6 +171,17 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 		}
 	}
+
+	err = reconcileExternalSecrets(r, ctx, gw)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = reconcileExternalKeys(r, ctx, gw)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
 
@@ -292,7 +295,6 @@ func reconcileConfigMap(r *GatewayReconciler, name string, ctx context.Context, 
 		ctrl.SetControllerReference(gw, cm, r.Scheme)
 		return r.Update(ctx, cm)
 	}
-
 	return nil
 }
 
@@ -462,6 +464,202 @@ func reconcileDeployment(r *GatewayReconciler, ctx context.Context, gw *security
 		ctrl.SetControllerReference(gw, dep, r.Scheme)
 		return r.Update(ctx, dep)
 	}
+	return nil
+}
+
+func reconcileExternalKeys(r *GatewayReconciler, ctx context.Context, gw *securityv1.Gateway) error {
+	keySecretMap := []util.GraphmanKey{}
+	bundleBytes := []byte{}
+
+	podList, err := getGatewayPods(r, ctx, gw)
+	if err != nil {
+		return err
+	}
+
+	for _, externalKey := range gw.Spec.App.ExternalKeys {
+		if externalKey.Enabled {
+
+			secret, err := getSecret(r, ctx, gw, externalKey.Name)
+			if err != nil {
+				if k8serrors.IsNotFound(err) {
+					r.Log.Info("Secret not found", "Name", gw.Name, "Namespace", gw.Namespace, "External Key Ref", externalKey.Name)
+				} else {
+					r.Log.Info("Can't retrieve secret", "Name", gw.Name, "Namespace", gw.Namespace, "Error", err.Error())
+				}
+			}
+
+			if secret.Type == corev1.SecretTypeTLS {
+				keySecretMap = append(keySecretMap, util.GraphmanKey{
+					Name: secret.Name,
+					Crt:  string(secret.Data["tls.crt"]),
+					Key:  string(secret.Data["tls.key"]),
+				})
+			}
+
+		}
+	}
+
+	if len(keySecretMap) > 0 {
+		bundleBytes, err = util.ConvertX509ToGraphmanBundle(keySecretMap)
+		if err != nil {
+			r.Log.Info("Can't convert secrets to Graphman bundle", "Name", gw.Name, "Namespace", gw.Namespace, "Error", err.Error())
+		}
+	} else {
+		return nil
+	}
+
+	sort.Slice(keySecretMap, func(i, j int) bool {
+		return keySecretMap[i].Name < keySecretMap[j].Name
+	})
+
+	keySecretMapBytes, err := json.Marshal(keySecretMap)
+
+	if err != nil {
+		return err
+	}
+	h := sha1.New()
+	h.Write(keySecretMapBytes)
+	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+
+	patch := fmt.Sprintf("{\"metadata\": {\"labels\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/external-keys", sha1Sum)
+
+	name := gw.Name
+	if gw.Spec.App.Management.SecretName != "" {
+		name = gw.Spec.App.Management.SecretName
+	}
+	gwSecret, err := getSecret(r, ctx, gw, name)
+
+	if err != nil {
+		return err
+	}
+
+	for i, pod := range podList.Items {
+		ready := false
+
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if containerStatus.Name == "gateway" {
+				ready = containerStatus.Ready
+			}
+		}
+
+		if ready && pod.Labels["security.brcmlabs.com/external-keys"] != sha1Sum {
+			endpoint := pod.Status.PodIP + ":9443/graphman"
+
+			r.Log.Info("Applying Latest Secret Bundle", "Secret SHA", sha1Sum, "Pod", pod.Name, "Name", gw.Name, "Namespace", gw.Namespace)
+
+			err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "7layer", bundleBytes)
+			if err != nil {
+				return err
+			}
+
+			if err := r.Client.Patch(context.Background(), &podList.Items[i],
+				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
+				r.Log.Error(err, "Failed to update pod label", "Namespace", gw.Namespace, "Name", gw.Name)
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func reconcileExternalSecrets(r *GatewayReconciler, ctx context.Context, gw *securityv1.Gateway) error {
+	opaqueSecretMap := []util.GraphmanSecret{}
+	bundleBytes := []byte{}
+	// TODO Confirm checksum changed before proceeding to get every referenced secret..
+
+	//extSecretBytes, err := json.Marshal(gw.Spec.App.ExternalSecrets)
+
+	podList, err := getGatewayPods(r, ctx, gw)
+	if err != nil {
+		return err
+	}
+
+	for _, externalSecret := range gw.Spec.App.ExternalSecrets {
+		if externalSecret.Enabled {
+
+			secret, err := getSecret(r, ctx, gw, externalSecret.Name)
+			if err != nil {
+				if k8serrors.IsNotFound(err) {
+					r.Log.Info("Secret not found", "Name", gw.Name, "Namespace", gw.Namespace, "External Secret Ref", externalSecret.Name)
+				} else {
+					r.Log.Info("Can't retrieve secret", "Name", gw.Name, "Namespace", gw.Namespace, "Error", err.Error())
+				}
+			}
+
+			if secret.Type == corev1.SecretTypeOpaque {
+				for k, v := range secret.Data {
+					opaqueSecretMap = append(opaqueSecretMap, util.GraphmanSecret{
+						Name:   k,
+						Secret: string(v),
+					})
+				}
+			}
+
+		}
+	}
+
+	if len(opaqueSecretMap) > 0 {
+		bundleBytes, err = util.ConvertOpaqueMapToGraphmanBundle(opaqueSecretMap)
+		if err != nil {
+			r.Log.Info("Can't convert secrets to Graphman bundle", "Name", gw.Name, "Namespace", gw.Namespace, "Error", err.Error())
+		}
+	} else {
+		return nil
+	}
+
+	sort.Slice(opaqueSecretMap, func(i, j int) bool {
+		return opaqueSecretMap[i].Name < opaqueSecretMap[j].Name
+	})
+
+	opaqueSecretMapBytes, err := json.Marshal(opaqueSecretMap)
+
+	if err != nil {
+		return err
+	}
+	h := sha1.New()
+	h.Write(opaqueSecretMapBytes)
+	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+
+	patch := fmt.Sprintf("{\"metadata\": {\"labels\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/external-secrets", sha1Sum)
+
+	name := gw.Name
+	if gw.Spec.App.Management.SecretName != "" {
+		name = gw.Spec.App.Management.SecretName
+	}
+	gwSecret, err := getSecret(r, ctx, gw, name)
+
+	if err != nil {
+		return err
+	}
+
+	for i, pod := range podList.Items {
+		ready := false
+
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if containerStatus.Name == "gateway" {
+				ready = containerStatus.Ready
+			}
+		}
+
+		if ready && pod.Labels["security.brcmlabs.com/external-secrets"] != sha1Sum {
+			endpoint := pod.Status.PodIP + ":9443/graphman"
+
+			r.Log.Info("Applying Latest Secret Bundle", "Secret SHA", sha1Sum, "Pod", pod.Name, "Name", gw.Name, "Namespace", gw.Namespace)
+
+			err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "7layer", bundleBytes)
+			if err != nil {
+				return err
+			}
+
+			if err := r.Client.Patch(context.Background(), &podList.Items[i],
+				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
+				r.Log.Error(err, "Failed to update pod label", "Namespace", gw.Namespace, "Name", gw.Name)
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -688,7 +886,7 @@ func applyGraphmanBundleEphemeral(r *GatewayReconciler, ctx context.Context, gw 
 
 		if update && ready {
 			notify = repoRef.Notification.Enabled
-			endpoint := pod.Status.PodIP + ":8443/graphman"
+			endpoint := pod.Status.PodIP + ":9443/graphman"
 			if len(repoRef.Directories) == 0 {
 				repoRef.Directories = []string{"/"}
 			}
@@ -835,58 +1033,6 @@ func checkGatewayLicense(r *GatewayReconciler, ctx context.Context, gw *security
 		return nil
 	}
 	return err
-}
-
-// This functionality is experimental and will likely be removed
-// in favour of an OtelCollector being created before the Gateway
-// resource so that there are no race conditions.
-func reconcileOtelCollector(r *GatewayReconciler, ctx context.Context, gw *securityv1.Gateway) error {
-	if !gw.Spec.App.Monitoring.Otel.Collector.Create {
-		return nil
-	}
-	currOtelCollector := &otelv1alpha1.OpenTelemetryCollector{}
-	err := r.Get(ctx, types.NamespacedName{Name: gw.Name, Namespace: gw.Namespace}, currOtelCollector)
-
-	newOtelCollector := monitoring.NewOtelCollector(gw)
-	if err != nil && k8serrors.IsNotFound(err) {
-		r.Log.Info("Creating OTel Collector", "Name", gw.Name, "Namespace", gw.Namespace)
-		ctrl.SetControllerReference(gw, newOtelCollector, r.Scheme)
-		err = r.Create(ctx, newOtelCollector)
-		if err != nil {
-			r.Log.Error(err, "Failed creating OTel Collector", "Name", gw.Name, "Namespace", gw.Namespace)
-			return err
-		}
-		return nil
-	}
-
-	if err != nil {
-		r.Log.Info("OtelCollector Error", "Name", gw.Name, "Namespace", gw.Namespace, "error", err.Error())
-	}
-	return nil
-}
-func reconcileServiceMonitor(r *GatewayReconciler, ctx context.Context, gw *securityv1.Gateway) error {
-	if !gw.Spec.App.Monitoring.ServiceMonitor.Create {
-		return nil
-	}
-	currServiceMonitor := &monitoringv1.ServiceMonitor{}
-	err := r.Get(ctx, types.NamespacedName{Name: gw.Name, Namespace: gw.Namespace}, currServiceMonitor)
-	newServiceMonitor := monitoring.NewServiceMonitor(gw)
-	if err != nil && k8serrors.IsNotFound(err) {
-		r.Log.Info("Creating Service Monitor", "Name", gw.Name, "Namespace", gw.Namespace)
-		ctrl.SetControllerReference(gw, newServiceMonitor, r.Scheme)
-		err = r.Create(ctx, newServiceMonitor)
-		if err != nil {
-			r.Log.Error(err, "Failed creating Service Monitor", "Name", gw.Name, "Namespace", gw.Namespace)
-			return err
-		}
-		return nil
-	}
-
-	if err != nil {
-		r.Log.Info("Service Monitor Error", "Name", gw.Name, "Namespace", gw.Namespace, "error", err.Error())
-	}
-
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

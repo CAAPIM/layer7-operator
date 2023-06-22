@@ -176,6 +176,7 @@ type Image struct {
 // App contains Gateway specific deployment and application level configuration
 type App struct {
 	Annotations               map[string]string                 `json:"annotations,omitempty"`
+	PodAnnotations            map[string]string                 `json:"podAnnotations,omitempty"`
 	Labels                    map[string]string                 `json:"labels,omitempty"`
 	ClusterProperties         ClusterProperties                 `json:"cwp,omitempty"`
 	Java                      Java                              `json:"java,omitempty"`
@@ -206,6 +207,8 @@ type App struct {
 	Affinity                  corev1.Affinity                   `json:"affinity,omitempty"`
 	PodDisruptionBudget       PodDisruptionBudgetSpec           `json:"pdb,omitempty"`
 	NodeSelector              map[string]string                 `json:"nodeSelector,omitempty"`
+	ExternalSecrets           []ExternalSecret                  `json:"externalSecrets,omitempty"`
+	ExternalKeys              []ExternalKey                     `json:"externalKeys,omitempty"`
 }
 
 // ClusterProperties are key value pairs of additional cluster-wide properties you wish to bootstrap to your Gateway.
@@ -218,6 +221,26 @@ type ClusterProperties struct {
 type Property struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
+}
+
+// ExternalSecret is a reference to an existing secret in Kubernetes
+// The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+// dynamically keeping any referenced secrets up-to-date.
+// You can bring in external secrets using tools like the external secrets operator (external-secrets.io)
+type ExternalSecret struct {
+	Enabled bool   `json:"enabled,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Type    string `json:"type,omitempty"`
+}
+
+// ExternalKey is a reference to an existing TLS Secret in Kubernetes
+// The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+// dynamically keeping any referenced keys up-to-date.
+// You can bring in external secrets using tools like cert-manager
+type ExternalKey struct {
+	Enabled bool   `json:"enabled,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Port    string `json:"port,omitempty"`
 }
 
 // Monitoring - experimental feature that creates

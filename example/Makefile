@@ -1,42 +1,51 @@
 # This Makefile drives the quickstart sections of all examples.
+#SHELL := /bin/bash
 
-.PHONY: basic advanced otel-gateway
+.PHONY: basic advanced otel-gateway wait
+
+
+wait:
+ifeq ($(OS),Windows_NT)
+	TIMEOUT /T $(t)
+else
+	sleep $(t)
+endif
 
 install:
 	kubectl apply -f ../deploy/bundle.yaml
 
 basic:
 	kubectl apply -k ./repositories
-	sleep 10
+	@$(MAKE) --silent t=10 wait 
 	kubectl apply -k ./basic
 
 advanced:
 	kubectl apply -k ./repositories
-	sleep 10
+	@$(MAKE) --silent t=10 wait
 	kubectl apply -k ./advanced
 
 otel-example-kind: install cert-manager prometheus open-telemetry jaeger nginx-kind
 	kubectl apply -f ./otel/collector.yaml
 	kubectl apply -f ./otel/observability/jaeger/jaeger.yaml
 	kubectl apply -k ./repositories
-	sleep 10
+	@$(MAKE) --silent t=10 wait
 	kubectl apply -k ./otel-gateway
 
 otel-example: install cert-manager prometheus open-telemetry jaeger
-	sleep 10
+	@$(MAKE) --silent t=10 wait
 	kubectl apply -k ./repositories
 	kubectl apply -k ./otel-gateway
 
 cert-manager:
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-	sleep 5
+	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=60s pod -l app=cert-manager -n cert-manager
 	kubectl wait --for=condition=ready --timeout=60s pod -l app=cainjector -n cert-manager
 	kubectl wait --for=condition=ready --timeout=60s pod -l app=webhook -n cert-manager
 	
 open-telemetry:
-	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
-	sleep 5
+	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
+	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=60s pod -l app.kubernetes.io/name=opentelemetry-operator -n opentelemetry-operator-system
 	kubectl apply -f ./otel/collector.yaml
 
@@ -50,7 +59,7 @@ prometheus:
 jaeger:
 	-kubectl create namespace observability
 	kubectl apply -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.44.0/jaeger-operator.yaml -n observability
-	sleep 5
+	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=60s pod -l name=jaeger-operator -n observability
 	kubectl apply -f ./otel/observability/jaeger/jaeger.yaml
 	kubectl apply -f ./otel/observability/jaeger/ingress.yaml

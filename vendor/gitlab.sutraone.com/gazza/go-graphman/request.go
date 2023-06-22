@@ -23,10 +23,9 @@ func (ct *CustomTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func gqlClient(username string, password string, target string, encpass string) graphql.Client {
 	httpClient := &http.Client{
-		Timeout:   time.Second * 10,
+		Timeout:   time.Second * 60,
 		Transport: &CustomTransport{username: username, password: password, encpass: encpass, r: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}},
 	}
-
 	return graphql.NewClient(target, httpClient)
 }
 
@@ -37,5 +36,4 @@ func GqlSummary() {
 	// 	fmt.Println(err)
 	// }
 	// fmt.Println(resp.ClusterProperties)
-
 }

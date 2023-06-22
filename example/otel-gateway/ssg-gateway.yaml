@@ -10,6 +10,8 @@ spec:
   app:
     annotations:
       sidecar.opentelemetry.io/inject: "ssg"
+      instrumentation.opentelemetry.io/inject-java: "true"
+      instrumentation.opentelemetry.io/container-names: "gateway"
     replicas: 1
     image: docker.io/layer7api/gateway:10.1.00_OTEL
     imagePullPolicy: Always
@@ -97,7 +99,6 @@ spec:
       - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
       - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true 
       - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
-      - -javaagent:/opt/SecureSpan/Gateway/runtime/lib/otel/opentelemetry-javaagent-1.21.0.jar
     listenPorts:
       harden: true
       custom:

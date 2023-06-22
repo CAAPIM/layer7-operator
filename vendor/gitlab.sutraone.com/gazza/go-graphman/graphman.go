@@ -117,6 +117,25 @@ func Apply(path string, username string, password string, target string, encpass
 	return respBytes, nil
 }
 
+func ApplyDynamicBundle(username string, password string, target string, encpass string, bundleBytes []byte) ([]byte, error) {
+	bundle := Bundle{}
+	err := json.Unmarshal(bundleBytes, &bundle)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := applyBundle(context.Background(), gqlClient(username, password, target, encpass), bundle.ClusterProperties, bundle.WebApiServices, bundle.EncassConfigs, bundle.TrustedCerts, bundle.Dtds, bundle.Schemas, bundle.JdbcConnections, bundle.SoapServices, bundle.PolicyFragments, bundle.Fips, bundle.LdapIdps, bundle.FipGroups, bundle.InternalGroups, bundle.FipUsers, bundle.InternalUsers, bundle.Keys, bundle.Secrets, bundle.CassandraConnections, bundle.JmsDestinations, bundle.InternalWebApiServices, bundle.InternalSoapServices, bundle.EmailListeners, bundle.ListenPorts, bundle.ActiveConnectors, bundle.SiteMinderConfigs, bundle.GlobalPolicies, bundle.BackgroundTasks, bundle.ScheduledTasks, bundle.ServerModuleFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		return nil, err
+	}
+	return respBytes, nil
+}
+
 // parseEntities determines which entity the file from a Graphman directory belongs to
 // this works with a static list of globally defined entities
 func parseEntity(path string) (string, bool) {

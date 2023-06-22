@@ -1080,6 +1080,30 @@ spec:
                           type: object
                         type: array
                     type: object
+                  externalKeys:
+                    items:
+                      description: ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied dynamically keeping any referenced keys up-to-date. You can bring in external secrets using tools like cert-manager
+                      properties:
+                        enabled:
+                          type: boolean
+                        name:
+                          type: string
+                        port:
+                          type: string
+                      type: object
+                    type: array
+                  externalSecrets:
+                    items:
+                      description: ExternalSecret is a reference to an existing secret in Kubernetes The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied dynamically keeping any referenced secrets up-to-date. You can bring in external secrets using tools like the external secrets operator (external-secrets.io)
+                      properties:
+                        enabled:
+                          type: boolean
+                        name:
+                          type: string
+                        type:
+                          type: string
+                      type: object
+                    type: array
                   hazelcast:
                     properties:
                       endpoint:
@@ -2186,6 +2210,10 @@ spec:
                         - type: integer
                         - type: string
                         x-kubernetes-int-or-string: true
+                    type: object
+                  podAnnotations:
+                    additionalProperties:
+                      type: string
                     type: object
                   podSecurityContext:
                     description: PodSecurityContext holds pod-level security attributes and common container settings. Some fields are also present in container.securityContext.  Field values of container.securityContext take precedence over field values of PodSecurityContext.

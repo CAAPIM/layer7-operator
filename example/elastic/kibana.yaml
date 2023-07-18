@@ -1,0 +1,13 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: quickstart
+spec:
+  version: 8.8.2
+  count: 1
+  elasticsearchRef:
+    name: quickstart
+  http:
+    service:
+      spec:
+        type: ClusterIP # default is ClusterIP

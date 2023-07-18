@@ -20,7 +20,12 @@ secretGenerator:
 - name: restman-bootstrap-bundle
   files:
     - ./resources/secrets/bundles/cluster-property.bundle
-
+- name: telemetry-bootstrap-bundle
+  files:
+    - ./resources/secrets/bundles/telemetry.bundle
+- name: service-bootstrap-bundle
+  files:
+    - ./resources/secrets/bundles/service-test.bundle
 # Create a secret for the Ingress Resource
 # Uncomment this section to create your own certificate for the ingress controller.
 # - name: gatewaytls

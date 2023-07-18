@@ -21,11 +21,10 @@ All examples use [kustomize](https://kustomize.io/). The basic example covers a 
 Gateways
 - [Basic](./basic)
 - [Advanced](./advanced)
-- [OTel Integration](./otel-gateway)
+
+Open Telemetry Examples
+- [Elastic Stack (reference architecture)](./otel-eck-gateway)
+- [Prometheus](./otel-gateway)
 
 Repositories (used in both examples)
 - [Repositories](./repositories/)
-
-#### Coming soon
-- OTel
-  - ECK (Elastic)

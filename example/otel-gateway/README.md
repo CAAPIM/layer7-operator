@@ -1,4 +1,4 @@
-# Open Telemetry Integration
+# Open Telemetry Integration (Prometheus)
 By the end of this example you should have a better understanding of the how to utilise the Gateway's Open Telemetry integration to increase observability across your Operator Managed Gateways. This example uses a Simple Gateway as a base and includes installing the following.
 
 - CertManager Operator (required for OTel)
@@ -373,7 +373,7 @@ These steps are based the official documentation for installing Open Telemetry [
 
 - Install the Open Telemetry Operator.
 ```
-kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
+kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
 ```
 - Create an OpenTelemetryCollector resource
 ```

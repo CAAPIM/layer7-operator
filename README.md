@@ -30,10 +30,23 @@ The Layer7 Operator is restricted to manage the namespace it's deployed in by de
 - Dynamic Volumes for CSI Secret Volumes.
 - Application level port configuration
 - Dedicated Service for access to Policy Manager/Gateway management services (when an external MySQL database is present).
+- External Secrets
+- OpenTelemetry Integration (check out the examples!)
 
-#### Coming Soon
-- Monitoring
-  - OTel Integration
+#### External Secrets
+A new configuration option for external secrets has been created. This allows you to reference existing Kubernetes secrets which are synced with the Gateway's Stored Passwords for use in things like JDBC connections or policy.
+
+External providers can be configured with the [external secrets operator](https://external-secrets.io).
+
+```
+app:
+...
+  externalSecrets:
+    - name: database-credentials-gcp
+      enabled: true
+    - name: local-secret
+      enabled: true
+```
 
 ### Under consideration
 - OTK support (operator managed)

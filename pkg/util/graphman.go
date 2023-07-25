@@ -11,9 +11,11 @@ import (
 	"errors"
 	"strings"
 
+	graphman "github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/gazza7205/go-pkcs12"
-	graphman "gitlab.sutraone.com/gazza/go-graphman"
 )
+
+// implement back off loop
 
 type GraphmanSecret struct {
 	Name   string `json:"name,omitempty"`
@@ -195,3 +197,24 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 
 	return buf.Bytes(), nil
 }
+
+// Reserved for future use.
+// // Brotli can compress an 11mb restman bundle down to 550-600kb
+// func CompressGraphmanBundle(path string) ([]byte, error) {
+// 	bundle, err := graphman.Implode(path)
+
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	bytes, err := cbrotli.Encode(bundle, cbrotli.WriterOptions{Quality: 6})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	if len(bytes) > 900000 {
+// 		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size.")
+// 	}
+
+// 	return bytes, nil
+// }

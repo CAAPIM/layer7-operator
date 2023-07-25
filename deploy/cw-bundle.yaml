@@ -945,7 +945,7 @@ spec:
                       description: Bundle A Restman or Graphman bundle
                       properties:
                         configMap:
-                          description: ConfigMap
+                          description: Add secret... Secret    Secret    `json:"secret,omitempty"`
                           properties:
                             defaultMode:
                               format: int32
@@ -1104,6 +1104,8 @@ spec:
                           type: string
                       type: object
                     type: array
+                  externalSecretsSyncIntervalSeconds:
+                    type: integer
                   hazelcast:
                     properties:
                       endpoint:
@@ -2123,6 +2125,8 @@ spec:
                       graphman:
                         description: Graphman is a GraphQL Gateway Management interface that can be automatically provisioned. The initContainer image is required for bootstrapping graphman bundles defined by the repository controller.
                         properties:
+                          dynamicSyncPort:
+                            type: integer
                           enabled:
                             type: boolean
                           initContainerImage:
@@ -2369,6 +2373,8 @@ spec:
                       - enabled
                       type: object
                     type: array
+                  repositorySyncIntervalSeconds:
+                    type: integer
                   resources:
                     properties:
                       limits:

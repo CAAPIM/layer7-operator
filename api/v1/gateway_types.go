@@ -120,14 +120,17 @@ type Restman struct {
 // The initContainer image is required for bootstrapping graphman bundles defined by the repository controller.
 type Graphman struct {
 	Enabled            bool   `json:"enabled,omitempty"`
+	DynamicSyncPort    int    `json:"dynamicSyncPort,omitempty"`
 	InitContainerImage string `json:"initContainerImage,omitempty"`
 }
 
 // Bundle A Restman or Graphman bundle
 type Bundle struct {
-	Type      string    `json:"type,omitempty"`
-	Source    string    `json:"source,omitempty"`
-	Name      string    `json:"name,omitempty"`
+	Type   string `json:"type,omitempty"`
+	Source string `json:"source,omitempty"`
+	Name   string `json:"name,omitempty"`
+	//Add secret...
+	//Secret    Secret    `json:"secret,omitempty"`
 	ConfigMap ConfigMap `json:"configMap,omitempty"`
 	CSI       CSI       `json:"csi,omitempty"`
 }
@@ -138,6 +141,12 @@ type ConfigMap struct {
 	Optional    bool   `json:"optional,omitempty"`
 	Name        string `json:"name,omitempty"`
 }
+
+// type Secret struct {
+// 	DefaultMode *int32 `json:"defaultMode,omitempty"`
+// 	Optional    bool   `json:"optional,omitempty"`
+// 	Name        string `json:"name,omitempty"`
+// }
 
 // CSI
 type CSI struct {
@@ -175,40 +184,42 @@ type Image struct {
 
 // App contains Gateway specific deployment and application level configuration
 type App struct {
-	Annotations               map[string]string                 `json:"annotations,omitempty"`
-	PodAnnotations            map[string]string                 `json:"podAnnotations,omitempty"`
-	Labels                    map[string]string                 `json:"labels,omitempty"`
-	ClusterProperties         ClusterProperties                 `json:"cwp,omitempty"`
-	Java                      Java                              `json:"java,omitempty"`
-	Management                Management                        `json:"management,omitempty"`
-	System                    System                            `json:"system,omitempty"`
-	UpdateStrategy            UpdateStrategy                    `json:"updateStrategy,omitempty"`
-	Image                     string                            `json:"image,omitempty"`
-	ImagePullSecrets          []corev1.LocalObjectReference     `json:"imagePullSecrets,omitempty"`
-	ImagePullPolicy           corev1.PullPolicy                 `json:"imagePullPolicy,omitempty"`
-	ListenPorts               ListenPorts                       `json:"listenPorts,omitempty"`
-	Replicas                  int32                             `json:"replicas,omitempty"`
-	Service                   Service                           `json:"service,omitempty"`
-	Bundle                    []Bundle                          `json:"bundle,omitempty"`
-	RepositoryReferences      []RepositoryReference             `json:"repositoryReferences,omitempty"`
-	Ingress                   Ingress                           `json:"ingress,omitempty"`
-	Sidecars                  []corev1.Container                `json:"sidecars,omitempty"`
-	InitContainers            []corev1.Container                `json:"initContainers,omitempty"`
-	Resources                 PodResources                      `json:"resources,omitempty"`
-	Autoscaling               Autoscaling                       `json:"autoscaling,omitempty"`
-	ServiceAccountName        string                            `json:"serviceAccountName,omitempty"`
-	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
-	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
-	Monitoring                Monitoring                        `json:"monitoring,omitempty"`
-	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
-	PodSecurityContext        corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
-	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
-	Tolerations               []corev1.Toleration               `json:"tolerations,omitempty"`
-	Affinity                  corev1.Affinity                   `json:"affinity,omitempty"`
-	PodDisruptionBudget       PodDisruptionBudgetSpec           `json:"pdb,omitempty"`
-	NodeSelector              map[string]string                 `json:"nodeSelector,omitempty"`
-	ExternalSecrets           []ExternalSecret                  `json:"externalSecrets,omitempty"`
-	ExternalKeys              []ExternalKey                     `json:"externalKeys,omitempty"`
+	Annotations                        map[string]string                 `json:"annotations,omitempty"`
+	PodAnnotations                     map[string]string                 `json:"podAnnotations,omitempty"`
+	Labels                             map[string]string                 `json:"labels,omitempty"`
+	ClusterProperties                  ClusterProperties                 `json:"cwp,omitempty"`
+	Java                               Java                              `json:"java,omitempty"`
+	Management                         Management                        `json:"management,omitempty"`
+	System                             System                            `json:"system,omitempty"`
+	UpdateStrategy                     UpdateStrategy                    `json:"updateStrategy,omitempty"`
+	Image                              string                            `json:"image,omitempty"`
+	ImagePullSecrets                   []corev1.LocalObjectReference     `json:"imagePullSecrets,omitempty"`
+	ImagePullPolicy                    corev1.PullPolicy                 `json:"imagePullPolicy,omitempty"`
+	ListenPorts                        ListenPorts                       `json:"listenPorts,omitempty"`
+	Replicas                           int32                             `json:"replicas,omitempty"`
+	Service                            Service                           `json:"service,omitempty"`
+	Bundle                             []Bundle                          `json:"bundle,omitempty"`
+	RepositorySyncIntervalSeconds      int                               `json:"repositorySyncIntervalSeconds,omitempty"`
+	ExternalSecretsSyncIntervalSeconds int                               `json:"externalSecretsSyncIntervalSeconds,omitempty"`
+	RepositoryReferences               []RepositoryReference             `json:"repositoryReferences,omitempty"`
+	Ingress                            Ingress                           `json:"ingress,omitempty"`
+	Sidecars                           []corev1.Container                `json:"sidecars,omitempty"`
+	InitContainers                     []corev1.Container                `json:"initContainers,omitempty"`
+	Resources                          PodResources                      `json:"resources,omitempty"`
+	Autoscaling                        Autoscaling                       `json:"autoscaling,omitempty"`
+	ServiceAccountName                 string                            `json:"serviceAccountName,omitempty"`
+	Hazelcast                          Hazelcast                         `json:"hazelcast,omitempty"`
+	Bootstrap                          Bootstrap                         `json:"bootstrap,omitempty"`
+	Monitoring                         Monitoring                        `json:"monitoring,omitempty"`
+	ContainerSecurityContext           corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
+	PodSecurityContext                 corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
+	TopologySpreadConstraints          []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	Tolerations                        []corev1.Toleration               `json:"tolerations,omitempty"`
+	Affinity                           corev1.Affinity                   `json:"affinity,omitempty"`
+	PodDisruptionBudget                PodDisruptionBudgetSpec           `json:"pdb,omitempty"`
+	NodeSelector                       map[string]string                 `json:"nodeSelector,omitempty"`
+	ExternalSecrets                    []ExternalSecret                  `json:"externalSecrets,omitempty"`
+	ExternalKeys                       []ExternalKey                     `json:"externalKeys,omitempty"`
 }
 
 // ClusterProperties are key value pairs of additional cluster-wide properties you wish to bootstrap to your Gateway.

@@ -23,11 +23,12 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"go.uber.org/zap/zapcore"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/controllers/gateway"
-	"github.com/caapim/layer7-operator/pkg/controllers/repository"
+	"github.com/caapim/layer7-operator/controllers/gateway"
+	"github.com/caapim/layer7-operator/controllers/repository"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -63,7 +64,8 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
-		Development: true,
+		Development: false,
+		Level:       zapcore.Level(-3),
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()

@@ -86,7 +86,7 @@ spec:
         enabled: false
       graphman:
         enabled: true
-        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.0
+        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
       cluster:
         hostname: gateway.brcmlabs.com
       database:

@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
+	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-co-op/gocron"
 	corev1 "k8s.io/api/core/v1"
@@ -17,13 +18,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var externalSecretsScheduler = gocron.NewScheduler(time.Local).SingletonMode()
+var externalSecretsScheduler = gocron.NewScheduler(time.Local)
+var secretSyncCache = util.NewSyncCache(3 * time.Second)
 
 func ExternalSecrets(ctx context.Context, params Params) error {
 
 	syncInterval := 5
 
-	if params.Instance.Spec.App.RepositorySyncIntervalSeconds != 0 {
+	if params.Instance.Spec.App.ExternalSecretsSyncIntervalSeconds != 0 {
 		syncInterval = params.Instance.Spec.App.ExternalSecretsSyncIntervalSeconds
 	}
 
@@ -37,14 +39,18 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 
 			if t == "sync-external-secrets" {
 				if j.IsRunning() {
-					return fmt.Errorf("already running: %w", errors.New("repository sync is already in progress"))
+					//return fmt.Errorf("already running: %w", errors.New("external secret sync is already in progress"))
+					params.Log.V(2).Info("external secret sync job is already in progress", "job", j.Tags(), "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+					return nil
 				}
 
 				err := externalSecretsScheduler.RunByTag("sync-external-secrets")
-				externalSecretsScheduler.StartAsync()
+
 				if err != nil {
-					return fmt.Errorf("failed to reconcile repository: %w", err)
+					return fmt.Errorf("failed to reconcile external secrets: %w", err)
 				}
+
+				externalSecretsScheduler.StartAsync()
 
 			}
 		}
@@ -54,28 +60,30 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 }
 
 func registerExternalSecretJob(ctx context.Context, params Params, syncInterval int) error {
-	if externalSecretsScheduler.Len() > 0 {
-		_ = externalSecretsScheduler.RemoveByTag("sync-external-secrets")
-	}
 	externalSecretsScheduler.TagsUnique()
+
 	_, err := externalSecretsScheduler.Every(syncInterval).Seconds().Tag("sync-external-secrets").Do(func() {
+
+		gateway := &securityv1.Gateway{}
+		err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
+		if err != nil && k8serrors.IsNotFound(err) {
+			params.Log.Error(err, "gateway not found", "Name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		}
+
 		cntr := 0
-		for _, externalSecret := range params.Instance.Spec.App.ExternalSecrets {
+		for _, externalSecret := range gateway.Spec.App.ExternalSecrets {
 			if externalSecret.Enabled {
 				cntr++
 			}
 		}
 		if cntr == 0 {
 			_ = externalSecretsScheduler.RemoveByTag("sync-external-secrets")
+			return
 		}
 
-		err := reconcileExternalSecrets(ctx, params)
+		err = reconcileExternalSecrets(ctx, params, gateway)
 		if err != nil {
-			if k8serrors.IsNotFound(err) {
-				params.Log.Info("Secret not found", "Name", params.Instance.Name, "Namespace", params.Instance.Namespace, "External Secret Ref", params.Instance.Name)
-			} else {
-				params.Log.Info("Can't retrieve secret", "Name", params.Instance.Name, "Namespace", params.Instance.Namespace, "Error", err.Error())
-			}
+			params.Log.Info("failed to reconcile external secrets", "Name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
 		}
 
 	})
@@ -86,7 +94,14 @@ func registerExternalSecretJob(ctx context.Context, params Params, syncInterval 
 	return nil
 }
 
-func reconcileExternalSecrets(ctx context.Context, params Params) error {
+func reconcileExternalSecrets(ctx context.Context, params Params, gateway *securityv1.Gateway) error {
+
+	graphmanPort := 9443
+
+	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
+		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
+	}
+
 	opaqueSecretMap := []util.GraphmanSecret{}
 	bundleBytes := []byte{}
 
@@ -95,7 +110,7 @@ func reconcileExternalSecrets(ctx context.Context, params Params) error {
 		return err
 	}
 
-	for _, es := range params.Instance.Spec.App.ExternalSecrets {
+	for _, es := range gateway.Spec.App.ExternalSecrets {
 		if es.Enabled {
 
 			secret, err := getGatewaySecret(ctx, params, es.Name)
@@ -139,9 +154,9 @@ func reconcileExternalSecrets(ctx context.Context, params Params) error {
 
 	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/external-secrets", sha1Sum)
 
-	name := params.Instance.Name
-	if params.Instance.Spec.App.Management.SecretName != "" {
-		name = params.Instance.Spec.App.Management.SecretName
+	name := gateway.Name
+	if gateway.Spec.App.Management.SecretName != "" {
+		name = gateway.Spec.App.Management.SecretName
 	}
 	gwSecret, err := getGatewaySecret(ctx, params, name)
 
@@ -158,10 +173,30 @@ func reconcileExternalSecrets(ctx context.Context, params Params) error {
 			}
 		}
 
-		if ready && pod.ObjectMeta.Annotations["security.brcmlabs.com/external-secrets"] != sha1Sum {
-			endpoint := pod.Status.PodIP + ":9443/graphman"
+		if pod.ObjectMeta.Annotations["security.brcmlabs.com/external-secrets"] == sha1Sum {
+			return nil
+		}
 
-			params.Log.Info("Applying Latest Secret Bundle", "Secret SHA", sha1Sum, "Pod", pod.Name, "Name", params.Instance.Name, "Namespace", params.Instance.Namespace)
+		requestCacheEntry := pod.Name + "-" + sha1Sum
+		syncRequest, err := secretSyncCache.Read(requestCacheEntry)
+		tryRequest := true
+
+		if err != nil {
+			params.Log.V(2).Info("request has not been attempted or cache was flushed", "action", "sync external secrets", "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
+		}
+
+		if syncRequest.Attempts > 0 {
+			params.Log.V(2).Info("request has been attempted in the last 30 seconds, backing off", "SecretSha1Sum", sha1Sum, "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
+			tryRequest = false
+		}
+
+		secretSyncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(30*time.Second).Unix())
+
+		/// Change port to graphman port
+		if tryRequest && ready {
+			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"
+
+			params.Log.Info("Applying Latest Secret Bundle", "Secret SHA", sha1Sum, "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
 
 			err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "7layer", bundleBytes)
 			if err != nil {
@@ -170,7 +205,7 @@ func reconcileExternalSecrets(ctx context.Context, params Params) error {
 
 			if err := params.Client.Patch(context.Background(), &podList.Items[i],
 				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-				params.Log.Error(err, "Failed to update pod label", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
+				params.Log.Error(err, "Failed to update pod label", "Namespace", gateway.Namespace, "Name", gateway.Name)
 				return err
 			}
 		}

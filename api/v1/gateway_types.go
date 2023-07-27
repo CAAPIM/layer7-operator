@@ -201,6 +201,7 @@ type App struct {
 	Bundle                             []Bundle                          `json:"bundle,omitempty"`
 	RepositorySyncIntervalSeconds      int                               `json:"repositorySyncIntervalSeconds,omitempty"`
 	ExternalSecretsSyncIntervalSeconds int                               `json:"externalSecretsSyncIntervalSeconds,omitempty"`
+	ExternalKeysSyncIntervalSeconds    int                               `json:"externalKeysSyncIntervalSeconds,omitempty"`
 	RepositoryReferences               []RepositoryReference             `json:"repositoryReferences,omitempty"`
 	Ingress                            Ingress                           `json:"ingress,omitempty"`
 	Sidecars                           []corev1.Container                `json:"sidecars,omitempty"`

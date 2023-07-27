@@ -54,6 +54,8 @@ func Deployment(ctx context.Context, params Params) error {
 		updatedDeployment.ObjectMeta.Labels[k] = v
 	}
 
+	//updatedDeployment.ObjectMeta.OwnerReferences = desiredDeployment.ObjectMeta.OwnerReferences
+
 	patch := client.MergeFrom(currentDeployment)
 
 	if err := params.Client.Patch(ctx, updatedDeployment, patch); err != nil {

@@ -62,3 +62,62 @@ func getGatewaySecret(ctx context.Context, params Params, name string) (*corev1.
 	}
 	return gwSecret, nil
 }
+
+// getPodNames returns the pod names of the array of pods passed in
+func getPodNames(pods []corev1.Pod) []string {
+	var podNames []string
+	for _, pod := range pods {
+		podNames = append(podNames, pod.Name)
+	}
+	return podNames
+}
+
+func GatewayLicense(ctx context.Context, params Params) error {
+	gatewayLicense := &corev1.Secret{}
+	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Spec.License.SecretName, Namespace: params.Instance.Namespace}, gatewayLicense)
+	if k8serrors.IsNotFound(err) {
+		params.Log.Error(err, "License not found", "Name", params.Instance.Name, "Namespace", params.Instance.Namespace)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return err
+}
+
+func ManagementPod(ctx context.Context, params Params) error {
+
+	if !params.Instance.Spec.App.Management.Service.Enabled {
+		return nil
+	}
+
+	podList, err := getGatewayPods(ctx, params)
+
+	if err != nil {
+		return err
+	}
+
+	podNames := getPodNames(podList.Items)
+	if params.Instance.Status.ManagementPod != "" {
+		if util.Contains(podNames, params.Instance.Status.ManagementPod) {
+			return nil
+		}
+	}
+	for p := range podList.Items {
+		if p == 0 {
+			patch := []byte(`{"metadata":{"labels":{"management-access": "leader"}}}`)
+			if err := params.Client.Patch(context.Background(), &podList.Items[p],
+				client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
+				params.Log.Error(err, "Failed to update pod label", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
+				return err
+			}
+
+			params.Instance.Status.ManagementPod = podList.Items[0].Name
+			if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
+				params.Log.Error(err, "Failed to update pod label", "Namespace", params.Instance, "Name", params.Instance)
+				return err
+			}
+		}
+	}
+	return nil
+}

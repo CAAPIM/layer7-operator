@@ -1085,6 +1085,8 @@ spec:
                           type: string
                       type: object
                     type: array
+                  externalKeysSyncIntervalSeconds:
+                    type: integer
                   externalSecrets:
                     items:
                       description: ExternalSecret is a reference to an existing secret in Kubernetes The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied dynamically keeping any referenced secrets up-to-date. You can bring in external secrets using tools like the external secrets operator (external-secrets.io)

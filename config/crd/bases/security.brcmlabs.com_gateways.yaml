@@ -1827,6 +1827,8 @@ spec:
                           type: string
                       type: object
                     type: array
+                  externalKeysSyncIntervalSeconds:
+                    type: integer
                   externalSecrets:
                     items:
                       description: ExternalSecret is a reference to an existing secret

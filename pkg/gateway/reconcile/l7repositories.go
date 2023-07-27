@@ -2,7 +2,6 @@ package reconcile
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -15,11 +14,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var repositoryScheduler = gocron.NewScheduler(time.Local).SingletonMode()
+var repositoryScheduler = gocron.NewScheduler(time.Local)
+var repositorySyncCache = util.NewSyncCache(3 * time.Second)
 
 func Repositories(ctx context.Context, params Params) error {
-
-	syncInterval := 5
+	syncInterval := 10
 
 	if params.Instance.Spec.App.RepositorySyncIntervalSeconds != 0 {
 		syncInterval = params.Instance.Spec.App.RepositorySyncIntervalSeconds
@@ -35,14 +34,16 @@ func Repositories(ctx context.Context, params Params) error {
 
 			if t == "sync-repository-references" {
 				if j.IsRunning() {
-					return fmt.Errorf("already running: %w", errors.New("repository sync is already in progress"))
+					params.Log.V(2).Info("repository sync job is already in progress", "job", j.Tags(), "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+					return nil
 				}
 
 				err := repositoryScheduler.RunByTag("sync-repository-references")
-				repositoryScheduler.StartAsync()
 				if err != nil {
 					return fmt.Errorf("failed to reconcile repository: %w", err)
 				}
+
+				repositoryScheduler.StartAsync()
 
 			}
 		}
@@ -51,13 +52,17 @@ func Repositories(ctx context.Context, params Params) error {
 }
 
 func registerRepositoryJob(ctx context.Context, params Params, syncInterval int) error {
-	if repositoryScheduler.Len() > 0 {
-		_ = stopAndDeregister()
-	}
 	repositoryScheduler.TagsUnique()
 	_, err := repositoryScheduler.Every(syncInterval).Seconds().Tag("sync-repository-references").Do(func() {
+
+		gateway := &securityv1.Gateway{}
+		err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
+		if err != nil && k8serrors.IsNotFound(err) {
+			params.Log.Error(err, "gateway not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		}
+
 		cntr := 0
-		for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
+		for _, repoRef := range gateway.Spec.App.RepositoryReferences {
 			if repoRef.Enabled && repoRef.Type == "dynamic" {
 				cntr++
 			}
@@ -66,16 +71,16 @@ func registerRepositoryJob(ctx context.Context, params Params, syncInterval int)
 			_ = stopAndDeregister()
 		}
 
-		for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
+		err = params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
+		if err != nil && k8serrors.IsNotFound(err) {
+			params.Log.Error(err, "gateway not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		}
+
+		for _, repoRef := range gateway.Spec.App.RepositoryReferences {
 			if repoRef.Enabled && repoRef.Type == "dynamic" {
-				err := reconcileDynamicRepository(ctx, params, repoRef)
+				err := reconcileDynamicRepository(ctx, params, gateway, repoRef)
 				if err != nil {
-					if k8serrors.IsNotFound(err) {
-						params.Log.Error(err, "repository not found", "Name", params.Instance.Name, "repository", repoRef.Name, "namespace", params.Instance.Namespace)
-					}
-					if k8serrors.IsForbidden(err) {
-						params.Log.Error(err, "permission denied when trying to get repository, please check the Layer7 Operators Role", "Name", params.Instance.Name, "repository", repoRef.Name, "namespace", params.Instance.Namespace)
-					}
+					params.Log.Error(err, "failed to reconcile repository reference", "name", gateway.Name, "repository", repoRef.Name, "namespace", gateway.Namespace)
 				}
 			}
 		}
@@ -95,26 +100,27 @@ func stopAndDeregister() error {
 	return nil
 }
 
-func reconcileDynamicRepository(ctx context.Context, params Params, repoRef securityv1.RepositoryReference) error {
+func reconcileDynamicRepository(ctx context.Context, params Params, gateway *securityv1.Gateway, repoRef securityv1.RepositoryReference) error {
 	repository := &securityv1.Repository{}
 
-	err := params.Client.Get(ctx, types.NamespacedName{Name: repoRef.Name, Namespace: params.Instance.Namespace}, repository)
+	err := params.Client.Get(ctx, types.NamespacedName{Name: repoRef.Name, Namespace: gateway.Namespace}, repository)
 	if err != nil && k8serrors.IsNotFound(err) {
 		return err
 	}
+
 	commit := repository.Status.Commit
 
 	switch repoRef.Type {
 	case "dynamic":
-		if !params.Instance.Spec.App.Management.Database.Enabled {
-			err = applyEphemeral(ctx, params, repoRef, commit)
+		if !gateway.Spec.App.Management.Database.Enabled {
+			err = applyEphemeral(ctx, params, gateway, repoRef, commit)
 			if err != nil {
-				params.Log.Info("failed to apply commit", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
+				params.Log.Info("failed to apply commit", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
 			}
 		} else {
 			err = applyDbBacked(ctx, params, repoRef, commit)
 			if err != nil {
-				params.Log.Info("failed to apply commit", "Name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
+				params.Log.Info("failed to apply commit", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
 				return err
 			}
 		}
@@ -122,12 +128,11 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 	return nil
 }
 
-func applyEphemeral(ctx context.Context, params Params, repoRef securityv1.RepositoryReference, commit string) error {
-
+func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gateway, repoRef securityv1.RepositoryReference, commit string) error {
 	graphmanPort := 9443
 
-	if params.Instance.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
-		graphmanPort = params.Instance.Spec.App.Management.Graphman.DynamicSyncPort
+	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
+		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
 	}
 
 	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, commit)
@@ -143,6 +148,7 @@ func applyEphemeral(ctx context.Context, params Params, repoRef securityv1.Repos
 	}
 
 	for i, pod := range podList.Items {
+
 		update := false
 		ready := false
 
@@ -163,28 +169,48 @@ func applyEphemeral(ctx context.Context, params Params, repoRef securityv1.Repos
 			if len(repoRef.Directories) == 0 {
 				repoRef.Directories = []string{"/"}
 			}
-			for i := range repoRef.Directories {
-				gitPath := "/tmp/" + repoRef.Name + "/" + repoRef.Directories[i]
-				params.Log.Info("Applying Latest Commit", "Repo", repoRef.Name, "Directory", repoRef.Directories[i], "Commit", commit, "Pod", pod.Name, "Name", params.Instance.Name, "Namespace", params.Instance.Namespace)
-				name := params.Instance.Name
-				if params.Instance.Spec.App.Management.SecretName != "" {
-					name = params.Instance.Spec.App.Management.SecretName
-				}
-				gwSecret, err := getGatewaySecret(ctx, params, name)
-
+			for d := range repoRef.Directories {
+				gitPath := "/tmp/" + repoRef.Name + "/" + repoRef.Directories[d]
+				requestCacheEntry := pod.Name + "-" + repoRef.Name + "-" + commit
+				syncRequest, err := repositorySyncCache.Read(requestCacheEntry)
+				tryRequest := true
 				if err != nil {
-					return err
+					params.Log.V(2).Info("request has not been attempted or cache was flushed", "Repo", repoRef.Name, "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
 				}
-				err = util.ApplyToGraphmanTarget(gitPath, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
-				if err != nil {
-					return err
-				}
-			}
 
-			if err := params.Client.Patch(context.Background(), &podList.Items[i],
-				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-				params.Log.Error(err, "Failed to update pod label", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
-				return err
+				if syncRequest.Attempts > 0 {
+					params.Log.V(2).Info("request has been attempted in the last 30 seconds, backing off", "Repo", repoRef.Name, "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
+					tryRequest = false
+				}
+
+				repositorySyncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(30*time.Second).Unix())
+
+				if tryRequest {
+
+					name := gateway.Name
+					if gateway.Spec.App.Management.SecretName != "" {
+						name = gateway.Spec.App.Management.SecretName
+					}
+					gwSecret, err := getGatewaySecret(ctx, params, name)
+
+					if err != nil {
+						return err
+					}
+
+					params.Log.Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+					err = util.ApplyToGraphmanTarget(gitPath, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
+					if err != nil {
+						return err
+					}
+
+					params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+
+					if err := params.Client.Patch(context.Background(), &podList.Items[i],
+						client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
+						params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
+						return err
+					}
+				}
 			}
 		}
 	}

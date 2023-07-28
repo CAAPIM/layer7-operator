@@ -84,7 +84,7 @@ spec:
         enabled: true
     initContainers:
     - name: gateway-init
-      image: harbor.sutraone.com/operator/gateway-init:1.0.4
+      image: docker.io/layer7-api/gateway-init:1.0.0
       imagePullPolicy: IfNotPresent
       volumeMounts:
       - name: config-directory

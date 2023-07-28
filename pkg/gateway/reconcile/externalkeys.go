@@ -4,83 +4,32 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/caapim/layer7-operator/pkg/util"
-	"github.com/go-co-op/gocron"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var externalKeysScheduler = gocron.NewScheduler(time.Local).SingletonMode()
-
-func ExternalKeys(ctx context.Context, params Params) error {
-
-	syncInterval := 5
-
-	if params.Instance.Spec.App.ExternalKeysSyncIntervalSeconds != 0 {
-		syncInterval = params.Instance.Spec.App.ExternalKeysSyncIntervalSeconds
+func syncExternalKeys(ctx context.Context, params Params) {
+	cntr := 0
+	for _, externalSecret := range params.Instance.Spec.App.ExternalSecrets {
+		if externalSecret.Enabled {
+			cntr++
+		}
+	}
+	if cntr == 0 {
+		_ = s.RemoveByTag("sync-external-keys")
 	}
 
-	err := registerExternalSecretJob(ctx, params, syncInterval)
+	err := reconcileExternalKeys(ctx, params)
 	if err != nil {
-		params.Log.V(2).Info("jobs already registered", "detail", err.Error())
+		params.Log.Info("failed to reconcile external keys", "Name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
 	}
 
-	for _, j := range externalSecretsScheduler.Jobs() {
-		for _, t := range j.Tags() {
-
-			if t == "sync-external-keys" {
-				if j.IsRunning() {
-					return fmt.Errorf("already running: %w", errors.New("external key sync is already in progress"))
-				}
-
-				err := externalSecretsScheduler.RunByTag("sync-external-keys")
-
-				if err != nil {
-					return fmt.Errorf("failed to reconcile external keys: %w", err)
-				}
-
-				externalSecretsScheduler.StartAsync()
-			}
-		}
-	}
-
-	return nil
-}
-
-func registerExternalKeyJob(ctx context.Context, params Params, syncInterval int) error {
-	if externalSecretsScheduler.Len() > 0 {
-		_ = externalSecretsScheduler.RemoveByTag("sync-external-keys")
-	}
-	externalSecretsScheduler.TagsUnique()
-	_, err := externalSecretsScheduler.Every(syncInterval).Seconds().Tag("sync-external-keys").Do(func() {
-		cntr := 0
-		for _, externalSecret := range params.Instance.Spec.App.ExternalSecrets {
-			if externalSecret.Enabled {
-				cntr++
-			}
-		}
-		if cntr == 0 {
-			_ = externalSecretsScheduler.RemoveByTag("sync-external-keys")
-		}
-
-		err := reconcileExternalKeys(ctx, params)
-		if err != nil {
-			params.Log.Info("failed to reconcile external keys", "Name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
-		}
-
-	})
-
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func reconcileExternalKeys(ctx context.Context, params Params) error {
@@ -175,6 +124,5 @@ func reconcileExternalKeys(ctx context.Context, params Params) error {
 			}
 		}
 	}
-
 	return nil
 }

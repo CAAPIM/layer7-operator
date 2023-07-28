@@ -58,7 +58,6 @@ secret/gateway-license configured
 secret/gateway-secret unchanged
 secret/graphman-encryption-secret unchanged
 secret/graphman-repository-secret configured
-secret/harbor-reg-cred configured
 repository.security.brcmlabs.com/l7-gw-myapis created
 repository.security.brcmlabs.com/l7-gw-myframework created
 repository.security.brcmlabs.com/l7-gw-mysubscriptions created
@@ -287,6 +286,10 @@ curl https://34.89.84.69:8443/api1 -H "client-id: D63FA04C8447" -k
 or if you used port-forward
 
 curl https://localhost:9443/api1 -H "client-id: D63FA04C8447" -k
+
+```
+Response
+```
 {
   "client" : "D63FA04C8447",
   "plan" : "plan_a",
@@ -294,6 +297,7 @@ curl https://localhost:9443/api1 -H "client-id: D63FA04C8447" -k
   "myDemoConfigVal" : "suspiciousLlama"
 }
 ```
+
 ##### Sign into Policy Manager
 Policy Manager access is less relevant in a deployment like this because we haven't specified an external MySQL database, any changes that we make will only apply to the Gateway that we're connected to and won't survive a restart. It is still useful to check what's been applied. In our configuration we set the following which overrides the default application port configuration.
 ```
@@ -326,7 +330,6 @@ secret "gateway-license" deleted
 secret "gateway-secret" deleted
 secret "graphman-encryption-secret" deleted
 secret "graphman-repository-secret" deleted
-secret "harbor-reg-cred" deleted
 gateway.security.brcmlabs.com "ssg" deleted
 repository.security.brcmlabs.com "l7-gw-myapis" deleted
 repository.security.brcmlabs.com "l7-gw-myframework" deleted

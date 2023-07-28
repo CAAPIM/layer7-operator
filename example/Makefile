@@ -60,7 +60,7 @@ elastic-example-kind: install cert-manager open-telemetry elastic nginx-kind
 	@echo "Creating Layer7 Dashboard"
 	@curl -XPOST -s --write-out "%{http_code}" --output /dev/null https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=true -H "kbn-xsrf: true" -k -uelastic:${elasticPass} -F "file=@./otel-eck/dashboard/apim-dashboard.ndjson"
 	@echo "\n#####################################################\nComplete\n#####################################################"
-	@echo "1. Update your hosts file\n2. Open kibana.brcmlabs.com in a browser\n3. Complete the Post Installation tasks\n4. Test your Gateway\n5. View Logs, Metrics and Traces\n\nusername: elastic\npassword: ${elasticPass}"
+	@echo "1. Open kibana.brcmlabs.com in a browser\n2. Complete the Post Installation tasks\n3. Test your Gateway\n4. View Logs, Metrics and Traces\n\nusername: elastic\npassword: ${elasticPass}"
 	@echo "#####################################################\n"
 
 elastic-example: install cert-manager open-telemetry elastic
@@ -70,10 +70,8 @@ elastic-example: install cert-manager open-telemetry elastic
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -k ./repositories
 	kubectl apply -k ./otel-eck-gateway
-	@echo "Creating Layer7 Dashboard"
-	@curl -XPOST -s --write-out "%{http_code}" --output /dev/null https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=true -H "kbn-xsrf: true" -k -uelastic:${elasticPass} -F "file=@./otel-eck/dashboard/apim-dashboard.ndjson"
 	@echo "\n#####################################################\nComplete\n#####################################################"
-	@echo "1. Update your hosts file\n2. Open kibana.brcmlabs.com in a browser\n3. Complete the Post Installation tasks\n4. Test your Gateway\n5. View Logs, Metrics and Traces\n\nusername: elastic\npassword: ${elasticPass}"
+	@echo "1. Open kibana.brcmlabs.com in a browser\n2. Complete the Post Installation tasks\n3. Test your Gateway\n4. View Logs, Metrics and Traces\n\nusername: elastic\npassword: ${elasticPass}"
 	@echo "#####################################################\n"
 
 cert-manager:

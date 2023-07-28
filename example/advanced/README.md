@@ -56,7 +56,6 @@ secret/gateway-license configured
 secret/gateway-secret unchanged
 secret/graphman-encryption-secret unchanged
 secret/graphman-repository-secret configured
-secret/harbor-reg-cred configured
 repository.security.brcmlabs.com/l7-gw-myapis created
 repository.security.brcmlabs.com/l7-gw-myframework created
 repository.security.brcmlabs.com/l7-gw-mysubscriptions created
@@ -71,7 +70,7 @@ This initContainer has a helloworld service and some very basic scripts that use
 ```
 initContainers:
 - name: gateway-init
-  image: harbor.sutraone.com/operator/gateway-init:1.0.4
+  image: docker.io/layer7-api/gateway-init:1.0.0
   imagePullPolicy: IfNotPresent
   volumeMounts:
   - name: config-directory
@@ -380,6 +379,16 @@ Curl
 ```
 curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
 ```
+Response
+```
+{
+  "client" : "D63FA04C8447",
+  "plan" : "plan_a",
+  "service" : "hello api 1",
+  "myDemoConfigVal" : "suspiciousLlama"
+}
+```
+
 ##### Sign into Policy Manager
 Policy Manager access is less relevant in a deployment like this because we haven't specified an external MySQL database, any changes that we make will only apply to the Gateway that we're connected to and won't survive a restart. It is still useful to check what's been applied. We configured custom ports where we disabled Policy Manager access on 8443, we're also using an ingress controller meaning that port 9443 is not accessible without port forwarding.
 
@@ -409,7 +418,6 @@ secret "gateway-license" deleted
 secret "gateway-secret" deleted
 secret "graphman-encryption-secret" deleted
 secret "graphman-repository-secret" deleted
-secret "harbor-reg-cred" deleted
 gateway.security.brcmlabs.com "ssg" deleted
 repository.security.brcmlabs.com "l7-gw-myapis" deleted
 repository.security.brcmlabs.com "l7-gw-myframework" deleted

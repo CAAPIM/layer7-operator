@@ -244,6 +244,11 @@ nodes:
 
 This process takes a few minutes to complete
 
+- add the following entries to your hosts file
+<b>IMPORTANT:</b> ***if you're using a remote docker engine for Kind the IP address will need to match what you have configured in [kind-config.yaml](../kind-config.yaml)***
+```
+127.0.0.1 gateway.brcmlabs.com kibana.brcmlabs.com
+```
 - navigate to the example directory
 ```
 cd example
@@ -252,10 +257,7 @@ cd example
 ```
 make kind-cluster elastic-example-kind
 ```
-You will also need to add the following entries to your hosts file
-```
-127.0.0.1 gateway.brcmlabs.com kibana.brcmlabs.com
-```
+
 
 There are some additional setup steps for Elastic
 - [Install APM Components](#install-apm-components)
@@ -295,6 +297,18 @@ EXTERNAL-IP gateway.brcmlabs.com kibana.brcmlabs.com
 
 example
 192.168.1.190 gateway.brcmlabs.com kibana.brcmlabs.com
+```
+
+- Create the Layer7 Dashboard
+Get the Elastic user password, you will use this password when logging into Kibana.
+```
+kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}'
+
+323753WSf73UlbTWCJaV6JO1
+```
+Create Dashboard
+```
+curl -XPOST https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=true -H "kbn-xsrf: true" -k -uelastic:$elasticPass -F "file=@./example/otel-eck/dashboard/apim-dashboard.ndjson"
 ```
 
 There are some additional setup steps for Elastic
@@ -705,12 +719,13 @@ Curl
 ```
 curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
 ```
+Response
 ```
 {
   "client" : "D63FA04C8447",
   "plan" : "plan_a",
   "service" : "hello api 1",
-  "myDemoConfigVal" : "Mondays"
+  "myDemoConfigVal" : "suspiciousLlama"
 }
 ```
 

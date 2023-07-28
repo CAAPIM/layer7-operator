@@ -20,7 +20,7 @@ func GatewayStatus(ctx context.Context, params Params) error {
 
 	dep, err := getGatewayDeployment(ctx, params)
 	if err != nil || k8serrors.IsNotFound(err) {
-		params.Log.Info("deployment hasn't been created yet", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		params.Log.V(2).Info("deployment hasn't been created yet", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 
 	} else {
 		gatewayStatus.Replicas = dep.Status.Replicas

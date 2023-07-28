@@ -123,15 +123,15 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	err = reconcile.Repositories(ctx, params)
+	err = reconcile.ScheduledJobs(ctx, params)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = reconcile.ExternalSecrets(ctx, params)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	// err = reconcile.ExternalSecrets(ctx, params)
+	// if err != nil {
+	// 	return ctrl.Result{}, err
+	// }
 
 	// err = reconcile.ExternalKeys(ctx, params)
 	// if err != nil {

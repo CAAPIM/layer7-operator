@@ -2,7 +2,6 @@ package reconcile
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/caapim/layer7-operator/pkg/util"
@@ -22,7 +21,8 @@ func ScheduledJobs(ctx context.Context, params Params) error {
 				params.Log.V(2).Info("starting job", "job", t, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 				err := s.RunByTag(t)
 				if err != nil {
-					return fmt.Errorf("failed to reconcile repository: %w", err)
+					params.Log.V(2).Info("no job with given tag", "job", t, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+					//return fmt.Errorf("failed to reconcile repository: %w", err)
 				}
 			}
 			s.StartAsync()

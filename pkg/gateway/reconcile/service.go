@@ -73,7 +73,7 @@ func reconcileServices(ctx context.Context, params Params, desiredServices []*co
 			return fmt.Errorf("failed to apply updates: %w", err)
 		}
 
-		params.Log.V(2).Info("updated service", "name", desiredService.Name, "namespace", desiredService.Namespace, "current", currentService.Spec, "desired", desiredService.Spec)
+		params.Log.V(2).Info("updated service", "name", desiredService.Name, "namespace", desiredService.Namespace)
 	}
 
 	return nil

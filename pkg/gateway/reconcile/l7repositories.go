@@ -120,11 +120,11 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 				syncRequest, err := syncCache.Read(requestCacheEntry)
 				tryRequest := true
 				if err != nil {
-					params.Log.V(2).Info("request has not been attempted or cache was flushed", "Repo", repoRef.Name, "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
+					params.Log.V(2).Info("request has not been attempted or cache was flushed", "repo", repoRef.Name, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 				}
 
 				if syncRequest.Attempts > 0 {
-					params.Log.V(2).Info("request has been attempted in the last 30 seconds, backing off", "Repo", repoRef.Name, "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
+					params.Log.V(2).Info("request has been attempted in the last 30 seconds, backing off", "repo", repoRef.Name, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 					tryRequest = false
 				}
 
@@ -140,7 +140,7 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 						return err
 					}
 
-					params.Log.Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+					params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 					err = util.ApplyToGraphmanTarget(gitPath, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
 					if err != nil {
 						return err

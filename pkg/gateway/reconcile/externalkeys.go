@@ -110,12 +110,14 @@ func reconcileExternalKeys(ctx context.Context, params Params) error {
 		if ready && pod.Labels["security.brcmlabs.com/external-keys"] != sha1Sum {
 			endpoint := pod.Status.PodIP + ":9443/graphman"
 
-			params.Log.Info("applying latest secret bundle", "sha1Sum", sha1Sum, "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+			params.Log.V(2).Info("applying latest key bundle", "sha1Sum", sha1Sum, "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 
 			err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "7layer", bundleBytes)
 			if err != nil {
 				return err
 			}
+
+			params.Log.Info("applied latest key bundle", "sha1Sum", sha1Sum, "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 
 			if err := params.Client.Patch(context.Background(), &podList.Items[i],
 				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {

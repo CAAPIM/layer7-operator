@@ -25,9 +25,9 @@ func PodDisruptionBudget(ctx context.Context, params Params) error {
 
 	if err != nil && k8serrors.IsNotFound(err) {
 		if err = params.Client.Create(ctx, desiredPdb); err != nil {
-			return fmt.Errorf("failed creating deployment: %w", err)
+			return fmt.Errorf("failed creating pod disruption budget: %w", err)
 		}
-		params.Log.Info("created deployment", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		params.Log.Info("created pod disruption budget", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		return nil
 	}
 

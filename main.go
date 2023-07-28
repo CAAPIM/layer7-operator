@@ -23,7 +23,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	"go.uber.org/zap/zapcore"
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -65,7 +65,6 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
 		Development: false,
-		Level:       zapcore.Level(-3),
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()

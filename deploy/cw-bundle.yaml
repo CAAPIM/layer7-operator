@@ -1098,12 +1098,29 @@ spec:
                     items:
                       description: ExternalSecret is a reference to an existing secret in Kubernetes The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied dynamically keeping any referenced secrets up-to-date. You can bring in external secrets using tools like the external secrets operator (external-secrets.io)
                       properties:
+                        description:
+                          type: string
                         enabled:
                           type: boolean
+                        encryption:
+                          description: BundleEncryption allows setting an encryption passphrase per repository or external secret/key reference
+                          properties:
+                            existingSecret:
+                              description: ExistingSecret - reference to an existing secret
+                              type: string
+                            key:
+                              description: Key - the key in the kubernetes secret that the encryption passphrase is stored in.
+                              type: string
+                            passphrase:
+                              description: Passphrase - bundle encryption passphrase in plaintext
+                              type: string
+                          type: object
                         name:
                           type: string
                         type:
                           type: string
+                        variableReferencable:
+                          type: boolean
                       type: object
                     type: array
                   externalSecretsSyncIntervalSeconds:
@@ -2354,7 +2371,7 @@ spec:
                         enabled:
                           type: boolean
                         encryption:
-                          description: GraphmanBundleEncryption allows setting an encryption passphrase per repository reference
+                          description: BundleEncryption allows setting an encryption passphrase per repository or external secret/key reference
                           properties:
                             existingSecret:
                               description: ExistingSecret - reference to an existing secret
@@ -2401,6 +2418,8 @@ spec:
                             name:
                               type: string
                           type: object
+                        singleton:
+                          type: boolean
                         type:
                           type: string
                       required:
@@ -3276,6 +3295,8 @@ spec:
                       - name
                       type: object
                     type: array
+                  singletonExtraction:
+                    type: boolean
                   system:
                     properties:
                       properties:
@@ -3552,8 +3573,13 @@ spec:
                   password:
                     description: Password repository Password password or token are acceptable
                     type: string
+                  sshkey:
+                    type: string
                   token:
                     description: Token repository Access Token
+                    type: string
+                  type:
+                    description: Auth Type defaults to basic, possible options are basic or ssh
                     type: string
                   username:
                     description: Username repository username
@@ -3592,7 +3618,6 @@ spec:
                 properties:
                   interval:
                     description: Configure how frequently the remote is checked for new commits
-                    format: int64
                     type: integer
                 type: object
             type: object

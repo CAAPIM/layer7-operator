@@ -1839,12 +1839,33 @@ spec:
                         external secrets using tools like the external secrets operator
                         (external-secrets.io)
                       properties:
+                        description:
+                          type: string
                         enabled:
                           type: boolean
+                        encryption:
+                          description: BundleEncryption allows setting an encryption
+                            passphrase per repository or external secret/key reference
+                          properties:
+                            existingSecret:
+                              description: ExistingSecret - reference to an existing
+                                secret
+                              type: string
+                            key:
+                              description: Key - the key in the kubernetes secret
+                                that the encryption passphrase is stored in.
+                              type: string
+                            passphrase:
+                              description: Passphrase - bundle encryption passphrase
+                                in plaintext
+                              type: string
+                          type: object
                         name:
                           type: string
                         type:
                           type: string
+                        variableReferencable:
+                          type: boolean
                       type: object
                     type: array
                   externalSecretsSyncIntervalSeconds:
@@ -3792,8 +3813,8 @@ spec:
                         enabled:
                           type: boolean
                         encryption:
-                          description: GraphmanBundleEncryption allows setting an
-                            encryption passphrase per repository reference
+                          description: BundleEncryption allows setting an encryption
+                            passphrase per repository or external secret/key reference
                           properties:
                             existingSecret:
                               description: ExistingSecret - reference to an existing
@@ -3843,6 +3864,8 @@ spec:
                             name:
                               type: string
                           type: object
+                        singleton:
+                          type: boolean
                         type:
                           type: string
                       required:
@@ -5207,6 +5230,8 @@ spec:
                       - name
                       type: object
                     type: array
+                  singletonExtraction:
+                    type: boolean
                   system:
                     properties:
                       properties:

@@ -80,16 +80,23 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
 	}
 
-	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, commit)
-
 	podList, err := getGatewayPods(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	graphmanEncryptionPassphrase, err := graphmanEncryptionPassphrase(ctx, params, repoRef)
-	if err != nil {
-		return err
+	// graphmanEncryptionPassphrase, err := graphmanEncryptionPassphrase(ctx, params, repoRef)
+	// if err != nil {
+	// 	return err
+	// }
+
+	graphmanEncryptionPassphrase := repoRef.Encryption.Passphrase
+
+	if repoRef.Encryption.ExistingSecret != "" {
+		graphmanEncryptionPassphrase, err = getGraphmanEncryptionPassphrase(ctx, params, repoRef.Encryption.ExistingSecret, repoRef.Encryption.Key)
+		if err != nil {
+			return err
+		}
 	}
 
 	for i, pod := range podList.Items {
@@ -102,10 +109,21 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 				ready = containerStatus.Ready
 			}
 		}
-
+		latestCommit := commit
 		currentCommit := pod.ObjectMeta.Annotations["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
 
-		if currentCommit != commit || currentCommit == "" {
+		singleton := false
+
+		if params.Instance.Spec.App.SingletonExtraction {
+			if pod.ObjectMeta.Labels["management-access"] == "leader" {
+				latestCommit = commit + "-leader"
+				singleton = true
+			}
+		}
+
+		patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, latestCommit)
+
+		if currentCommit != latestCommit || currentCommit == "" {
 			update = true
 		}
 
@@ -116,7 +134,7 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 			}
 			for d := range repoRef.Directories {
 				gitPath := "/tmp/" + repoRef.Name + "/" + repoRef.Directories[d]
-				requestCacheEntry := pod.Name + "-" + repoRef.Name + "-" + commit
+				requestCacheEntry := pod.Name + "-" + repoRef.Name + "-" + latestCommit
 				syncRequest, err := syncCache.Read(requestCacheEntry)
 				tryRequest := true
 				if err != nil {
@@ -140,13 +158,13 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 						return err
 					}
 
-					params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-					err = util.ApplyToGraphmanTarget(gitPath, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
+					params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+					err = util.ApplyToGraphmanTarget(gitPath, singleton, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
 					if err != nil {
 						return err
 					}
 
-					params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+					params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 
 					if err := params.Client.Patch(context.Background(), &podList.Items[i],
 						client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
@@ -170,10 +188,22 @@ func applyDbBacked(ctx context.Context, params Params, gateway *securityv1.Gatew
 	patch := fmt.Sprintf("{\"spec\": { \"template\": {\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, commit)
 
 	gatewayDeployment, err := getGatewayDeployment(ctx, params)
-
-	graphmanEncryptionPassphrase, err := graphmanEncryptionPassphrase(ctx, params, repoRef)
 	if err != nil {
 		return err
+	}
+
+	// graphmanEncryptionPassphrase, err := graphmanEncryptionPassphrase(ctx, params, repoRef)
+	// if err != nil {
+	// 	return err
+	// }
+
+	graphmanEncryptionPassphrase := repoRef.Encryption.Passphrase
+
+	if repoRef.Encryption.ExistingSecret != "" {
+		graphmanEncryptionPassphrase, err = getGraphmanEncryptionPassphrase(ctx, params, repoRef.Encryption.ExistingSecret, repoRef.Encryption.Key)
+		if err != nil {
+			return err
+		}
 	}
 
 	if gatewayDeployment.Status.ReadyReplicas != gatewayDeployment.Status.Replicas {
@@ -219,7 +249,7 @@ func applyDbBacked(ctx context.Context, params Params, gateway *securityv1.Gatew
 				return err
 			}
 			params.Log.Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-			err = util.ApplyToGraphmanTarget(gitPath, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
+			err = util.ApplyToGraphmanTarget(gitPath, true, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
 			if err != nil {
 				return err
 			}

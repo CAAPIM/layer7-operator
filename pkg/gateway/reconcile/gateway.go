@@ -3,7 +3,6 @@ package reconcile
 import (
 	"context"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -35,17 +34,17 @@ func getGatewayDeployment(ctx context.Context, params Params) (appsv1.Deployment
 	return *gatewayDeployment, nil
 }
 
-func graphmanEncryptionPassphrase(ctx context.Context, params Params, repoRef securityv1.RepositoryReference) (string, error) {
+func getGraphmanEncryptionPassphrase(ctx context.Context, params Params, existingSecretName string, existingSecretKey string) (string, error) {
 	var graphmanEncryptionPassphrase string
-	if repoRef.Encryption.Passphrase != "" && repoRef.Encryption.ExistingSecret == "" {
-		graphmanEncryptionPassphrase = repoRef.Encryption.Passphrase
-	} else {
-		graphmanEncryptionSecret, err := getGatewaySecret(ctx, params, repoRef.Encryption.ExistingSecret)
-		if err != nil {
-			return "", err
-		}
-		graphmanEncryptionPassphrase = string(graphmanEncryptionSecret.Data[repoRef.Encryption.Key])
+	// if repoRef.Encryption.Passphrase != "" && repoRef.Encryption.ExistingSecret == "" {
+	// 	graphmanEncryptionPassphrase = repoRef.Encryption.Passphrase
+	// } else {
+	graphmanEncryptionSecret, err := getGatewaySecret(ctx, params, existingSecretName)
+	if err != nil {
+		return "", err
 	}
+	graphmanEncryptionPassphrase = string(graphmanEncryptionSecret.Data[existingSecretKey])
+	// }
 	return graphmanEncryptionPassphrase, nil
 }
 
@@ -76,7 +75,7 @@ func GatewayLicense(ctx context.Context, params Params) error {
 	gatewayLicense := &corev1.Secret{}
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Spec.License.SecretName, Namespace: params.Instance.Namespace}, gatewayLicense)
 	if k8serrors.IsNotFound(err) {
-		params.Log.Error(err, "License not found", "Name", params.Instance.Name, "Namespace", params.Instance.Namespace)
+		params.Log.Error(err, "license not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		if err != nil {
 			return err
 		}
@@ -87,36 +86,32 @@ func GatewayLicense(ctx context.Context, params Params) error {
 
 func ManagementPod(ctx context.Context, params Params) error {
 
-	if !params.Instance.Spec.App.Management.Service.Enabled {
-		return nil
-	}
-
 	podList, err := getGatewayPods(ctx, params)
 
 	if err != nil {
 		return err
 	}
 
-	podNames := getPodNames(podList.Items)
-	if params.Instance.Status.ManagementPod != "" {
-		if util.Contains(podNames, params.Instance.Status.ManagementPod) {
-			return nil
+	for p := range podList.Items {
+		if podList.Items[p].Labels["management-access"] == "leader" {
+			if podList.Items[p].DeletionTimestamp == nil {
+				return nil
+			}
 		}
 	}
+
+	tagged := false
 	for p := range podList.Items {
-		if p == 0 {
+		if podList.Items[p].Status.Phase == "Running" && podList.Items[p].DeletionTimestamp == nil && !tagged {
 			patch := []byte(`{"metadata":{"labels":{"management-access": "leader"}}}`)
 			if err := params.Client.Patch(context.Background(), &podList.Items[p],
 				client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
-				params.Log.Error(err, "Failed to update pod label", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
+				params.Log.Error(err, "failed to update pod label", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 				return err
 			}
 
-			params.Instance.Status.ManagementPod = podList.Items[0].Name
-			if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
-				params.Log.Error(err, "Failed to update pod label", "Namespace", params.Instance, "Name", params.Instance)
-				return err
-			}
+			params.Log.V(2).Info("new leader elected", "name", params.Instance.Name, "pod", podList.Items[p].Name, "namespace", params.Instance.Namespace)
+			tagged = true
 		}
 	}
 	return nil

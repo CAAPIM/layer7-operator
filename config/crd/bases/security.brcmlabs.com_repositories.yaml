@@ -46,8 +46,14 @@ spec:
                     description: Password repository Password password or token are
                       acceptable
                     type: string
+                  sshkey:
+                    type: string
                   token:
                     description: Token repository Access Token
+                    type: string
+                  type:
+                    description: Auth Type defaults to basic, possible options are
+                      basic or ssh
                     type: string
                   username:
                     description: Username repository username
@@ -89,7 +95,6 @@ spec:
                   interval:
                     description: Configure how frequently the remote is checked for
                       new commits
-                    format: int64
                     type: integer
                 type: object
             type: object

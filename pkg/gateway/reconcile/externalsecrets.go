@@ -71,8 +71,10 @@ func reconcileExternalSecrets(ctx context.Context, params Params, gateway *secur
 			if secret.Type == corev1.SecretTypeOpaque {
 				for k, v := range secret.Data {
 					opaqueSecretMap = append(opaqueSecretMap, util.GraphmanSecret{
-						Name:   k,
-						Secret: string(v),
+						Name:                 k,
+						Secret:               string(v),
+						Description:          es.Description,
+						VariableReferencable: es.VariableReferencable,
 					})
 				}
 			}
@@ -114,6 +116,13 @@ func reconcileExternalSecrets(ctx context.Context, params Params, gateway *secur
 		return err
 	}
 
+	// if repoRef.Encryption.ExistingSecret != "" {
+	// 	graphmanEncryptionPassphrase, err = getGraphmanEncryptionPassphrase(ctx, params, repoRef.Encryption.ExistingSecret, repoRef.Encryption.Key)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+
 	for i, pod := range podList.Items {
 		ready := false
 
@@ -127,19 +136,17 @@ func reconcileExternalSecrets(ctx context.Context, params Params, gateway *secur
 			return nil
 		}
 
-		requestCacheEntry := pod.Name + "-" + sha1Sum
-		syncRequest, err := syncCache.Read(requestCacheEntry)
-		tryRequest := true
+		if ready {
+			requestCacheEntry := pod.Name + "-" + sha1Sum
+			syncRequest, err := syncCache.Read(requestCacheEntry)
+			if err != nil {
+				params.Log.V(2).Info("request has not been attempted or cache was flushed", "action", "sync external secrets", "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
+			}
 
-		if err != nil {
-			params.Log.V(2).Info("request has not been attempted or cache was flushed", "action", "sync external secrets", "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
-		}
-
-		if syncRequest.Attempts > 0 {
-			params.Log.V(2).Info("request has been attempted in the last 30 seconds, backing off", "SecretSha1Sum", sha1Sum, "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
-			tryRequest = false
-		}
-		if tryRequest && ready {
+			if syncRequest.Attempts > 0 {
+				params.Log.V(2).Info("request has been attempted in the last 30 seconds, backing off", "SecretSha1Sum", sha1Sum, "Pod", pod.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
+				return nil
+			}
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(30*time.Second).Unix())
 
 			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"

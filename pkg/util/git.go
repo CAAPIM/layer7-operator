@@ -5,13 +5,22 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
-func CloneRepository(url string, username string, token string, branch string, name string) (string, error) {
-	r, err := git.PlainClone("/tmp/"+name, false, &git.CloneOptions{
+func CloneRepository(url string, username string, token string, branch string, name string, vendor string) (string, error) {
+
+	cloneOpts := git.CloneOptions{
 		URL:               url,
-		Auth:              &http.BasicAuth{Username: username, Password: token},
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 		RemoteName:        branch,
-	})
+		Auth:              &http.BasicAuth{Username: username, Password: token},
+	}
+
+	pullOpts := git.PullOptions{
+		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+		RemoteName:        branch,
+		Auth:              &http.BasicAuth{Username: username, Password: token},
+	}
+
+	r, err := git.PlainClone("/tmp/"+name, false, &cloneOpts)
 
 	if err == git.ErrRepositoryAlreadyExists {
 		r, _ := git.PlainOpen("/tmp/" + name)
@@ -22,11 +31,7 @@ func CloneRepository(url string, username string, token string, branch string, n
 		if err != nil {
 			return "", err
 		}
-		_ = w.Pull(&git.PullOptions{RemoteName: branch, Auth: &http.BasicAuth{Username: username, Password: token}})
-
-		// if err == git.NoErrAlreadyUpToDate {
-		// 	return commit.Hash.String(), nil
-		// }
+		_ = w.Pull(&pullOpts)
 
 		return commit.Hash.String(), nil
 	}

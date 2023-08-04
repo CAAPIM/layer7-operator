@@ -82,10 +82,10 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	err = reconcile.ManagementPod(ctx, params)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	// err = reconcile.ManagementPod(ctx, params)
+	// if err != nil {
+	// 	return ctrl.Result{}, err
+	// }
 
 	err = reconcile.Services(ctx, params)
 	if err != nil {
@@ -109,7 +109,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	err = reconcile.GatewayStatus(ctx, params)
 	if err != nil {
-		r.Log.Error(err, "status update err")
 		return ctrl.Result{}, err
 	}
 
@@ -127,16 +126,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	// err = reconcile.ExternalSecrets(ctx, params)
-	// if err != nil {
-	// 	return ctrl.Result{}, err
-	// }
-
-	// err = reconcile.ExternalKeys(ctx, params)
-	// if err != nil {
-	// 	return ctrl.Result{}, err
-	// }
 
 	return ctrl.Result{}, nil
 }

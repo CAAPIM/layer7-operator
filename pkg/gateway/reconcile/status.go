@@ -75,6 +75,10 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			}
 		}
 
+		if p.ObjectMeta.Labels["management-access"] == "leader" {
+			gatewayStatus.ManagementPod = p.Name
+		}
+
 		gatewayState := securityv1.GatewayState{
 			Name:  p.Name,
 			Phase: p.Status.Phase,

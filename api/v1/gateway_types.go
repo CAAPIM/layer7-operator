@@ -199,6 +199,7 @@ type App struct {
 	Replicas                           int32                             `json:"replicas,omitempty"`
 	Service                            Service                           `json:"service,omitempty"`
 	Bundle                             []Bundle                          `json:"bundle,omitempty"`
+	SingletonExtraction                bool                              `json:"singletonExtraction,omitempty"`
 	RepositorySyncIntervalSeconds      int                               `json:"repositorySyncIntervalSeconds,omitempty"`
 	ExternalSecretsSyncIntervalSeconds int                               `json:"externalSecretsSyncIntervalSeconds,omitempty"`
 	ExternalKeysSyncIntervalSeconds    int                               `json:"externalKeysSyncIntervalSeconds,omitempty"`
@@ -229,6 +230,12 @@ type ClusterProperties struct {
 	Properties []Property `json:"properties,omitempty"`
 }
 
+type SingletonExtraction struct {
+	Enabled bool `json:"enabled,omitempty"`
+	// ScheduledTasks bool `json:"scheduledTasks,omitempty"`
+	// JmsListener    bool `json:"jmsListener,omitempty"`
+}
+
 // Property is a cluster-wide property k/v pair
 type Property struct {
 	Name  string `json:"name,omitempty"`
@@ -240,9 +247,12 @@ type Property struct {
 // dynamically keeping any referenced secrets up-to-date.
 // You can bring in external secrets using tools like the external secrets operator (external-secrets.io)
 type ExternalSecret struct {
-	Enabled bool   `json:"enabled,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Type    string `json:"type,omitempty"`
+	Enabled              bool             `json:"enabled,omitempty"`
+	Encryption           BundleEncryption `json:"encryption,omitempty"`
+	Name                 string           `json:"name,omitempty"`
+	Description          string           `json:"description,omitempty"`
+	VariableReferencable bool             `json:"variableReferencable,omitempty"`
+	Type                 string           `json:"type,omitempty"`
 }
 
 // ExternalKey is a reference to an existing TLS Secret in Kubernetes
@@ -369,16 +379,17 @@ type System struct {
 }
 
 type RepositoryReference struct {
-	Name         string                   `json:"name,omitempty"`
-	Enabled      bool                     `json:"enabled"`
-	Directories  []string                 `json:"directories,omitempty"`
-	Type         string                   `json:"type,omitempty"`
-	Encryption   GraphmanBundleEncryption `json:"encryption,omitempty"`
-	Notification Notification             `json:"notification,omitempty"`
+	Name         string           `json:"name,omitempty"`
+	Enabled      bool             `json:"enabled"`
+	Directories  []string         `json:"directories,omitempty"`
+	Type         string           `json:"type,omitempty"`
+	Encryption   BundleEncryption `json:"encryption,omitempty"`
+	Singleton    bool             `json:"singleton,omitempty"`
+	Notification Notification     `json:"notification,omitempty"`
 }
 
-// GraphmanBundleEncryption allows setting an encryption passphrase per repository reference
-type GraphmanBundleEncryption struct {
+// BundleEncryption allows setting an encryption passphrase per repository or external secret/key reference
+type BundleEncryption struct {
 	// Passphrase - bundle encryption passphrase in plaintext
 	Passphrase string `json:"passphrase,omitempty"`
 	// ExistingSecret - reference to an existing secret

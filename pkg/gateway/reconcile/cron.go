@@ -36,6 +36,7 @@ func registerJobs(ctx context.Context, params Params) {
 	repoSyncInterval := 10
 	extSecretSyncInterval := 10
 	extKeySyncInterval := 10
+	managementPodSyncInterval := 10
 
 	if params.Instance.Spec.App.RepositorySyncIntervalSeconds != 0 {
 		repoSyncInterval = params.Instance.Spec.App.RepositorySyncIntervalSeconds
@@ -49,18 +50,23 @@ func registerJobs(ctx context.Context, params Params) {
 		extKeySyncInterval = params.Instance.Spec.App.RepositorySyncIntervalSeconds
 	}
 
-	_, err := s.Every(repoSyncInterval).Seconds().Tag("sync-repository-references").Do(syncRepository, ctx, params)
+	_, err := s.Every(repoSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-repository-references").Do(syncRepository, ctx, params)
 
 	if err != nil {
 		params.Log.V(2).Info("repository sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 
-	_, err = s.Every(extSecretSyncInterval).Seconds().Tag("sync-external-secrets").Do(syncExternalSecrets, ctx, params)
+	_, err = s.Every(extSecretSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-external-secrets").Do(syncExternalSecrets, ctx, params)
 	if err != nil {
 		params.Log.V(2).Info("external secret sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 
-	_, err = s.Every(extKeySyncInterval).Seconds().Tag("sync-external-keys").Do(syncExternalKeys, ctx, params)
+	_, err = s.Every(extKeySyncInterval).Seconds().Tag(params.Instance.Name+"-sync-external-keys").Do(syncExternalKeys, ctx, params)
+	if err != nil {
+		params.Log.V(2).Info("external key sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+	}
+
+	_, err = s.Every(managementPodSyncInterval).Seconds().Tag(params.Instance.Name+"-select-management-pod").Do(ManagementPod, ctx, params)
 	if err != nil {
 		params.Log.V(2).Info("external key sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}

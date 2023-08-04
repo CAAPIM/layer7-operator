@@ -70,20 +70,24 @@ type LocalReference struct {
 // RepositorySyncConfig
 type RepositorySyncConfig struct {
 	// Configure how frequently the remote is checked for new commits
-	IntervalSeconds int64 `json:"interval,omitempty"`
+	IntervalSeconds int `json:"interval,omitempty"`
 }
 
 // RepositoryAuth
 type RepositoryAuth struct {
 	// Vendor i.e. Github, Gitlab, BitBucket
 	Vendor string `json:"vendor,omitempty"`
+	// Auth Type defaults to basic, possible options are
+	// basic or ssh
+	Type string `json:"type,omitempty"`
 	// Username repository username
 	Username string `json:"username,omitempty"`
 	// Password repository Password
 	// password or token are acceptable
 	Password string `json:"password,omitempty"`
 	// Token repository Access Token
-	Token string `json:"token,omitempty"`
+	Token  string `json:"token,omitempty"`
+	SshKey string `json:"sshkey,omitempty"`
 	// ExistingSecretName reference an existing secret
 	ExistingSecretName string `json:"existingSecretName,omitempty"`
 }

@@ -18,8 +18,10 @@ import (
 // implement back off loop
 
 type GraphmanSecret struct {
-	Name   string `json:"name,omitempty"`
-	Secret string `json:"secret,omitempty"`
+	Name                 string `json:"name,omitempty"`
+	Secret               string `json:"secret,omitempty"`
+	Description          string `json:"description,omitempty"`
+	VariableReferencable bool   `json:"variableReferencable,omitempty"`
 }
 
 type GraphmanKey struct {
@@ -29,8 +31,46 @@ type GraphmanKey struct {
 	Port string `json:"port,omitempty"`
 }
 
-func ApplyToGraphmanTarget(path string, username string, password string, target string, encpass string) error {
-	_, err := graphman.Apply(path, username, password, "https://"+target, encpass)
+func ApplyToGraphmanTarget(path string, singleton bool, username string, password string, target string, encpass string) error {
+
+	bundle := graphman.Bundle{}
+
+	bundleBytes, err := graphman.Implode(path)
+	if err != nil {
+		return err
+	}
+
+	if !singleton {
+		scheduledTasks := []*graphman.ScheduledTaskInput{}
+		jmsListeners := []*graphman.JmsDestinationInput{}
+
+		err := json.Unmarshal(bundleBytes, &bundle)
+		if err != nil {
+			return err
+		}
+
+		for _, st := range bundle.ScheduledTasks {
+			if !st.ExecuteOnSingleNode {
+				scheduledTasks = append(scheduledTasks, st)
+			}
+		}
+
+		bundle.ScheduledTasks = scheduledTasks
+
+		for _, jmsl := range bundle.JmsDestinations {
+			if jmsl.Direction != "OUTBOUND" {
+				jmsListeners = append(jmsListeners, jmsl)
+			}
+		}
+		bundle.JmsDestinations = jmsListeners
+
+		bundleBytes, err = json.Marshal(bundle)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
 	if err != nil {
 		return err
 	}
@@ -147,12 +187,21 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) {
 	bundle := graphman.Bundle{}
 	for _, secret := range secrets {
+		description := "layer7 operator managed secret"
+		if secret.Description != "" {
+			description = secret.Description
+		}
+
+		variableReferencable := true
+		if &secret.VariableReferencable != nil {
+			variableReferencable = secret.VariableReferencable
+		}
 		bundle.Secrets = append(bundle.Secrets, &graphman.SecretInput{
 			Name:                 secret.Name,
 			SecretType:           graphman.SecretTypePassword,
 			Secret:               secret.Secret,
-			VariableReferencable: true,
-			Description:          "layer7 operator managed secret",
+			VariableReferencable: variableReferencable,
+			Description:          description,
 		})
 	}
 

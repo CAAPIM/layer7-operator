@@ -3582,7 +3582,7 @@ spec:
                     type: string
                 type: object
               branch:
-                description: Branch - specify which branch to check out
+                description: Branch - specify which branch to clone if branch and tag are both specified branch will take precedence and tag will be ignored if branch and tag are both missing the entire repository will be cloned
                 type: string
               enabled:
                 description: Enabled - if enabled this repository will be synced
@@ -3606,6 +3606,9 @@ spec:
               name:
                 description: Name Repository name
                 type: string
+              remoteName:
+                description: Remote Name - defaults to "origin"
+                type: string
               sync:
                 description: RepositorySyncConfig
                 properties:
@@ -3613,6 +3616,9 @@ spec:
                     description: Configure how frequently the remote is checked for new commits
                     type: integer
                 type: object
+              tag:
+                description: Tag - clone a specific tag. tags do not change, once cloned this will not be checked for updates
+                type: string
             type: object
           status:
             description: Status - Repository Status

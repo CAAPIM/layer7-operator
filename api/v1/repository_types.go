@@ -34,8 +34,15 @@ type RepositorySpec struct {
 	// This is not currently implemented
 	LocalReference       LocalReference       `json:"localReference,omitempty"`
 	RepositorySyncConfig RepositorySyncConfig `json:"sync,omitempty"`
-	// Branch - specify which branch to check out
+	// Remote Name - defaults to "origin"
+	RemoteName string `json:"remoteName,omitempty"`
+	// Branch - specify which branch to clone
+	// if branch and tag are both specified branch will take precedence and tag will be ignored
+	// if branch and tag are both missing the entire repository will be cloned
 	Branch string `json:"branch,omitempty"`
+	// Tag - clone a specific tag.
+	// tags do not change, once cloned this will not be checked for updates
+	Tag string `json:"tag,omitempty"`
 	// Auth contains a reference to the credentials required to connect to your Git repository
 	Auth RepositoryAuth `json:"auth,omitempty"`
 }

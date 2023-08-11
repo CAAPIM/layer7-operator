@@ -50,11 +50,13 @@ func Deployment(ctx context.Context, params Params) error {
 	for k, v := range desiredDeployment.ObjectMeta.Annotations {
 		updatedDeployment.ObjectMeta.Annotations[k] = v
 	}
+	for k, v := range desiredDeployment.Spec.Template.ObjectMeta.Annotations {
+		updatedDeployment.Spec.Template.ObjectMeta.Annotations[k] = v
+	}
+
 	for k, v := range desiredDeployment.ObjectMeta.Labels {
 		updatedDeployment.ObjectMeta.Labels[k] = v
 	}
-
-	//updatedDeployment.ObjectMeta.OwnerReferences = desiredDeployment.ObjectMeta.OwnerReferences
 
 	patch := client.MergeFrom(currentDeployment)
 

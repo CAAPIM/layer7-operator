@@ -1,11 +1,12 @@
 package gateway
 
 import (
+	"strings"
+	"testing"
+
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"strings"
-	"testing"
 )
 
 func TestDefaultJVMHeapSize(t *testing.T) {
@@ -64,7 +65,7 @@ func TestSystemPropertiesConfigMap(t *testing.T) {
 	gateway.Spec.App.Java.ExtraArgs = []string{}
 
 	expected := "testProperty"
-	gateway.Spec.App.System = securityv1.System{expected}
+	gateway.Spec.App.System = securityv1.System{Properties: expected}
 	gateway.Name = "test"
 	configMap := NewConfigMap(&gateway, "test-system")
 	propValue := configMap.Data["system.properties"]
@@ -123,7 +124,7 @@ func TestCWPPropertiesConfigMap(t *testing.T) {
 	gateway := getGatewayWitApp()
 	gateway.Name = "test"
 	gateway.Spec.App.ClusterProperties = securityv1.ClusterProperties{}
-	gateway.Spec.App.ClusterProperties.Properties = []securityv1.Property{securityv1.Property{"cwp1", "test1"}}
+	gateway.Spec.App.ClusterProperties.Properties = []securityv1.Property{{Name: "cwp1", Value: "test1"}}
 	configMap := NewConfigMap(&gateway, "test-cwp-bundle")
 	cwpBundle := configMap.Data["cwp.bundle"]
 	if !strings.Contains(cwpBundle, "cwp1") {
@@ -135,7 +136,7 @@ func TestDefaultListenPortBundle(t *testing.T) {
 	gateway := getGatewayWitApp()
 	gateway.Name = "test"
 	gateway.Spec.App.ListenPorts = securityv1.ListenPorts{}
-	gateway.Spec.App.ListenPorts.Custom = securityv1.CustomListenPort{false}
+	gateway.Spec.App.ListenPorts.Custom = securityv1.CustomListenPort{Enabled: false}
 	configMap := NewConfigMap(&gateway, "test-listen-port-bundle")
 	listenPortBundle := configMap.Data["listen-ports.bundle"]
 	if !strings.Contains(listenPortBundle, "8080") {
@@ -153,7 +154,7 @@ func TestCustomListenPortBundle(t *testing.T) {
 	gateway := getGatewayWitApp()
 	gateway.Name = "test"
 	gateway.Spec.App.ListenPorts = securityv1.ListenPorts{}
-	gateway.Spec.App.ListenPorts.Custom = securityv1.CustomListenPort{true}
+	gateway.Spec.App.ListenPorts.Custom = securityv1.CustomListenPort{Enabled: true}
 
 	port := securityv1.ListenPort{}
 	port.Name = "custom1"

@@ -35,17 +35,11 @@ func getGatewayDeployment(ctx context.Context, params Params) (appsv1.Deployment
 }
 
 func getGraphmanEncryptionPassphrase(ctx context.Context, params Params, existingSecretName string, existingSecretKey string) (string, error) {
-	var graphmanEncryptionPassphrase string
-	// if repoRef.Encryption.Passphrase != "" && repoRef.Encryption.ExistingSecret == "" {
-	// 	graphmanEncryptionPassphrase = repoRef.Encryption.Passphrase
-	// } else {
 	graphmanEncryptionSecret, err := getGatewaySecret(ctx, params, existingSecretName)
 	if err != nil {
 		return "", err
 	}
-	graphmanEncryptionPassphrase = string(graphmanEncryptionSecret.Data[existingSecretKey])
-	// }
-	return graphmanEncryptionPassphrase, nil
+	return string(graphmanEncryptionSecret.Data[existingSecretKey]), nil
 }
 
 func getGatewaySecret(ctx context.Context, params Params, name string) (*corev1.Secret, error) {

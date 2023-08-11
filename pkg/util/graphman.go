@@ -196,9 +196,19 @@ func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) 
 		if &secret.VariableReferencable != nil {
 			variableReferencable = secret.VariableReferencable
 		}
+
+		// basic check to determine if secret is a private key
+		// this doesn't cover keys that are encrypted at rest
+		// additional checks will be added if there is demand.
+		secretType := graphman.SecretTypePassword
+
+		if strings.Contains(secret.Secret, "-----BEGIN") {
+			secretType = graphman.SecretTypePemPrivateKey
+		}
+
 		bundle.Secrets = append(bundle.Secrets, &graphman.SecretInput{
 			Name:                 secret.Name,
-			SecretType:           graphman.SecretTypePassword,
+			SecretType:           secretType,
 			Secret:               secret.Secret,
 			VariableReferencable: variableReferencable,
 			Description:          description,

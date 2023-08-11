@@ -1,8 +1,9 @@
 package gateway
 
 import (
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"testing"
+
+	securityv1 "github.com/caapim/layer7-operator/api/v1"
 )
 
 func TestNewSecret(t *testing.T) {
@@ -12,7 +13,7 @@ func TestNewSecret(t *testing.T) {
 	gateway.Spec.App.Management.Password = "testPassword"
 	gateway.Spec.App.Management.Cluster = securityv1.Cluster{}
 	gateway.Spec.App.Management.Cluster.Password = "testClusterPassword"
-	gateway.Spec.App.Management.Database = securityv1.Database{true, "jdbc:mysql:localhost:3606", "testDBUser", "testDBPassword"}
+	gateway.Spec.App.Management.Database = securityv1.Database{Enabled: true, JDBCUrl: "jdbc:mysql:localhost:3606", Username: "testDBUser", Password: "testDBPassword"}
 
 	secret := NewSecret(&gateway)
 

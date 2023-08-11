@@ -15,6 +15,11 @@ import (
 
 // / TODO: Should auto-delete if not used...
 func HorizontalPodAutoscaler(ctx context.Context, params Params) error {
+
+	if !params.Instance.Spec.App.Autoscaling.Enabled {
+		return nil
+	}
+
 	desiredHpa := gateway.NewHPA(params.Instance)
 	currentHpa := &autoscalingv2.HorizontalPodAutoscaler{}
 

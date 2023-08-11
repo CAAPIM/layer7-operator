@@ -1,13 +1,14 @@
 package util
 
 import (
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"strings"
 	"testing"
+
+	securityv1 "github.com/caapim/layer7-operator/api/v1"
 )
 
 func TestBuildCWPBundle(t *testing.T) {
-	cwps := []securityv1.Property{securityv1.Property{Name: "test1", Value: "value1"}}
+	cwps := []securityv1.Property{{Name: "test1", Value: "value1"}}
 	bundleBytes, sha1, err := BuildCWPBundle(cwps)
 	if err != nil {
 		t.Errorf("Error getting cwp bundle")
@@ -41,7 +42,7 @@ func TestBuildCustomListenPortBundle(t *testing.T) {
 	gateway.Spec = securityv1.GatewaySpec{}
 	gateway.Spec.App = securityv1.App{}
 	gateway.Spec.App.ListenPorts = securityv1.ListenPorts{}
-	gateway.Spec.App.ListenPorts.Custom = securityv1.CustomListenPort{true}
+	gateway.Spec.App.ListenPorts.Custom = securityv1.CustomListenPort{Enabled: true} //ecurityv1.CustomListenPort{true}
 
 	port := securityv1.ListenPort{}
 	port.Name = "custom1"

@@ -1,6 +1,8 @@
 package util
 
 import (
+	"errors"
+	"os"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -51,7 +53,12 @@ func CloneRepository(url string, username string, token string, branch string, t
 		w, _ := r.Worktree()
 
 		ref, _ := r.Head()
-		commit, err := r.CommitObject(ref.Hash())
+
+		if ref == nil {
+			_ = os.RemoveAll("/tmp/" + name + "-" + ext)
+			return "", errors.New("ref is nil")
+		}
+		commit, err := r.CommitObject(ref.Hash()) // causing an error
 		if err != nil {
 			return "", err
 		}

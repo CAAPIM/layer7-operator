@@ -23,16 +23,17 @@ create-collector:
 
 install:
 	kubectl apply -f ../deploy/bundle.yaml
+	kubectl wait --for=condition=ready --timeout=60s pod -l app.kubernetes.io/name=layer7-operator
 
 basic:
 	kubectl apply -k ./repositories
 	@$(MAKE) --silent t=10 wait 
-	kubectl apply -k ./basic
+	kubectl apply -f ./gateway/basic-gateway.yaml
 
 advanced:
 	kubectl apply -k ./repositories
 	@$(MAKE) --silent t=10 wait
-	kubectl apply -k ./advanced
+	kubectl apply -f ./gateway/advanced-gateway.yaml
 
 otel-example-kind: install cert-manager prometheus open-telemetry jaeger nginx-kind
 	kubectl apply -f ./otel/collector.yaml
@@ -118,10 +119,12 @@ jaeger:
 
 nginx-kind:
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=60s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
 
 nginx:
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=60s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
 
 uninstall:

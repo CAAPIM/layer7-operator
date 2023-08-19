@@ -39,7 +39,7 @@ func StorageSecret(ctx context.Context, params Params) error {
 	if ext == "" {
 		ext = params.Instance.Spec.Tag
 	}
-	storageSecretName := params.Instance.Name + "-repository"
+	storageSecretName := params.Instance.Name + "-repository-" + ext
 	bundleGzip, err := util.CompressGraphmanBundle("/tmp/" + params.Instance.Spec.Name + "-" + ext)
 	if err != nil {
 		return err

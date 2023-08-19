@@ -5,33 +5,54 @@ By the end of this example you should have a better understanding of the Layer7 
 1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
+3. You will need an ingress controller like nginx
+    - if you do not have one installed already you can use the makefile in the example directory to deploy one
+        - ```cd example```
+        - Generic Kubernetes
+            - ```make nginx```
+        - Kind (Kubernetes in Docker)
+            - follow the steps in Quickstart
+    - return to the previous folder
+        - ```cd ..```
+
+### Quickstart
+The example folder includes a makefile that covers the first 3 sections of the guide meaning you can move directly onto testing your Gateway Deployment.
+
+To avoid impacting an existing cluster you can optionally use [Kind](https://kind.sigs.k8s.io/)(Kubernetes in Docker). The default configuration will work if your docker engine is running locally, if you have a remote docker engine open [kind-config.yaml](../kind-config.yaml), uncomment lines 3-5 and set the apiServerAddress on line 4 to the IP Address of your remote docker engine.
+
+1. Go into the example directory
+```
+cd example
+```
+2. Optionally deploy a Kind Cluster
+```
+make kind-cluster
+```
+3. Deploy Nginx
+```
+make nginx-kind
+```
+4. Deploy the example
+```
+make install advanced
+```
+5. [Test Gateway Deployment](#test-your-gateway-deployment)
 
 ### Guide
 - [Deploy the Operator](#deploy-the-layer7-operator)
-- [Create Repositories](#create-repository-custom-resources)
-- [Create a Gateway](#create-a-gateway-custom-resource)
+- [Create Repositories](#create-repositories)
+- [Create a Gateway](#create-a-gateway)
 - [Test Gateway Deployment](#test-your-gateway-deployment)
+- [Remove Kind Cluster](#remove-kind-cluster)
 - [Remove Custom Resources](#remove-custom-resources)
 - [Uninstall the Operator CRs](#uninstall-the-operator)
 
-#### Deploy the Layer7 Operator
+
+### Deploy the Layer7 Operator
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f deploy/bundle.yaml
-
-customresourcedefinition.apiextensions.k8s.io/gateways.security.brcmlabs.com created
-customresourcedefinition.apiextensions.k8s.io/repositories.security.brcmlabs.com created
-serviceaccount/layer7-operator-controller-manager created
-role.rbac.authorization.k8s.io/layer7-operator-leader-election-role created
-role.rbac.authorization.k8s.io/layer7-operator-manager-role created
-role.rbac.authorization.k8s.io/layer7-operator-proxy-role created
-rolebinding.rbac.authorization.k8s.io/layer7-operator-leader-election-rolebinding created
-rolebinding.rbac.authorization.k8s.io/layer7-operator-manager-rolebinding created
-rolebinding.rbac.authorization.k8s.io/layer7-operator-proxy-rolebinding created
-configmap/layer7-operator-manager-config created
-service/layer7-operator-controller-manager-metrics-service created
-deployment.apps/layer7-operator-controller-manager created
+kubectl apply -f ./deploy/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
@@ -42,7 +63,7 @@ NAME                                                  READY   STATUS    RESTARTS
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          27s
 ```
 
-#### Create Repository Custom Resources
+### Create Repositories
 This example ships with 3 pre-configured Graphman repositories. The repository controller is responsible for synchronising these with the Operator and should always be created before Gateway resources that reference them to avoid race conditions. ***race conditions will be resolved automatically.***
 
 - [l7-gw-myframework](https://github.com/Gazza7205/l7GWMyFramework)
@@ -50,27 +71,49 @@ This example ships with 3 pre-configured Graphman repositories. The repository c
 - [l7-gw-myapis](https://github.com/Gazza7205/l7GWMyAPIs)
 
 ```
-kubectl apply -k example/repositories
-
-secret/gateway-license configured
-secret/gateway-secret unchanged
-secret/graphman-encryption-secret unchanged
-secret/graphman-repository-secret configured
-repository.security.brcmlabs.com/l7-gw-myapis created
-repository.security.brcmlabs.com/l7-gw-myframework created
-repository.security.brcmlabs.com/l7-gw-mysubscriptions created
+kubectl apply -k ./example/repositories
 ```
 
-#### Create a Gateway Custom Resource
-The [Gateway Custom Resource](./ssg-gateway.yaml) in this example has the following pre-configured
+##### Operator Logs
+```
+kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
+```
 
-#### Configured in this example
+##### Repository CR
+The Repository Controller keeps tracks the latest available commit, where it's stored (if it's less than 1mb we create a Kubernetes secret) and when it was last updated. The Storage Secret is a gzipped graphman bundle (json) used in the Graphman Init Container to remove dependencies on git during deployment.
+
+***Note: If the repository exceeds 1mb in compressed format each Graphman Init Container will clone it at runtime. This represents a single point of failure if your Git Server is down, we recommended creating your own initContainer with the larger graphman bundle.***
+```
+kubectl get repositories
+
+NAME                    AGE
+l7-gw-myapis            10s
+l7-gw-myframework       10s
+l7-gw-mysubscriptions   10s
+
+kubectl get repository l7-gw-myapis -oyaml
+...
+status:
+  commit: 3791f11c9b588b383ce87535f46d4fc1526ae83b
+  name: l7-gw-myapis
+  storageSecretName: l7-gw-myapis-repository
+  updated: 2023-04-04 02:53:53.298060678 +0000 UTC m=+752.481758238
+  vendor: Github
+```
+
+### Create a Gateway
+The [Gateway Custom Resource](../gateway/advanced-gateway.yaml) in this example has the following pre-configured
+
+```
+kubectl apply -f ./example/gateway/advanced-gateway.yaml
+```
+
 - InitContainers
 This initContainer has a helloworld service and some very basic scripts that use echo.
 ```
 initContainers:
 - name: gateway-init
-  image: docker.io/layer7-api/gateway-init:1.0.0
+  image: docker.io/layer7api/gateway-init:1.0.0
   imagePullPolicy: IfNotPresent
   volumeMounts:
   - name: config-directory
@@ -204,20 +247,6 @@ pdb:
 - Affinity
 - NodeSelector
 
-#### Deploy the Gateway CR
-```
-kubectl apply -k example/advanced/
-
-serviceaccount/ssg-serviceaccount created
-secret/gateway-license configured
-secret/gateway-secret configured
-secret/graphman-bootstrap-bundle configured
-secret/graphman-encryption-secret configured
-secret/graphman-repository-secret configured
-secret/restman-bootstrap-bundle configured
-gateway.security.brcmlabs.com/ssg created
-```
-
 ##### View your new Gateway
 In this example we're using an Autoscaler, 1 node will be present while the autoscaler is initially configured.
 ```
@@ -227,72 +256,11 @@ NAME                   READY   STATUS    RESTARTS   AGE
 ssg-7698bc565b-qrz5g   1/1     Running   0          2m45s
 ssg-7698bc565b-szrbj   1/1     Running   0          2m45s
 ```
-The Operator also keeps status of any given Gateway CR up-to-date so you also run the following
-```
-kubectl get gateways
-NAME   AGE
-ssg    2m45s
-
-
-kubectl get gateway ssg -oyaml
-
-...
-status:
-  conditions:
-  ...
-  gateway:
-  - name: ssg-8589cbc944-r6292
-    phase: Running
-    ready: true
-    startTime: 2023-04-06 15:05:41 +0000 UTC
-  - name: ssg-8589cbc944-q4n67
-    phase: Running
-    ready: true
-    startTime: 2023-04-06 15:05:56 +0000 UTC
-  host: gateway.brcmlabs.com
-  image: docker.io/caapim/gateway:10.1.00_CR3
-  ready: 2
-  replicas: 2
-  repositoryStatus:
-  - branch: main
-    commit: 9175df94cc51e650d97a40c06b7855496a1612e2
-    enabled: true
-    endpoint: https://github.com/Gazza7205/l7GWMyFramework
-    name: l7-gw-myframework
-    secretName: graphman-repository-secret
-    storageSecretName: l7-gw-myframework-repository
-    type: static
-  ...
-  state: Ready
-  version: 10.1.00_CR3
-
-```
-
 
 ##### View the Operator logs
 ```
-kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
-
-...
-1.6805472375519047e+09  INFO    Starting workers        {"controller": "gateway", "controllerGroup": "security.brcmlabs.com", "controllerKind": "Gateway", "worker count": 1}
-1.6805472375519912e+09  INFO    Starting workers        {"controller": "repository", "controllerGroup": "security.brcmlabs.com", "controllerKind": "Repository", "worker count": 1}
-1.6805480463029926e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg", "Namespace": "layer7"}
-1.680548046309193e+09   INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-system", "Namespace": "layer7"}
-1.6805480463136642e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-cwp-bundle", "Namespace": "layer7"}
-1.6805480463188894e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-listen-port-bundle", "Namespace": "layer7"}
-1.680548046426919e+09   INFO    controllers.Gateway     Creating Service        {"Name": "ssg", "Namespace": "layer7"}
-1.6805480465468638e+09  INFO    controllers.Gateway     Deployment hasn't been created yet      {"Name": "ssg", "Namespace": "layer7"}
-1.6805480466609669e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-repository-init-config", "Namespace": "layer7"}
-1.6805480466660128e+09  INFO    controllers.Gateway     Creating Deployment     {"Name": "ssg", "Namespace": "layer7"}
-1.6805480472615528e+09  INFO    controllers.Repository  Creating Storage Secret {"Name": "l7-gw-myframework", "Namespace": "layer7"}
-1.680548047275876e+09   INFO    controllers.Repository  Reconciled      {"Name": "l7-gw-myframework", "Namespace": "layer7", "Commit": "4b6c3ff1f174e4095ceadb31153392084fbaa61b"}
-1.6805786502375867e+09  INFO    controllers.Gateway     Applying Latest Commit  {"Repo": "l7-gw-myapis", "Directory": "/", "Commit": "3791f11c9b588b383ce87535f46d4fc1526ae83b", "Pod": "ssg-57d96567cb-n24g9", "Name": "ssg", "Namespace": "layer7"}
-1.6805786509813132e+09  INFO    controllers.Gateway     Applying Latest Commit  {"Repo": "l7-gw-mysubscriptions", "Directory": "/", "Commit": "fd6b225159fcd8fccf4bd61e31f40cdac64eccfa", "Pod": "ssg-57d96567cb-n24g9", "Name": "ssg", "Namespace": "layer7"}
-...
-
+kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
 ```
-
-##### Inspect the Status of your Custom Resources
 
 ###### Gateway CR
 The Gateway Controller tracks gateway pods and the repositories that have been applied to the deployment
@@ -339,27 +307,7 @@ state: Ready
 version: 10.1.00_CR3
 ```
 
-###### Repository CR
-The Repository Controller keeps tracks the latest available commit, where it's stored (if it's less than 1mb we create a Kubernetes secret) and when it was last updated.
-```
-kubectl get repositories
-
-NAME                    AGE
-l7-gw-myapis            10s
-l7-gw-myframework       10s
-l7-gw-mysubscriptions   10s
-
-kubectl get repository l7-gw-myapis -oyaml
-...
-status:
-  commit: 3791f11c9b588b383ce87535f46d4fc1526ae83b
-  name: l7-gw-myapis
-  storageSecretName: l7-gw-myapis-repository
-  updated: 2023-04-04 02:53:53.298060678 +0000 UTC m=+752.481758238
-  vendor: Github
-```
-
-##### Test your Gateway Deployment
+### Test your Gateway Deployment
 ```
 kubectl get ingress
 
@@ -409,35 +357,31 @@ password: 7layer
 gateway: localhost:9443
 ```
 
-#### Remove Custom Resources
-```
-kubectl delete -k example/basic/
-kubectl delete -k example/repositories/
+### Remove Kind Cluster
+If you used the Quickstart option and deployed Kind, all you will need to do is remove the Kind Cluster.
 
-secret "gateway-license" deleted
-secret "gateway-secret" deleted
-secret "graphman-encryption-secret" deleted
-secret "graphman-repository-secret" deleted
-gateway.security.brcmlabs.com "ssg" deleted
-repository.security.brcmlabs.com "l7-gw-myapis" deleted
-repository.security.brcmlabs.com "l7-gw-myframework" deleted
-repository.security.brcmlabs.com "l7-gw-mysubscriptions" deleted
+Make sure that you're in the example folder
+```
+pwd
+```
+
+output
+```
+/path/to/layer7-operator/example
+```
+
+Remove the Kind Cluster
+```
+make uninstall-kind
+```
+
+### Remove Custom Resources
+```
+kubectl delete -f ./example/gateway/advanced-gateway.yaml
+kubectl delete -k ./example/repositories/
 ```
 
 ### Uninstall the Operator
 ```
-kubectl delete -f deploy/bundle.yaml
-
-customresourcedefinition.apiextensions.k8s.io "gateways.security.brcmlabs.com" deleted
-customresourcedefinition.apiextensions.k8s.io "repositories.security.brcmlabs.com" deleted
-serviceaccount "layer7-operator-controller-manager" deleted
-role.rbac.authorization.k8s.io "layer7-operator-leader-election-role" deleted
-role.rbac.authorization.k8s.io "layer7-operator-manager-role" deleted
-role.rbac.authorization.k8s.io "layer7-operator-proxy-role" deleted
-rolebinding.rbac.authorization.k8s.io "layer7-operator-leader-election-rolebinding" deleted
-rolebinding.rbac.authorization.k8s.io "layer7-operator-manager-rolebinding" deleted
-rolebinding.rbac.authorization.k8s.io "layer7-operator-proxy-rolebinding" deleted
-configmap "layer7-operator-manager-config" deleted
-service "layer7-operator-controller-manager-metrics-service" deleted
-deployment.apps "layer7-operator-controller-manager" deleted
+kubectl delete -f ./deploy/bundle.yaml
 ```

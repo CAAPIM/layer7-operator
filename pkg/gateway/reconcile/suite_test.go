@@ -25,8 +25,8 @@ var (
 	logger      = logf.Log.WithName("unit-tests")
 )
 
-func newParams() (Params, error) {
-	return Params{
+func newParams() Params {
+	params := Params{
 		Client: k8sClient,
 		Instance: &securityv1.Gateway{
 			TypeMeta: metav1.TypeMeta{
@@ -115,5 +115,9 @@ func newParams() (Params, error) {
 		},
 		Scheme: testScheme,
 		Log:    logger,
-	}, nil
+	}
+	params.Instance.Name = "test"
+	params.Instance.Namespace = "default"
+	params.Scheme.AddKnownTypes(securityv1.GroupVersion, params.Instance)
+	return params
 }

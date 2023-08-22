@@ -3,7 +3,8 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,25 +24,23 @@ func TestNewSecret(t *testing.T) {
 		}
 		ctx := context.Background()
 
-		params, err := newParams()
-		params.Instance.Name = "test"
-		params.Instance.Namespace = "default"
-		params.Scheme.AddKnownTypes(securityv1.GroupVersion, params.Instance)
+		params := newParams()
 		k8sClient, err = client.New(cfg, client.Options{Scheme: params.Scheme})
-		params.Client = k8sClient
 		if err != nil {
 			fmt.Printf("failed to setup a Kubernetes client: %v", err)
 			os.Exit(1)
 		}
+		params.Client = k8sClient
 		err = Secret(ctx, params)
 		if err != nil {
 			t.Fatal(err)
 		}
-		/*nns := types.NamespacedName{Namespace: "default", Name: "test"}
+		//verify that secret is created
+		nns := types.NamespacedName{Namespace: "default", Name: "test"}
 		got := &corev1.Secret{}
 		err = params.Client.Get(ctx, nns, got)
 		if err != nil {
 			t.Fatal(err)
-		}*/
+		}
 	})
 }

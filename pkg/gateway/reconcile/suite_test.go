@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -112,8 +111,7 @@ func newParams() (Params, error) {
 				},
 			},
 		},
-		Scheme:   testScheme,
-		Log:      logger,
-		Recorder: record.NewFakeRecorder(10),
+		Scheme: testScheme,
+		Log:    logger,
 	}, nil
 }

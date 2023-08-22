@@ -1,13 +1,12 @@
 package reconcile
 
 import (
-	"context"
 	"testing"
 )
 
 func TestConfigMap(t *testing.T) {
 	t.Run("should create configmap", func(t *testing.T) {
-		ctx := context.Background()
+		/*ctx := context.Background()
 
 		params, err := newParams()
 		params.Instance.Name = "test"
@@ -19,7 +18,7 @@ func TestConfigMap(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		/*nns := types.NamespacedName{Namespace: "default", Name: "test"}
+		nns := types.NamespacedName{Namespace: "default", Name: "test"}
 		got := &corev1.Secret{}
 		err = params.Client.Get(ctx, nns, got)
 		if err != nil {

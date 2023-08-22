@@ -2,6 +2,7 @@ package reconcile
 
 import (
 	"context"
+	"fmt"
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -10,9 +11,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes/scheme"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"testing"
 )
 
 var (
@@ -25,6 +29,37 @@ var (
 	logger      = logf.Log.WithName("unit-tests")
 )
 
+func TestMain(m *testing.M) {
+	ctx, cancel = context.WithCancel(context.TODO())
+	defer cancel()
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing: true,
+	}
+	cfg, err := testEnv.Start()
+	if err != nil {
+		fmt.Printf("failed to start testEnv: %v", err)
+		os.Exit(1)
+	}
+	if err = securityv1.AddToScheme(testScheme); err != nil {
+		fmt.Printf("failed to register scheme: %v", err)
+		os.Exit(1)
+	}
+	k8sClient, err = client.New(cfg, client.Options{Scheme: testScheme})
+	if err != nil {
+		fmt.Printf("failed to setup a Kubernetes client: %v", err)
+		os.Exit(1)
+	}
+	code := m.Run()
+
+	err = testEnv.Stop()
+	if err != nil {
+		fmt.Printf("failed to stop testEnv: %v", err)
+		os.Exit(1)
+	}
+
+	os.Exit(code)
+}
 func newParams() Params {
 	params := Params{
 		Client: k8sClient,
@@ -118,6 +153,6 @@ func newParams() Params {
 	}
 	params.Instance.Name = "test"
 	params.Instance.Namespace = "default"
-	params.Scheme.AddKnownTypes(securityv1.GroupVersion, params.Instance)
+	params.Client = k8sClient
 	return params
 }

@@ -18,7 +18,7 @@ func TestNewSecret(t *testing.T) {
 		//verify that secret is created
 		nns := types.NamespacedName{Namespace: "default", Name: "test"}
 		got := &corev1.Secret{}
-		err = params.Client.Get(ctx, nns, got)
+		err = k8sClient.Get(ctx, nns, got)
 		if err != nil {
 			t.Fatal(err)
 		}

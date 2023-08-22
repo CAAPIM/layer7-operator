@@ -126,7 +126,6 @@ func newParams() Params {
 						},
 					},
 					PodDisruptionBudget: securityv1.PodDisruptionBudgetSpec{
-						MinAvailable:   intstr.IntOrString{IntVal: 3},
 						MaxUnavailable: intstr.IntOrString{IntVal: 5},
 					},
 				},

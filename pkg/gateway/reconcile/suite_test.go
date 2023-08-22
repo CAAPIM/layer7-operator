@@ -84,10 +84,10 @@ func newParams() Params {
 					},
 					Service: securityv1.Service{
 						Ports: []securityv1.Ports{
-							{Name: "httpPort",
+							{Name: "http",
 								Port:       443,
 								TargetPort: 8443,
-								Protocol:   "http"},
+								Protocol:   "TCP"},
 						},
 					},
 					PodDisruptionBudget: securityv1.PodDisruptionBudgetSpec{

@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -15,13 +16,13 @@ import (
 )
 
 var (
-	k8sClient  client.Client
-	testEnv    *envtest.Environment
-	testScheme *runtime.Scheme = scheme.Scheme
-	ctx        context.Context
-	cancel     context.CancelFunc
-
-	logger = logf.Log.WithName("unit-tests")
+	k8sClient   client.Client
+	testEnv     *envtest.Environment
+	testScheme  *runtime.Scheme = scheme.Scheme
+	ctx         context.Context
+	cancel      context.CancelFunc
+	instanceUID = uuid.NewUUID()
+	logger      = logf.Log.WithName("unit-tests")
 )
 
 func newParams() (Params, error) {
@@ -35,6 +36,7 @@ func newParams() (Params, error) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
 				Namespace: "default",
+				UID:       instanceUID,
 			},
 			Spec: securityv1.GatewaySpec{
 				App: securityv1.App{

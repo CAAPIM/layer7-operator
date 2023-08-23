@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,6 +77,9 @@ func newParams() Params {
 			},
 			Spec: securityv1.GatewaySpec{
 				App: securityv1.App{
+					Image:              "test",
+					Replicas:           int32(5),
+					ServiceAccountName: "testserviceaccount",
 					ListenPorts: securityv1.ListenPorts{
 						Custom: securityv1.CustomListenPort{
 							Enabled: false,
@@ -96,6 +101,15 @@ func newParams() Params {
 							Username: "databaseUser",
 							Password: "databasePassword",
 							JDBCUrl:  "jdbc:mysql:localhost:3606",
+						},
+						Service: securityv1.Service{
+							Enabled: true,
+							Ports: []securityv1.Ports{
+								{Name: "https",
+									Port:       9443,
+									TargetPort: 9443,
+									Protocol:   "TCP"},
+							},
 						},
 					},
 					Java: securityv1.Java{
@@ -120,13 +134,32 @@ func newParams() Params {
 					Service: securityv1.Service{
 						Ports: []securityv1.Ports{
 							{Name: "http",
-								Port:       443,
+								Port:       8443,
 								TargetPort: 8443,
 								Protocol:   "TCP"},
 						},
 					},
 					PodDisruptionBudget: securityv1.PodDisruptionBudgetSpec{
 						MaxUnavailable: intstr.IntOrString{IntVal: 5},
+					},
+					Ingress: securityv1.Ingress{
+						Enabled:          true,
+						IngressClassName: "testingress",
+						Rules: []networkingv1.IngressRule{
+							networkingv1.IngressRule{
+								Host: "localhost",
+							},
+						},
+					},
+					Autoscaling: securityv1.Autoscaling{
+						Enabled: true,
+						HPA: securityv1.HPA{
+							MaxReplicas: int32(3),
+							Behavior: autoscalingv2.HorizontalPodAutoscalerBehavior{
+								ScaleUp:   &autoscalingv2.HPAScalingRules{},
+								ScaleDown: &autoscalingv2.HPAScalingRules{},
+							},
+						},
 					},
 				},
 				License: securityv1.License{
@@ -139,8 +172,8 @@ func newParams() Params {
 						Enabled:    true,
 						Name:       "testrepo",
 						Commit:     "1234",
-						Type:       "static",
-						SecretName: "testSecret",
+						Type:       "dynamic",
+						SecretName: "testsecret",
 						Branch:     "testBranch",
 						Endpoint:   "github.com",
 					},

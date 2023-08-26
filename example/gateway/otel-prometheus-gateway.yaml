@@ -3,7 +3,7 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "10.1.00_OTEL"
+  version: "10.1.00_OTEL_2"
   license:
     accept: true
     secretName: gateway-license
@@ -13,7 +13,7 @@ spec:
       instrumentation.opentelemetry.io/inject-java: "true"
       instrumentation.opentelemetry.io/container-names: "gateway"
     replicas: 1
-    image: docker.io/layer7api/gateway:10.1.00_OTEL
+    image: docker.io/layer7api/gateway:10.1.00_OTEL_2
     imagePullPolicy: Always
     #serviceAccountName: ssg-serviceaccount
     updateStrategy:
@@ -118,8 +118,6 @@ spec:
             com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
-        - name: otel.enabled
-          value: "true"
         - name: otel.serviceMetricEnabled
           value: "true"
         - name: otel.traceEnabled
@@ -127,16 +125,15 @@ spec:
         - name: otel.metricPrefix
           value: l7_
         - name: otel.resourceAttributes
-          value: gateway.name=ssgNode.Name,service.name=ssg,service.version=10.1.00,deployment.environment=development
+          value: k8s.container.name,k8s.pod.name
         - name: otel.traceConfig
           value: |
             {
              "services": [
-               {"url": ".*api.*"}
-             ],
-             "serviceTraceDetail": "Request - ${request.parameter.name}",
-             "policyTraceDetail" : "Count - ${someCtxVar}"
-            } 
+               {"url": ".*api.*"},
+               {"url": ".*test.*"}
+             ]
+            }
     system:
       properties: |-
         # Default Gateway system properties

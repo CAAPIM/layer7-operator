@@ -18,7 +18,7 @@ The OTel Example requires multiple namespaces for the additional components. You
 
 ***NOTE:*** to keep things simple we use the default namespace when creating namespaced resources including the Layer7 Operator, Gateway, Repositories and Prometheus Service Monitor. If you'd like to use a different namespace then you will need to update the following.
 
-- [servicemonitor.yaml](../otel-gateway/servicemonitor.yaml)
+- [servicemonitor.yaml](./servicemonitor.yaml)
 ```
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -43,7 +43,7 @@ spec:
       app.kubernetes.io/part-of: ssg
 ```
 
-- [prometheus-values.yaml](../otel/monitoring/prometheus/prometheus-values.yaml)
+- [prometheus-values.yaml](./monitoring/prometheus/prometheus-values.yaml)
 ```
 prometheusOperator:
   namespaces:
@@ -67,6 +67,15 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
 1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
+3. You will need an ingress controller like nginx
+    - if you do not have one installed already you can use the makefile in the example directory to deploy one
+        - ```cd example```
+        - Generic Kubernetes
+            - ```make nginx```
+        - Kind (Kubernetes in Docker)
+            - follow the steps in Quickstart Kind
+    - return to the previous folder
+        - ```cd ..```
 
 ### Gateway Configuration
 - [Container Gateway](#container-gateway-configuration)
@@ -89,20 +98,39 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
 ### Layer7 Operator
 - [Deploy the Operator](#deploy-the-layer7-operator)
 - [Create Repositories](#create-repository-custom-resources)
-- [Create a Gateway](#create-a-gateway-custom-resource)
+- [Create a Gateway](#create-a-gateway)
 - [Test Gateway Deployment](#test-your-gateway-deployment)
-- [Remove Custom Resources](#remove-custom-resources)
+- [Remove Kind Cluster](#remove-kind-cluster)
+- [Uninstall Demo Components and Custom Resources](#remove-demo-component-and-custom-resources)
 - [Uninstall the Operator CRs](#uninstall-the-operator)
 
-#### Container Gateway Configuration
-The container gateway configuration required for this integration is relatively simple. We will set some [environment variables](../base/resources/secrets/gateway/secret.env) that the Otel Agent present on the Container Gateway will use to send logs, traces and metrics to the Otel Collector sidecar.
+### Container Gateway Configuration
+The container gateway configuration required for this integration is relatively simple. We will set some environment variables in our OTel [instrumentation](./instrumentation.yaml) that the Otel Agent present on the Container Gateway will use to send logs, traces and metrics to the Otel Collector sidecar.
 
 ```
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 ==> exposed by the Otel Sidecar (or otc-container)
-OTEL_METRICS_EXPORTER=otlp
-OTEL_TRACES_EXPORTER=otlp
-OTEL_SERVICE_NAME=ssg
-OTEL_RESOURCE_ATTRIBUTES=gateway.name=ssg,service.name=ssg,service.version=10.1.00_CR3,deployment.environment=development
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: otel-instrumentation
+spec:
+  env:
+    - name: OTEL_SERVICE_NAME
+      value: ssg
+    - name: OTEL_METRICS_EXPORTER
+      value: otlp
+    - name: OTEL_TRACES_EXPORTER
+      value: otlp
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: service.version=10.1.00_CR3,deployment.environment=development
+  exporter:
+    endpoint: http://localhost:4317
+  propagators:
+    - tracecontext
+    - baggage
+    - b3
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.25"
 ```
 
 We also need to expose a monitoring endpoint so that Prometheus can scrape the Gateway service
@@ -117,7 +145,7 @@ service:
 ```
 
 ### OTel Collector Configuration
-The OpenTelemetry Operator will automatically inject a sidecar into the Gateway Pod with our [OTel configuration](../otel/collector.yaml). This configuration exposes a /metrics endpoint on the Gateway Pod on port 8889 for Prometheus to scrape.
+The OpenTelemetry Operator will automatically inject a sidecar into the Gateway Pod with our [OTel configuration](./collector.yaml). This configuration exposes a /metrics endpoint on the Gateway Pod on port 8889 for Prometheus to scrape.
 
 ```
 receivers:
@@ -164,8 +192,8 @@ extensions:
     endpoint: 0.0.0.0:55679
 ```
 
-#### Service Monitor Configuration
-We need to tell Prometheus about the /metrics endpoint on the Gateway pod, we do this with a [ServiceMonitor](../otel-gateway/servicemonitor.yaml)
+### Service Monitor Configuration
+We need to tell Prometheus about the /metrics endpoint on the Gateway pod, we do this with a [ServiceMonitor](./servicemonitor.yaml)
 
 ```
 apiVersion: monitoring.coreos.com/v1
@@ -191,17 +219,8 @@ spec:
       app.kubernetes.io/part-of: ssg
 ```
 
-#### Gateway Application Configuration
-The Gateway requires Otel specific cluster-wide properties and an additional java arg for the OTel agent.
-
-- Java Args
-```
-java:
-  ...
-  extraArgs:
-  ...
-  - -javaagent:/opt/SecureSpan/Gateway/runtime/lib/otel/opentelemetry-javaagent-1.21.0.jar
-```
+### Gateway Application Configuration
+The Gateway has OTel specific cluster-wide properties.
 
 - Cluster-Wide Properties
 ```
@@ -209,30 +228,26 @@ cwp:
   enabled: true
   properties:
     ...
-    - name: otel.enabled
+    - name: otel.serviceMetricEnabled
       value: "true"
-    - name: otel.serviceMetricEnabled ==> enable/disable service metrics
+    - name: otel.traceEnabled
       value: "true"
-    - name: otel.traceEnabled ==> enable/disable traces
-      value: "true"
-    - name: otel.metricPrefix ==> custom metrics get this prefix
+    - name: otel.metricPrefix
       value: l7_
     - name: otel.resourceAttributes
-      value: gateway.name=ssgNode.Name,service.name=ssg,service.version=10.1.00,deployment.environment=development
-    - name: otel.traceConfig ==> trace config allows you to switch on tracing for a specific API(s) by service URI
+      value: k8s.container.name,k8s.pod.name
+    - name: otel.traceConfig
       value: |
         {
          "services": [
-           {"url": ".*api.*"}
-         ],
-         "serviceTraceDetail": "Request - ${request.parameter.name}",
-         "policyTraceDetail" : "Count - ${someCtxVar}"
-        } 
+           {"url": ".*api.*"},
+           {"url": ".*test.*"}
+         ]
+        }
 ```
 
-
-#### Service Level Configuration
-The [global-graphman-bundle.json](../otel-gateway/global-graphman-bundle.json) contains a message-completed policy with a single Telemetry Metric assertion. This collects generic service level information that we use to populate the Grafana Dashboard. In our example we use message-completed because it only requires a change in one place, the Telemetry metric assertion can also be inserted into an existing service(s) to capture service specific metrics at any point that you wish to monitor.
+### Service Level Configuration
+The [global-graphman-bundle.json](../base/resources/secrets/bundles/global-graphman-bundle.json) contains a message-completed policy with a single Telemetry Metric assertion. This collects generic service level information that we use to populate the Grafana Dashboard. In our example we use message-completed because it only requires a change in one place, the Telemetry metric assertion can also be inserted into an existing service(s) to capture service specific metrics at any point that you wish to monitor.
 
 ```
 {
@@ -252,7 +267,7 @@ The [global-graphman-bundle.json](../otel-gateway/global-graphman-bundle.json) c
   }
 ```
 
-#### Quickstart Kind
+### Quickstart Kind
 A Makefile is included in the example directory that makes deploying this example a one step process. If you have access to a Docker Machine you can use [Kind](https://kind.sigs.k8s.io/) (Kubernetes in Docker). This example can optionally deploy a Kind Cluster for you (you just need to make sure that you've [installed Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation))
 
 The kind configuration is in the base of the example folder. If your docker machine is remote (you are using a VM or remote machine) then uncomment the network section and set the apiServerAddress to the address of your VM/Remote machine
@@ -287,7 +302,7 @@ cd example
 ```
 - deploy the example
 ```
-make kind-cluster otel-example-kind
+make kind-cluster otel-prometheus-example-kind
 ```
 You will also need to add the following entries to your hosts file
 ```
@@ -297,7 +312,7 @@ You will also need to add the following entries to your hosts file
 You can now move on to test your gateway deployment!
 - [Test Gateway Deployment](#test-your-gateway-deployment)
 
-#### Quickstart Existing Cluster
+### Quickstart Existing Cluster
 This quickstart uses the Makefile to install of the necessary components into your Kubernetes Cluster.
 
 - navigate to the example directory
@@ -306,13 +321,24 @@ cd example
 ```
 - deploy the example
 ```
-make otel-example 
+make otel-prometheus-example
 ```
 
 If you don't already have an ingress controller you can deploy nginx with the following command
+
+- Suppports most Kubernetes Environments
 ```
 make nginx
 ```
+- If you're using Kind
+```
+make nginx-kind
+```
+- Additional options can be found here
+```
+https://github.com/kubernetes/ingress-nginx/tree/main/deploy/static/provider
+```
+
 - Once nginx has been installed get the L4 LoadBalancer address
 ```
 kubectl get svc -n ingress-nginx
@@ -334,16 +360,14 @@ example
 You can now move on to test your gateway deployment!
 - [Test Gateway Deployment](#test-your-gateway-deployment)
 
-#### Install Cert Manager
+### Install Cert Manager
 These steps are based the official documentation for installing Cert-Manager [here](https://cert-manager.io/docs/installation/). Cert-Manager is a pre-requisite for the Open Telemetry Operator.
-
-
-- Deploy the Cert Manager Operator
 ```
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
 ```
 
-##### View CertManager Components
+#### View CertManager Components
+***Cert manager needs to be running before you continue onto the next step.***
 ```
 kubectl get all -n cert-manager
 
@@ -368,19 +392,15 @@ replicaset.apps/cert-manager-webhook-796ff7697b     1         1         1       
 ```
 
 
-#### Install Open Telemetry
+### Install Open Telemetry
 These steps are based the official documentation for installing Open Telemetry [here](https://cert-manager.io/docs/installation/). Open Telemetry depends on cert-manager, ***make sure that cert-manager is running before installing open telemetry.***
 
 - Install the Open Telemetry Operator.
 ```
 kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
 ```
-- Create an OpenTelemetryCollector resource
-```
-kubectl apply -f ./example/otel/collector.yaml
-```
 
-##### View Open Telemetry Components
+#### View Open Telemetry Components
 ```
 kubectl get all -n opentelemetry-operator-system
 
@@ -398,7 +418,17 @@ NAME                                                                   DESIRED  
 replicaset.apps/opentelemetry-operator-controller-manager-5d84764d4b   1         1         1       72d
 ```
 
-#### Install the Prometheus Stack
+***The OpenTelemetry Operator needs to be running before you continue onto the next step.***
+- Create an OpenTelemetryCollector resource
+```
+kubectl apply -f ./example/otel-prometheus/collector.yaml
+```
+- Create OpenTelemetry Instrumentation
+```
+kubectl apply -f ./example/otel-prometheus/instrumentation.yaml
+```
+
+### Install the Prometheus Stack
 These steps are based on instructions that can be found in the Prometheus Community Helm Chart [documentation](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus).
 
 - Add the Prometheus Community Helm Chart repository
@@ -412,14 +442,18 @@ kubectl create ns monitoring
 ```
 - Create the Layer7 Grafana Dashboard
 ```
-kubectl apply -k ./example/otel/monitoring/grafana/
+kubectl apply -k ./example/otel-prometheus/monitoring/grafana/
 ```
 - Install the Prometheus Helm Chart in the monitoring namespace
 ```
-helm upgrade -i prometheus -f ./example/otel/monitoring/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
+helm upgrade -i prometheus -f ./example/otel-prometheus/monitoring/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
+```
+- Create a Service Monitor
+```
+kubectl apply -f ./example/otel-prometheus/servicemonitor.yaml
 ```
 
-#### Install Jaeger
+### Install Jaeger
 These steps are based on instructions that can be found in the Jaeger [documentation](https://www.jaegertracing.io/docs/1.44/operator/)
 
 - Create a namespace called observability
@@ -451,32 +485,38 @@ replicaset.apps/jaeger-operator-6cf68b6f65   1         1         1       17s
 
 - Deploy a Jaeger Custom Resource
 ```
-kubectl apply -f ./example/otel/observability/jaeger/jaeger.yaml
+kubectl apply -f ./example/otel-prometheus/observability/jaeger/jaeger.yaml
 ```
 
 - Create an ingress resource for Jaeger.
 ```
-kubectl apply -f ./example/otel/observability/jaeger/ingress.yaml
+kubectl apply -f ./example/otel-prometheus/observability/jaeger/ingress.yaml
 ```
 
-
-#### Install Nginx
+### Install Nginx
 This command will deploy an nginx ingress controller. If you already have nginx or another ingress controller running in your Kubernetes cluster you can safely ignore this step.
 
+Suppports most Kubernetes Environments
 ```
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 ```
+If you're using Kind
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+```
+Additional options can be found here
+```
+https://github.com/kubernetes/ingress-nginx/tree/main/deploy/static/provider
+```
 
-#### 
-
-#### Deploy the Layer7 Operator
+### Deploy the Layer7 Operator
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
 kubectl apply -f deploy/bundle.yaml
 ```
 
-##### Verify the Operator is up and running
+#### Verify the Operator is up and running
 ```
 kubectl get pods
 
@@ -484,7 +524,7 @@ NAME                                                  READY   STATUS    RESTARTS
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          27s
 ```
 
-#### Create Repository Custom Resources
+### Create Repository Custom Resources
 This example ships with 3 pre-configured Graphman repositories. The repository controller is responsible for synchronising these with the Operator and should always be created before Gateway resources that reference them to avoid race conditions. ***race conditions will be resolved automatically.***
 
 - [l7-gw-myframework](https://github.com/Gazza7205/l7GWMyFramework)
@@ -492,34 +532,15 @@ This example ships with 3 pre-configured Graphman repositories. The repository c
 - [l7-gw-myapis](https://github.com/Gazza7205/l7GWMyAPIs)
 
 ```
-kubectl apply -k example/repositories
-
-secret/gateway-license configured
-secret/gateway-secret unchanged
-secret/graphman-encryption-secret unchanged
-secret/graphman-repository-secret configured
-secret/harbor-reg-cred configured
-repository.security.brcmlabs.com/l7-gw-myapis created
-repository.security.brcmlabs.com/l7-gw-myframework created
-repository.security.brcmlabs.com/l7-gw-mysubscriptions created
+kubectl apply -k ./example/repositories
 ```
 
-##### Operator Logs
+#### View the Operator Logs
 ```
-kubectl logs <layer7-operator-pod> manager
-
-...
-1.6805762965185595e+09 INFO controllers.Repository Creating Storage Secret {"Name": "l7-gw-myapis-repository", "Namespace": "layer7"}
-1.6805762965343177e+09 INFO controllers.Repository Reconciled {"Name": "l7-gw-myapis", "Namespace": "layer7", "Commit": "3791f11c9b588b383ce87535f46d4fc1526ae83b"}
-1.680576296929594e+09 INFO controllers.Repository Creating Storage Secret {"Name": "l7-gw-myframework-repository", "Namespace": "layer7"}
-1.6805762969402978e+09 INFO controllers.Repository Reconciled {"Name": "l7-gw-myframework", "Namespace": "layer7", "Commit": "c93028b807cf1b62bce0142a80ad4f6203207e8d"}
-1.6805762973589563e+09 INFO controllers.Repository Creating Storage Secret {"Name": "l7-gw-mysubscriptions-repository", "Namespace": "layer7"}
-1.6805762973709154e+09 INFO controllers.Repository Reconciled {"Name": "l7-gw-mysubscriptions", "Namespace": "layer7", "Commit": "fd6b225159fcd8fccf4bd61e31f40cdac64eccfa"} 
-...
-
+kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
 ```
 
-##### Repository CR
+#### Repository CR
 The Repository Controller keeps tracks the latest available commit, where it's stored (if it's less than 1mb we create a Kubernetes secret) and when it was last updated. The Storage Secret is a gzipped graphman bundle (json) used in the Graphman Init Container to remove dependencies on git during deployment.
 
 ***Note: If the repository exceeds 1mb in compressed format each Graphman Init Container will clone it at runtime. This represents a single point of failure if your Git Server is down, we recommended creating your own initContainer with the larger graphman bundle.***
@@ -541,22 +562,12 @@ status:
   vendor: Github
 ```
 
-#### Create a Gateway Custom Resource
+### Create a Gateway
 ```
-kubectl apply -k example/otel-gateway/
-
-serviceaccount/ssg-serviceaccount created
-secret/gateway-license configured
-secret/gateway-secret configured
-secret/graphman-bootstrap-bundle configured
-secret/graphman-encryption-secret configured
-secret/graphman-repository-secret configured
-secret/restman-bootstrap-bundle configured
-gateway.security.brcmlabs.com/ssg created
-
+kubectl apply -f ./example/gateway/otel-prometheus-gateway.yaml
 ```
 
-##### Referencing the repositories we created
+#### Referencing the repositories we created
 [ssg-gateway.yaml](./ssg-gateway.yaml) contains 3 repository references, the 'type' defines how a repository is applied to the Container Gateway.
 - Dynamic repositories are applied directly to the Graphman endpoint on the Gateway which does not require a gateway restart
 - Static repositories are bootstrapped to the Container Gateway with an initContainer which requires a gateway restart.
@@ -582,7 +593,7 @@ repositoryReferences:
       key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
 ```
 
-##### View your new Gateway
+#### View your new Gateway
 ```
 kubectl get pods
 
@@ -591,7 +602,7 @@ layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0       
 ssg-57d96567cb-n24g9                                  2/2     Running   0          73s
 ```
 
-##### Static Graphman Repositories
+#### Static Graphman Repositories
 Because we created the l7-gw-myframework repository reference with type 'static' the Layer7 Operator automatically injects an initContainer to bootstrap the repository to the Container Gateway.
 Note: the suffix here graphman-static-init-***c1b58adb6d*** is generated using all static commit ids, if a static repository changes the Gateway will be updated.
 ```
@@ -612,7 +623,7 @@ Init Containers:
       Finished:     Tue, 04 Apr 2023 04:11:18 +0100
 ...
 ```
-##### View the Graphman InitContainer logs
+#### View the Graphman InitContainer logs
 We should see that our static repository l7-gw-myframework has been picked up and moved to the bootstrap folder.
 ```
 kubectl logs ssg-57d96567cb-n24g9 graphman-static-init-c1b58adb6d
@@ -620,32 +631,14 @@ kubectl logs ssg-57d96567cb-n24g9 graphman-static-init-c1b58adb6d
 l7-gw-myframework with 40kbs written to /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0/0_l7-gw-myframework.json
 ```
 
-##### View the Operator logs
+#### View the Operator logs
 ```
-kubectl logs layer7-operator-controller-manager-7647b58697-qd9vg manager
-
-...
-1.6805472375519047e+09  INFO    Starting workers        {"controller": "gateway", "controllerGroup": "security.brcmlabs.com", "controllerKind": "Gateway", "worker count": 1}
-1.6805472375519912e+09  INFO    Starting workers        {"controller": "repository", "controllerGroup": "security.brcmlabs.com", "controllerKind": "Repository", "worker count": 1}
-1.6805480463029926e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg", "Namespace": "layer7"}
-1.680548046309193e+09   INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-system", "Namespace": "layer7"}
-1.6805480463136642e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-cwp-bundle", "Namespace": "layer7"}
-1.6805480463188894e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-listen-port-bundle", "Namespace": "layer7"}
-1.680548046426919e+09   INFO    controllers.Gateway     Creating Service        {"Name": "ssg", "Namespace": "layer7"}
-1.6805480465468638e+09  INFO    controllers.Gateway     Deployment hasn't been created yet      {"Name": "ssg", "Namespace": "layer7"}
-1.6805480466609669e+09  INFO    controllers.Gateway     Creating ConfigMap      {"Name": "ssg-repository-init-config", "Namespace": "layer7"}
-1.6805480466660128e+09  INFO    controllers.Gateway     Creating Deployment     {"Name": "ssg", "Namespace": "layer7"}
-1.6805480472615528e+09  INFO    controllers.Repository  Creating Storage Secret {"Name": "l7-gw-myframework", "Namespace": "layer7"}
-1.680548047275876e+09   INFO    controllers.Repository  Reconciled      {"Name": "l7-gw-myframework", "Namespace": "layer7", "Commit": "4b6c3ff1f174e4095ceadb31153392084fbaa61b"}
-1.6805786502375867e+09  INFO    controllers.Gateway     Applying Latest Commit  {"Repo": "l7-gw-myapis", "Directory": "/", "Commit": "3791f11c9b588b383ce87535f46d4fc1526ae83b", "Pod": "ssg-57d96567cb-n24g9", "Name": "ssg", "Namespace": "layer7"}
-1.6805786509813132e+09  INFO    controllers.Gateway     Applying Latest Commit  {"Repo": "l7-gw-mysubscriptions", "Directory": "/", "Commit": "fd6b225159fcd8fccf4bd61e31f40cdac64eccfa", "Pod": "ssg-57d96567cb-n24g9", "Name": "ssg", "Namespace": "layer7"}
-...
-
+kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
 ```
 
-##### Inspect the Status of your Custom Resources
+#### Inspect the Status of your Custom Resources
 
-###### Gateway CR
+#### Gateway CR
 The Gateway Controller tracks gateway pods and the repositories that have been applied to the deployment
 ```
 kubectl get gateway ssg -oyaml
@@ -690,7 +683,7 @@ state: Ready
 version: 10.1.00_CR3
 ```
 
-###### Repository CR
+#### Repository CR
 The Repository Controller keeps tracks the latest available commit, where it's stored (if it's less than 1mb we create a Kubernetes secret) and when it was last updated.
 ```
 kubectl get repository l7-gw-myapis -oyaml
@@ -703,7 +696,7 @@ status:
   vendor: Github
 ```
 
-##### Test your Gateway Deployment
+### Test your Gateway Deployment
 ```
 kubectl get ingress
 
@@ -723,6 +716,7 @@ Curl
 ```
 curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
 ```
+Response
 ```
 {
   "client" : "D63FA04C8447",
@@ -732,7 +726,7 @@ curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
 }
 ```
 
-##### Sign into Policy Manager
+#### Sign into Policy Manager
 Policy Manager access is less relevant in a deployment like this because we haven't specified an external MySQL database, any changes that we make will only apply to the Gateway that we're connected to and won't survive a restart. It is still useful to check what's been applied. We configured custom ports where we disabled Policy Manager access on 8443, we're also using an ingress controller meaning that port 9443 is not accessible without port forwarding.
 
 Port-Forward
@@ -766,29 +760,38 @@ password: 7layer
 ```
 ![grafana](../images/grafana.gif)
 
-#### Remove Custom Resources
-If you used the Kind example
+
+### Remove Kind Cluster
+If you used the Quickstart option and deployed Kind, all you will need to do is remove the Kind Cluster.
+
+Make sure that you're in the example folder
+```
+pwd
+```
+
+output
+```
+/path/to/layer7-operator/example
+```
+
+Remove the Kind Cluster
 ```
 make uninstall-kind
 ```
 
-If you used your own Kubernetes Cluster
+### Remove Demo Component and Custom Resources
 ```
-make uninstall
-```
-
-You can also run all of these steps manually. 
-
-```
-kubectl delete -k ./example/otel-gateway
+kubectl delete -f ./example/gateway/otel-prometheus-gateway.yaml
 kubectl delete -k ./example/repositories/
-kubectl delete -f ./example/otel/collector.yaml
-kubectl delete -f ./example/otel/observability/jaeger/jaeger.yaml
+kubectl delete -k ./example/otel-prometheus/monitoring/grafana
+kubectl delete -f ./example/otel-prometheus/servicemonitor.yaml
+kubectl delete -f ./example/otel-prometheus/collector.yaml
+kubectl delete -f ./example/otel-prometheus/instrumentation.yaml
+kubectl delete -f ./example/otel-prometheus/observability/jaeger/jaeger.yaml
 kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
+kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
 kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
 helm uninstall prometheus -n monitoring
-kubectl delete -k ./example/otel/monitoring/grafana/
 kubectl delete ns monitoring
 kubectl delete ns observability
 ```
@@ -796,17 +799,4 @@ kubectl delete ns observability
 ### Uninstall the Operator
 ```
 kubectl delete -f deploy/bundle.yaml
-
-customresourcedefinition.apiextensions.k8s.io "gateways.security.brcmlabs.com" deleted
-customresourcedefinition.apiextensions.k8s.io "repositories.security.brcmlabs.com" deleted
-serviceaccount "layer7-operator-controller-manager" deleted
-role.rbac.authorization.k8s.io "layer7-operator-leader-election-role" deleted
-role.rbac.authorization.k8s.io "layer7-operator-manager-role" deleted
-role.rbac.authorization.k8s.io "layer7-operator-proxy-role" deleted
-rolebinding.rbac.authorization.k8s.io "layer7-operator-leader-election-rolebinding" deleted
-rolebinding.rbac.authorization.k8s.io "layer7-operator-manager-rolebinding" deleted
-rolebinding.rbac.authorization.k8s.io "layer7-operator-proxy-rolebinding" deleted
-configmap "layer7-operator-manager-config" deleted
-service "layer7-operator-controller-manager-metrics-service" deleted
-deployment.apps "layer7-operator-controller-manager" deleted
 ```

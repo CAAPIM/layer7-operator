@@ -1,7 +1,7 @@
 apiVersion: opentelemetry.io/v1alpha1
 kind: OpenTelemetryCollector
 metadata:
-  name: ssg-eck
+  name: ssg
 spec:
   image: otel/opentelemetry-collector-contrib:0.77.0
   mode: sidecar

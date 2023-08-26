@@ -5,7 +5,13 @@ metadata:
 spec:
   env:
     - name: OTEL_SERVICE_NAME
-      value: "ssg"
+      value: ssg
+    - name: OTEL_METRICS_EXPORTER
+      value: otlp
+    - name: OTEL_TRACES_EXPORTER
+      value: otlp
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: service.version=10.1.00_CR3,deployment.environment=development
   exporter:
     endpoint: http://localhost:4317
   propagators:

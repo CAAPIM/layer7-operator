@@ -25,10 +25,8 @@ func CloneRepository(url string, username string, token string, branch string, t
 		RemoteName: remoteName,
 	}
 
-	if vendor == "gitlab" {
-		if !strings.Contains(url, ".git") {
-			cloneOpts.URL = url + ".git"
-		}
+	if !strings.Contains(url, ".git") {
+		cloneOpts.URL = url + ".git"
 	}
 
 	if tag != "" {
@@ -58,7 +56,7 @@ func CloneRepository(url string, username string, token string, branch string, t
 			_ = os.RemoveAll("/tmp/" + name + "-" + ext)
 			return "", errors.New("ref is nil")
 		}
-		commit, err := r.CommitObject(ref.Hash()) // causing an error
+		commit, err := r.CommitObject(ref.Hash())
 		if err != nil {
 			return "", err
 		}

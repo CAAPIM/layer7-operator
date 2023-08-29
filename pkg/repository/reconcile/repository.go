@@ -56,8 +56,9 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	if err != nil {
-		params.Log.Error(err, "repository err", "name", repository.Name, "namespace", repository.Namespace)
-		return err
+		params.Log.V(2).Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+		//return err
+		return nil
 	}
 
 	storageSecretName := repository.Name + "-repository-" + ext
@@ -71,6 +72,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	repoStatus.Commit = commit
 	repoStatus.Name = repository.Name
 	repoStatus.Vendor = repository.Spec.Auth.Vendor
+	repoStatus.Ready = true
 
 	repoStatus.StorageSecretName = storageSecretName
 

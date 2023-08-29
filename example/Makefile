@@ -63,10 +63,14 @@ otel-elastic-example-kind: install cert-manager open-telemetry elastic nginx-kin
 	kubectl apply -f ./gateway/otel-elastic-gateway.yaml
 	@echo "Creating Layer7 Dashboard"
 	elasticPass=$(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')
-	@curl -XPOST -s --write-out "%{http_code}" --output /dev/null https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false -H "kbn-xsrf: true" -k -uelastic:${elasticPass} -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
+	@curl -XPOST -s --write-out "%{http_code}" --output /dev/null https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false -H "kbn-xsrf: true" -k -uelastic:$(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}') -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
 	@echo "\n#####################################################\nComplete\n#####################################################"
-	@echo "1. Open kibana.brcmlabs.com in a browser\n2. Complete the Post Installation tasks\n3. Test your Gateway\n4. View Logs, Metrics and Traces\n\nusername: elastic\npassword: ${elasticPass}"
+	@echo "1. Open kibana.brcmlabs.com in a browser\n2. Complete the Post Installation tasks\n3. Test your Gateway\n4. View Logs, Metrics and Traces\n\nusername: elastic\npassword: $(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')"
 	@echo "#####################################################\n"
+
+randomtest:
+	elasticPass=$(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')
+	@echo "${elasticPass}"
 
 otel-elastic-example: install cert-manager open-telemetry elastic
 	@$(MAKE) --silent t=$(shell kubectl get secret/apm-server-quickstart-apm-token -o go-template='{{index .data "secret-token" | base64decode}}') create-collector
@@ -76,9 +80,9 @@ otel-elastic-example: install cert-manager open-telemetry elastic
 	kubectl apply -f ./gateway/otel-elastic-gateway.yaml
 	@echo "Creating Layer7 Dashboard"
 	elasticPass=$(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')
-	@curl -XPOST -s --write-out "%{http_code}" --output /dev/null https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false -H "kbn-xsrf: true" -k -uelastic:${elasticPass} -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
+	@curl -XPOST -s --write-out "%{http_code}" --output /dev/null https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false -H "kbn-xsrf: true" -k -uelastic:$(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}') -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
 	@echo "\n#####################################################\nComplete\n#####################################################"
-	@echo "1. Open kibana.brcmlabs.com in a browser\n2. Complete the Post Installation tasks\n3. Test your Gateway\n4. View Logs, Metrics and Traces\n\nusername: elastic\npassword: ${elasticPass}"
+	@echo "1. Open kibana.brcmlabs.com in a browser\n2. Complete the Post Installation tasks\n3. Test your Gateway\n4. View Logs, Metrics and Traces\n\nusername: elastic\npassword: $(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')"
 	@echo "#####################################################\n"
 
 cert-manager:

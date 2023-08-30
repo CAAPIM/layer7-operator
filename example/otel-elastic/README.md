@@ -12,6 +12,9 @@ By the end of this example you should have a better understanding of the how to 
   - Kibana
 - Nginx (Ingress Controller)
 
+### Elastic Stack Note
+This example creates a single [Elastic Search](./components/es.yaml) node with a 20GB volume. This is not production ready implementation, please refer to the [Official Elastic Documentation](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html) for sizing guidelines and additional configuration options.
+
 ### OpenTelemetry and Elastic APM
 In this example we use an OTel collector to send telemetry data to Elastic APM.
 ![otel-eck-example-overview](../images/otel-elastic-apm.png)

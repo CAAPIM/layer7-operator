@@ -11,13 +11,17 @@ import (
 	"errors"
 	"strings"
 
+	graphman "github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/gazza7205/go-pkcs12"
-	graphman "gitlab.sutraone.com/gazza/go-graphman"
 )
 
+// implement back off loop
+
 type GraphmanSecret struct {
-	Name   string `json:"name,omitempty"`
-	Secret string `json:"secret,omitempty"`
+	Name                 string `json:"name,omitempty"`
+	Secret               string `json:"secret,omitempty"`
+	Description          string `json:"description,omitempty"`
+	VariableReferencable bool   `json:"variableReferencable,omitempty"`
 }
 
 type GraphmanKey struct {
@@ -27,8 +31,46 @@ type GraphmanKey struct {
 	Port string `json:"port,omitempty"`
 }
 
-func ApplyToGraphmanTarget(path string, username string, password string, target string, encpass string) error {
-	_, err := graphman.Apply(path, username, password, "https://"+target, encpass)
+func ApplyToGraphmanTarget(path string, singleton bool, username string, password string, target string, encpass string) error {
+
+	bundle := graphman.Bundle{}
+
+	bundleBytes, err := graphman.Implode(path)
+	if err != nil {
+		return err
+	}
+
+	if !singleton {
+		scheduledTasks := []*graphman.ScheduledTaskInput{}
+		jmsListeners := []*graphman.JmsDestinationInput{}
+
+		err := json.Unmarshal(bundleBytes, &bundle)
+		if err != nil {
+			return err
+		}
+
+		for _, st := range bundle.ScheduledTasks {
+			if !st.ExecuteOnSingleNode {
+				scheduledTasks = append(scheduledTasks, st)
+			}
+		}
+
+		bundle.ScheduledTasks = scheduledTasks
+
+		for _, jmsl := range bundle.JmsDestinations {
+			if jmsl.Direction != "OUTBOUND" {
+				jmsListeners = append(jmsListeners, jmsl)
+			}
+		}
+		bundle.JmsDestinations = jmsListeners
+
+		bundleBytes, err = json.Marshal(bundle)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
 	if err != nil {
 		return err
 	}
@@ -145,12 +187,31 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) {
 	bundle := graphman.Bundle{}
 	for _, secret := range secrets {
+		description := "layer7 operator managed secret"
+		if secret.Description != "" {
+			description = secret.Description
+		}
+
+		variableReferencable := true
+		if &secret.VariableReferencable != nil {
+			variableReferencable = secret.VariableReferencable
+		}
+
+		// basic check to determine if secret is a private key
+		// this doesn't cover keys that are encrypted at rest
+		// additional checks will be added if there is demand.
+		secretType := graphman.SecretTypePassword
+
+		if strings.Contains(secret.Secret, "-----BEGIN") {
+			secretType = graphman.SecretTypePemPrivateKey
+		}
+
 		bundle.Secrets = append(bundle.Secrets, &graphman.SecretInput{
 			Name:                 secret.Name,
-			SecretType:           graphman.SecretTypePassword,
+			SecretType:           secretType,
 			Secret:               secret.Secret,
-			VariableReferencable: true,
-			Description:          "layer7 operator managed secret",
+			VariableReferencable: variableReferencable,
+			Description:          description,
 		})
 	}
 
@@ -195,3 +256,24 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 
 	return buf.Bytes(), nil
 }
+
+// Reserved for future use.
+// // Brotli can compress an 11mb restman bundle down to 550-600kb
+// func CompressGraphmanBundle(path string) ([]byte, error) {
+// 	bundle, err := graphman.Implode(path)
+
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	bytes, err := cbrotli.Encode(bundle, cbrotli.WriterOptions{Quality: 6})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	if len(bytes) > 900000 {
+// 		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size.")
+// 	}
+
+// 	return bytes, nil
+// }

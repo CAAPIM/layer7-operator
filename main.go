@@ -23,11 +23,12 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/controllers/gateway"
-	"github.com/caapim/layer7-operator/pkg/controllers/repository"
+	"github.com/caapim/layer7-operator/controllers/gateway"
+	"github.com/caapim/layer7-operator/controllers/repository"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -59,11 +60,11 @@ func main() {
 	var probeAddr string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+	flag.BoolVar(&enableLeaderElection, "leader-elect", true,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
-		Development: true,
+		Development: false,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -77,13 +78,14 @@ func main() {
 	}
 
 	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "d464e6a2.brcmlabs.com",
-		Namespace:              namespace,
+		Scheme:                  scheme,
+		MetricsBindAddress:      metricsAddr,
+		Port:                    9443,
+		HealthProbeBindAddress:  probeAddr,
+		LeaderElection:          enableLeaderElection,
+		LeaderElectionID:        "d464e6a2.brcmlabs.com",
+		LeaderElectionNamespace: namespace,
+		Namespace:               namespace,
 	}
 
 	if strings.Contains(namespace, ",") {

@@ -11,11 +11,13 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	var image string = gw.Spec.App.Image
-
+	defaultMode := int32(420)
+	optional := false
 	ports := []corev1.ContainerPort{}
 
 	for p := range gw.Spec.App.Service.Ports {
@@ -40,8 +42,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	if gw.Spec.App.Management.SecretName != "" {
 		secretName = gw.Spec.App.Management.SecretName
 	}
-	defaultMode := int32(420)
-	optional := false
+
 	terminationGracePeriodSeconds := int64(30)
 	volumes := []corev1.Volume{{
 		Name: "gateway-license",
@@ -111,9 +112,6 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/" + gw.Name + "-listen-port-bundle",
 		})
 
-		defaultMode := int32(420)
-		optional := false
-
 		vs := corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-listen-port-bundle"},
 			DefaultMode:          &defaultMode,
@@ -170,6 +168,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 						Path: "003-parse-custom-files.sh",
 						Key:  "003-parse-custom-files.sh"},
 					},
+					DefaultMode: &defaultMode,
 				},
 			},
 		})
@@ -196,7 +195,10 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	}
 	i := 1
 	for v := range gw.Spec.App.Bundle {
+		defaultMode := int32(420)
+		optional := false
 		switch gw.Spec.App.Bundle[v].Source {
+
 		case "configMap":
 			baseFolder := gw.Spec.App.Bundle[v].Name
 			if gw.Spec.App.Bundle[v].Type == "graphman" {
@@ -208,8 +210,9 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/" + baseFolder,
 			})
 
-			defaultMode := int32(420)
-			optional := false
+			if gw.Spec.App.Bundle[v].ConfigMap.DefaultMode != nil {
+				defaultMode = *gw.Spec.App.Bundle[v].ConfigMap.DefaultMode
+			}
 
 			vs := corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.Bundle[v].Name},
@@ -220,7 +223,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			if gw.Spec.App.Bundle[v].ConfigMap != (securityv1.ConfigMap{}) {
 				vs = corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.Bundle[v].Name},
-					DefaultMode:          gw.Spec.App.Bundle[v].ConfigMap.DefaultMode,
+					DefaultMode:          &defaultMode,
 					Optional:             &gw.Spec.App.Bundle[v].ConfigMap.Optional,
 				}}
 			}
@@ -244,7 +247,8 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				volumes = append(volumes, corev1.Volume{
 					Name: gw.Spec.App.Bundle[v].Name,
 					VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
-						SecretName: gw.Spec.App.Bundle[v].Name,
+						SecretName:  gw.Spec.App.Bundle[v].Name,
+						DefaultMode: &defaultMode,
 					}},
 				})
 			} else {
@@ -294,6 +298,12 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			strategy.RollingUpdate = &gw.Spec.App.UpdateStrategy.RollingUpdate
 		case "recreate":
 			strategy.Type = appsv1.RecreateDeploymentStrategyType
+		}
+	} else {
+		strategy.Type = appsv1.RollingUpdateDeploymentStrategyType
+		strategy.RollingUpdate = &appsv1.RollingUpdateDeployment{
+			MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
+			MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
 		}
 	}
 
@@ -399,9 +409,15 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		Limits:   gw.Spec.App.Resources.Limits,
 	}
 
+	imagePullPolicy := corev1.PullIfNotPresent
+
+	if gw.Spec.App.ImagePullPolicy != "" {
+		imagePullPolicy = gw.Spec.App.ImagePullPolicy
+	}
+
 	gateway := corev1.Container{
 		Image:                    image,
-		ImagePullPolicy:          corev1.PullPolicy(gw.Spec.App.ImagePullPolicy),
+		ImagePullPolicy:          imagePullPolicy,
 		TerminationMessagePath:   "/dev/termination-log",
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		SecurityContext:          &gw.Spec.App.ContainerSecurityContext,
@@ -451,6 +467,8 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	containers = append(containers, gw.Spec.App.Sidecars...)
 
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
+	revisionHistoryLimit := int32(10)
+	progressDeadlineSeconds := int32(600)
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gw.Name,
@@ -465,8 +483,10 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			Selector: &metav1.LabelSelector{
 				MatchLabels: ls,
 			},
-			Replicas: &gw.Spec.App.Replicas,
-			Strategy: strategy,
+			Replicas:                &gw.Spec.App.Replicas,
+			Strategy:                strategy,
+			RevisionHistoryLimit:    &revisionHistoryLimit,
+			ProgressDeadlineSeconds: &progressDeadlineSeconds,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: gw.Spec.App.Annotations,
@@ -481,12 +501,17 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 					RestartPolicy:                 corev1.RestartPolicyAlways,
 					Affinity:                      &gw.Spec.App.Affinity,
 					NodeSelector:                  gw.Spec.App.NodeSelector,
-					InitContainers:                initContainers,
-					Containers:                    containers,
-					Volumes:                       volumes,
+					SchedulerName:                 "default-scheduler",
+					//InitContainers:                initContainers,
+					Containers: containers,
+					Volumes:    volumes,
 				},
 			},
 		},
+	}
+
+	if len(initContainers) > 0 {
+		dep.Spec.Template.Spec.InitContainers = initContainers
 	}
 
 	dep.Spec.Template.Spec.ImagePullSecrets = append(dep.Spec.Template.Spec.ImagePullSecrets, gw.Spec.App.ImagePullSecrets...)

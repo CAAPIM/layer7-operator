@@ -34,8 +34,15 @@ type RepositorySpec struct {
 	// This is not currently implemented
 	LocalReference       LocalReference       `json:"localReference,omitempty"`
 	RepositorySyncConfig RepositorySyncConfig `json:"sync,omitempty"`
-	// Branch - specify which branch to check out
+	// Remote Name - defaults to "origin"
+	RemoteName string `json:"remoteName,omitempty"`
+	// Branch - specify which branch to clone
+	// if branch and tag are both specified branch will take precedence and tag will be ignored
+	// if branch and tag are both missing the entire repository will be cloned
 	Branch string `json:"branch,omitempty"`
+	// Tag - clone a specific tag.
+	// tags do not change, once cloned this will not be checked for updates
+	Tag string `json:"tag,omitempty"`
 	// Auth contains a reference to the credentials required to connect to your Git repository
 	Auth RepositoryAuth `json:"auth,omitempty"`
 }
@@ -70,20 +77,24 @@ type LocalReference struct {
 // RepositorySyncConfig
 type RepositorySyncConfig struct {
 	// Configure how frequently the remote is checked for new commits
-	IntervalSeconds int64 `json:"interval,omitempty"`
+	IntervalSeconds int `json:"interval,omitempty"`
 }
 
 // RepositoryAuth
 type RepositoryAuth struct {
 	// Vendor i.e. Github, Gitlab, BitBucket
 	Vendor string `json:"vendor,omitempty"`
+	// Auth Type defaults to basic, possible options are
+	// basic or ssh
+	Type string `json:"type,omitempty"`
 	// Username repository username
 	Username string `json:"username,omitempty"`
 	// Password repository Password
 	// password or token are acceptable
 	Password string `json:"password,omitempty"`
 	// Token repository Access Token
-	Token string `json:"token,omitempty"`
+	Token  string `json:"token,omitempty"`
+	SshKey string `json:"sshkey,omitempty"`
 	// ExistingSecretName reference an existing secret
 	ExistingSecretName string `json:"existingSecretName,omitempty"`
 }
@@ -91,6 +102,7 @@ type RepositoryAuth struct {
 // RepositoryStatus defines the observed state of Repository
 type RepositoryStatus struct {
 	Name              string `json:"name,omitempty"`
+	Ready             bool   `json:"ready,omitempty"`
 	Commit            string `json:"commit,omitempty"`
 	Updated           string `json:"updated,omitempty"`
 	Summary           string `json:"summary,omitempty"`

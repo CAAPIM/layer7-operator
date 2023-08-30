@@ -1,0 +1,188 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  version: "11.0.00_COMBINED"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    annotations:
+      sidecar.opentelemetry.io/inject: "ssg"
+      instrumentation.opentelemetry.io/inject-java: "true"
+      instrumentation.opentelemetry.io/container-names: "gateway"
+    replicas: 1
+    image: docker.io/layer7api/gateway:11.0.00_COMBINED
+    imagePullPolicy: IfNotPresent
+    #serviceAccountName: ssg-serviceaccount
+    updateStrategy:
+      type: rollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 2
+    resources:
+      requests: {}
+      limits: {}
+    autoscaling:
+      enabled: false
+    bundle:
+      - type: graphman
+        source: secret
+        name: global-bundle
+    repositoryReferences:
+      - name: l7-gw-myframework
+        enabled: true
+        type: static
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: FRAMEWORK_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-myapis
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: APIS_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-mysubscriptions
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+    bootstrap:
+      script:
+        enabled: false
+    initContainers: []
+    hazelcast:
+      external: false
+      endpoint: hazelcast.example.com:5701
+    management:
+      secretName: gateway-secret
+      #username: admin
+      #password: 7layer
+      # Management port requires a separate service...
+      service:
+        enabled: false
+        #annotations:
+          # cloud.google.com/load-balancer-type: "Internal"
+        type: ClusterIP
+        ports:
+        - name: management
+          port: 9443
+          targetPort: 9443
+          protocol: TCP   
+      restman:
+        enabled: false
+      ## Reserved for future use
+      graphman:
+        enabled: true
+        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.0
+      cluster:
+        #password: 7layer
+        hostname: gateway.brcmlabs.com
+      database:
+        enabled: false # this runs the gateway in dbbacked/ephemeral mode
+      #  jdbcUrl: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
+      #  username: "gateway"
+      #  password: "ACm8BDr3Rfk2Flx9V"
+    java:
+      jvmHeap:
+        calculate: true
+        percentage: 50
+        default: 2g
+      extraArgs:
+      - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
+      - -Dcom.l7tech.server.audit.message.saveToInternal=false
+      - -Dcom.l7tech.server.audit.admin.saveToInternal=false
+      - -Dcom.l7tech.server.audit.system.saveToInternal=false
+      - -Dcom.l7tech.server.audit.log.format=json
+      - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
+      - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true 
+      - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
+    listenPorts:
+      harden: true
+      custom:
+        enabled: false
+      ports: []
+    cwp:
+      enabled: true
+      properties:
+        - name: io.httpsHostAllowWildcard
+          value: "true"
+        - name: log.levels
+          value: |
+            com.l7tech.level = CONFIG
+            com.l7tech.server.policy.variable.ServerVariables.level = SEVERE
+            com.l7tech.external.assertions.odata.server.producer.jdbc.GenerateSqlQuery.level = SEVERE
+            com.l7tech.server.policy.assertion.ServerSetVariableAssertion.level = SEVERE
+            com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion = SEVERE
+        - name: audit.setDetailLevel.FINE
+          value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
+        - name: otel.serviceMetricEnabled
+          value: "true"
+        - name: otel.traceEnabled
+          value: "true"
+        - name: otel.metricPrefix
+          value: l7_
+        - name: otel.resourceAttributes
+          value: k8s.container.name,k8s.pod.name
+        - name: otel.traceConfig
+          value: |
+            {
+             "services": [
+               {"url": ".*api.*"},
+               {"url": ".*test.*"}
+             ]
+            }
+    system:
+      properties: |-
+        # Default Gateway system properties
+        # Configuration properties for shared state extensions.
+        com.l7tech.server.extension.sharedKeyValueStoreProvider=embeddedhazelcast
+        com.l7tech.server.extension.sharedCounterProvider=ssgdb
+        com.l7tech.server.extension.sharedClusterInfoProvider=ssgdb
+        # By default, FIPS module will block an RSA modulus from being used for encryption if it has been used for
+        # signing, or visa-versa. Set true to disable this default behaviour and remain backwards compatible.
+        com.safelogic.cryptocomply.rsa.allow_multi_use=true
+        # Specifies the type of Trust Store (JKS/PKCS12) provided by AdoptOpenJDK that is used by Gateway.
+        # Must be set correctly when Gateway is running in FIPS mode. If not specified it will default to PKCS12.
+        javax.net.ssl.trustStoreType=jks
+        com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
+        # Additional properties go here
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+      - name: https
+        port: 8443
+        targetPort: 8443
+        protocol: TCP
+      - name: management
+        port: 9443
+        targetPort: 9443
+        protocol: TCP
+      - name: monitoring
+        port: 8889
+        protocol: TCP
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      tls:
+      - hosts: 
+        - gateway.brcmlabs.com
+        secretName: default
+      rules:
+      - host: gateway.brcmlabs.com
+    # containerSecurityContext:
+    #   runAsNonRoot: true
+    #   runAsUser: 1000669998
+    #   capabilities:
+    #     drop:
+    #     - ALL
+    #   allowPrivilegeEscalation: false
+    # podSecurityContext:
+    #   runAsUser: 1000669998
+    #   runAsGroup: 1000669998

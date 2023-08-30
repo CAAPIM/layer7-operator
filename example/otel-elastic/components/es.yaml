@@ -1,0 +1,60 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: quickstart
+spec:
+  auth: {}
+  http:
+    service:
+      metadata: {}
+      spec:
+        type: ClusterIP
+    tls:
+      certificate: {}
+  monitoring:
+    logs: {}
+    metrics: {}
+  nodeSets:
+  - count: 1
+    name: default
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+       # storageClassName: _
+    podTemplate:
+      metadata:
+        creationTimestamp: null
+      spec:
+        containers: null
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - sysctl -w vm.max_map_count=262144
+          name: sysctl
+        # - name: install-plugins
+        #   command:
+        #   - sh
+        #   - -c
+        #   - |
+        #     bin/elasticsearch-plugin install --batch elastic-apm
+          resources: {}
+          securityContext:
+            privileged: true
+            runAsUser: 0
+  transport:
+    service:
+      metadata: {}
+      spec:
+        type: ClusterIP
+    tls:
+      certificate: {}
+  updateStrategy:
+    changeBudget: {}
+  version: 8.8.2

@@ -53,6 +53,14 @@ IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
 
+START_KIND_CLUSTER ?= true
+
+KUBE_VERSION ?= 1.25
+KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
+
+GATEWAY_LICENSE_PATH ?= /root/license.xml
+GATEWAY_IMG ?= docker.io/caapim/gateway:10.1.00_CR3
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -106,6 +114,68 @@ vet: ## Run go vet against code.
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+
+# end-to-tests
+.PHONY: e2e
+e2e:
+	$(KUTTL) test
+
+.PHONY: prepare-e2e
+prepare-e2e: kuttl docker-build start-kind load-image-all
+	cp ${GATEWAY_LICENSE_PATH} ./testdata/
+
+.PHONY: load-image-all
+load-image-all: load-image-operator load-image-gateway
+
+.PHONY: load-image-operator
+load-image-operator:
+  kind load docker-image $(IMG)
+
+.PHONY: load-image-gateway
+load-image-gateway:
+  docker pull ${GATEWAY_IMG}
+  kind load docker-image $(GATEWAY_IMG)
+
+
+.PHONY: start-kind
+start-kind:
+ifeq (true,$(START_KIND_CLUSTER))
+	kind create cluster --config $(KIND_CONFIG)
+endif
+
+.PHONY: kuttl
+kuttl:
+ifeq (, $(shell which kubectl-kuttl))
+	echo ${PATH}
+	ls -l /usr/local/bin
+	which kubectl-kuttl
+
+	@{ \
+	set -e ;\
+	echo "" ;\
+	echo "ERROR: kuttl not found." ;\
+	echo "Please check https://kuttl.dev/docs/cli.html for installation instructions and try again." ;\
+	echo "" ;\
+	exit 1 ;\
+	}
+else
+KUTTL=$(shell which kubectl-kuttl)
+endif
+
+.PHONY: kind
+kind:
+ifeq (, $(shell which kind))
+	@{ \
+	set -e ;\
+	echo "" ;\
+	echo "ERROR: kind not found." ;\
+	echo "Please check https://kind.sigs.k8s.io/docs/user/quick-start/#installation for installation instructions and try again." ;\
+	echo "" ;\
+	exit 1 ;\
+	}
+else
+KIND=$(shell which kind)
+endif
 
 ##@ Build
 

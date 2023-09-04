@@ -7,6 +7,7 @@ import (
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
+	"github.com/go-git/go-git/v5"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,9 +50,15 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	commit, err := util.CloneRepository(repository.Spec.Endpoint, username, token, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor)
 
+	if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
+		params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+		return nil
+	}
+
 	if err != nil {
-		params.Log.Error(err, "repository err", "name", repository.Name, "namespace", repository.Namespace)
-		return err
+		params.Log.V(2).Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+		//return err
+		return nil
 	}
 
 	storageSecretName := repository.Name + "-repository-" + ext
@@ -65,6 +72,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	repoStatus.Commit = commit
 	repoStatus.Name = repository.Name
 	repoStatus.Vendor = repository.Spec.Auth.Vendor
+	repoStatus.Ready = true
 
 	repoStatus.StorageSecretName = storageSecretName
 

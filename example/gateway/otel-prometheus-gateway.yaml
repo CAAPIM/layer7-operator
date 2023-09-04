@@ -3,13 +3,17 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "10.1.00_CR3"
+  version: "11.0.00_COMBINED"
   license:
     accept: true
     secretName: gateway-license
   app:
+    annotations:
+      sidecar.opentelemetry.io/inject: "ssg"
+      instrumentation.opentelemetry.io/inject-java: "true"
+      instrumentation.opentelemetry.io/container-names: "gateway"
     replicas: 1
-    image: docker.io/caapim/gateway:10.1.00_CR3
+    image: docker.io/layer7api/gateway:11.0.00_COMBINED
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
     updateStrategy:
@@ -22,7 +26,10 @@ spec:
       limits: {}
     autoscaling:
       enabled: false
-    bundle: []
+    bundle:
+      - type: graphman
+        source: secret
+        name: global-bundle
     repositoryReferences:
       - name: l7-gw-myframework
         enabled: true
@@ -69,7 +76,7 @@ spec:
       ## Reserved for future use
       graphman:
         enabled: true
-        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
+        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.0
       cluster:
         #password: 7layer
         hostname: gateway.brcmlabs.com
@@ -111,6 +118,22 @@ spec:
             com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
+        - name: otel.serviceMetricEnabled
+          value: "true"
+        - name: otel.traceEnabled
+          value: "true"
+        - name: otel.metricPrefix
+          value: l7_
+        - name: otel.resourceAttributes
+          value: k8s.container.name,k8s.pod.name
+        - name: otel.traceConfig
+          value: |
+            {
+             "services": [
+               {"url": ".*api.*"},
+               {"url": ".*test.*"}
+             ]
+            }
     system:
       properties: |-
         # Default Gateway system properties
@@ -138,8 +161,21 @@ spec:
         port: 9443
         targetPort: 9443
         protocol: TCP
+      - name: monitoring
+        port: 8889
+        protocol: TCP
     ingress:
-      enabled: false
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      tls:
+      - hosts: 
+        - gateway.brcmlabs.com
+        secretName: default
+      rules:
+      - host: gateway.brcmlabs.com
     # containerSecurityContext:
     #   runAsNonRoot: true
     #   runAsUser: 1000669998

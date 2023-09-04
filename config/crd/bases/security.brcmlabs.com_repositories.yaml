@@ -115,6 +115,8 @@ spec:
                 type: string
               name:
                 type: string
+              ready:
+                type: boolean
               storageSecretName:
                 type: string
               summary:

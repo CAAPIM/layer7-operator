@@ -1,7 +1,7 @@
 # Layer7 Gateway Operator
 The Layer7 Gateway Operator, built using the [Operator SDK](https://github.com/operator-framework/operator-sdk) covers all aspects of deploying, maintaining and upgrading API Gateways in Kubernetes.
 
-##### Note: The Operator currently uses ***Gateway 10.1.00_CR3***. Gateway 10.1.00_CR3 has additional Graphman capabilities that we make use of to drive all of the examples. Additional versions of Gateway will work without that functionality. 
+##### Note: The Operator examples currently use ***Gateway 11.0.00_CR1*** as a base. The OTel examples use a custom 11.0.00_CR1 image.
 
 ## About
 The Operator is currently in an Alpha state and therefore does not currently carry a support/maintenance statement. Please check out the [Gateway Helm Chart](https://github.com/CAAPIM/apim-charts/tree/stable/charts/gateway) for supported container Gateway Deployment options
@@ -44,8 +44,10 @@ app:
   externalSecrets:
     - name: database-credentials-gcp
       enabled: true
+      description: GCP Database credentials
     - name: local-secret
       enabled: true
+      description: local secret
 ```
 
 ### Under consideration

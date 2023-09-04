@@ -27,7 +27,7 @@ func syncRepository(ctx context.Context, params Params) {
 		}
 	}
 	if cntr == 0 {
-		_ = removeJob("sync-repository-references")
+		_ = removeJob(params.Instance.Name + "-sync-repository-references")
 	}
 
 	err = params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
@@ -51,6 +51,11 @@ func reconcileDynamicRepository(ctx context.Context, params Params, gateway *sec
 	err := params.Client.Get(ctx, types.NamespacedName{Name: repoRef.Name, Namespace: gateway.Namespace}, repository)
 	if err != nil && k8serrors.IsNotFound(err) {
 		return err
+	}
+
+	if !repository.Status.Ready {
+		params.Log.Info("repository not ready", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+		return nil
 	}
 
 	commit := repository.Status.Commit

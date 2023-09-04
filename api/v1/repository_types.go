@@ -102,6 +102,7 @@ type RepositoryAuth struct {
 // RepositoryStatus defines the observed state of Repository
 type RepositoryStatus struct {
 	Name              string `json:"name,omitempty"`
+	Ready             bool   `json:"ready,omitempty"`
 	Commit            string `json:"commit,omitempty"`
 	Updated           string `json:"updated,omitempty"`
 	Summary           string `json:"summary,omitempty"`

@@ -119,6 +119,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 .PHONY: e2e
 e2e:
 	$(KUTTL) test
+	kubectl delete namespace l7operator
 
 .PHONY: prepare-e2e
 prepare-e2e: kuttl docker-build start-kind load-image-all

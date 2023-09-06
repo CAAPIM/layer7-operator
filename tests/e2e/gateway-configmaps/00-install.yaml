@@ -1,0 +1,51 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  version: "10.1.00_CR3"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:10.1.00_CR3
+    imagePullPolicy: IfNotPresent
+    #serviceAccountName: ssg-serviceaccount
+    updateStrategy:
+      type: rollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 2
+    resources:
+      requests: {}
+      limits: {}
+    autoscaling:
+      enabled: false
+    listenPorts:
+      harden: true
+      custom:
+        enabled: false
+      ports: [ ]
+    cwp:
+      enabled: true
+      properties:
+        - name: io.httpsHostAllowWildcard
+          value: "true"
+    system:
+      properties: |-
+        # Default Gateway system properties
+        # Configuration properties for shared state extensions.
+        com.l7tech.server.extension.sharedKeyValueStoreProvider=embeddedhazelcast
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+          protocol: TCP
+        - name: management
+          port: 9443
+          targetPort: 9443
+          protocol: TCP

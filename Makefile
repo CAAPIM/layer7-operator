@@ -58,7 +58,7 @@ START_KIND_CLUSTER ?= true
 KUBE_VERSION ?= 1.25
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
-GATEWAY_LICENSE_PATH ?= /root/license.xml
+GATEWAY_LICENSE_PATH ?= /path/to/license.xml
 GATEWAY_IMG ?= docker.io/caapim/gateway:10.1.00_CR3
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)

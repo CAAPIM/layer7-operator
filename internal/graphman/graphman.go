@@ -117,6 +117,19 @@ func Apply(path string, username string, password string, target string, encpass
 	return respBytes, nil
 }
 
+func RemoveL7PortalApi(username string, password string, target string, apiName string, policyFragmentName string) ([]byte, error) {
+	resp, err := deleteL7PortalApi(context.Background(), gqlClient(username, password, target, ""), []string{apiName}, []string{policyFragmentName})
+	if err != nil {
+		return nil, err
+	}
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBytes, nil
+}
+
 func ApplyDynamicBundle(username string, password string, target string, encpass string, bundleBytes []byte) ([]byte, error) {
 	bundle := Bundle{}
 	err := json.Unmarshal(bundleBytes, &bundle)

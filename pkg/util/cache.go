@@ -7,8 +7,9 @@ import (
 )
 
 type SyncRequest struct {
-	RequestName string
-	Attempts    int
+	RequestName string `json:"RequestName"`
+	CacheData   string `json:"CacheData,omitempty"`
+	Attempts    int    `json:"Attempts,omitempty"`
 }
 
 type CachedSyncRequest struct {

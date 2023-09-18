@@ -3,7 +3,7 @@ package util
 import (
 	"crypto/tls"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -39,7 +39,7 @@ func RestCall(method string, URL string, insecureSkipVerify bool, headers map[st
 
 	defer resp.Body.Close()
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte{}, err
 	}

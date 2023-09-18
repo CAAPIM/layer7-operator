@@ -30,3 +30,4 @@ deploy.sh
 .dockerconfigjson
 dev
 license.xml
+.DS_Store

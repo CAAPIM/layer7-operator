@@ -64,7 +64,6 @@ func reconcileExternalSecrets(ctx context.Context, params Params, gateway *secur
 
 	for _, es := range gateway.Spec.App.ExternalSecrets {
 		opaqueSecretMap := []util.GraphmanSecret{}
-		bundleBytes := []byte{}
 		if es.Enabled {
 
 			secret, err := getGatewaySecret(ctx, params, es.Name)
@@ -82,7 +81,6 @@ func reconcileExternalSecrets(ctx context.Context, params Params, gateway *secur
 						VariableReferencable: es.VariableReferencable,
 					})
 				}
-				break
 			case corev1.SecretTypeBasicAuth:
 			case corev1.SecretTypeServiceAccountToken:
 				for k, v := range secret.Data {
@@ -93,7 +91,6 @@ func reconcileExternalSecrets(ctx context.Context, params Params, gateway *secur
 						VariableReferencable: es.VariableReferencable,
 					})
 				}
-				break
 			case corev1.SecretTypeDockerConfigJson:
 			case corev1.SecretTypeDockercfg:
 				for k, v := range secret.Data {
@@ -104,10 +101,8 @@ func reconcileExternalSecrets(ctx context.Context, params Params, gateway *secur
 						VariableReferencable: es.VariableReferencable,
 					})
 				}
-				break
 			default:
 				params.Log.V(2).Info("not a supported secret type", "secret name", es.Name, "secret type", secret.Type, "name", gateway.Name, "namespace", gateway.Namespace)
-				break
 			}
 		}
 
@@ -115,7 +110,7 @@ func reconcileExternalSecrets(ctx context.Context, params Params, gateway *secur
 			continue
 		}
 
-		bundleBytes, err = util.ConvertOpaqueMapToGraphmanBundle(opaqueSecretMap)
+		bundleBytes, err := util.ConvertOpaqueMapToGraphmanBundle(opaqueSecretMap)
 		if err != nil {
 			return err
 		}

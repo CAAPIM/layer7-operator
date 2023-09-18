@@ -30,11 +30,6 @@ func syncRepository(ctx context.Context, params Params) {
 		_ = removeJob(params.Instance.Name + "-sync-repository-references")
 	}
 
-	err = params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
-	if err != nil && k8serrors.IsNotFound(err) {
-		params.Log.Error(err, "gateway not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-	}
-
 	for _, repoRef := range gateway.Spec.App.RepositoryReferences {
 		if repoRef.Enabled && repoRef.Type == "dynamic" {
 			err := reconcileDynamicRepository(ctx, params, gateway, repoRef)

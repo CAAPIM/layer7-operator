@@ -69,19 +69,22 @@ type GatewayState struct {
 // GatewayStatus defines the observed state of Gateway
 type GatewayStatus struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=status
-	Host               string                       `json:"host,omitempty"`
-	Conditions         []appsv1.DeploymentCondition `json:"conditions,omitempty"`
-	Phase              corev1.PodPhase              `json:"phase,omitempty"`
-	Gateway            []GatewayState               `json:"gateway,omitempty"`
-	ObservedGeneration int64                        `json:"observedGeneration,omitempty"`
-	Ready              int32                        `json:"ready,omitempty"`
-	State              corev1.PodConditionType      `json:"state,omitempty"`
-	Replicas           int32                        `json:"replicas,omitempty"`
-	Version            string                       `json:"version,omitempty"`
-	Image              string                       `json:"image,omitempty"`
-	LabelSelectorPath  string                       `json:"labelSelectorPath,omitempty"`
-	ManagementPod      string                       `json:"managementPod,omitempty"`
-	RepositoryStatus   []GatewayRepositoryStatus    `json:"repositoryStatus,omitempty"`
+	Host                string                       `json:"host,omitempty"`
+	Conditions          []appsv1.DeploymentCondition `json:"conditions,omitempty"`
+	Phase               corev1.PodPhase              `json:"phase,omitempty"`
+	Gateway             []GatewayState               `json:"gateway,omitempty"`
+	ObservedGeneration  int64                        `json:"observedGeneration,omitempty"`
+	Ready               int32                        `json:"ready,omitempty"`
+	State               corev1.PodConditionType      `json:"state,omitempty"`
+	Replicas            int32                        `json:"replicas,omitempty"`
+	Version             string                       `json:"version,omitempty"`
+	Image               string                       `json:"image,omitempty"`
+	LabelSelectorPath   string                       `json:"labelSelectorPath,omitempty"`
+	ManagementPod       string                       `json:"managementPod,omitempty"`
+	RepositoryStatus    []GatewayRepositoryStatus    `json:"repositoryStatus,omitempty"`
+	PortalSyncStatus    []PortalSyncStatus           `json:"portalSyncStatus,omitempty"`
+	ApiSyncStatus       ApiSyncStatus                `json:"ApiSyncStatus,omitempty"`
+	PortalApiSyncStatus ApiSyncStatus                `json:"PortalApiSyncStatus,omitempty"`
 }
 
 // GatewayRepositoryStatus tracks the status of which Graphman repositories have been applied to the Gateway Resource.
@@ -97,6 +100,27 @@ type GatewayRepositoryStatus struct {
 	StorageSecretName string `json:"storageSecretName,omitempty"`
 	Branch            string `json:"branch,omitempty"`
 	Endpoint          string `json:"endpoint,omitempty"`
+}
+
+// PortalSyncStatus tracks the status of which portals are synced with a gateway.
+type PortalSyncStatus struct {
+	Name        string `json:"name,omitempty"`
+	ApiCount    int    `json:"apiCount,omitempty"`
+	LastUpdated string `json:"lastUpdated,omitempty"`
+}
+
+// L7ApiSyncStatus tracks the status of l7apis applied to a gateway.
+type ApiSyncStatus struct {
+	L7Apis      []ApiStatus `json:"apis,omitempty"`
+	Count       int         `json:"count,omitempty"`
+	LastUpdated string      `json:"lastUpdated,omitempty"`
+}
+
+type ApiStatus struct {
+	Name string `json:"name,omitempty"`
+	//Type is Gateway or Portal - defaults to Gateway
+	Type        string `json:"type,omitempty"`
+	LastUpdated string `json:"lastUpdated,omitempty"`
 }
 
 // Management defines configuration for Gateway Managment.
@@ -200,6 +224,8 @@ type App struct {
 	Service                            Service                           `json:"service,omitempty"`
 	Bundle                             []Bundle                          `json:"bundle,omitempty"`
 	SingletonExtraction                bool                              `json:"singletonExtraction,omitempty"`
+	PortalReference                    PortalReference                   `json:"portalReference,omitempty"`
+	PortalApiSyncIntervalSeconds       int                               `json:"portalApiSyncIntervalSeconds,omitempty"`
 	RepositorySyncIntervalSeconds      int                               `json:"repositorySyncIntervalSeconds,omitempty"`
 	ExternalSecretsSyncIntervalSeconds int                               `json:"externalSecretsSyncIntervalSeconds,omitempty"`
 	ExternalKeysSyncIntervalSeconds    int                               `json:"externalKeysSyncIntervalSeconds,omitempty"`
@@ -386,6 +412,11 @@ type RepositoryReference struct {
 	Encryption   BundleEncryption `json:"encryption,omitempty"`
 	Singleton    bool             `json:"singleton,omitempty"`
 	Notification Notification     `json:"notification,omitempty"`
+}
+
+type PortalReference struct {
+	Name    string `json:"name,omitempty"`
+	Enabled bool   `json:"enabled"`
 }
 
 // BundleEncryption allows setting an encryption passphrase per repository or external secret/key reference

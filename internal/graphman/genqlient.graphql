@@ -326,6 +326,15 @@ query everything {
     }
 }
 
+mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!) {
+    deleteWebApiServices (resolutionPaths: $webApiServiceResolutionPaths) {
+        detailedStatus {status description}
+    },
+    deletePolicyFragments (names: $policyFragmentNames) {
+         detailedStatus {status description}
+    }
+}
+
 mutation applyBundle (
     $clusterProperties: [ClusterPropertyInput!]!=[],
     $webApiServices: [WebApiServiceInput!]!=[],

@@ -33,6 +33,106 @@ type Item struct {
 type Resource struct {
 	ClusterProperty *ClusterProperty `xml:"l7:ClusterProperty,omitempty"`
 	ListenPort      *ListenPort      `xml:"l7:ListenPort,omitempty"`
+	Policy          *Policy          `xml:"l7:Policy,omitempty"`
+	Service         *Service         `xml:"l7:Service,omitempty"`
+}
+
+type Policy struct {
+	Guid         string       `xml:"guid,attr"`
+	ID           string       `xml:"id,attr"`
+	Version      string       `xml:"version,attr"`
+	PolicyDetail PolicyDetail `xml:"l7:PolicyDetail"`
+
+	Resources PolicyResources
+}
+
+type PolicyResources struct {
+	ResourceSet PolicyResourceSet `xml:"l7:ResourceSet"`
+}
+
+type PolicyResourceSet struct {
+	Tag      string         `xml:"tag,attr"`
+	Resource PolicyResource `xml:"l7:Resource"`
+}
+
+type PolicyResource struct {
+	Type string `xml:"type,attr"`
+	Text string `xml:",chardata"`
+}
+
+type PolicyDetail struct {
+	FolderId   string                 `xml:"folderId,attr"`
+	Guid       string                 `xml:"guid,attr"`
+	ID         string                 `xml:"id,attr"`
+	Name       string                 `xml:"l7:Name"`
+	PolicyType string                 `xml:"l7:PolicyType"`
+	Properties PolicyDetailProperties `xml:"l7:Properties"`
+}
+
+type PolicyDetailProperties struct {
+	Text     string `xml:",chardata"`
+	Property []PolicyProperty
+}
+
+type PolicyProperty struct {
+	Text         string `xml:",chardata"`
+	Key          string `xml:"key,attr"`
+	LongValue    string `xml:"LongValue"`
+	BooleanValue string `xml:"BooleanValue"`
+}
+
+type Service struct {
+	ID            string           `xml:"id,attr"`
+	L7            string           `xml:"l7,attr"`
+	ServiceDetail ServiceDetail    `xml:"l7:ServiceDetail"`
+	Properties    ServiceProperty  `xml:"l7:Properties"`
+	Resources     ServiceResources `xml:"l7:Resources"`
+}
+
+type ServiceDetail struct {
+	Text            string            `xml:",chardata"`
+	FolderId        string            `xml:"folderId,attr"`
+	ID              string            `xml:"id,attr"`
+	Name            string            `xml:"l7:Name"`
+	Enabled         bool              `xml:"l7:Enabled"`
+	ServiceMappings ServiceMappings   `xml:"l7:ServiceMappings"`
+	Properties      ServiceProperties `xml:"l7:Properties"`
+}
+
+type ServiceMappings struct {
+	HttpMapping HttpMapping
+}
+
+type HttpMapping struct {
+	UrlPattern string `xml:"l7:UrlPattern"`
+	Verbs      Verbs  `xml:"l7:Verbs"`
+}
+
+type Verbs struct {
+	Verb []string `xml:"l7:Verb"`
+}
+
+type ServiceProperties struct {
+	Property []ServiceProperty `xml:"l7:Property"`
+}
+
+type ServiceProperty struct {
+	Key          string `xml:"key,attr"`
+	BooleanValue string `xml:"l7:BooleanValue"`
+	StringValue  string `xml:"l7:StringValue"`
+}
+
+type ServiceResources struct {
+	ResourceSet ServiceResourceSet `xml:"l7:ResourceSet"`
+}
+
+type ServiceResourceSet struct {
+	Tag      string          `xml:"tag,attr"`
+	Resource ServiceResource `xml:"l7:Resource"`
+}
+
+type ServiceResource struct {
+	Type string `xml:"type,attr"`
 }
 
 type ClusterProperty struct {

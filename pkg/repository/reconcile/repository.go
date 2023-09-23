@@ -18,6 +18,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	repository, err := getRepository(ctx, params)
 	if err != nil {
 		params.Log.Info("repository unavailable", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
+		_ = s.RemoveByTag(params.Instance.Name + "-sync-repository")
 		return nil
 	}
 
@@ -30,7 +31,7 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	repoStatus := repository.Status
 	if !repository.Spec.Enabled {
-		params.Log.Info("repository not enabled", "name", repository.Name, "namespace", repository.Namespace)
+		params.Log.V(2).Info("repository not enabled", "name", repository.Name, "namespace", repository.Namespace)
 		return nil
 	}
 
@@ -57,7 +58,6 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	if err != nil {
 		params.Log.V(2).Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
-		//return err
 		return nil
 	}
 
@@ -77,7 +77,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	repoStatus.StorageSecretName = storageSecretName
 
 	if !reflect.DeepEqual(repoStatus, repository.Status) {
-		params.Log.Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)
+		params.Log.V(2).Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)
 
 		repoStatus.Updated = time.Now().String()
 		repository.Status = repoStatus

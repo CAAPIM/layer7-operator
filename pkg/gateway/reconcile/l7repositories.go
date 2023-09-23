@@ -18,6 +18,8 @@ func syncRepository(ctx context.Context, params Params) {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
 	if err != nil && k8serrors.IsNotFound(err) {
 		params.Log.Error(err, "gateway not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		_ = removeJob(params.Instance.Name + "-sync-repository-references")
+		return
 	}
 
 	cntr := 0
@@ -28,6 +30,7 @@ func syncRepository(ctx context.Context, params Params) {
 	}
 	if cntr == 0 {
 		_ = removeJob(params.Instance.Name + "-sync-repository-references")
+		return
 	}
 
 	err = params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)

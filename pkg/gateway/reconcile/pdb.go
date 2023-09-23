@@ -14,6 +14,9 @@ import (
 )
 
 func PodDisruptionBudget(ctx context.Context, params Params) error {
+	if !params.Instance.Spec.App.PodDisruptionBudget.Enabled {
+		return nil
+	}
 	desiredPdb := gateway.NewPDB(params.Instance)
 	currentPdb := &policyv1.PodDisruptionBudget{}
 

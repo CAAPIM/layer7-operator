@@ -22,7 +22,7 @@ func syncExternalKeys(ctx context.Context, params Params) {
 		}
 	}
 	if cntr == 0 {
-		_ = s.RemoveByTag("sync-external-keys")
+		_ = s.RemoveByTag(params.Instance.Name + "-sync-external-keys")
 	}
 
 	err := reconcileExternalKeys(ctx, params)

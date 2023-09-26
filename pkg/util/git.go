@@ -65,10 +65,22 @@ func CloneRepository(url string, username string, token string, branch string, t
 			return commit.Hash.String(), nil
 		}
 
-		_ = w.Pull(&pullOpts)
-		// if err != nil {
-		// 	return "", err
-		// }
+		gbytes, _ := os.ReadFile("/tmp/" + name + "-" + ext + "/.git/config")
+		if !strings.Contains(string(gbytes), cloneOpts.URL) {
+			err = os.RemoveAll("/tmp/" + name + "-" + ext)
+			if err != nil {
+				return "", err
+			}
+			return "", errors.New("repository endpoint updated, flushing temp storage")
+		}
+
+		err = w.Pull(&pullOpts)
+		if err != nil {
+			if err == git.NoErrAlreadyUpToDate {
+				return commit.Hash.String(), nil
+			}
+			return "", err
+		}
 
 		return commit.Hash.String(), nil
 	}

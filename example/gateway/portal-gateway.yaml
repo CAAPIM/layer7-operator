@@ -9,7 +9,7 @@ spec:
     accept: true
     secretName: gateway-license
   app:
-    replicas: 2
+    replicas: 1
     image: docker.io/caapim/gateway:11.0.00_CR1
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount

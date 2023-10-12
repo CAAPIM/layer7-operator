@@ -28,6 +28,7 @@ func syncRepository(ctx context.Context, params Params) {
 	}
 	if cntr == 0 {
 		_ = removeJob(params.Instance.Name + "-sync-repository-references")
+		return
 	}
 
 	for _, repoRef := range gateway.Spec.App.RepositoryReferences {

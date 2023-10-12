@@ -1,0 +1,70 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  version: "10.1.00_CR3"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:10.1.00_CR3
+    imagePullPolicy: IfNotPresent
+    #serviceAccountName: ssg-serviceaccount
+    updateStrategy:
+      type: rollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 2
+    resources:
+      requests: {}
+      limits: {}
+    autoscaling:
+      enabled: false
+    java:
+      jvmHeap:
+        calculate: true
+        percentage: 50
+        default: 2g
+      extraArgs:
+        - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
+        - -Dcom.l7tech.server.audit.message.saveToInternal=false
+        - -Dcom.l7tech.server.audit.admin.saveToInternal=false
+        - -Dcom.l7tech.server.audit.system.saveToInternal=false
+        - -Dcom.l7tech.server.audit.log.format=json
+        - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
+        - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true
+        - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
+    listenPorts:
+      harden: true
+      custom:
+        enabled: false
+      ports: [ ]
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+          protocol: TCP
+        - name: management
+          port: 9443
+          targetPort: 9443
+          protocol: TCP
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      rules:
+        - host: testing.com
+          http:
+            paths:
+              - backend:
+                  service:
+                    name: ssg
+                    port:
+                      name: https
+                      number: 8443
+                path: /
+                pathType: Prefix

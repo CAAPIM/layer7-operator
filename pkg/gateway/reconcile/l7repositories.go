@@ -18,11 +18,13 @@ func syncRepository(ctx context.Context, params Params) {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
 	if err != nil && k8serrors.IsNotFound(err) {
 		params.Log.Error(err, "gateway not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		_ = removeJob(params.Instance.Name + "-sync-repository-references")
+		return
 	}
 
 	cntr := 0
 	for _, repoRef := range gateway.Spec.App.RepositoryReferences {
-		if repoRef.Enabled && repoRef.Type == "dynamic" {
+		if repoRef.Enabled {
 			cntr++
 		}
 	}
@@ -32,7 +34,7 @@ func syncRepository(ctx context.Context, params Params) {
 	}
 
 	for _, repoRef := range gateway.Spec.App.RepositoryReferences {
-		if repoRef.Enabled && repoRef.Type == "dynamic" {
+		if repoRef.Enabled {
 			err := reconcileDynamicRepository(ctx, params, gateway, repoRef)
 			if err != nil {
 				params.Log.Error(err, "failed to reconcile repository reference", "name", gateway.Name, "repository", repoRef.Name, "namespace", gateway.Namespace)
@@ -63,6 +65,7 @@ func reconcileDynamicRepository(ctx context.Context, params Params, gateway *sec
 			if err != nil {
 				params.Log.Info("failed to apply commit", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
 			}
+
 		} else {
 			err = applyDbBacked(ctx, params, gateway, repository, repoRef, commit)
 			if err != nil {
@@ -70,7 +73,19 @@ func reconcileDynamicRepository(ctx context.Context, params Params, gateway *sec
 				return err
 			}
 		}
+		//case "static":
+
 	}
+
+	for _, sRepo := range gateway.Status.RepositoryStatus {
+		if sRepo.Name == repoRef.Name {
+			if sRepo.Commit != commit {
+				params.Instance = gateway
+				_ = GatewayStatus(ctx, params)
+			}
+		}
+	}
+
 	return nil
 }
 

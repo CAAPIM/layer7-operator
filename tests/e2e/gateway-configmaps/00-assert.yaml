@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssg
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssg-cwp-bundle
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssg-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssg-listen-port-bundle

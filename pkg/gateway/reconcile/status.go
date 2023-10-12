@@ -95,7 +95,8 @@ func GatewayStatus(ctx context.Context, params Params) error {
 		params.Instance.Status = gatewayStatus
 		err = params.Client.Status().Update(ctx, params.Instance)
 		if err != nil {
-			params.Log.Info("failed to update gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
+			params.Log.V(2).Info("failed to update gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
+			return err
 		}
 	}
 	return nil

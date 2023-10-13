@@ -7,6 +7,6 @@ spec:
   enabled: true
   endpoint: https://github.com/Gazza7205/l7GWMyAPIs
   branch: main
-  auth:
-    vendor: Github
-    existingSecretName: graphman-repository-secret
+  auth: {}
+#    vendor: Github
+#    existingSecretName: graphman-repository-secret

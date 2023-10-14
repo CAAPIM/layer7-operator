@@ -3888,6 +3888,8 @@ spec:
               tag:
                 description: Tag - clone a specific tag. tags do not change, once cloned this will not be checked for updates
                 type: string
+              type:
+                type: string
             type: object
           status:
             description: Status - Repository Status

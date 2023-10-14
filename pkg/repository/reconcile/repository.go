@@ -2,7 +2,10 @@ package reconcile
 
 import (
 	"context"
+	"log"
+	"net/url"
 	"reflect"
+	"strings"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -14,8 +17,8 @@ import (
 )
 
 func syncRepository(ctx context.Context, params Params) error {
-	// TODO: Deregister job if repository is removed..
 	repository, err := getRepository(ctx, params)
+	var commit string
 	if err != nil {
 		params.Log.Info("repository unavailable", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
 		_ = s.RemoveByTag(params.Instance.Name + "-sync-repository")
@@ -24,14 +27,9 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	params.Instance = &repository
 
-	ext := repository.Spec.Branch
-	if ext == "" {
-		ext = repository.Spec.Tag
-	}
-
 	repoStatus := repository.Status
 	if !repository.Spec.Enabled {
-		params.Log.V(2).Info("repository not enabled", "name", repository.Name, "namespace", repository.Namespace)
+		params.Log.Info("repository not enabled", "name", repository.Name, "namespace", repository.Namespace)
 		return nil
 	}
 
@@ -49,7 +47,33 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	username := string(rSecret.Data["USERNAME"])
 
-	commit, err := util.CloneRepository(repository.Spec.Endpoint, username, token, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor)
+	ext := repository.Spec.Branch
+	if ext == "" {
+		ext = repository.Spec.Tag
+	}
+
+	storageSecretName := repository.Name + "-repository-" + ext
+
+	switch strings.ToLower(repository.Spec.Type) {
+	case "http":
+		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name)
+		fileURL, err := url.Parse(repository.Spec.Endpoint)
+		if err != nil {
+			log.Fatal(err)
+		}
+		path := fileURL.Path
+		segments := strings.Split(path, "/")
+		fileName := segments[len(segments)-1]
+		ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+		folderName := strings.ReplaceAll(fileName, "."+ext, "")
+		if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+			folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+		}
+		storageSecretName = repository.Name + "-repository-" + folderName
+	case "git":
+	default:
+		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor)
+	}
 
 	if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 		params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
@@ -57,11 +81,9 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	if err != nil {
-		params.Log.V(2).Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+		params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
 		return nil
 	}
-
-	storageSecretName := repository.Name + "-repository-" + ext
 
 	err = StorageSecret(ctx, params)
 	if err != nil {
@@ -77,7 +99,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	repoStatus.StorageSecretName = storageSecretName
 
 	if !reflect.DeepEqual(repoStatus, repository.Status) {
-		params.Log.V(2).Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)
+		params.Log.Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)
 
 		repoStatus.Updated = time.Now().String()
 		repository.Status = repoStatus
@@ -94,6 +116,7 @@ func syncRepository(ctx context.Context, params Params) error {
 func getSecret(ctx context.Context, repository securityv1.Repository, params Params) (*corev1.Secret, error) {
 	repositorySecret := &corev1.Secret{}
 	name := repository.Name
+
 	if repository.Spec.Auth.ExistingSecretName != "" {
 		name = repository.Spec.Auth.ExistingSecretName
 	}

@@ -3,6 +3,9 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/url"
+	"strings"
 
 	"github.com/caapim/layer7-operator/pkg/repository"
 	"github.com/caapim/layer7-operator/pkg/util"
@@ -34,12 +37,32 @@ func Secret(ctx context.Context, params Params) error {
 }
 
 func StorageSecret(ctx context.Context, params Params) error {
-
+	var storageSecretName string
 	ext := params.Instance.Spec.Branch
 	if ext == "" {
 		ext = params.Instance.Spec.Tag
 	}
-	storageSecretName := params.Instance.Name + "-repository-" + ext
+	switch strings.ToLower(params.Instance.Spec.Type) {
+	case "http":
+		fileURL, err := url.Parse(params.Instance.Spec.Endpoint)
+		if err != nil {
+			log.Fatal(err)
+		}
+		path := fileURL.Path
+		segments := strings.Split(path, "/")
+		fileName := segments[len(segments)-1]
+		ext = strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+		folderName := strings.ReplaceAll(fileName, "."+ext, "")
+		if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+			folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+		}
+		storageSecretName = params.Instance.Name + "-repository-" + folderName
+		ext = folderName
+	case "git":
+	default:
+		storageSecretName = params.Instance.Name + "-repository-" + ext
+	}
+
 	bundleGzip, err := util.CompressGraphmanBundle("/tmp/" + params.Instance.Spec.Name + "-" + ext)
 	if err != nil {
 		return err

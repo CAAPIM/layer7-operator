@@ -3,7 +3,10 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -152,6 +155,24 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 				}
 
 				gitPath := "/tmp/" + repoRef.Name + "-" + ext + "/" + repoRef.Directories[d]
+
+				if strings.ToLower(repository.Spec.Type) == "http" {
+					fileURL, err := url.Parse(repository.Spec.Endpoint)
+					if err != nil {
+						log.Fatal(err)
+					}
+					path := fileURL.Path
+					segments := strings.Split(path, "/")
+					fileName := segments[len(segments)-1]
+					ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+					folderName := strings.ReplaceAll(fileName, "."+ext, "")
+					if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+						folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+					}
+
+					gitPath = "/tmp/" + repository.Name + "-" + folderName
+
+				}
 
 				requestCacheEntry := pod.Name + "-" + repoRef.Name + "-" + latestCommit
 				syncRequest, err := syncCache.Read(requestCacheEntry)

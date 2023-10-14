@@ -11,18 +11,26 @@ import (
 )
 
 func DownloadArtifact(URL string, username string, token string, name string) (string, error) {
-
+	/////TODO: REFACTOR
 	fileURL, err := url.Parse(URL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
-	fileName := "/tmp/" + segments[len(segments)-1]
+	fileName := "/tmp/" + name + "-" + segments[len(segments)-1]
 
 	sha1sum := existingFileSha(fileName)
 
-	if sha1sum != "" {
+	ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+	folderName := strings.ReplaceAll(fileName, "."+ext, "")
+	if strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+		folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+	}
+
+	existingFolder := existingFolder(folderName)
+
+	if existingFolder && sha1sum != "" {
 		return sha1sum, nil
 	}
 
@@ -46,12 +54,17 @@ func DownloadArtifact(URL string, username string, token string, name string) (s
 		return "", errors.New("file is empty")
 	}
 
-	ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
-
 	switch ext {
 	case "zip":
+		folderName := strings.ReplaceAll(fileName, "."+ext, "")
+		f, _ := os.Open(fileName)
+		defer f.Close()
+		err = Unzip(fileName, folderName)
+		if err != nil {
+			return "", err
+		}
 
-	case "tar", "gz":
+	case "gz":
 		gz := false
 		folderName := strings.ReplaceAll(fileName, "."+ext, "")
 		f, _ := os.Open(fileName)
@@ -63,7 +76,17 @@ func DownloadArtifact(URL string, username string, token string, name string) (s
 			return "", errors.New(".gz is an unsupported file format")
 		}
 
-		err := Untar(folderName, f, gz)
+		err := Untar(folderName, name, f, gz)
+		if err != nil {
+			return "", err
+		}
+	case "tar":
+		gz := false
+		folderName := strings.ReplaceAll(fileName, "."+ext, "")
+		f, _ := os.Open(fileName)
+		defer f.Close()
+
+		err := Untar(folderName, name, f, gz)
 		if err != nil {
 			return "", err
 		}
@@ -93,4 +116,9 @@ func existingFileSha(fileName string) string {
 	fileCheckSum := sha1Sum
 
 	return fileCheckSum
+}
+
+func existingFolder(folderName string) bool {
+	folderExists, _ := os.Stat(folderName)
+	return folderExists != nil
 }

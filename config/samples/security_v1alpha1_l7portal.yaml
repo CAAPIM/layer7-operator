@@ -9,9 +9,9 @@ metadata:
     app.kubernetes.io/created-by: layer7-operator
   name: l7portal-sample
 spec:
-  name: verga
+  name: portal
   enabled: true
-  endpoint: apim-ssg-apim-euwest-prod.layer7.saas.broadcom.com
+  endpoint: dev-ssg.brcmlabs.com
   mode: auto
   enrollmentBundle: ""
   deploymentTags:
@@ -19,6 +19,6 @@ spec:
   - ssg1
   - testgateway
   auth:
-    endpoint: apim-ssg-apim-euwest-prod.layer7.saas.broadcom.com
-    clientId: cea6240880834f9e885780ae4bbb25c9
-    clientSecret: db2a5aba7166492a8d9ed4fec21ec5e6
+    endpoint: dev-ssg.brcmlabs.com
+    clientId: 3d8f8967b8e54909b5e9a86e09063406
+    clientSecret: b40a829f046a451db15aa8be503ea7b3

@@ -26,10 +26,6 @@ import (
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/controllers/gateway"
-	"github.com/caapim/layer7-operator/controllers/repository"
-	"github.com/caapim/layer7-operator/pkg/util"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -37,6 +33,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
+	"github.com/caapim/layer7-operator/controllers/api"
+	"github.com/caapim/layer7-operator/controllers/gateway"
+	"github.com/caapim/layer7-operator/controllers/portal"
+	"github.com/caapim/layer7-operator/controllers/repository"
+	"github.com/caapim/layer7-operator/pkg/util"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -51,6 +55,7 @@ func init() {
 	utilruntime.Must(securityv1.AddToScheme(scheme))
 	// utilruntime.Must(monitoring.AddToScheme(scheme))
 	// utilruntime.Must(otelv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(securityv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -114,6 +119,22 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Repository")
+		os.Exit(1)
+	}
+	if err = (&portal.L7PortalReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Portal"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "L7Portal")
+		os.Exit(1)
+	}
+	if err = (&api.L7ApiReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("L7Api"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "L7Api")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

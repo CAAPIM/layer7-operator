@@ -232,6 +232,14 @@ func ApplyGraphmanBundle(username string, password string, target string, encpas
 	return nil
 }
 
+func RemoveL7API(username string, password string, target string, apiName string, policyFragmentName string) error {
+	_, err := graphman.RemoveL7PortalApi(username, password, "https://"+target, apiName, policyFragmentName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func CompressGraphmanBundle(path string) ([]byte, error) {
 	bundle, err := graphman.Implode(path)
 

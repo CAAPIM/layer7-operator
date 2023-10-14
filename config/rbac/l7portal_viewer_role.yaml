@@ -1,0 +1,27 @@
+# permissions for end users to view l7portals.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/name: role
+    app.kubernetes.io/instance: l7portal-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: layer7-operator
+    app.kubernetes.io/part-of: layer7-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: l7portal-viewer-role
+rules:
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7portals
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7portals/status
+  verbs:
+  - get

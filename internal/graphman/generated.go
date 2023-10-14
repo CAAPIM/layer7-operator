@@ -2011,6 +2011,20 @@ func (v *__applyBundleInput) GetServerModuleFiles() []*ServerModuleFileInput {
 	return v.ServerModuleFiles
 }
 
+// __deleteL7PortalApiInput is used internally by genqlient
+type __deleteL7PortalApiInput struct {
+	WebApiServiceResolutionPaths []string `json:"webApiServiceResolutionPaths"`
+	PolicyFragmentNames          []string `json:"policyFragmentNames"`
+}
+
+// GetWebApiServiceResolutionPaths returns __deleteL7PortalApiInput.WebApiServiceResolutionPaths, and is useful for accessing the field via an interface.
+func (v *__deleteL7PortalApiInput) GetWebApiServiceResolutionPaths() []string {
+	return v.WebApiServiceResolutionPaths
+}
+
+// GetPolicyFragmentNames returns __deleteL7PortalApiInput.PolicyFragmentNames, and is useful for accessing the field via an interface.
+func (v *__deleteL7PortalApiInput) GetPolicyFragmentNames() []string { return v.PolicyFragmentNames }
+
 // applyBundleResponse is returned by applyBundle on success.
 type applyBundleResponse struct {
 	// Sets Server module files. Updating the existing server module file is unsupported.
@@ -3536,6 +3550,76 @@ type applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiServic
 // GetGoid returns applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiService.Goid, and is useful for accessing the field via an interface.
 func (v *applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiService) GetGoid() string {
 	return v.Goid
+}
+
+// deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload includes the requested fields of the GraphQL type PolicyFragmentsPayload.
+type deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload struct {
+	DetailedStatus []*deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload) GetDetailedStatus() []*deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Status      EntityMutationStatus `json:"status"`
+	Description string               `json:"description"`
+}
+
+// GetStatus returns deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload includes the requested fields of the GraphQL type WebApiServicesPayload.
+type deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload struct {
+	DetailedStatus []*deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload) GetDetailedStatus() []*deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Status      EntityMutationStatus `json:"status"`
+	Description string               `json:"description"`
+}
+
+// GetStatus returns deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// deleteL7PortalApiResponse is returned by deleteL7PortalApi on success.
+type deleteL7PortalApiResponse struct {
+	// Delete existing web api services given their resolution paths
+	DeleteWebApiServices *deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload `json:"deleteWebApiServices"`
+	// Delete policy fragments
+	DeletePolicyFragments *deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload `json:"deletePolicyFragments"`
+}
+
+// GetDeleteWebApiServices returns deleteL7PortalApiResponse.DeleteWebApiServices, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiResponse) GetDeleteWebApiServices() *deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload {
+	return v.DeleteWebApiServices
+}
+
+// GetDeletePolicyFragments returns deleteL7PortalApiResponse.DeletePolicyFragments, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiResponse) GetDeletePolicyFragments() *deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload {
+	return v.DeletePolicyFragments
 }
 
 // everythingBackgroundTaskPoliciesBackgroundTaskPolicy includes the requested fields of the GraphQL type BackgroundTaskPolicy.
@@ -5740,6 +5824,49 @@ mutation applyBundle ($clusterProperties: [ClusterPropertyInput!]! = [], $webApi
 	var err error
 
 	var data applyBundleResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func deleteL7PortalApi(
+	ctx context.Context,
+	client graphql.Client,
+	webApiServiceResolutionPaths []string,
+	policyFragmentNames []string,
+) (*deleteL7PortalApiResponse, error) {
+	req := &graphql.Request{
+		OpName: "deleteL7PortalApi",
+		Query: `
+mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!) {
+	deleteWebApiServices(resolutionPaths: $webApiServiceResolutionPaths) {
+		detailedStatus {
+			status
+			description
+		}
+	}
+	deletePolicyFragments(names: $policyFragmentNames) {
+		detailedStatus {
+			status
+			description
+		}
+	}
+}
+`,
+		Variables: &__deleteL7PortalApiInput{
+			WebApiServiceResolutionPaths: webApiServiceResolutionPaths,
+			PolicyFragmentNames:          policyFragmentNames,
+		},
+	}
+	var err error
+
+	var data deleteL7PortalApiResponse
 	resp := &graphql.Response{Data: &data}
 
 	err = client.MakeRequest(

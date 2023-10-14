@@ -29,6 +29,10 @@ secretGenerator:
 - name: global-bundle
   files:
     - ./resources/secrets/bundles/global-graphman-bundle.json
+- name: graphman-portal-bootstrap-bundle
+  files:
+    - ./resources/secrets/bundles/portal-integration.json
+
 # Create a secret for the Ingress Resource
 # Uncomment this section to create your own certificate for the ingress controller.
 # - name: gatewaytls

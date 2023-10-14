@@ -1,0 +1,12 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Repository
+metadata:
+  name: file-repository
+spec:
+  name: file-repository
+  enabled: true
+  endpoint: http://gitlab.sutraone.com/gazza/configascode/-/archive/1.0/configascode-1.0.tar.gz
+  #endpoint: http://gitlab.sutraone.com/gazza/configascode/-/archive/1.0.1/configascode-1.0.1.tar
+  #endpoint: http://gitlab.sutraone.com/gazza/configascode/-/archive/1.0/configascode-1.0.zip
+  type: http
+  auth: {}

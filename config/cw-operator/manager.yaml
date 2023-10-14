@@ -28,7 +28,11 @@ spec:
       - command:
         - /manager
         args:
-        - --leader-elect
+        - "--health-probe-bind-address=:8081"
+        - "--metrics-bind-address=127.0.0.1:8080"
+        - "--leader-elect"
+        - "--zap-log-level=info"
+        - "--zap-time-encoding=rfc3339nano"
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager
@@ -53,8 +57,31 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
+      - name: kube-rbac-proxy
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - "ALL"
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
+        args:
+        - "--secure-listen-address=0.0.0.0:8443"
+        - "--upstream=http://127.0.0.1:8080/"
+        - "--logtostderr=true"
+        - "--v=0"
+        ports:
+        - containerPort: 8443
+          name: https
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 5m
+            memory: 64Mi
         env:
           - name: WATCH_NAMESPACE
             value: ""
+
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

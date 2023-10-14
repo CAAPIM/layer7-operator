@@ -30,6 +30,7 @@ type RepositorySpec struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// Endoint - Git repository endpoint
 	Endpoint string `json:"endpoint,omitempty"`
+	Type     string `json:"type,omitempty"`
 	// LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
 	// This is not currently implemented
 	LocalReference       LocalReference       `json:"localReference,omitempty"`

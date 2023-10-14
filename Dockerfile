@@ -15,7 +15,6 @@ COPY clientcmd/ clientcmd/
 COPY pkg/ pkg/
 COPY scripts/ scripts/
 # Build
-RUN go env
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
 
 # Use distroless as minimal base image to package the manager binary

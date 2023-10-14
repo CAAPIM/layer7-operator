@@ -49,7 +49,6 @@ type GatewayReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	log := r.Log.WithValues("gateway", req.NamespacedName)
 
 	gw := &securityv1.Gateway{}
@@ -81,11 +80,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	// err = reconcile.ManagementPod(ctx, params)
-	// if err != nil {
-	// 	return ctrl.Result{}, err
-	// }
 
 	err = reconcile.Services(ctx, params)
 	if err != nil {

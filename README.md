@@ -19,6 +19,8 @@ The Layer7 Operator is restricted to manage the namespace it's deployed in by de
 #### Custom Resources
 - Gateway
 - Repository
+- L7Api
+- L7Portal
 
 #### Features
 - Gateway Helm Chart feature parity (no sample mysql/hazelcast/influxdb/grafana deployments)
@@ -37,6 +39,22 @@ The Layer7 Operator is restricted to manage the namespace it's deployed in by de
 A new configuration option for external secrets has been created. This allows you to reference existing Kubernetes secrets which are synced with the Gateway's Stored Passwords for use in things like JDBC connections or policy.
 
 External providers can be configured with the [external secrets operator](https://external-secrets.io).
+
+#### Portal Integration (alpha)
+The L7Portal controller is responsible for synchronizing Portal Managed APIs, the API Controller is responsible for applying those to target Gateway Deployments.
+
+This integration handles CRUD on an individual API basis, the relationship between APIs and Gateways is deploymentTag.
+
+Update operator image in deploy/bundle.yaml to harbor.sutraone.com/operator/layer7-operator:portal_integration and set imagePullPolicy to always.
+
+There is a pre-configured example with an existing Portal Tenant containing 3 Portal APIs. To create your own update the [l7Portal CR]((./config/samples/security_v1alpha1_l7portal.yaml))
+1. Create the Portal Enrolment bundle
+  - kubectl create secret generic graphman-portal-bootstrap-bundle --from-file=./example/base/resources/secrets/bundles/portal-integration.json 
+2. Apply the portal gateway [here](./example/gateway/portal-gateway.yaml)
+  - kubectl apply -f ./example/gateway/portal-gateway.yaml
+3. Apply the l7portal CR [here](./config/samples/security_v1alpha1_l7portal.yaml)
+  - kubectl apply -f ./config/samples/security_v1alpha1_l7portal.yaml
+
 
 ```
 app:

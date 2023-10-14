@@ -2,7 +2,7 @@
 
 ```
 $ go get github.com/Khan/genqlient@v0.5.0
-$ go run github.com/Khan/genqlient
+$ go run github.com/Khan/genqlient@v0.5.0
 ```
 
 ### Retrieve Schema

@@ -57,13 +57,13 @@ func getGatewaySecret(ctx context.Context, params Params, name string) (*corev1.
 }
 
 // getPodNames returns the pod names of the array of pods passed in
-func getPodNames(pods []corev1.Pod) []string {
-	var podNames []string
-	for _, pod := range pods {
-		podNames = append(podNames, pod.Name)
-	}
-	return podNames
-}
+// func getPodNames(pods []corev1.Pod) []string {
+// 	var podNames []string
+// 	for _, pod := range pods {
+// 		podNames = append(podNames, pod.Name)
+// 	}
+// 	return podNames
+// }
 
 func GatewayLicense(ctx context.Context, params Params) error {
 	gatewayLicense := &corev1.Secret{}

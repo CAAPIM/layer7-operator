@@ -1,0 +1,24 @@
+apiVersion: security.brcmlabs.com/v1alpha1
+kind: L7Portal
+metadata:
+  labels:
+    app.kubernetes.io/name: l7portal
+    app.kubernetes.io/instance: l7portal-sample
+    app.kubernetes.io/part-of: layer7-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: layer7-operator
+  name: l7portal-sample
+spec:
+  name: portal
+  enabled: true
+  endpoint: dev-ssg.brcmlabs.com
+  mode: auto
+  enrollmentBundle: ""
+  deploymentTags:
+  - ssg
+  - ssg1
+  - testgateway
+  auth:
+    endpoint: dev-ssg.brcmlabs.com
+    clientId: 3d8f8967b8e54909b5e9a86e09063406
+    clientSecret: b40a829f046a451db15aa8be503ea7b3

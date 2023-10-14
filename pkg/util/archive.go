@@ -1,7 +1,9 @@
 package util
 
 import (
+	"archive/tar"
 	"archive/zip"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -65,4 +67,57 @@ func Unzip(src string, dest string) ([]string, error) {
 		}
 	}
 	return filenames, nil
+}
+
+func Untar(folderName string, tarStream io.Reader, gz bool) error {
+
+	folderExists, _ := os.Stat(folderName)
+
+	if folderExists.IsDir() {
+		return nil
+	}
+
+	tarReader := tar.NewReader(tarStream)
+
+	if gz {
+		uncompressedStream, err := gzip.NewReader(tarStream)
+		if err != nil {
+			return err
+		}
+		tarReader = tar.NewReader(uncompressedStream)
+	}
+
+	for {
+		header, err := tarReader.Next()
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return err
+		}
+
+		switch header.Typeflag {
+		case tar.TypeXGlobalHeader:
+			continue
+		case tar.TypeDir:
+			if err := os.Mkdir("/tmp/"+header.Name, 0755); err != nil {
+				return fmt.Errorf("failed to create folder %s", header.Name)
+			}
+		case tar.TypeReg:
+			outFile, err := os.Create("/tmp/" + header.Name)
+			if err != nil {
+				return fmt.Errorf("failed to create file %s", header.Name)
+			}
+			defer outFile.Close()
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				return fmt.Errorf("copy failed: %s", err)
+
+			}
+		default:
+			return fmt.Errorf("uknown type: %d in %s", header.Typeflag, header.Name)
+		}
+	}
+	return nil
 }

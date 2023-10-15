@@ -46,11 +46,3 @@ func registerJobs(ctx context.Context, params Params) {
 	}
 
 }
-
-// func removeJob(tag string) error {
-// 	err := s.RemoveByTag(tag)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }

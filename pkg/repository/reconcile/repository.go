@@ -2,7 +2,6 @@ package reconcile
 
 import (
 	"context"
-	"log"
 	"net/url"
 	"reflect"
 	"strings"
@@ -54,13 +53,24 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	storageSecretName := repository.Name + "-repository-" + ext
 
+	requestCacheEntry := repository.Name
+	syncRequest, _ := syncCache.Read(requestCacheEntry)
+
+	if syncRequest.Attempts > 2 {
+		params.Log.V(2).Info("request has failed more than 3 times in the last 30 seconds, backing off", "name", repository.Name, "namespace", repository.Namespace)
+		return nil
+	}
+
 	switch strings.ToLower(repository.Spec.Type) {
 	case "http":
 		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name)
-		fileURL, err := url.Parse(repository.Spec.Endpoint)
 		if err != nil {
-			log.Fatal(err)
+			params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+			attempts := syncRequest.Attempts + 1
+			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			return nil
 		}
+		fileURL, _ := url.Parse(repository.Spec.Endpoint)
 		path := fileURL.Path
 		segments := strings.Split(path, "/")
 		fileName := segments[len(segments)-1]
@@ -82,6 +92,8 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	if err != nil {
 		params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+		attempts := syncRequest.Attempts + 1
+		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
 		return nil
 	}
 

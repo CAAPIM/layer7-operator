@@ -1,9 +1,10 @@
 package gateway
 
 import (
+	"testing"
+
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	"testing"
 )
 
 func TestDeploymentWithPorts(t *testing.T) {
@@ -14,9 +15,8 @@ func TestDeploymentWithPorts(t *testing.T) {
 	gateway.Spec.App.Replicas = 5
 	gateway.Spec.App.ServiceAccountName = "testServiceAccount"
 	gateway.Spec.App.PodSecurityContext = corev1.PodSecurityContext{}
-	gateway.Spec.App.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
-		corev1.TopologySpreadConstraint{TopologyKey: "testTopology"}}
-	gateway.Spec.App.Tolerations = []corev1.Toleration{corev1.Toleration{Key: "testKey", Value: "testValue"}}
+	gateway.Spec.App.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{{TopologyKey: "testTopology"}}
+	gateway.Spec.App.Tolerations = []corev1.Toleration{{Key: "testKey", Value: "testValue"}}
 	gateway.Spec.App.NodeSelector = map[string]string{"testLabel": "testValue"}
 
 	ports := securityv1.Ports{}

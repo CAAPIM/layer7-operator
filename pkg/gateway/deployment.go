@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"strconv"
+	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 
@@ -16,7 +17,7 @@ import (
 
 func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	var image string = gw.Spec.App.Image
-	defaultMode := int32(420)
+	defaultMode := int32(0755)
 	optional := false
 	ports := []corev1.ContainerPort{}
 
@@ -43,7 +44,69 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		secretName = gw.Spec.App.Management.SecretName
 	}
 
+	livenessProbe := corev1.Probe{
+
+		ProbeHandler: corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{"/bin/bash", "/opt/docker/rc.d/diagnostic/health_check.sh"},
+			},
+		},
+		InitialDelaySeconds: 45,
+		TimeoutSeconds:      1,
+		PeriodSeconds:       15,
+		FailureThreshold:    25,
+		SuccessThreshold:    1,
+	}
+
+	readinessProbe := corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{"/bin/bash", "/opt/docker/rc.d/diagnostic/health_check.sh"},
+			},
+		},
+		InitialDelaySeconds: 45,
+		TimeoutSeconds:      1,
+		PeriodSeconds:       15,
+		FailureThreshold:    25,
+		SuccessThreshold:    1,
+	}
+
+	if gw.Spec.App.LivenessProbe != (corev1.Probe{}) {
+		livenessProbe = gw.Spec.App.LivenessProbe
+	}
+
+	if gw.Spec.App.ReadinessProbe != (corev1.Probe{}) {
+		readinessProbe = gw.Spec.App.ReadinessProbe
+	}
+
 	terminationGracePeriodSeconds := int64(30)
+	if gw.Spec.App.TerminationGracePeriodSeconds != 0 {
+		terminationGracePeriodSeconds = gw.Spec.App.TerminationGracePeriodSeconds
+	}
+
+	// As in the Gateway Helm Chart, if lifecycle hooks are defined they take precendence over the
+	// pre stop script. Termination grace period seconds is automatically set to timeoutSeconds + 30
+	lifecycleHooks := corev1.Lifecycle{}
+
+	if gw.Spec.App.PreStopScript.Enabled {
+		lifecycleHooks = corev1.Lifecycle{
+			PreStop: &corev1.LifecycleHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/bash", "/opt/docker/graceful-shutdown.sh", strconv.Itoa(gw.Spec.App.PreStopScript.TimeoutSeconds), strconv.Itoa(gw.Spec.App.PreStopScript.PeriodSeconds)},
+				},
+			},
+		}
+		for _, port := range gw.Spec.App.PreStopScript.ExcludedPorts {
+			lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, strconv.Itoa(port))
+		}
+		terminationGracePeriodSeconds = int64(gw.Spec.App.PreStopScript.TimeoutSeconds) + 30
+	}
+
+	if gw.Spec.App.LifecycleHooks != (corev1.Lifecycle{}) {
+		lifecycleHooks = gw.Spec.App.LifecycleHooks
+		terminationGracePeriodSeconds = gw.Spec.App.TerminationGracePeriodSeconds
+	}
+
 	volumes := []corev1.Volume{{
 		Name: "gateway-license",
 		VolumeSource: corev1.VolumeSource{
@@ -94,12 +157,6 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			Optional:             &optional,
 		}}
 
-		vs = corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-cwp-bundle"},
-			DefaultMode:          &defaultMode,
-			Optional:             &optional,
-		}}
-
 		volumes = append(volumes, corev1.Volume{
 			Name:         gw.Name + "-cwp-bundle",
 			VolumeSource: vs,
@@ -113,12 +170,6 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		})
 
 		vs := corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-listen-port-bundle"},
-			DefaultMode:          &defaultMode,
-			Optional:             &optional,
-		}}
-
-		vs = corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-listen-port-bundle"},
 			DefaultMode:          &defaultMode,
 			Optional:             &optional,
@@ -153,6 +204,27 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		})
 	}
 
+	if gw.Spec.App.PreStopScript.Enabled {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      gw.Name + "-graceful-shutdown",
+			MountPath: "/opt/docker/graceful-shutdown.sh",
+			SubPath:   "graceful-shutdown.sh",
+		})
+		volumes = append(volumes, corev1.Volume{
+			Name: gw.Name + "-graceful-shutdown",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					Items: []corev1.KeyToPath{{
+						Path: "graceful-shutdown.sh",
+						Key:  "graceful-shutdown"},
+					},
+					DefaultMode: &defaultMode,
+				},
+			},
+		})
+	}
+
 	if gw.Spec.App.Bootstrap.Script.Enabled {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      gw.Name + "-parse-custom-files-script",
@@ -166,7 +238,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
 					Items: []corev1.KeyToPath{{
 						Path: "003-parse-custom-files.sh",
-						Key:  "003-parse-custom-files.sh"},
+						Key:  "003-parse-custom-files"},
 					},
 					DefaultMode: &defaultMode,
 				},
@@ -195,11 +267,11 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	}
 	i := 1
 	for v := range gw.Spec.App.Bundle {
-		defaultMode := int32(420)
+		defaultMode := int32(444)
 		optional := false
-		switch gw.Spec.App.Bundle[v].Source {
+		switch strings.ToLower(gw.Spec.App.Bundle[v].Source) {
 
-		case "configMap":
+		case "configmap":
 			baseFolder := gw.Spec.App.Bundle[v].Name
 			if gw.Spec.App.Bundle[v].Type == "graphman" {
 				baseFolder = "graphman/" + strconv.Itoa(i)
@@ -260,6 +332,48 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				volumes = append(volumes, corev1.Volume{
 					Name:         gw.Spec.App.Bundle[v].Name,
 					VolumeSource: corev1.VolumeSource{CSI: &vs},
+				})
+			}
+		}
+	}
+
+	if gw.Spec.App.CustomConfig.Enabled {
+		for v := range gw.Spec.App.CustomConfig.Mounts {
+			defaultMode := int32(444)
+			optional := false
+			switch strings.ToLower(gw.Spec.App.CustomConfig.Mounts[v].ConfigRef.Type) {
+			case "configmap":
+				volumeMounts = append(volumeMounts, corev1.VolumeMount{
+					Name:      gw.Spec.App.CustomConfig.Mounts[v].ConfigRef.Name,
+					MountPath: gw.Spec.App.CustomConfig.Mounts[v].MountPath,
+					SubPath:   gw.Spec.App.CustomConfig.Mounts[v].SubPath,
+				})
+
+				vs := corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.CustomConfig.Mounts[v].Name},
+					DefaultMode:          &defaultMode,
+					Optional:             &optional,
+				}}
+
+				volumes = append(volumes, corev1.Volume{
+					Name:         gw.Spec.App.CustomConfig.Mounts[v].Name,
+					VolumeSource: vs,
+				})
+			case "secret":
+				volumeMounts = append(volumeMounts, corev1.VolumeMount{
+					Name:      gw.Spec.App.CustomConfig.Mounts[v].ConfigRef.Name,
+					MountPath: gw.Spec.App.CustomConfig.Mounts[v].MountPath,
+					SubPath:   gw.Spec.App.CustomConfig.Mounts[v].SubPath,
+				})
+
+				vs := corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+					SecretName:  gw.Spec.App.CustomConfig.Mounts[v].ConfigRef.Name,
+					DefaultMode: &defaultMode,
+				}}
+
+				volumes = append(volumes, corev1.Volume{
+					Name:         gw.Spec.App.CustomConfig.Mounts[v].ConfigRef.Name,
+					VolumeSource: vs,
 				})
 			}
 		}
@@ -433,34 +547,12 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 					LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
 				}},
 		},
-		Ports:        ports,
-		VolumeMounts: volumeMounts,
-		LivenessProbe: &corev1.Probe{
-
-			ProbeHandler: corev1.ProbeHandler{
-				Exec: &corev1.ExecAction{
-					Command: []string{"/bin/bash", "/opt/docker/rc.d/diagnostic/health_check.sh"},
-				},
-			},
-			InitialDelaySeconds: 45,
-			TimeoutSeconds:      1,
-			PeriodSeconds:       15,
-			FailureThreshold:    25,
-			SuccessThreshold:    1,
-		},
-		ReadinessProbe: &corev1.Probe{
-			ProbeHandler: corev1.ProbeHandler{
-				Exec: &corev1.ExecAction{
-					Command: []string{"/bin/bash", "/opt/docker/rc.d/diagnostic/health_check.sh"},
-				},
-			},
-			InitialDelaySeconds: 45,
-			TimeoutSeconds:      1,
-			PeriodSeconds:       15,
-			FailureThreshold:    25,
-			SuccessThreshold:    1,
-		},
-		Resources: resources,
+		Ports:          ports,
+		VolumeMounts:   volumeMounts,
+		LivenessProbe:  &livenessProbe,
+		ReadinessProbe: &readinessProbe,
+		Resources:      resources,
+		Lifecycle:      &lifecycleHooks,
 	}
 
 	containers = append(containers, gateway)

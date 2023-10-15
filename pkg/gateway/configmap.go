@@ -42,9 +42,14 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["SSG_JVM_HEAP"] = jvmHeap
 		data["EXTRA_JAVA_ARGS"] = javaArgs
 
+		if gw.Spec.App.PreStopScript.Enabled {
+			f, _ := os.ReadFile("./graceful-shutdown.sh")
+			data["graceful-shutdown"] = string(f)
+		}
+
 		if gw.Spec.App.Bootstrap.Script.Enabled {
 			f, _ := os.ReadFile("./003-parse-custom-files.sh")
-			data["003-parse-custom-files.sh"] = string(f)
+			data["003-parse-custom-files"] = string(f)
 		}
 		if gw.Spec.App.Management.Database.Enabled {
 			data["SSG_DATABASE_JDBC_URL"] = gw.Spec.App.Management.Database.JDBCUrl

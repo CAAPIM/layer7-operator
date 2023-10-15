@@ -30,6 +30,27 @@ spec:
       limits:
         memory: 4Gi
         cpu: 2
+    # customConfig:
+    #   enabled: true
+    #   mounts:
+    #   - name: custom-mount-secret
+    #     mountPath: /opt/docker/secure.properties
+    #     subPath: secure.properties
+    #     ref:
+    #       name: custom-mount-secret
+    #       type: secret
+    #       item: 
+    #         key: secure.properties
+    #         path: secure.properties
+      # - mountPath: /opt/docker/test.properties
+      #   name: custom-mount-configmap
+      #   ref:
+      #     item:
+      #       key: test.properties
+      #       path: test.properties
+      #     name: custom-mount-configmap
+      #     type: configmap
+      #   subPath: test.properties
     bundle:
       - type: restman
         source: secret

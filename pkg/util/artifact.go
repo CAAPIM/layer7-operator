@@ -175,22 +175,33 @@ func validateGraphmanBundle(fileName string, folderName string, repoName string)
 	if _, err := os.Stat(folderName); err != nil {
 		return nil
 	}
-	bundleBytes := []byte{}
-	files, err := os.ReadDir(folderName)
+
+	bundleBytes, err := graphman.Implode(folderName)
 	if err != nil {
 		return err
 	}
-	if len(files) == 1 {
-		if !files[0].IsDir() {
-			bundleBytes, _ = os.ReadFile(folderName + "/" + files[0].Name())
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		bundleBytes, err = graphman.Implode(folderName)
+
+	if len(bundleBytes) <= 2 {
+		files, err := os.ReadDir(folderName)
 		if err != nil {
 			return err
+		}
+
+		for _, f := range files {
+			segments := strings.Split(f.Name(), ".")
+			ext := segments[len(segments)-1]
+			if ext == "json" {
+				srcBundleBytes, err := os.ReadFile(folderName + "/" + f.Name())
+				if err != nil {
+					return err
+				}
+				bundleBytes, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				if err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("file extension .%s for %s not a supported graphman format", ext, f.Name())
+			}
 		}
 	}
 

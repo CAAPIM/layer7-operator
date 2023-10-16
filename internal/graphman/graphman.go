@@ -84,6 +84,60 @@ func Query(username string, password string, target string, encpass string) ([]b
 	return respBytes, nil
 }
 
+func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
+	srcBundle := Bundle{}
+	destBundle := Bundle{}
+
+	err := json.Unmarshal(dest, &destBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(src, &srcBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	destBundle.ActiveConnectors = append(destBundle.ActiveConnectors, srcBundle.ActiveConnectors...)
+	destBundle.BackgroundTasks = append(destBundle.BackgroundTasks, srcBundle.BackgroundTasks...)
+	destBundle.CassandraConnections = append(destBundle.CassandraConnections, srcBundle.CassandraConnections...)
+	destBundle.ClusterProperties = append(destBundle.ClusterProperties, srcBundle.ClusterProperties...)
+	destBundle.Dtds = append(destBundle.Dtds, srcBundle.Dtds...)
+	destBundle.EmailListeners = append(destBundle.EmailListeners, srcBundle.EmailListeners...)
+	destBundle.EncassConfigs = append(destBundle.EncassConfigs, srcBundle.EncassConfigs...)
+	destBundle.FipGroups = append(destBundle.FipGroups, srcBundle.FipGroups...)
+	destBundle.FipUsers = append(destBundle.FipUsers, srcBundle.FipUsers...)
+	destBundle.Fips = append(destBundle.Fips, srcBundle.Fips...)
+	destBundle.GlobalPolicies = append(destBundle.GlobalPolicies, srcBundle.GlobalPolicies...)
+	destBundle.InternalGroups = append(destBundle.InternalGroups, srcBundle.InternalGroups...)
+	destBundle.InternalSoapServices = append(destBundle.InternalSoapServices, srcBundle.InternalSoapServices...)
+	destBundle.InternalUsers = append(destBundle.InternalUsers, srcBundle.InternalUsers...)
+	destBundle.InternalWebApiServices = append(destBundle.InternalWebApiServices, srcBundle.InternalWebApiServices...)
+	destBundle.JdbcConnections = append(destBundle.JdbcConnections, srcBundle.JdbcConnections...)
+	destBundle.JmsDestinations = append(destBundle.JmsDestinations, srcBundle.JmsDestinations...)
+	destBundle.Keys = append(destBundle.Keys, srcBundle.Keys...)
+	destBundle.LdapIdps = append(destBundle.LdapIdps, srcBundle.LdapIdps...)
+	destBundle.ListenPorts = append(destBundle.ListenPorts, srcBundle.ListenPorts...)
+	destBundle.PolicyFragments = append(destBundle.PolicyFragments, srcBundle.PolicyFragments...)
+	destBundle.ScheduledTasks = append(destBundle.ScheduledTasks, srcBundle.ScheduledTasks...)
+	destBundle.Schemas = append(destBundle.Schemas, srcBundle.Schemas...)
+	destBundle.Secrets = append(destBundle.Secrets, srcBundle.Secrets...)
+	destBundle.ServerModuleFiles = append(destBundle.ServerModuleFiles, srcBundle.ServerModuleFiles...)
+	destBundle.SiteMinderConfigs = append(destBundle.SiteMinderConfigs, srcBundle.SiteMinderConfigs...)
+	destBundle.SoapServices = append(destBundle.SoapServices, srcBundle.InternalSoapServices...)
+	destBundle.TrustedCerts = append(destBundle.TrustedCerts, srcBundle.TrustedCerts...)
+	destBundle.WebApiServices = append(destBundle.WebApiServices, srcBundle.WebApiServices...)
+
+	// copy(destBundle..., srcBundle...)
+	bundleBytes, err := json.Marshal(destBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	return bundleBytes, nil
+
+}
+
 // Implode - convert an exploded Graphman directory into a single JSON file.
 func Implode(path string) ([]byte, error) {
 	bundle, err := implodeBundle(path)

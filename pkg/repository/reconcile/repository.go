@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// TODO: Update repo status if sync fails = ready = false
 func syncRepository(ctx context.Context, params Params) error {
 	repository, err := getRepository(ctx, params)
 	var commit string
@@ -88,18 +87,17 @@ func syncRepository(ctx context.Context, params Params) error {
 	case "git":
 	default:
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor)
-	}
+		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
+			params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+			return nil
+		}
 
-	if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
-		params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
-		return nil
-	}
-
-	if err != nil {
-		params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
-		attempts := syncRequest.Attempts + 1
-		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
-		return nil
+		if err != nil {
+			params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+			attempts := syncRequest.Attempts + 1
+			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			return nil
+		}
 	}
 
 	err = StorageSecret(ctx, params)

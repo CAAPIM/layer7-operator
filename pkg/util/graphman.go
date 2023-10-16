@@ -9,14 +9,13 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/gazza7205/go-pkcs12"
 )
-
-// implement back off loop
 
 type GraphmanSecret struct {
 	Name                 string `json:"name,omitempty"`
@@ -33,27 +32,11 @@ type GraphmanKey struct {
 }
 
 func ApplyToGraphmanTarget(path string, singleton bool, username string, password string, target string, encpass string) error {
-
-	bundleBytes := []byte{}
-	files, err := os.ReadDir(path)
+	bundle := graphman.Bundle{}
+	bundleBytes, err := BuildAndValidateBundle(path)
 	if err != nil {
 		return err
 	}
-	if len(files) == 1 {
-		if !files[0].IsDir() {
-			bundleBytes, err = os.ReadFile(path + "/" + files[0].Name())
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		bundleBytes, err = graphman.Implode(path)
-		if err != nil {
-			return err
-		}
-	}
-
-	bundle := graphman.Bundle{}
 
 	if !singleton {
 		scheduledTasks := []*graphman.ScheduledTaskInput{}
@@ -83,17 +66,6 @@ func ApplyToGraphmanTarget(path string, singleton bool, username string, passwor
 		if err != nil {
 			return err
 		}
-	}
-
-	// validate the graphman bundle
-	r := bytes.NewReader(bundleBytes)
-	d := json.NewDecoder(r)
-	d.DisallowUnknownFields()
-	_ = json.Unmarshal(bundleBytes, &bundle)
-
-	err = d.Decode(&bundle)
-	if err != nil {
-		return err
 	}
 
 	_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
@@ -267,28 +239,15 @@ func RemoveL7API(username string, password string, target string, apiName string
 }
 
 func CompressGraphmanBundle(path string) ([]byte, error) {
-	bundle := []byte{}
-	files, err := os.ReadDir(path)
+
+	bundleBytes, err := BuildAndValidateBundle(path)
 	if err != nil {
 		return nil, err
-	}
-	if len(files) == 1 {
-		if !files[0].IsDir() {
-			bundle, err = os.ReadFile(path + "/" + files[0].Name())
-			if err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		bundle, err = graphman.Implode(path)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	var buf bytes.Buffer
 	zw := gzip.NewWriter(&buf)
-	_, err = zw.Write(bundle)
+	_, err = zw.Write(bundleBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -302,6 +261,52 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func BuildAndValidateBundle(path string) ([]byte, error) {
+	bundle := graphman.Bundle{}
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+
+	bundleBytes, err := graphman.Implode(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(bundleBytes) <= 2 {
+		files, err := os.ReadDir(path)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, f := range files {
+			segments := strings.Split(f.Name(), ".")
+			ext := segments[len(segments)-1]
+			if ext == "json" {
+				srcBundleBytes, err := os.ReadFile(path + "/" + f.Name())
+				if err != nil {
+					return nil, err
+				}
+				bundleBytes, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, fmt.Errorf("file extension .%s for %s not a supported graphman format", ext, f.Name())
+			}
+		}
+	}
+	r := bytes.NewReader(bundleBytes)
+	d := json.NewDecoder(r)
+	d.DisallowUnknownFields()
+	_ = json.Unmarshal(bundleBytes, &bundle)
+	// check the graphman bundle for errors
+	err = d.Decode(&bundle)
+	if err != nil {
+		return nil, err
+	}
+	return bundleBytes, nil
 }
 
 // Reserved for future use.

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"os"
 	"strings"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
@@ -33,12 +34,26 @@ type GraphmanKey struct {
 
 func ApplyToGraphmanTarget(path string, singleton bool, username string, password string, target string, encpass string) error {
 
-	bundle := graphman.Bundle{}
-
-	bundleBytes, err := graphman.Implode(path)
+	bundleBytes := []byte{}
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return err
 	}
+	if len(files) == 1 {
+		if !files[0].IsDir() {
+			bundleBytes, err = os.ReadFile(path + "/" + files[0].Name())
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		bundleBytes, err = graphman.Implode(path)
+		if err != nil {
+			return err
+		}
+	}
+
+	bundle := graphman.Bundle{}
 
 	if !singleton {
 		scheduledTasks := []*graphman.ScheduledTaskInput{}
@@ -68,6 +83,17 @@ func ApplyToGraphmanTarget(path string, singleton bool, username string, passwor
 		if err != nil {
 			return err
 		}
+	}
+
+	// validate the graphman bundle
+	r := bytes.NewReader(bundleBytes)
+	d := json.NewDecoder(r)
+	d.DisallowUnknownFields()
+	_ = json.Unmarshal(bundleBytes, &bundle)
+
+	err = d.Decode(&bundle)
+	if err != nil {
+		return err
 	}
 
 	_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
@@ -241,10 +267,23 @@ func RemoveL7API(username string, password string, target string, apiName string
 }
 
 func CompressGraphmanBundle(path string) ([]byte, error) {
-	bundle, err := graphman.Implode(path)
-
+	bundle := []byte{}
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
+	}
+	if len(files) == 1 {
+		if !files[0].IsDir() {
+			bundle, err = os.ReadFile(path + "/" + files[0].Name())
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		bundle, err = graphman.Implode(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var buf bytes.Buffer
@@ -258,7 +297,7 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 		return nil, err
 	}
 	if buf.Len() > 900000 {
-		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size.")
+		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size")
 
 	}
 

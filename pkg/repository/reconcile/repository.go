@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// TODO: Update repo status if sync fails = ready = false
 func syncRepository(ctx context.Context, params Params) error {
 	repository, err := getRepository(ctx, params)
 	var commit string
@@ -63,7 +64,11 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	switch strings.ToLower(repository.Spec.Type) {
 	case "http":
-		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name)
+		forceUpdate := false
+		if repository.Status.Summary != repository.Spec.Endpoint {
+			forceUpdate = true
+		}
+		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name, forceUpdate)
 		if err != nil {
 			params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			attempts := syncRequest.Attempts + 1
@@ -108,11 +113,16 @@ func syncRepository(ctx context.Context, params Params) error {
 	repoStatus.Vendor = repository.Spec.Auth.Vendor
 	repoStatus.Ready = true
 
+	if repository.Spec.Type == "http" {
+		// future usage will include filesize for tracking changes in remote
+		// or use a different status field.
+		repoStatus.Summary = repository.Spec.Endpoint
+	}
+
 	repoStatus.StorageSecretName = storageSecretName
 
 	if !reflect.DeepEqual(repoStatus, repository.Status) {
 		params.Log.Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)
-
 		repoStatus.Updated = time.Now().String()
 		repository.Status = repoStatus
 		err = params.Client.Status().Update(ctx, &repository)

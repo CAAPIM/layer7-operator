@@ -85,6 +85,9 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 		tarReader = tar.NewReader(uncompressedStream)
 	}
 
+	// Create the folder up front and return an error if it doesn't exist while iterating over tar entries
+	_ = os.Mkdir(folderName, 0755)
+
 	for {
 		header, err := tarReader.Next()
 
@@ -101,17 +104,29 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 			continue
 		case tar.TypeDir:
 			if err := os.Mkdir("/tmp/"+repoName+"-"+header.Name, 0755); err != nil {
-				return fmt.Errorf("failed to create folder %s", header.Name)
+				if _, err = os.Stat("/tmp/" + repoName + "-" + header.Name); err != nil {
+					return fmt.Errorf("failed to create folder %s", header.Name)
+				}
 			}
 		case tar.TypeReg:
-			outFile, err := os.Create("/tmp/" + repoName + "-" + header.Name)
+			// this should ignore the extra info added to compressed files on MacOSX (BSD Tar)
+			if strings.HasPrefix(header.Name, "./._") {
+				continue
+			}
+			// this allows files in the root of a compressed file to be written to a different path
+			// default would be ./filename.ext
+			path := "/tmp/" + repoName + "-" + header.Name
+			if strings.HasPrefix(header.Name, "./") {
+				header.Name = strings.Replace(header.Name, "./", "", 1)
+				path = folderName + "/" + header.Name
+			}
+			outFile, err := os.Create(path)
 			if err != nil {
 				return fmt.Errorf("failed to create file %s", header.Name)
 			}
 			defer outFile.Close()
 			if _, err := io.Copy(outFile, tarReader); err != nil {
 				return fmt.Errorf("copy failed: %s", err)
-
 			}
 		default:
 			return fmt.Errorf("uknown type: %d in %s", header.Typeflag, header.Name)

@@ -1,7 +1,9 @@
 package util
 
 import (
+	"bytes"
 	"crypto/sha1"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -15,7 +17,7 @@ import (
 // This is currently limited to URLs that contain the file extension as would be the
 // case when targeting releases from Git releases.
 // The following extensions are accepted .tar, .tar.gz, .zip
-func DownloadArtifact(URL string, username string, token string, name string) (string, error) {
+func DownloadArtifact(URL string, username string, token string, name string, forceUpdate bool) (string, error) {
 	fileURL, err := url.Parse(URL)
 	if err != nil {
 		return "", err
@@ -29,7 +31,7 @@ func DownloadArtifact(URL string, username string, token string, name string) (s
 	sha1sum := existingFileSha(fileName)
 	ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
 
-	if ext != "zip" && ext != "tar" && ext != "gz" {
+	if ext != "zip" && ext != "tar" && ext != "gz" && ext != "json" {
 		return "", fmt.Errorf("unsupported file type %s", ext)
 	}
 
@@ -46,12 +48,16 @@ func DownloadArtifact(URL string, username string, token string, name string) (s
 
 	// If the downloaded file and corresponding uncompressed folder does not represent a valid graphman bundle
 	// it will be removed allowing for additional attempts to retrieve the file.
-	if existingFolder && sha1sum != "" {
+	if existingFolder && sha1sum != "" && !forceUpdate {
 		err = validateGraphmanBundle(fileName, folderName, name)
 		if err != nil {
 			return "", err
 		}
 		return sha1sum, nil
+	}
+
+	if forceUpdate {
+		os.RemoveAll(folderName)
 	}
 
 	resp, err := RestCall("GET", URL, true, map[string]string{}, "text/plain", []byte{}, username, token)
@@ -109,6 +115,19 @@ func DownloadArtifact(URL string, username string, token string, name string) (s
 		if err != nil {
 			return "", err
 		}
+	case "json":
+		fileName = name + "-" + segments[len(segments)-1]
+
+		folderName := strings.ReplaceAll("/tmp/"+fileName, "."+ext, "")
+		os.Mkdir(folderName, 0755)
+		fBytes, err := os.ReadFile("/tmp/" + fileName)
+		if err != nil {
+			return "", err
+		}
+		err = os.WriteFile(folderName+"/"+fileName, fBytes, 0755)
+		if err != nil {
+			return "", err
+		}
 	default:
 		return "", fmt.Errorf("extension %s not supported", ext)
 	}
@@ -152,14 +171,51 @@ func existingFolder(folderName string) bool {
 }
 
 func validateGraphmanBundle(fileName string, folderName string, repoName string) error {
-	_, err := graphman.Implode(folderName)
+	bundle := graphman.Bundle{}
+	if _, err := os.Stat(folderName); err != nil {
+		return nil
+	}
+	bundleBytes := []byte{}
+	files, err := os.ReadDir(folderName)
 	if err != nil {
+		return err
+	}
+	if len(files) == 1 {
+		if !files[0].IsDir() {
+			bundleBytes, _ = os.ReadFile(folderName + "/" + files[0].Name())
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		bundleBytes, err = graphman.Implode(folderName)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(bundleBytes) <= 2 {
 		os.Remove(fileName)
 		err = os.RemoveAll(folderName)
 		if err != nil {
 			return err
 		}
 		return fmt.Errorf("repository %s does not contain a valid graphman bundle", repoName)
+	}
+
+	r := bytes.NewReader(bundleBytes)
+	d := json.NewDecoder(r)
+	d.DisallowUnknownFields()
+	_ = json.Unmarshal(bundleBytes, &bundle)
+	// check the graphman bundle for errors
+	err = d.Decode(&bundle)
+	if err != nil {
+		os.Remove(fileName)
+		fErr := os.RemoveAll(folderName)
+		if fErr != nil {
+			return err
+		}
+		return err
 	}
 	return nil
 }

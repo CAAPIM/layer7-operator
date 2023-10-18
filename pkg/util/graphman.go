@@ -9,13 +9,13 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/gazza7205/go-pkcs12"
 )
-
-// implement back off loop
 
 type GraphmanSecret struct {
 	Name                 string `json:"name,omitempty"`
@@ -32,10 +32,8 @@ type GraphmanKey struct {
 }
 
 func ApplyToGraphmanTarget(path string, singleton bool, username string, password string, target string, encpass string) error {
-
 	bundle := graphman.Bundle{}
-
-	bundleBytes, err := graphman.Implode(path)
+	bundleBytes, err := BuildAndValidateBundle(path)
 	if err != nil {
 		return err
 	}
@@ -241,15 +239,15 @@ func RemoveL7API(username string, password string, target string, apiName string
 }
 
 func CompressGraphmanBundle(path string) ([]byte, error) {
-	bundle, err := graphman.Implode(path)
 
+	bundleBytes, err := BuildAndValidateBundle(path)
 	if err != nil {
 		return nil, err
 	}
 
 	var buf bytes.Buffer
 	zw := gzip.NewWriter(&buf)
-	_, err = zw.Write(bundle)
+	_, err = zw.Write(bundleBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -258,11 +256,57 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 		return nil, err
 	}
 	if buf.Len() > 900000 {
-		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size.")
+		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size")
 
 	}
 
 	return buf.Bytes(), nil
+}
+
+func BuildAndValidateBundle(path string) ([]byte, error) {
+	bundle := graphman.Bundle{}
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+
+	bundleBytes, err := graphman.Implode(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(bundleBytes) <= 2 {
+		files, err := os.ReadDir(path)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, f := range files {
+			segments := strings.Split(f.Name(), ".")
+			ext := segments[len(segments)-1]
+			if ext == "json" {
+				srcBundleBytes, err := os.ReadFile(path + "/" + f.Name())
+				if err != nil {
+					return nil, err
+				}
+				bundleBytes, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, fmt.Errorf("file extension .%s for %s not a supported graphman format", ext, f.Name())
+			}
+		}
+	}
+	r := bytes.NewReader(bundleBytes)
+	d := json.NewDecoder(r)
+	d.DisallowUnknownFields()
+	_ = json.Unmarshal(bundleBytes, &bundle)
+	// check the graphman bundle for errors
+	err = d.Decode(&bundle)
+	if err != nil {
+		return nil, err
+	}
+	return bundleBytes, nil
 }
 
 // Reserved for future use.

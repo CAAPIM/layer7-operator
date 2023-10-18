@@ -12,7 +12,11 @@ func RestCall(method string, URL string, insecureSkipVerify bool, headers map[st
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify},
 	}
-	client := &http.Client{Transport: tr}
+	client := &http.Client{Transport: tr,
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		}}
 
 	req, err := http.NewRequest(method, URL, strings.NewReader(string(data)))
 	if err != nil {

@@ -3,6 +3,10 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -13,12 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes/scheme"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"testing"
 )
 
 var (
@@ -146,7 +147,7 @@ func newParams() Params {
 						Enabled:          true,
 						IngressClassName: "testingress",
 						Rules: []networkingv1.IngressRule{
-							networkingv1.IngressRule{
+							{
 								Host: "localhost",
 							},
 						},
@@ -168,7 +169,7 @@ func newParams() Params {
 			},
 			Status: securityv1.GatewayStatus{
 				RepositoryStatus: []securityv1.GatewayRepositoryStatus{
-					securityv1.GatewayRepositoryStatus{
+					{
 						Enabled:    true,
 						Name:       "testrepo",
 						Commit:     "1234",

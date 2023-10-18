@@ -37,7 +37,7 @@ function copy() {
     echo "***************************************************************************"
     echo "scanning for $TYPE in $SOURCE_DIR"
     echo "***************************************************************************"
-    FILES=$(find $3 -type f -name '*'$2 2>/dev/null)
+    FILES=$(du -a $3 | grep -e ".\\$2$" | awk '{ print $2 }' 2>/dev/null)
     for file in $FILES; do
         name=$(basename "$file")
         cp $file $4/$name
@@ -53,7 +53,7 @@ function gunzip() {
     echo "***************************************************************************"
     echo "scanning for $TYPE in $SOURCE_DIR"
     echo "***************************************************************************"
-    FILES=$(find $3 -type f -name '*'$2 2>/dev/null)
+    FILES=$(du -a $3 | grep -e ".\\$2$" | awk '{ print $2 }' 2>/dev/null)
     for file in $FILES; do
         fullname=$(basename "$file")
         name="${fullname%.*}"
@@ -69,7 +69,7 @@ function run() {
     echo "***************************************************************************"
     echo "scanning for $TYPE in $SOURCE_DIR"
     echo "***************************************************************************"
-    FILES=$(find $3 -type f -name '*'$2 2>/dev/null)
+    FILES=$(du -a $3 | grep -e ".\\$2$" | awk '{ print $2 }' 2>/dev/null)
     for file in $FILES; do
         name=$(basename "$file")
         echo -e "running $name"
@@ -82,7 +82,8 @@ function run() {
 }
 
 gunzip "graphman bundles" ".gz" $GRAPHMAN_CONFIG_DIR
-copy "bundles" ".bundle" $BUNDLE_DIR $TARGET_BUNDLE_DIR
+copy "restman bundles" ".bundle" $BUNDLE_DIR $TARGET_BUNDLE_DIR
+copy "graphman bundles" ".json" $BUNDLE_DIR $TARGET_BUNDLE_DIR
 copy "custom assertions" ".jar" $CUSTOM_ASSERTIONS_DIR $TARGET_CUSTOM_ASSERTIONS_DIR
 copy "modular assertions" ".aar" $MODULAR_ASSERTIONS_DIR $TARGET_MODULAR_ASSERTIONS_DIR
 copy "external libraries" ".jar" $EXTERNAL_LIBRARIES_DIR $TARGET_EXTERNAL_LIBRARIES_DIR

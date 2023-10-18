@@ -2,7 +2,6 @@ package reconcile
 
 import (
 	"context"
-	"log"
 	"net/url"
 	"reflect"
 	"strings"
@@ -54,13 +53,28 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	storageSecretName := repository.Name + "-repository-" + ext
 
+	requestCacheEntry := repository.Name
+	syncRequest, _ := syncCache.Read(requestCacheEntry)
+
+	if syncRequest.Attempts > 2 {
+		params.Log.V(2).Info("request has failed more than 3 times in the last 30 seconds, backing off", "name", repository.Name, "namespace", repository.Namespace)
+		return nil
+	}
+
 	switch strings.ToLower(repository.Spec.Type) {
 	case "http":
-		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name)
-		fileURL, err := url.Parse(repository.Spec.Endpoint)
-		if err != nil {
-			log.Fatal(err)
+		forceUpdate := false
+		if repository.Status.Summary != repository.Spec.Endpoint {
+			forceUpdate = true
 		}
+		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name, forceUpdate)
+		if err != nil {
+			params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+			attempts := syncRequest.Attempts + 1
+			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			return nil
+		}
+		fileURL, _ := url.Parse(repository.Spec.Endpoint)
 		path := fileURL.Path
 		segments := strings.Split(path, "/")
 		fileName := segments[len(segments)-1]
@@ -73,16 +87,17 @@ func syncRepository(ctx context.Context, params Params) error {
 	case "git":
 	default:
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor)
-	}
+		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
+			params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+			return nil
+		}
 
-	if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
-		params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
-		return nil
-	}
-
-	if err != nil {
-		params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
-		return nil
+		if err != nil {
+			params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+			attempts := syncRequest.Attempts + 1
+			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			return nil
+		}
 	}
 
 	err = StorageSecret(ctx, params)
@@ -96,11 +111,16 @@ func syncRepository(ctx context.Context, params Params) error {
 	repoStatus.Vendor = repository.Spec.Auth.Vendor
 	repoStatus.Ready = true
 
+	if repository.Spec.Type == "http" {
+		// future usage will include filesize for tracking changes in remote
+		// or use a different status field.
+		repoStatus.Summary = repository.Spec.Endpoint
+	}
+
 	repoStatus.StorageSecretName = storageSecretName
 
 	if !reflect.DeepEqual(repoStatus, repository.Status) {
 		params.Log.Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)
-
 		repoStatus.Updated = time.Now().String()
 		repository.Status = repoStatus
 		err = params.Client.Status().Update(ctx, &repository)

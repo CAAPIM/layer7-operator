@@ -40,6 +40,28 @@ A new configuration option for external secrets has been created. This allows yo
 
 External providers can be configured with the [external secrets operator](https://external-secrets.io).
 
+```
+app:
+...
+  externalSecrets:
+    - name: database-credentials-gcp
+      enabled: true
+      description: GCP Database credentials
+      variableReferencable: true
+      auth:
+        encryption:
+          passphrase: 7layer
+          existingSecret: ""
+    - name: local-secret
+      enabled: true
+      description: local secret
+      variableReferencable: true
+      auth:
+        encryption:
+          passphrase: 7layer
+          existingSecret: ""
+```
+
 #### Portal Integration (alpha)
 The L7Portal controller is responsible for synchronizing Portal Managed APIs, the API Controller is responsible for applying those to target Gateway Deployments.
 
@@ -55,18 +77,6 @@ There is a pre-configured example with an existing Portal Tenant containing 3 Po
 3. Apply the l7portal CR [here](./config/samples/security_v1alpha1_l7portal.yaml)
   - kubectl apply -f ./config/samples/security_v1alpha1_l7portal.yaml
 
-
-```
-app:
-...
-  externalSecrets:
-    - name: database-credentials-gcp
-      enabled: true
-      description: GCP Database credentials
-    - name: local-secret
-      enabled: true
-      description: local secret
-```
 
 ### Under consideration
 - OTK support (operator managed)
@@ -150,13 +160,13 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "10.1.00_CR3"
+  version: "11.0.00_CR1"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:10.1.00_CR3
+    image: docker.io/caapim/gateway:11.0.00_CR1
     management:
       username: admin
       password: 7layer

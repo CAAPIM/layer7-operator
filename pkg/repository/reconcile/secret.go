@@ -3,7 +3,6 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 
@@ -46,7 +45,7 @@ func StorageSecret(ctx context.Context, params Params) error {
 	case "http":
 		fileURL, err := url.Parse(params.Instance.Spec.Endpoint)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		path := fileURL.Path
 		segments := strings.Split(path, "/")

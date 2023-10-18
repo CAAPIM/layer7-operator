@@ -67,15 +67,15 @@ metadata:
   name: l7portal-sample
 spec:
   auth:
-    clientId: cea6240880834f9e885780ae4bbb25c9
-    clientSecret: db2a5aba7166492a8d9ed4fec21ec5e6
-    endpoint: apim-ssg-apim-euwest-prod.layer7.saas.broadcom.com
+    clientId: 3d8f8967b8e54909b5e9a86e09063406
+    clientSecret: b40a829f046a451db15aa8be503ea7b3
+    endpoint: dev-ssg.brcmlabs.com
   deploymentTags:
   - ssg
   - ssg1
   - testgateway
   enabled: true
-  endpoint: apim-ssg-apim-euwest-prod.layer7.saas.broadcom.com
+  endpoint: dev-ssg.brcmlabs.com
   enrollmentBundle: ""
   mode: auto
-  name: verga
+  name: portal

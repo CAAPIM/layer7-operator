@@ -248,6 +248,12 @@ type App struct {
 	NodeSelector                       map[string]string                 `json:"nodeSelector,omitempty"`
 	ExternalSecrets                    []ExternalSecret                  `json:"externalSecrets,omitempty"`
 	ExternalKeys                       []ExternalKey                     `json:"externalKeys,omitempty"`
+	LivenessProbe                      corev1.Probe                      `json:"livenessProbe,omitempty"`
+	ReadinessProbe                     corev1.Probe                      `json:"readinessProbe,omitempty"`
+	CustomConfig                       CustomConfig                      `json:"customConfig,omitempty"`
+	TerminationGracePeriodSeconds      int64                             `json:"terminationGracePeriodSeconds,omitempty"`
+	LifecycleHooks                     corev1.Lifecycle                  `json:"lifecycleHooks,omitempty"`
+	PreStopScript                      PreStopScript                     `json:"preStopScript,omitempty"`
 }
 
 // ClusterProperties are key value pairs of additional cluster-wide properties you wish to bootstrap to your Gateway.
@@ -260,6 +266,35 @@ type SingletonExtraction struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// ScheduledTasks bool `json:"scheduledTasks,omitempty"`
 	// JmsListener    bool `json:"jmsListener,omitempty"`
+}
+
+type PreStopScript struct {
+	Enabled        bool  `json:"enabled,omitempty"`
+	PeriodSeconds  int   `json:"periodSeconds,omitempty"`
+	TimeoutSeconds int   `json:"timeoutSeconds,omitempty"`
+	ExcludedPorts  []int `json:"excludedPorts,omitempty"`
+}
+
+type CustomConfig struct {
+	Enabled bool                `json:"enabled,omitempty"`
+	Mounts  []CustomConfigMount `json:"mounts,omitempty"`
+}
+type CustomConfigMount struct {
+	Name      string    `json:"name,omitempty"`
+	MountPath string    `json:"mountPath,omitempty"`
+	SubPath   string    `json:"subPath,omitempty"`
+	ConfigRef ConfigRef `json:"ref,omitempty"`
+}
+
+type ConfigRef struct {
+	Name string        `json:"name,omitempty"`
+	Type string        `json:"type,omitempty"`
+	Item ConfigRefItem `json:"item,omitempty"`
+}
+
+type ConfigRefItem struct {
+	Key  string `json:"key,omitempty"`
+	Path string `json:"path,omitempty"`
 }
 
 // Property is a cluster-wide property k/v pair

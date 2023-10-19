@@ -80,6 +80,7 @@ type BundleApplyErrors struct {
 }
 
 type BundleApplyError struct {
+	Name   string `json:"name,omitempty"`
 	Status string `json:"status,omitempty"`
 	Entity string `json:"entity,omitempty"`
 	Detail string `json:"detail,omitempty"`
@@ -177,7 +178,7 @@ func Apply(path string, username string, password string, target string, encpass
 		return nil, err
 	}
 
-	err = CheckApplyErrors(resp)
+	err = CheckApplyErrors(bundle, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +215,7 @@ func ApplyDynamicBundle(username string, password string, target string, encpass
 		return nil, err
 	}
 
-	err = CheckApplyErrors(resp)
+	err = CheckApplyErrors(bundle, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -479,152 +480,152 @@ func parseEntities(bundle Bundle) {
 	}
 }
 
-func CheckApplyErrors(resp *applyBundleResponse) error {
+func CheckApplyErrors(bundle Bundle, resp *applyBundleResponse) error {
 	var bundleApplyErrors BundleApplyErrors
 
-	for _, r := range resp.SetActiveConnectors.DetailedStatus {
+	for i, r := range resp.SetActiveConnectors.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ActiveConnectors"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ActiveConnectors", Name: bundle.ActiveConnectors[i].Name})
 		}
 	}
-	for _, r := range resp.SetBackgroundTaskPolicies.DetailedStatus {
+	for i, r := range resp.SetBackgroundTaskPolicies.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "BackgroundTaskPolicies"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "BackgroundTaskPolicies", Name: bundle.BackgroundTasks[i].Name})
 		}
 	}
-	for _, r := range resp.SetCassandraConnections.DetailedStatus {
+	for i, r := range resp.SetCassandraConnections.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "CassandraConnections"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "CassandraConnections", Name: bundle.CassandraConnections[i].Name})
 		}
 	}
-	for _, r := range resp.SetClusterProperties.DetailedStatus {
+	for i, r := range resp.SetClusterProperties.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ClusterProperties"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ClusterProperties", Name: bundle.ClusterProperties[i].Name})
 		}
 	}
-	for _, r := range resp.SetDtds.DetailedStatus {
+	for i, r := range resp.SetDtds.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Dtds"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Dtds", Name: bundle.Dtds[i].Description})
 		}
 	}
-	for _, r := range resp.SetEmailListeners.DetailedStatus {
+	for i, r := range resp.SetEmailListeners.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "EmailListeners"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "EmailListeners", Name: bundle.EmailListeners[i].Name})
 		}
 	}
-	for _, r := range resp.SetEncassConfigs.DetailedStatus {
+	for i, r := range resp.SetEncassConfigs.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "EncassConfigs"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "EncassConfigs", Name: bundle.EncassConfigs[i].Name})
 		}
 	}
-	for _, r := range resp.SetFipGroups.DetailedStatus {
+	for i, r := range resp.SetFipGroups.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FipGroups"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FipGroups", Name: bundle.FipGroups[i].Name})
 		}
 	}
-	for _, r := range resp.SetFipUsers.DetailedStatus {
+	for i, r := range resp.SetFipUsers.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FipUsers"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FipUsers", Name: bundle.FipUsers[i].Name})
 		}
 	}
-	for _, r := range resp.SetFips.DetailedStatus {
+	for i, r := range resp.SetFips.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Fips"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Fips", Name: bundle.Fips[i].Name})
 		}
 	}
-	for _, r := range resp.SetGlobalPolicies.DetailedStatus {
+	for i, r := range resp.SetGlobalPolicies.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "GlobalPolicies"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "GlobalPolicies", Name: bundle.GlobalPolicies[i].Name})
 		}
 	}
-	for _, r := range resp.SetInternalGroups.DetailedStatus {
+	for i, r := range resp.SetInternalGroups.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalGroups"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalGroups", Name: bundle.InternalGroups[i].Name})
 		}
 	}
-	for _, r := range resp.SetInternalSoapServices.DetailedStatus {
+	for i, r := range resp.SetInternalSoapServices.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalSoapServices"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalSoapServices", Name: bundle.InternalSoapServices[i].Name})
 		}
 	}
-	for _, r := range resp.SetInternalUsers.DetailedStatus {
+	for i, r := range resp.SetInternalUsers.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalUsers"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalUsers", Name: bundle.InternalUsers[i].Name})
 		}
 	}
-	for _, r := range resp.SetInternalWebApiServices.DetailedStatus {
+	for i, r := range resp.SetInternalWebApiServices.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalWebApiServices"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalWebApiServices", Name: bundle.InternalWebApiServices[i].Name})
 		}
 	}
-	for _, r := range resp.SetJdbcConnections.DetailedStatus {
+	for i, r := range resp.SetJdbcConnections.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "JdbcConnections"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "JdbcConnections", Name: bundle.JdbcConnections[i].Name})
 		}
 	}
-	for _, r := range resp.SetJmsDestinations.DetailedStatus {
+	for i, r := range resp.SetJmsDestinations.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "JmsDestinations"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "JmsDestinations", Name: bundle.JmsDestinations[i].Name})
 		}
 	}
-	for _, r := range resp.SetKeys.DetailedStatus {
+	for i, r := range resp.SetKeys.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Keys"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Keys", Name: bundle.Keys[i].Alias})
 		}
 	}
-	for _, r := range resp.SetLdaps.DetailedStatus {
+	for i, r := range resp.SetLdaps.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Ldaps"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Ldaps", Name: bundle.LdapIdps[i].Name})
 		}
 	}
-	for _, r := range resp.SetListenPorts.DetailedStatus {
+	for i, r := range resp.SetListenPorts.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ListenPorts"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ListenPorts", Name: bundle.ListenPorts[i].Name})
 		}
 	}
-	for _, r := range resp.SetPolicyFragments.DetailedStatus {
+	for i, r := range resp.SetPolicyFragments.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "PolicyFragments"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "PolicyFragments", Name: bundle.PolicyFragments[i].Name})
 		}
 	}
-	for _, r := range resp.SetSMConfigs.DetailedStatus {
+	for i, r := range resp.SetSMConfigs.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "SMConfigs"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "SMConfigs", Name: bundle.SiteMinderConfigs[i].Name})
 		}
 	}
-	for _, r := range resp.SetScheduledTasks.DetailedStatus {
+	for i, r := range resp.SetScheduledTasks.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ScheduledTasks"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ScheduledTasks", Name: bundle.ScheduledTasks[i].Name})
 		}
 	}
-	for _, r := range resp.SetSchemas.DetailedStatus {
+	for i, r := range resp.SetSchemas.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Schemas"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Schemas", Name: bundle.Schemas[i].Description})
 		}
 	}
-	for _, r := range resp.SetSecrets.DetailedStatus {
+	for i, r := range resp.SetSecrets.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Secrets"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Secrets", Name: bundle.Secrets[i].Name})
 		}
 	}
-	for _, r := range resp.SetServerModuleFiles.DetailedStatus {
+	for i, r := range resp.SetServerModuleFiles.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ServerModuleFiles"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ServerModuleFiles", Name: bundle.ServerModuleFiles[i].Name})
 		}
 	}
-	for _, r := range resp.SetSoapServices.DetailedStatus {
+	for i, r := range resp.SetSoapServices.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "SoapServices"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "SoapServices", Name: bundle.SoapServices[i].Name})
 		}
 	}
-	for _, r := range resp.SetTrustedCerts.DetailedStatus {
+	for i, r := range resp.SetTrustedCerts.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "TrustedCerts"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "TrustedCerts", Name: bundle.TrustedCerts[i].Name})
 		}
 	}
-	for _, r := range resp.SetWebApiServices.DetailedStatus {
+	for i, r := range resp.SetWebApiServices.DetailedStatus {
 		if r.Status == "ERROR" {
-			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "WebApiServices"})
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "WebApiServices", Name: bundle.WebApiServices[i].Name})
 		}
 	}
 

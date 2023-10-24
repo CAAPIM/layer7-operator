@@ -18,6 +18,13 @@ spec:
     kind: Gateway
     listKind: GatewayList
     plural: gateways
+    shortNames:
+    - gws
+    - gw
+    - l7gw
+    - l7gws
+    - l7gateway
+    - l7gateways
     singular: gateway
   scope: Namespaced
   versions:
@@ -4191,6 +4198,13 @@ spec:
     kind: Repository
     listKind: RepositoryList
     plural: repositories
+    shortNames:
+    - repo
+    - repos
+    - l7repo
+    - l7repos
+    - l7repository
+    - l7repositories
     singular: repository
   scope: Namespaced
   versions:
@@ -4213,13 +4227,23 @@ spec:
               auth:
                 description: Auth contains a reference to the credentials required to connect to your Git repository
                 properties:
+                  autoTrustSshHost:
+                    description: AutoTrust SSH Host
+                    type: boolean
                   existingSecretName:
                     description: ExistingSecretName reference an existing secret
+                    type: string
+                  knownHosts:
+                    description: KnownHosts is required for SSH Auth
                     type: string
                   password:
                     description: Password repository Password password or token are acceptable
                     type: string
-                  sshkey:
+                  sshKey:
+                    description: SSHKey for Git SSH Authentication
+                    type: string
+                  sshKeyPass:
+                    description: SSHKey Pass
                     type: string
                   token:
                     description: Token repository Access Token
@@ -4279,6 +4303,8 @@ spec:
             description: Status - Repository Status
             properties:
               commit:
+                type: string
+              lastAppliedSummary:
                 type: string
               name:
                 type: string

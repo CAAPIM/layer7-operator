@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 )
 
@@ -142,7 +141,6 @@ func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
 	destBundle.TrustedCerts = append(destBundle.TrustedCerts, srcBundle.TrustedCerts...)
 	destBundle.WebApiServices = append(destBundle.WebApiServices, srcBundle.WebApiServices...)
 
-	// copy(destBundle..., srcBundle...)
 	bundleBytes, err := json.Marshal(destBundle)
 	if err != nil {
 		return nil, err
@@ -471,14 +469,14 @@ func implodeBundle(path string) (Bundle, error) {
 }
 
 // Not used - reserved for future use
-func parseEntities(bundle Bundle) {
-	v := reflect.ValueOf(bundle)
-	typeOfS := v.Type()
+// func parseEntities(bundle Bundle) {
+// 	v := reflect.ValueOf(bundle)
+// 	typeOfS := v.Type()
 
-	for i := 0; i < v.NumField(); i++ {
-		fmt.Printf("%s %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
-	}
-}
+// 	for i := 0; i < v.NumField(); i++ {
+// 		fmt.Printf("%s %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
+// 	}
+// }
 
 func CheckApplyErrors(bundle Bundle, resp *applyBundleResponse) error {
 	var bundleApplyErrors BundleApplyErrors

@@ -18,6 +18,14 @@ import (
 func syncRepository(ctx context.Context, params Params) error {
 	repository, err := getRepository(ctx, params)
 	var commit string
+	var username string
+	var token string
+	var repositorySecret *corev1.Secret
+	var sshKey []byte
+	var sshKeyPass string
+	var knownHosts []byte
+	//authType := "none"
+	authType := securityv1.RepositoryAuthTypeNone
 	if err != nil {
 		params.Log.Info("repository unavailable", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
 		_ = s.RemoveByTag(params.Instance.Name + "-sync-repository")
@@ -32,19 +40,34 @@ func syncRepository(ctx context.Context, params Params) error {
 		return nil
 	}
 
-	rSecret, err := getSecret(ctx, repository, params)
+	if repository.Spec.Auth != (securityv1.RepositoryAuth{}) {
 
-	if err != nil {
-		params.Log.Info("secret unavailable", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
-		return nil
+		repositorySecret, err = getSecret(ctx, repository, params)
+
+		if err != nil {
+			params.Log.Info("secret unavailable", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+			return nil
+		}
+
+		token = string(repositorySecret.Data["TOKEN"])
+		if token == "" {
+			token = string(repositorySecret.Data["PASSWORD"])
+		}
+
+		username = string(repositorySecret.Data["USERNAME"])
+		sshKey = repositorySecret.Data["SSH_KEY"]
+		sshKeyPass = string(repositorySecret.Data["SSH_KEY_PASS"])
+		knownHosts = repositorySecret.Data["KNOWN_HOSTS"]
+		authType = repository.Spec.Auth.Type
+
+		if authType == "" && username != "" && token != "" {
+			authType = securityv1.RepositoryAuthTypeBasic
+		}
+
+		if authType == "" && username == "" && sshKey != nil {
+			authType = securityv1.RepositoryAuthTypeSSH
+		}
 	}
-
-	token := string(rSecret.Data["TOKEN"])
-	if token == "" {
-		token = string(rSecret.Data["PASSWORD"])
-	}
-
-	username := string(rSecret.Data["USERNAME"])
 
 	ext := repository.Spec.Branch
 	if ext == "" {
@@ -86,7 +109,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		storageSecretName = repository.Name + "-repository-" + folderName
 	case "git":
 	default:
-		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor)
+		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			return nil

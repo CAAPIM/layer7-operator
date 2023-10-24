@@ -12,6 +12,13 @@ spec:
     kind: Gateway
     listKind: GatewayList
     plural: gateways
+    shortNames:
+    - gws
+    - gw
+    - l7gw
+    - l7gws
+    - l7gateway
+    - l7gateways
     singular: gateway
   scope: Namespaced
   versions:

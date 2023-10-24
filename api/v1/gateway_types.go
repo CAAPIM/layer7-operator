@@ -39,6 +39,7 @@ type GatewaySpec struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=gws;gw;l7gw;l7gws;l7gateway;l7gateways
 
 // Gateway is the Schema for the Gateways API
 type Gateway struct {

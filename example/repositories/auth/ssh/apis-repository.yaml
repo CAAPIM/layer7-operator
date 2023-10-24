@@ -1,0 +1,13 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Repository
+metadata:
+  name: l7-gw-myapis
+spec:
+  name: l7-gw-myapis
+  enabled: true
+  endpoint: ssh://git@[yourgitserver.com]/[username]/[reponame]
+  #endpoint: ssh://git@[yourgitserver.com]:[port]/[username]/[reponame]
+  branch: main
+  auth:
+    type: ssh
+    existingSecretName: myapis-sshkey

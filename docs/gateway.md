@@ -135,7 +135,7 @@ App contains Gateway specific deployment and application level configuration
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
-          Annotations for Gateway Pods<br/>
+          Annotations for the Gateway Deployment<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -307,6 +307,13 @@ App contains Gateway specific deployment and application level configuration
         <td>object</td>
         <td>
           PodDisruptionBudgetSpec<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>podAnnotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          PodAnnotations for Gateway Pods<br/>
         </td>
         <td>false</td>
       </tr><tr>

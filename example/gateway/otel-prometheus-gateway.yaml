@@ -8,7 +8,7 @@ spec:
     accept: true
     secretName: gateway-license
   app:
-    annotations:
+    podAnnotations:
       sidecar.opentelemetry.io/inject: "ssg"
       instrumentation.opentelemetry.io/inject-java: "true"
       instrumentation.opentelemetry.io/container-names: "gateway"

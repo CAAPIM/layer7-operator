@@ -211,12 +211,12 @@ This integration uses the background metrics processing task to capture Gateway 
 
 
 ### Gateway Application Configuration
-The Gateway requires OTel specific annotations that inject a Collector Sidecar into the Gateway deployment 
+The Gateway requires OTel specific pod annotations that inject a Collector Sidecar into the Gateway deployment 
 
-- Annotations
+- Pod Annotations
 ```
   app:
-    annotations:
+    podAnnotations:
       sidecar.opentelemetry.io/inject: "ssg-eck" <== this injects the OpenTelemetryCollector sidecar
       instrumentation.opentelemetry.io/inject-java: "true" <== this loads the OpenTelemetry Java agent onto the Gateway
       instrumentation.opentelemetry.io/container-names: "gateway" <== this defines which container the Java Agent is loaded onto

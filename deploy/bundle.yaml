@@ -515,7 +515,7 @@ spec:
                   annotations:
                     additionalProperties:
                       type: string
-                    description: Annotations for Gateway Pods
+                    description: Annotations for the Gateway Deployment
                     type: object
                   autoscaling:
                     description: Autoscaling configuration for the Gateway
@@ -2579,6 +2579,11 @@ spec:
                         - type: integer
                         - type: string
                         x-kubernetes-int-or-string: true
+                    type: object
+                  podAnnotations:
+                    additionalProperties:
+                      type: string
+                    description: PodAnnotations for Gateway Pods
                     type: object
                   podSecurityContext:
                     description: PodSecurityContext holds pod-level security attributes and common container settings. Some fields are also present in container.securityContext.  Field values of container.securityContext take precedence over field values of PodSecurityContext.

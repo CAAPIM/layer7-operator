@@ -576,7 +576,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			ProgressDeadlineSeconds: &progressDeadlineSeconds,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: gw.Spec.App.Annotations,
+					Annotations: gw.Spec.App.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            gw.Spec.App.ServiceAccountName,
@@ -589,12 +589,15 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 					Affinity:                      &gw.Spec.App.Affinity,
 					NodeSelector:                  gw.Spec.App.NodeSelector,
 					SchedulerName:                 "default-scheduler",
-					//InitContainers:                initContainers,
-					Containers: containers,
-					Volumes:    volumes,
+					Containers:                    containers,
+					Volumes:                       volumes,
 				},
 			},
 		},
+	}
+
+	if len(gw.Spec.App.Annotations) != 0 {
+		dep.ObjectMeta.Annotations = gw.Spec.App.Annotations
 	}
 
 	if len(initContainers) > 0 {

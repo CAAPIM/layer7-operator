@@ -135,8 +135,10 @@ type License struct {
 
 // App contains Gateway specific deployment and application level configuration
 type App struct {
-	// Annotations for Gateway Pods
+	// Annotations for the Gateway Deployment
 	Annotations map[string]string `json:"annotations,omitempty"`
+	// PodAnnotations for Gateway Pods
+	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
 	// Labels for the Gateway Deployment
 	Labels            map[string]string `json:"labels,omitempty"`
 	ClusterProperties ClusterProperties `json:"cwp,omitempty"`

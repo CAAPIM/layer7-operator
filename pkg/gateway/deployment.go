@@ -97,8 +97,15 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			},
 		}
 		for _, port := range gw.Spec.App.PreStopScript.ExcludedPorts {
-			lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, strconv.Itoa(port))
+			// ignore 2124 and 8777 as they are manually set
+			if port != 2124 && port != 8777 {
+				lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, strconv.Itoa(port))
+			}
 		}
+
+		lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, "2124")
+		lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, "8777")
+
 		terminationGracePeriodSeconds = int64(gw.Spec.App.PreStopScript.TimeoutSeconds) + 30
 	}
 
@@ -282,23 +289,11 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/" + baseFolder,
 			})
 
-			if gw.Spec.App.Bundle[v].ConfigMap.DefaultMode != nil {
-				defaultMode = *gw.Spec.App.Bundle[v].ConfigMap.DefaultMode
-			}
-
 			vs := corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.Bundle[v].Name},
 				DefaultMode:          &defaultMode,
 				Optional:             &optional,
 			}}
-
-			if gw.Spec.App.Bundle[v].ConfigMap != (securityv1.ConfigMap{}) {
-				vs = corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.Bundle[v].Name},
-					DefaultMode:          &defaultMode,
-					Optional:             &gw.Spec.App.Bundle[v].ConfigMap.Optional,
-				}}
-			}
 
 			volumes = append(volumes, corev1.Volume{
 				Name:         gw.Spec.App.Bundle[v].Name,

@@ -48,16 +48,25 @@ func GatewayStatus(ctx context.Context, params Params) error {
 
 		commit := repository.Status.Commit
 
-		gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, securityv1.GatewayRepositoryStatus{
+		newRepoStatus := securityv1.GatewayRepositoryStatus{
 			Commit:            commit,
 			Enabled:           repoRef.Enabled,
 			Name:              repoRef.Name,
 			Type:              repoRef.Type,
 			SecretName:        secretName,
 			StorageSecretName: repository.Status.StorageSecretName,
-			Branch:            repository.Spec.Branch,
 			Endpoint:          repository.Spec.Endpoint,
-		})
+		}
+
+		if repository.Spec.Tag != "" && repository.Spec.Branch == "" {
+			newRepoStatus.Tag = repository.Spec.Tag
+		}
+
+		if repository.Spec.Branch != "" {
+			newRepoStatus.Branch = repository.Spec.Branch
+		}
+
+		gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, newRepoStatus)
 	}
 
 	gatewayStatus.Conditions = dep.Status.Conditions

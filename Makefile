@@ -337,6 +337,12 @@ version:
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/bundle/kustomization.yaml
 
+generate-docs:
+	crdoc --resources config/crd/bases/security.brcmlabs.com_gateways.yaml --output docs/gateway.md
+	crdoc --resources config/crd/bases/security.brcmlabs.com_repositories.yaml --output docs/repository.md
+	crdoc --resources config/crd/bases/security.brcmlabs.com_l7portals.yaml --output docs/l7portals.md
+	crdoc --resources config/crd/bases/security.brcmlabs.com_l7apis.yaml --output docs/l7apis.md
+
 helmify:
 #$(call go-get-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify@v0.3.7)
 	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@v0.3.7

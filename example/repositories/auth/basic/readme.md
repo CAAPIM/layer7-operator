@@ -7,7 +7,7 @@ While credentials can be provided in [plaintext](./apis-repository-plaintext-aut
 The default in [kustomization.yaml](./kustomization.yaml) uses an existing secret that is created from [repository-secret.env](./repository-secret.env).
 
 ## Using this folder as a starting point
-1. Update [repository-secret.env] with your git username and personal access token
+1. Update [repository-secret.env](./repository-secret.env) with your git username and personal access token
 2. Update the endpoint, names and branch in [apis-repository.yaml](./apis-repository.yaml)
 ```
 apiVersion: security.brcmlabs.com/v1

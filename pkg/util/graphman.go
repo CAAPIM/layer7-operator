@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 
@@ -288,13 +287,16 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
+				/// TODO: add a staging variable to avoid losing the bundle if there's a non graphman bundle file
 				bundleBytes, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 				if err != nil {
 					return nil, err
 				}
-			} else {
-				return nil, fmt.Errorf("file extension .%s for %s not a supported graphman format", ext, f.Name())
 			}
+			// else {
+
+			// 	return nil, fmt.Errorf("file extension .%s for %s not a supported graphman format", ext, f.Name())
+			// }
 		}
 	}
 	r := bytes.NewReader(bundleBytes)

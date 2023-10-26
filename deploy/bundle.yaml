@@ -24,7 +24,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Gateway is the Schema for the Gateways API
+        description: Gateway is the Schema for the Gateway Custom Resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -978,7 +978,7 @@ spec:
                       type: object
                     type: array
                   containerSecurityContext:
-                    description: Monitoring                Monitoring                        `json:"monitoring,omitempty"`
+                    description: SecurityContext holds security configuration that will be applied to a container. Some fields are present in both SecurityContext and PodSecurityContext.  When both are set, the values in SecurityContext take precedence.
                     properties:
                       allowPrivilegeEscalation:
                         description: 'AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.'
@@ -2522,14 +2522,53 @@ spec:
                       service:
                         description: Service is the Gateway Management Service
                         properties:
+                          allocateLoadBalancerNodePorts:
+                            type: boolean
                           annotations:
                             additionalProperties:
                               type: string
                             description: Annotations for the service
                             type: object
+                          clusterIP:
+                            type: string
+                          clusterIPs:
+                            items:
+                              type: string
+                            type: array
                           enabled:
                             description: Enabled or disabled
                             type: boolean
+                          externalIPs:
+                            items:
+                              type: string
+                            type: array
+                          externalName:
+                            type: string
+                          externalTrafficPolicy:
+                            description: ServiceExternalTrafficPolicy describes how nodes distribute service traffic they receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer IPs.
+                            type: string
+                          healthCheckNodePort:
+                            format: int32
+                            type: integer
+                          internalTrafficPolicy:
+                            description: ServiceInternalTrafficPolicy describes how nodes distribute service traffic they receive on the ClusterIP.
+                            type: string
+                          ipFamilies:
+                            items:
+                              description: IPFamily represents the IP Family (IPv4 or IPv6). This type is used to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                              type: string
+                            type: array
+                          ipFamilyPolicy:
+                            description: IPFamilyPolicy represents the dual-stack-ness requested or required by a Service
+                            type: string
+                          loadBalancerClass:
+                            type: string
+                          loadBalancerIP:
+                            type: string
+                          loadBalancerSourceRanges:
+                            items:
+                              type: string
+                            type: array
                           ports:
                             description: Ports exposed by the Service These are appended to the Gateway deployment containerPorts
                             items:
@@ -2551,6 +2590,21 @@ spec:
                                   type: integer
                               type: object
                             type: array
+                          sessionAffinity:
+                            description: Session Affinity Type string
+                            type: string
+                          sessionAffinityConfig:
+                            description: SessionAffinityConfig represents the configurations of session affinity.
+                            properties:
+                              clientIP:
+                                description: clientIP contains the configurations of Client IP based session affinity.
+                                properties:
+                                  timeoutSeconds:
+                                    description: timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP". Default value is 10800(for 3 hours).
+                                    format: int32
+                                    type: integer
+                                type: object
+                            type: object
                           type:
                             description: Type ClusterIP, NodePort, LoadBalancer
                             type: string
@@ -2903,14 +2957,53 @@ spec:
                   service:
                     description: Service
                     properties:
+                      allocateLoadBalancerNodePorts:
+                        type: boolean
                       annotations:
                         additionalProperties:
                           type: string
                         description: Annotations for the service
                         type: object
+                      clusterIP:
+                        type: string
+                      clusterIPs:
+                        items:
+                          type: string
+                        type: array
                       enabled:
                         description: Enabled or disabled
                         type: boolean
+                      externalIPs:
+                        items:
+                          type: string
+                        type: array
+                      externalName:
+                        type: string
+                      externalTrafficPolicy:
+                        description: ServiceExternalTrafficPolicy describes how nodes distribute service traffic they receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer IPs.
+                        type: string
+                      healthCheckNodePort:
+                        format: int32
+                        type: integer
+                      internalTrafficPolicy:
+                        description: ServiceInternalTrafficPolicy describes how nodes distribute service traffic they receive on the ClusterIP.
+                        type: string
+                      ipFamilies:
+                        items:
+                          description: IPFamily represents the IP Family (IPv4 or IPv6). This type is used to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        description: IPFamilyPolicy represents the dual-stack-ness requested or required by a Service
+                        type: string
+                      loadBalancerClass:
+                        type: string
+                      loadBalancerIP:
+                        type: string
+                      loadBalancerSourceRanges:
+                        items:
+                          type: string
+                        type: array
                       ports:
                         description: Ports exposed by the Service These are appended to the Gateway deployment containerPorts
                         items:
@@ -2932,6 +3025,21 @@ spec:
                               type: integer
                           type: object
                         type: array
+                      sessionAffinity:
+                        description: Session Affinity Type string
+                        type: string
+                      sessionAffinityConfig:
+                        description: SessionAffinityConfig represents the configurations of session affinity.
+                        properties:
+                          clientIP:
+                            description: clientIP contains the configurations of Client IP based session affinity.
+                            properties:
+                              timeoutSeconds:
+                                description: timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP". Default value is 10800(for 3 hours).
+                                format: int32
+                                type: integer
+                            type: object
+                        type: object
                       type:
                         description: Type ClusterIP, NodePort, LoadBalancer
                         type: string
@@ -3899,7 +4007,7 @@ spec:
                 type: string
             type: object
           status:
-            description: GatewayStatus defines the observed state of Gateway
+            description: GatewayStatus defines the observed state of Gateways
             properties:
               PortalSyncStatus:
                 description: PortalSyncStatus tracks the status of which portals are synced with a gateway.

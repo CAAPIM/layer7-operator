@@ -39,7 +39,7 @@ type GatewaySpec struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=gws;gw;l7gw;l7gws;l7gateway;l7gateways
 
-// Gateway is the Schema for the Gateways API
+// Gateway is the Schema for the Gateway Custom Resource
 type Gateway struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -50,14 +50,14 @@ type Gateway struct {
 
 //+kubebuilder:object:root=true
 
-// GatewayList contains a list of Gateway
+// GatewayList contains a list of Gateways
 type GatewayList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Gateway `json:"items"`
 }
 
-// GatewayStatus defines the observed state of Gateway
+// GatewayStatus defines the observed state of Gateways
 type GatewayStatus struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=status
 	// Host is the Gateway Cluster Hostname
@@ -174,10 +174,9 @@ type App struct {
 	Resources                       PodResources          `json:"resources,omitempty"`
 	Autoscaling                     Autoscaling           `json:"autoscaling,omitempty"`
 	// ServiceAccountName to use for the Gateway Deployment
-	ServiceAccountName string    `json:"serviceAccountName,omitempty"`
-	Hazelcast          Hazelcast `json:"hazelcast,omitempty"`
-	Bootstrap          Bootstrap `json:"bootstrap,omitempty"`
-	//Monitoring                Monitoring                        `json:"monitoring,omitempty"`
+	ServiceAccountName        string                            `json:"serviceAccountName,omitempty"`
+	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
+	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
 	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
 	PodSecurityContext        corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
 	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
@@ -261,7 +260,22 @@ type Service struct {
 	Type corev1.ServiceType `json:"type,omitempty"`
 	// Ports exposed by the Service
 	// These are appended to the Gateway deployment containerPorts
-	Ports []Ports `json:"ports,omitempty"`
+	Ports                         []Ports                             `json:"ports,omitempty"`
+	ClusterIP                     string                              `json:"clusterIP,omitempty"`
+	ClusterIPs                    []string                            `json:"clusterIPs,omitempty"`
+	ExternalIPs                   []string                            `json:"externalIPs,omitempty"`
+	SessionAffinity               corev1.ServiceAffinity              `json:"sessionAffinity,omitempty"`
+	LoadBalancerIP                string                              `json:"loadBalancerIP,omitempty"`
+	LoadBalancerSourceRanges      []string                            `json:"loadBalancerSourceRanges,omitempty"`
+	ExternalName                  string                              `json:"externalName,omitempty"`
+	ExternalTrafficPolicy         corev1.ServiceExternalTrafficPolicy `json:"externalTrafficPolicy,omitempty"`
+	HealthCheckNodePort           int32                               `json:"healthCheckNodePort,omitempty"`
+	SessionAffinityConfig         corev1.SessionAffinityConfig        `json:"sessionAffinityConfig,omitempty"`
+	IPFamilies                    []corev1.IPFamily                   `json:"ipFamilies,omitempty"`
+	IPFamilyPolicy                corev1.IPFamilyPolicy               `json:"ipFamilyPolicy,omitempty"`
+	AllocateLoadBalancerNodePorts *bool                               `json:"allocateLoadBalancerNodePorts,omitempty"`
+	LoadBalancerClass             string                              `json:"loadBalancerClass,omitempty"`
+	InternalTrafficPolicy         corev1.ServiceInternalTrafficPolicy `json:"internalTrafficPolicy,omitempty"`
 }
 
 // Ports

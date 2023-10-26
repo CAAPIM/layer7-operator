@@ -21,7 +21,7 @@ Resource Types:
 
 
 
-Gateway is the Schema for the Gateways API
+Gateway is the Schema for the Gateway Custom Resource
 
 <table>
     <thead>
@@ -60,7 +60,7 @@ Gateway is the Schema for the Gateways API
         <td><b><a href="#gatewaystatus">status</a></b></td>
         <td>object</td>
         <td>
-          GatewayStatus defines the observed state of Gateway<br/>
+          GatewayStatus defines the observed state of Gateways<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -163,7 +163,7 @@ App contains Gateway specific deployment and application level configuration
         <td><b><a href="#gatewayspecappcontainersecuritycontext">containerSecurityContext</a></b></td>
         <td>object</td>
         <td>
-          Monitoring                Monitoring                        `json:"monitoring,omitempty"`<br/>
+          SecurityContext holds security configuration that will be applied to a container. Some fields are present in both SecurityContext and PodSecurityContext.  When both are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3080,7 +3080,7 @@ VolumeAtttributes
 
 
 
-Monitoring                Monitoring                        `json:"monitoring,omitempty"`
+SecurityContext holds security configuration that will be applied to a container. Some fields are present in both SecurityContext and PodSecurityContext.  When both are set, the values in SecurityContext take precedence.
 
 <table>
     <thead>
@@ -7713,10 +7713,31 @@ Service is the Gateway Management Service
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>allocateLoadBalancerNodePorts</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
           Annotations for the service<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clusterIP</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clusterIPs</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7727,10 +7748,96 @@ Service is the Gateway Management Service
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>externalIPs</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>externalName</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>externalTrafficPolicy</b></td>
+        <td>string</td>
+        <td>
+          ServiceExternalTrafficPolicy describes how nodes distribute service traffic they receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer IPs.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>healthCheckNodePort</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>internalTrafficPolicy</b></td>
+        <td>string</td>
+        <td>
+          ServiceInternalTrafficPolicy describes how nodes distribute service traffic they receive on the ClusterIP.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ipFamilies</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ipFamilyPolicy</b></td>
+        <td>string</td>
+        <td>
+          IPFamilyPolicy represents the dual-stack-ness requested or required by a Service<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loadBalancerClass</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loadBalancerIP</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loadBalancerSourceRanges</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappmanagementserviceportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
           Ports exposed by the Service These are appended to the Gateway deployment containerPorts<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sessionAffinity</b></td>
+        <td>string</td>
+        <td>
+          Session Affinity Type string<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementservicesessionaffinityconfig">sessionAffinityConfig</a></b></td>
+        <td>object</td>
+        <td>
+          SessionAffinityConfig represents the configurations of session affinity.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7788,6 +7895,62 @@ Ports
         <td>integer</td>
         <td>
           TargetPort on the Gateway Application<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.service.sessionAffinityConfig
+<sup><sup>[↩ Parent](#gatewayspecappmanagementservice)</sup></sup>
+
+
+
+SessionAffinityConfig represents the configurations of session affinity.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappmanagementservicesessionaffinityconfigclientip">clientIP</a></b></td>
+        <td>object</td>
+        <td>
+          clientIP contains the configurations of Client IP based session affinity.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.service.sessionAffinityConfig.clientIP
+<sup><sup>[↩ Parent](#gatewayspecappmanagementservicesessionaffinityconfig)</sup></sup>
+
+
+
+clientIP contains the configurations of Client IP based session affinity.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>timeoutSeconds</b></td>
+        <td>integer</td>
+        <td>
+          timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP". Default value is 10800(for 3 hours).<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -8789,10 +8952,31 @@ Service
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>allocateLoadBalancerNodePorts</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
           Annotations for the service<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clusterIP</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clusterIPs</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8803,10 +8987,96 @@ Service
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>externalIPs</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>externalName</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>externalTrafficPolicy</b></td>
+        <td>string</td>
+        <td>
+          ServiceExternalTrafficPolicy describes how nodes distribute service traffic they receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer IPs.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>healthCheckNodePort</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>internalTrafficPolicy</b></td>
+        <td>string</td>
+        <td>
+          ServiceInternalTrafficPolicy describes how nodes distribute service traffic they receive on the ClusterIP.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ipFamilies</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ipFamilyPolicy</b></td>
+        <td>string</td>
+        <td>
+          IPFamilyPolicy represents the dual-stack-ness requested or required by a Service<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loadBalancerClass</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loadBalancerIP</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loadBalancerSourceRanges</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappserviceportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
           Ports exposed by the Service These are appended to the Gateway deployment containerPorts<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sessionAffinity</b></td>
+        <td>string</td>
+        <td>
+          Session Affinity Type string<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappservicesessionaffinityconfig">sessionAffinityConfig</a></b></td>
+        <td>object</td>
+        <td>
+          SessionAffinityConfig represents the configurations of session affinity.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8864,6 +9134,62 @@ Ports
         <td>integer</td>
         <td>
           TargetPort on the Gateway Application<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.service.sessionAffinityConfig
+<sup><sup>[↩ Parent](#gatewayspecappservice)</sup></sup>
+
+
+
+SessionAffinityConfig represents the configurations of session affinity.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappservicesessionaffinityconfigclientip">clientIP</a></b></td>
+        <td>object</td>
+        <td>
+          clientIP contains the configurations of Client IP based session affinity.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.service.sessionAffinityConfig.clientIP
+<sup><sup>[↩ Parent](#gatewayspecappservicesessionaffinityconfig)</sup></sup>
+
+
+
+clientIP contains the configurations of Client IP based session affinity.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>timeoutSeconds</b></td>
+        <td>integer</td>
+        <td>
+          timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP". Default value is 10800(for 3 hours).<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -11576,7 +11902,7 @@ License is reference to a Kubernetes Secret Containing a Gateway v10/11.x licens
 
 
 
-GatewayStatus defines the observed state of Gateway
+GatewayStatus defines the observed state of Gateways
 
 <table>
     <thead>

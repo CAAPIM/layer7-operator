@@ -139,6 +139,13 @@ App contains Gateway specific deployment and application level configuration
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>autoMountServiceAccountToken</b></td>
+        <td>boolean</td>
+        <td>
+          AutoMountServiceAccountToken optionally adds the Gateway Container's Kubernetes Service Account Token to Stored Passwords<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappautoscaling">autoscaling</a></b></td>
         <td>object</td>
         <td>
@@ -171,6 +178,13 @@ App contains Gateway specific deployment and application level configuration
         <td>object</td>
         <td>
           CustomConfig Certain folders on the Container Gateway are not writeable by design. This configuration allows you to mount existing configMap/Secret keys to specific paths on the Gateway without the need for a root user or a custom/derived image.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappcustomhosts">customHosts</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -289,6 +303,13 @@ App contains Gateway specific deployment and application level configuration
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecapplog">log</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappmanagement">management</a></b></td>
         <td>object</td>
         <td>
@@ -382,10 +403,10 @@ App contains Gateway specific deployment and application level configuration
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>serviceAccountName</b></td>
-        <td>string</td>
+        <td><b><a href="#gatewayspecappserviceaccount">serviceAccount</a></b></td>
+        <td>object</td>
         <td>
-          ServiceAccountName to use for the Gateway Deployment<br/>
+          ServiceAccount to use for the Gateway Deployment<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3492,6 +3513,74 @@ ConfigRefItem is the key in the secret or configmap to mount, path is where it s
         <td>string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.customHosts
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappcustomhostshostaliasesindex">hostAliases</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.customHosts.hostAliases[index]
+<sup><sup>[↩ Parent](#gatewayspecappcustomhosts)</sup></sup>
+
+
+
+HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the pod's hosts file.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>hostnames</b></td>
+        <td>[]string</td>
+        <td>
+          Hostnames for the above IP address.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ip</b></td>
+        <td>string</td>
+        <td>
+          IP address of the host file entry.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7470,6 +7559,40 @@ TCPSocket specifies an action involving a TCP port.
 </table>
 
 
+### Gateway.spec.app.log
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>override</b></td>
+        <td>boolean</td>
+        <td>
+          Override default log properties<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>properties</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.management
 <sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
 
@@ -7602,7 +7725,7 @@ Database configuration for the Gateway
         <td>
           Enabled or disabled<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr><tr>
         <td><b>jdbcUrl</b></td>
         <td>string</td>
@@ -9192,6 +9315,40 @@ clientIP contains the configurations of Client IP based session affinity.
           timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP". Default value is 10800(for 3 hours).<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.serviceAccount
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+ServiceAccount to use for the Gateway Deployment
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>create</b></td>
+        <td>boolean</td>
+        <td>
+          Create a service account for the Gateway Deployment<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>

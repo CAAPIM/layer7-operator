@@ -15,7 +15,9 @@ spec:
     replicas: 1
     image: docker.io/layer7api/gateway:11.0.00_COMBINED
     imagePullPolicy: IfNotPresent
-    #serviceAccountName: ssg-serviceaccount
+    # serviceAccount:
+    #   create: true
+    #   name: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:

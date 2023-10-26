@@ -517,6 +517,9 @@ spec:
                       type: string
                     description: Annotations for the Gateway Deployment
                     type: object
+                  autoMountServiceAccountToken:
+                    description: AutoMountServiceAccountToken optionally adds the Gateway Container's Kubernetes Service Account Token to Stored Passwords
+                    type: boolean
                   autoscaling:
                     description: Autoscaling configuration for the Gateway
                     properties:
@@ -1100,6 +1103,26 @@ spec:
                               type: object
                             subPath:
                               description: SubPath is the file name
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  customHosts:
+                    properties:
+                      enabled:
+                        description: Enabled or disabled
+                        type: boolean
+                      hostAliases:
+                        items:
+                          description: HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the pod's hosts file.
+                          properties:
+                            hostnames:
+                              description: Hostnames for the above IP address.
+                              items:
+                                type: string
+                              type: array
+                            ip:
+                              description: IP address of the host file entry.
                               type: string
                           type: object
                         type: array
@@ -2462,6 +2485,14 @@ spec:
                         format: int32
                         type: integer
                     type: object
+                  log:
+                    properties:
+                      override:
+                        description: Override default log properties
+                        type: boolean
+                      properties:
+                        type: string
+                    type: object
                   management:
                     description: Management defines configuration for Gateway Managment.
                     properties:
@@ -2490,8 +2521,6 @@ spec:
                           username:
                             description: Username MySQL - can be set in management.secretName
                             type: string
-                        required:
-                        - enabled
                         type: object
                       graphman:
                         description: Graphman is a GraphQL Gateway Management interface that can be automatically provisioned. The initContainer image is required for bootstrapping graphman bundles defined by the repository controller.
@@ -3044,9 +3073,15 @@ spec:
                         description: Type ClusterIP, NodePort, LoadBalancer
                         type: string
                     type: object
-                  serviceAccountName:
-                    description: ServiceAccountName to use for the Gateway Deployment
-                    type: string
+                  serviceAccount:
+                    description: ServiceAccount to use for the Gateway Deployment
+                    properties:
+                      create:
+                        description: Create a service account for the Gateway Deployment
+                        type: boolean
+                      name:
+                        type: string
+                    type: object
                   sidecars:
                     items:
                       description: A single application container that you want to run within a pod.

@@ -144,8 +144,11 @@ type App struct {
 	ClusterProperties ClusterProperties `json:"cwp,omitempty"`
 	Java              Java              `json:"java,omitempty"`
 	Management        Management        `json:"management,omitempty"`
+	Log               Log               `json:"log,omitempty"`
 	System            System            `json:"system,omitempty"`
-	UpdateStrategy    UpdateStrategy    `json:"updateStrategy,omitempty"`
+	// AutoMountServiceAccountToken optionally adds the Gateway Container's Kubernetes Service Account Token to Stored Passwords
+	AutoMountServiceAccountToken bool           `json:"autoMountServiceAccountToken,omitempty"`
+	UpdateStrategy               UpdateStrategy `json:"updateStrategy,omitempty"`
 	// Image is the Gateway image
 	Image            string                        `json:"image,omitempty"`
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
@@ -173,8 +176,8 @@ type App struct {
 	InitContainers                  []corev1.Container    `json:"initContainers,omitempty"`
 	Resources                       PodResources          `json:"resources,omitempty"`
 	Autoscaling                     Autoscaling           `json:"autoscaling,omitempty"`
-	// ServiceAccountName to use for the Gateway Deployment
-	ServiceAccountName        string                            `json:"serviceAccountName,omitempty"`
+	// ServiceAccount to use for the Gateway Deployment
+	ServiceAccount            ServiceAccount                    `json:"serviceAccount,omitempty"`
 	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
 	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
 	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
@@ -193,6 +196,20 @@ type App struct {
 	TerminationGracePeriodSeconds int64            `json:"terminationGracePeriodSeconds,omitempty"`
 	LifecycleHooks                corev1.Lifecycle `json:"lifecycleHooks,omitempty"`
 	PreStopScript                 PreStopScript    `json:"preStopScript,omitempty"`
+	CustomHosts                   CustomHosts      `json:"customHosts,omitempty"`
+}
+
+type ServiceAccount struct {
+	// Create a service account for the Gateway Deployment
+	Create bool `json:"create,omitempty"`
+	// Name of the service account
+	Name string `json:"name,omitempty"`
+}
+
+type CustomHosts struct {
+	// Enabled or disabled
+	Enabled     bool               `json:"enabled,omitempty"`
+	HostAliases []corev1.HostAlias `json:"hostAliases,omitempty"`
 }
 
 // Management defines configuration for Gateway Managment.
@@ -213,6 +230,12 @@ type Management struct {
 	Service Service `json:"service,omitempty"`
 }
 
+type Log struct {
+	// Override default log properties
+	Override   bool   `json:"override,omitempty"`
+	Properties string `json:"properties,omitempty"`
+}
+
 // Cluster is gateway cluster configuration
 type Cluster struct {
 	// Password is the Gateway Cluster Passphrase
@@ -224,7 +247,7 @@ type Cluster struct {
 // Database configuration for the Gateway
 type Database struct {
 	// Enabled or disabled
-	Enabled bool `json:"enabled"`
+	Enabled bool `json:"enabled,omitempty"`
 	// JDBCUrl for the Gateway
 	JDBCUrl string `json:"jdbcUrl,omitempty"`
 	// Username MySQL - can be set in management.secretName

@@ -13,7 +13,9 @@ spec:
     # imagePullSecrets:
     # - name: my-reg-cred
     imagePullPolicy: IfNotPresent
-    serviceAccountName: ssg-serviceaccount
+    serviceAccount:
+      create: true
+      name: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:

@@ -6,15 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/caapim/layer7-operator/internal/graphman"
 )
 
 var ErrInvalidFileFormatError = errors.New("InvalidFileFormat")
-var ErrInvalidArchive = errors.New("InvalidArchive")
+var ErrInvalidTarArchive = errors.New("InvalidTarArchive")
+var ErrInvalidZipArchive = errors.New("InvalidZipArchive")
 
 // Download Artifact retrieves a compressed Graphman Bundle from an HTTP URL
 // This is currently limited to URLs that contain the file extension as would be the
@@ -92,7 +95,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 		defer f.Close()
 		err = Unzip(fileName, folderName)
 		if err != nil {
-			return "", ErrInvalidArchive
+			return "", ErrInvalidZipArchive
 		}
 	case "gz":
 		gz := false
@@ -108,7 +111,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 
 		err := Untar(folderName, name, f, gz)
 		if err != nil {
-			return "", ErrInvalidArchive
+			return "", ErrInvalidTarArchive
 		}
 	case "tar":
 		gz := false
@@ -118,7 +121,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 
 		err := Untar(folderName, name, f, gz)
 		if err != nil {
-			return "", ErrInvalidArchive
+			return "", ErrInvalidTarArchive
 		}
 	case "json":
 		fileName = name + "-" + segments[len(segments)-1]
@@ -186,28 +189,31 @@ func validateGraphmanBundle(fileName string, folderName string, repoName string)
 		return err
 	}
 
-	if len(bundleBytes) <= 2 {
-		files, err := os.ReadDir(folderName)
+	err = filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-
-		for _, f := range files {
-			segments := strings.Split(f.Name(), ".")
+		if !d.IsDir() {
+			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" {
 				sbb := bundleBytes
-				srcBundleBytes, err := os.ReadFile(folderName + "/" + f.Name())
+				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
 					return err
 				}
-				bundleBytes, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				sbb, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 				if err != nil {
-					continue
+					return nil
 				}
 				bundleBytes = sbb
 			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
 	if len(bundleBytes) <= 2 {

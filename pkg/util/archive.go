@@ -27,6 +27,10 @@ func Unzip(src string, dest string) error {
 
 	for _, f := range r.File {
 
+		if strings.Contains(f.Name, "__MACOSX") || strings.Contains(f.Name, "._") || strings.Contains(f.Name, "._") || strings.Contains(f.Name, "./._") || strings.Contains(f.Name, "/._") {
+			continue
+		}
+
 		// Store filename/path for returning and using later on
 		fpath := filepath.Join(dest, f.Name)
 

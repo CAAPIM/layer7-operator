@@ -225,7 +225,7 @@ func ApplyDynamicBundle(username string, password string, target string, encpass
 	return respBytes, nil
 }
 
-// parseEntities determines which entity the file from a Graphman directory belongs to
+// parseEntity determines which entity the file from a Graphman directory belongs to
 // this works with a static list of globally defined entities
 func parseEntity(path string) (string, bool) {
 	for _, e := range entities {
@@ -237,7 +237,7 @@ func parseEntity(path string) (string, bool) {
 	return "", false
 }
 
-// Read bundle unmarshals a JSON file in the specified Graphman directory into the working Bundle object.
+// readBundle unmarshals a JSON file in the specified Graphman directory into the working Bundle object.
 func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) {
 	f, _ := os.ReadFile(file)
 	switch entityType {

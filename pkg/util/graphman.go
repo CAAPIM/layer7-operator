@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
@@ -273,36 +275,39 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	if len(bundleBytes) <= 2 {
-		files, err := os.ReadDir(path)
+	_ = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		for _, f := range files {
-			segments := strings.Split(f.Name(), ".")
+		if !d.IsDir() {
+			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
-			if ext == "json" {
+			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") {
 				sbb := bundleBytes
-				srcBundleBytes, err := os.ReadFile(path + "/" + f.Name())
+				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
-					return nil, err
+					return err
 				}
-				// if there is an error with concat, skip to the next file.
 				sbb, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 				if err != nil {
-					continue
+					return nil
 				}
 				bundleBytes = sbb
 			}
+		}
+		return nil
+	})
 
-		}
-		// if the bundle is still empty after parsing all of the directory files
-		// return an error
-		if len(bundleBytes) <= 2 {
-			return nil, errors.New("no valid graphman bundles were found")
-		}
+	if err != nil {
+		return nil, err
 	}
+
+	// if the bundle is still empty after parsing all of the directory files
+	// return an error
+	if len(bundleBytes) <= 2 {
+		return nil, errors.New("no valid graphman bundles were found")
+	}
+
 	r := bytes.NewReader(bundleBytes)
 	d := json.NewDecoder(r)
 	d.DisallowUnknownFields()

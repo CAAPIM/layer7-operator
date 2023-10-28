@@ -104,7 +104,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name, forceUpdate)
 		if err != nil {
-			if err == util.ErrInvalidFileFormatError || err == util.ErrInvalidArchive {
+			if err == util.ErrInvalidFileFormatError || err == util.ErrInvalidTarArchive || err == util.ErrInvalidZipArchive {
 				params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 				backoffAttempts := 5
 				syncCache.Update(util.SyncRequest{RequestName: backoffRequestCacheEntry, Attempts: backoffAttempts}, time.Now().Add(360*time.Second).Unix())

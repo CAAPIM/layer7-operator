@@ -9348,7 +9348,7 @@ ServiceAccount to use for the Gateway Deployment
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name of the service account<br/>
         </td>
         <td>false</td>
       </tr></tbody>

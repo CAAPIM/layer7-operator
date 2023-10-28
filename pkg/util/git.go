@@ -20,10 +20,12 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 	cloneOpts := git.CloneOptions{
 		URL:        url,
 		RemoteName: remoteName,
+		Depth:      1,
 	}
 
 	pullOpts := git.PullOptions{
 		RemoteName: remoteName,
+		Depth:      1,
 	}
 
 	if !strings.Contains(url, ".git") {
@@ -37,6 +39,7 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 	// this supercedes tag if set.
 	if branch != "" {
 		cloneOpts.ReferenceName = plumbing.ReferenceName(branch)
+
 	}
 
 	switch strings.ToLower(authType) {
@@ -101,6 +104,7 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 	ext := cloneOpts.ReferenceName.String()
 
 	r, err := git.PlainClone("/tmp/"+name+"-"+ext, false, &cloneOpts)
+
 	if err == git.ErrRepositoryAlreadyExists {
 		r, _ := git.PlainOpen("/tmp/" + name + "-" + ext)
 		w, _ := r.Worktree()
@@ -126,7 +130,7 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			if err != nil {
 				return "", err
 			}
-			return "", fmt.Errorf("repository endpoint updated to %s, flushing temp storage", url)
+			return "", fmt.Errorf("invalid git config for %s removing temp storage", name)
 		}
 
 		err = w.Pull(&pullOpts)

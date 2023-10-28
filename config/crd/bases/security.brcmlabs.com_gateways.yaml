@@ -4829,6 +4829,7 @@ spec:
                         description: Create a service account for the Gateway Deployment
                         type: boolean
                       name:
+                        description: Name of the service account
                         type: string
                     type: object
                   sidecars:

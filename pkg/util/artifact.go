@@ -13,6 +13,9 @@ import (
 	"github.com/caapim/layer7-operator/internal/graphman"
 )
 
+var ErrInvalidFileFormatError = errors.New("InvalidFileFormat")
+var ErrInvalidArchive = errors.New("InvalidArchive")
+
 // Download Artifact retrieves a compressed Graphman Bundle from an HTTP URL
 // This is currently limited to URLs that contain the file extension as would be the
 // case when targeting releases from Git releases.
@@ -27,7 +30,9 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 	fileName := "/tmp/" + name + "-" + segments[len(segments)-1]
 
 	// Downloaded artifacts are treated as immutable, once a given release has been downloaded it will not be
-	// retrieved again.
+	// retrieved again unless there is a URL change.
+	// If a downloaded artifact is invalid it is initially assumned that the download failed, if a file fails validation checks
+	// multiple times a backoff is initiated preventing the invalid file from being downloaded multiple times.
 	sha1sum := existingFileSha(fileName)
 	ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
 
@@ -87,7 +92,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 		defer f.Close()
 		err = Unzip(fileName, folderName)
 		if err != nil {
-			return "", err
+			return "", ErrInvalidArchive
 		}
 	case "gz":
 		gz := false
@@ -103,7 +108,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 
 		err := Untar(folderName, name, f, gz)
 		if err != nil {
-			return "", err
+			return "", ErrInvalidArchive
 		}
 	case "tar":
 		gz := false
@@ -113,7 +118,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 
 		err := Untar(folderName, name, f, gz)
 		if err != nil {
-			return "", err
+			return "", ErrInvalidArchive
 		}
 	case "json":
 		fileName = name + "-" + segments[len(segments)-1]
@@ -191,16 +196,16 @@ func validateGraphmanBundle(fileName string, folderName string, repoName string)
 			segments := strings.Split(f.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" {
+				sbb := bundleBytes
 				srcBundleBytes, err := os.ReadFile(folderName + "/" + f.Name())
 				if err != nil {
 					return err
 				}
 				bundleBytes, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 				if err != nil {
-					return err
+					continue
 				}
-			} else {
-				return fmt.Errorf("file extension .%s for %s not a supported graphman format", ext, f.Name())
+				bundleBytes = sbb
 			}
 		}
 	}
@@ -211,7 +216,7 @@ func validateGraphmanBundle(fileName string, folderName string, repoName string)
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("repository %s does not contain a valid graphman bundle", repoName)
+		return ErrInvalidFileFormatError
 	}
 
 	r := bytes.NewReader(bundleBytes)
@@ -220,13 +225,13 @@ func validateGraphmanBundle(fileName string, folderName string, repoName string)
 	_ = json.Unmarshal(bundleBytes, &bundle)
 	// check the graphman bundle for errors
 	err = d.Decode(&bundle)
-	if err != nil {
+	if err != nil || len(bundleBytes) <= 2 {
 		os.Remove(fileName)
 		fErr := os.RemoveAll(folderName)
 		if fErr != nil {
 			return err
 		}
-		return err
+		return ErrInvalidFileFormatError
 	}
 	return nil
 }

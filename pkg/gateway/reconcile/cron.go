@@ -22,11 +22,12 @@ func ScheduledJobs(ctx context.Context, params Params) error {
 				err := s.RunByTag(t)
 				if err != nil {
 					params.Log.V(2).Info("no job with given tag", "job", t, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-					//return fmt.Errorf("failed to reconcile repository: %w", err)
 				}
 			}
-			s.StartAsync()
 		}
+	}
+	if !s.IsRunning() {
+		s.StartAsync()
 	}
 	return nil
 }

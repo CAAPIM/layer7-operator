@@ -16,18 +16,22 @@ func ScheduledJobs(ctx context.Context, params Params) error {
 
 	registerJobs(ctx, params)
 
+	////// TODO - check run count before trying to start a job
 	for _, j := range s.Jobs() {
 		for _, t := range j.Tags() {
-			if !j.IsRunning() {
-				params.Log.V(2).Info("starting job", "job", t, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+			if !j.IsRunning() && j.RunCount() == 0 {
+				params.Log.V(2).Info("starting job", "job", t, "name", params.Instance.Name, "namespace", params.Instance.Namespace, "runCount", j.RunCount())
 				err := s.RunByTag(t)
 				if err != nil {
 					params.Log.V(2).Info("no job with given tag", "job", t, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 				}
 			}
-			s.StartAsync()
 		}
 	}
+	if !s.IsRunning() {
+		s.StartAsync()
+	}
+
 	return nil
 }
 

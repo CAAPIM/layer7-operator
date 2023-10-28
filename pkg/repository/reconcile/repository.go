@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func syncRepository(ctx context.Context, params Params) error {
@@ -79,22 +80,49 @@ func syncRepository(ctx context.Context, params Params) error {
 	requestCacheEntry := repository.Name
 	syncRequest, _ := syncCache.Read(requestCacheEntry)
 
-	if syncRequest.Attempts > 2 {
-		params.Log.V(2).Info("request has failed more than 3 times in the last 30 seconds, backing off", "name", repository.Name, "namespace", repository.Namespace)
+	backoffRequestCacheEntry := repository.Name + "-backoff"
+	backoffSyncRequest, _ := syncCache.Read(backoffRequestCacheEntry)
+
+	if backoffSyncRequest.Attempts > 4 {
+		params.Log.Info("several attempts to sync this repository have failed, please check your configuration", "name", repository.Name, "namespace", repository.Namespace)
 		return nil
 	}
+
+	if syncRequest.Attempts > 2 {
+		params.Log.V(2).Info("request has failed more than 3 times in the last 30 seconds", "name", repository.Name, "namespace", repository.Namespace)
+		return nil
+	}
+
+	patch := []byte(`[{"op": "replace", "path": "/status/ready", "value": false}]`)
 
 	switch strings.ToLower(repository.Spec.Type) {
 	case "http":
 		forceUpdate := false
 		if repository.Status.Summary != repository.Spec.Endpoint {
 			forceUpdate = true
+
 		}
 		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name, forceUpdate)
 		if err != nil {
+			if err == util.ErrInvalidFileFormatError || err == util.ErrInvalidArchive {
+				params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+				backoffAttempts := 5
+				syncCache.Update(util.SyncRequest{RequestName: backoffRequestCacheEntry, Attempts: backoffAttempts}, time.Now().Add(360*time.Second).Unix())
+				err = setRepoStatus(ctx, params, patch)
+				if err != nil {
+					params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+				}
+				return nil
+			}
 			params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			attempts := syncRequest.Attempts + 1
+			backoffAttempts := backoffSyncRequest.Attempts + 1
+			syncCache.Update(util.SyncRequest{RequestName: backoffRequestCacheEntry, Attempts: backoffAttempts}, time.Now().Add(360*time.Second).Unix())
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			err = setRepoStatus(ctx, params, patch)
+			if err != nil {
+				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+			}
 			return nil
 		}
 		fileURL, _ := url.Parse(repository.Spec.Endpoint)
@@ -119,6 +147,10 @@ func syncRepository(ctx context.Context, params Params) error {
 			params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
 			attempts := syncRequest.Attempts + 1
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			err = setRepoStatus(ctx, params, patch)
+			if err != nil {
+				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+			}
 			return nil
 		}
 	}
@@ -187,4 +219,19 @@ func getRepository(ctx context.Context, params Params) (securityv1.Repository, e
 		}
 	}
 	return repository, nil
+}
+
+func setRepoStatus(ctx context.Context, params Params, patch []byte) error {
+
+	if !params.Instance.Status.Ready {
+		return nil
+	}
+
+	if err := params.Client.Status().Patch(context.Background(), params.Instance,
+		client.RawPatch(types.JSONPatchType, patch)); err != nil {
+		return err
+	}
+	params.Log.Info("repository status has been updated", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+
+	return nil
 }

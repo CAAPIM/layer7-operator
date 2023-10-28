@@ -283,20 +283,24 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 			segments := strings.Split(f.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" {
+				sbb := bundleBytes
 				srcBundleBytes, err := os.ReadFile(path + "/" + f.Name())
 				if err != nil {
 					return nil, err
 				}
-				/// TODO: add a staging variable to avoid losing the bundle if there's a non graphman bundle file
-				bundleBytes, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				// if there is an error with concat, skip to the next file.
+				sbb, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 				if err != nil {
-					return nil, err
+					continue
 				}
+				bundleBytes = sbb
 			}
-			// else {
 
-			// 	return nil, fmt.Errorf("file extension .%s for %s not a supported graphman format", ext, f.Name())
-			// }
+		}
+		// if the bundle is still empty after parsing all of the directory files
+		// return an error
+		if len(bundleBytes) <= 2 {
+			return nil, errors.New("no valid graphman bundles were found")
 		}
 	}
 	r := bytes.NewReader(bundleBytes)

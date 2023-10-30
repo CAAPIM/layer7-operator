@@ -32,6 +32,7 @@ const (
 	//    	   // blocked trying to send to the buffered channel
 	//         time.Sleep(10 * time.Minute)
 	//     })
+
 	WaitMode
 )
 
@@ -53,8 +54,7 @@ type executor struct {
 	limitModeRunningJobs    *atomic.Int64    // tracks the count of running jobs to check against the max
 	stopped                 *atomic.Bool     // allow workers to drain the buffered limitModeQueue
 
-	distributedLocker  Locker  // support running jobs across multiple instances
-	distributedElector Elector // support running jobs across multiple instances
+	distributedLocker Locker // support running jobs across multiple instances
 }
 
 func newExecutor() executor {
@@ -70,16 +70,6 @@ func newExecutor() executor {
 }
 
 func runJob(f jobFunction) {
-	panicHandlerMutex.RLock()
-	defer panicHandlerMutex.RUnlock()
-
-	if panicHandler != nil {
-		defer func() {
-			if r := recover(); r != nil {
-				panicHandler(f.funcName, r)
-			}
-		}()
-	}
 	f.runStartCount.Add(1)
 	f.isRunning.Store(true)
 	callJobFunc(f.eventListeners.onBeforeJobExecution)
@@ -128,11 +118,7 @@ func (e *executor) limitModeRunner() {
 			return
 		case jf := <-e.limitModeQueue:
 			if !e.stopped.Load() {
-				select {
-				case <-jf.ctx.Done():
-				default:
-					e.runJob(jf)
-				}
+				e.runJob(jf)
 			}
 		}
 	}
@@ -158,24 +144,11 @@ func (e *executor) start() {
 }
 
 func (e *executor) runJob(f jobFunction) {
-	defer func() {
-		if e.limitMode == RescheduleMode && e.limitModeMaxRunningJobs > 0 {
-			e.limitModeRunningJobs.Add(-1)
-		}
-	}()
 	switch f.runConfig.mode {
 	case defaultMode:
 		lockKey := f.jobName
 		if lockKey == "" {
 			lockKey = f.funcName
-		}
-		if e.distributedElector != nil {
-			err := e.distributedElector.IsLeader(e.ctx)
-			if err != nil {
-				return
-			}
-			runJob(f)
-			return
 		}
 		if e.distributedLocker != nil {
 			l, err := e.distributedLocker.Lock(f.ctx, lockKey)
@@ -187,17 +160,8 @@ func (e *executor) runJob(f jobFunction) {
 				if durationToNextRun > time.Second*5 {
 					durationToNextRun = time.Second * 5
 				}
-
-				delay := time.Duration(float64(durationToNextRun) * 0.9)
-				if e.limitModeMaxRunningJobs > 0 {
-					time.AfterFunc(delay, func() {
-						_ = l.Unlock(f.ctx)
-					})
-					return
-				}
-
 				if durationToNextRun > time.Millisecond*100 {
-					timer := time.NewTimer(delay)
+					timer := time.NewTimer(time.Duration(float64(durationToNextRun) * 0.9))
 					defer timer.Stop()
 
 					select {
@@ -207,8 +171,6 @@ func (e *executor) runJob(f jobFunction) {
 				}
 				_ = l.Unlock(f.ctx)
 			}()
-			runJob(f)
-			return
 		}
 		runJob(f)
 	case singletonMode:
@@ -247,13 +209,23 @@ func (e *executor) run() {
 			go func() {
 				defer e.jobsWg.Done()
 
+				panicHandlerMutex.RLock()
+				defer panicHandlerMutex.RUnlock()
+
+				if panicHandler != nil {
+					defer func() {
+						if r := recover(); r != nil {
+							panicHandler(f.funcName, r)
+						}
+					}()
+				}
+
 				if e.limitModeMaxRunningJobs > 0 {
 					switch e.limitMode {
 					case RescheduleMode:
 						if e.limitModeRunningJobs.Load() < int64(e.limitModeMaxRunningJobs) {
 							select {
 							case e.limitModeQueue <- f:
-								e.limitModeRunningJobs.Inc()
 							case <-e.ctx.Done():
 							}
 						}

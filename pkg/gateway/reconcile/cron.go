@@ -18,10 +18,10 @@ func ScheduledJobs(ctx context.Context, params Params) error {
 	for _, j := range s.Jobs() {
 		for _, t := range j.Tags() {
 			if !j.IsRunning() {
-				params.Log.V(2).Info("starting job", "job", t, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+				params.Log.V(2).Info("starting job", "job", t, "namespace", params.Instance.Namespace)
 				err := s.RunByTag(t)
 				if err != nil {
-					params.Log.V(2).Info("no job with given tag", "job", t, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+					params.Log.V(2).Info("no job with given tag", "job", t, "namespace", params.Instance.Namespace)
 				}
 			}
 		}

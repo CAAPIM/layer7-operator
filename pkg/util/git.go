@@ -20,12 +20,10 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 	cloneOpts := git.CloneOptions{
 		URL:        url,
 		RemoteName: remoteName,
-		Depth:      1,
 	}
 
 	pullOpts := git.PullOptions{
 		RemoteName: remoteName,
-		Depth:      1,
 	}
 
 	if !strings.Contains(url, ".git") {

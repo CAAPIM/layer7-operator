@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 )
 
@@ -75,8 +74,22 @@ var entities = []string{
 	".bgpolicy",
 }
 
+type BundleApplyErrors struct {
+	Errors []BundleApplyError `json:"errors,omitempty"`
+}
+
+type BundleApplyError struct {
+	Name   string `json:"name,omitempty"`
+	Status string `json:"status,omitempty"`
+	Entity string `json:"entity,omitempty"`
+	Detail string `json:"detail,omitempty"`
+}
+
 func Query(username string, password string, target string, encpass string) ([]byte, error) {
 	resp, err := everything(context.Background(), gqlClient(username, password, target, encpass))
+	if err != nil {
+		return nil, err
+	}
 	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		return nil, err
@@ -128,7 +141,6 @@ func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
 	destBundle.TrustedCerts = append(destBundle.TrustedCerts, srcBundle.TrustedCerts...)
 	destBundle.WebApiServices = append(destBundle.WebApiServices, srcBundle.WebApiServices...)
 
-	// copy(destBundle..., srcBundle...)
 	bundleBytes, err := json.Marshal(destBundle)
 	if err != nil {
 		return nil, err
@@ -160,6 +172,11 @@ func Apply(path string, username string, password string, target string, encpass
 	}
 
 	resp, err := applyBundle(context.Background(), gqlClient(username, password, target, encpass), bundle.ClusterProperties, bundle.WebApiServices, bundle.EncassConfigs, bundle.TrustedCerts, bundle.Dtds, bundle.Schemas, bundle.JdbcConnections, bundle.SoapServices, bundle.PolicyFragments, bundle.Fips, bundle.LdapIdps, bundle.FipGroups, bundle.InternalGroups, bundle.FipUsers, bundle.InternalUsers, bundle.Keys, bundle.Secrets, bundle.CassandraConnections, bundle.JmsDestinations, bundle.InternalWebApiServices, bundle.InternalSoapServices, bundle.EmailListeners, bundle.ListenPorts, bundle.ActiveConnectors, bundle.SiteMinderConfigs, bundle.GlobalPolicies, bundle.BackgroundTasks, bundle.ScheduledTasks, bundle.ServerModuleFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	err = CheckApplyErrors(bundle, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -196,6 +213,11 @@ func ApplyDynamicBundle(username string, password string, target string, encpass
 		return nil, err
 	}
 
+	err = CheckApplyErrors(bundle, resp)
+	if err != nil {
+		return nil, err
+	}
+
 	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		return nil, err
@@ -203,7 +225,7 @@ func ApplyDynamicBundle(username string, password string, target string, encpass
 	return respBytes, nil
 }
 
-// parseEntities determines which entity the file from a Graphman directory belongs to
+// parseEntity determines which entity the file from a Graphman directory belongs to
 // this works with a static list of globally defined entities
 func parseEntity(path string) (string, bool) {
 	for _, e := range entities {
@@ -215,7 +237,7 @@ func parseEntity(path string) (string, bool) {
 	return "", false
 }
 
-// Read bundle unmarshals a JSON file in the specified Graphman directory into the working Bundle object.
+// readBundle unmarshals a JSON file in the specified Graphman directory into the working Bundle object.
 func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) {
 	f, _ := os.ReadFile(file)
 	switch entityType {
@@ -447,11 +469,168 @@ func implodeBundle(path string) (Bundle, error) {
 }
 
 // Not used - reserved for future use
-func parseEntities(bundle Bundle) {
-	v := reflect.ValueOf(bundle)
-	typeOfS := v.Type()
+// func parseEntities(bundle Bundle) {
+// 	v := reflect.ValueOf(bundle)
+// 	typeOfS := v.Type()
 
-	for i := 0; i < v.NumField(); i++ {
-		fmt.Printf("%s %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
+// 	for i := 0; i < v.NumField(); i++ {
+// 		fmt.Printf("%s %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
+// 	}
+// }
+
+func CheckApplyErrors(bundle Bundle, resp *applyBundleResponse) error {
+	var bundleApplyErrors BundleApplyErrors
+
+	for i, r := range resp.SetActiveConnectors.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ActiveConnectors", Name: bundle.ActiveConnectors[i].Name})
+		}
 	}
+	for i, r := range resp.SetBackgroundTaskPolicies.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "BackgroundTaskPolicies", Name: bundle.BackgroundTasks[i].Name})
+		}
+	}
+	for i, r := range resp.SetCassandraConnections.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "CassandraConnections", Name: bundle.CassandraConnections[i].Name})
+		}
+	}
+	for i, r := range resp.SetClusterProperties.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ClusterProperties", Name: bundle.ClusterProperties[i].Name})
+		}
+	}
+	for i, r := range resp.SetDtds.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Dtds", Name: bundle.Dtds[i].Description})
+		}
+	}
+	for i, r := range resp.SetEmailListeners.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "EmailListeners", Name: bundle.EmailListeners[i].Name})
+		}
+	}
+	for i, r := range resp.SetEncassConfigs.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "EncassConfigs", Name: bundle.EncassConfigs[i].Name})
+		}
+	}
+	for i, r := range resp.SetFipGroups.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FipGroups", Name: bundle.FipGroups[i].Name})
+		}
+	}
+	for i, r := range resp.SetFipUsers.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FipUsers", Name: bundle.FipUsers[i].Name})
+		}
+	}
+	for i, r := range resp.SetFips.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Fips", Name: bundle.Fips[i].Name})
+		}
+	}
+	for i, r := range resp.SetGlobalPolicies.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "GlobalPolicies", Name: bundle.GlobalPolicies[i].Name})
+		}
+	}
+	for i, r := range resp.SetInternalGroups.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalGroups", Name: bundle.InternalGroups[i].Name})
+		}
+	}
+	for i, r := range resp.SetInternalSoapServices.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalSoapServices", Name: bundle.InternalSoapServices[i].Name})
+		}
+	}
+	for i, r := range resp.SetInternalUsers.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalUsers", Name: bundle.InternalUsers[i].Name})
+		}
+	}
+	for i, r := range resp.SetInternalWebApiServices.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalWebApiServices", Name: bundle.InternalWebApiServices[i].Name})
+		}
+	}
+	for i, r := range resp.SetJdbcConnections.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "JdbcConnections", Name: bundle.JdbcConnections[i].Name})
+		}
+	}
+	for i, r := range resp.SetJmsDestinations.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "JmsDestinations", Name: bundle.JmsDestinations[i].Name})
+		}
+	}
+	for i, r := range resp.SetKeys.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Keys", Name: bundle.Keys[i].Alias})
+		}
+	}
+	for i, r := range resp.SetLdaps.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Ldaps", Name: bundle.LdapIdps[i].Name})
+		}
+	}
+	for i, r := range resp.SetListenPorts.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ListenPorts", Name: bundle.ListenPorts[i].Name})
+		}
+	}
+	for i, r := range resp.SetPolicyFragments.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "PolicyFragments", Name: bundle.PolicyFragments[i].Name})
+		}
+	}
+	for i, r := range resp.SetSMConfigs.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "SMConfigs", Name: bundle.SiteMinderConfigs[i].Name})
+		}
+	}
+	for i, r := range resp.SetScheduledTasks.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ScheduledTasks", Name: bundle.ScheduledTasks[i].Name})
+		}
+	}
+	for i, r := range resp.SetSchemas.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Schemas", Name: bundle.Schemas[i].Description})
+		}
+	}
+	for i, r := range resp.SetSecrets.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Secrets", Name: bundle.Secrets[i].Name})
+		}
+	}
+	for i, r := range resp.SetServerModuleFiles.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "ServerModuleFiles", Name: bundle.ServerModuleFiles[i].Name})
+		}
+	}
+	for i, r := range resp.SetSoapServices.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "SoapServices", Name: bundle.SoapServices[i].Name})
+		}
+	}
+	for i, r := range resp.SetTrustedCerts.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "TrustedCerts", Name: bundle.TrustedCerts[i].Name})
+		}
+	}
+	for i, r := range resp.SetWebApiServices.DetailedStatus {
+		if r.Status == "ERROR" {
+			bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "WebApiServices", Name: bundle.WebApiServices[i].Name})
+		}
+	}
+
+	if len(bundleApplyErrors.Errors) > 0 {
+		errorBytes, _ := json.Marshal(bundleApplyErrors)
+		return fmt.Errorf("errors: %s", string(errorBytes))
+	}
+
+	return nil
 }

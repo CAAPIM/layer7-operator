@@ -9,8 +9,9 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
@@ -274,29 +275,39 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	if len(bundleBytes) <= 2 {
-		files, err := os.ReadDir(path)
+	_ = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		for _, f := range files {
-			segments := strings.Split(f.Name(), ".")
+		if !d.IsDir() {
+			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
-			if ext == "json" {
-				srcBundleBytes, err := os.ReadFile(path + "/" + f.Name())
+			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") {
+				sbb := bundleBytes
+				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
-					return nil, err
+					return err
 				}
-				bundleBytes, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				sbb, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 				if err != nil {
-					return nil, err
+					return nil
 				}
-			} else {
-				return nil, fmt.Errorf("file extension .%s for %s not a supported graphman format", ext, f.Name())
+				bundleBytes = sbb
 			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
+
+	// if the bundle is still empty after parsing all of the directory files
+	// return an error
+	if len(bundleBytes) <= 2 {
+		return nil, errors.New("no valid graphman bundles were found")
+	}
+
 	r := bytes.NewReader(bundleBytes)
 	d := json.NewDecoder(r)
 	d.DisallowUnknownFields()

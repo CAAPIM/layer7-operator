@@ -78,9 +78,12 @@ func newParams() Params {
 			},
 			Spec: securityv1.GatewaySpec{
 				App: securityv1.App{
-					Image:              "test",
-					Replicas:           int32(5),
-					ServiceAccountName: "testserviceaccount",
+					Image:    "test",
+					Replicas: int32(5),
+					ServiceAccount: securityv1.ServiceAccount{
+						Name:   "testserviceaccount",
+						Create: true,
+					},
 					ListenPorts: securityv1.ListenPorts{
 						Custom: securityv1.CustomListenPort{
 							Enabled: false,
@@ -164,7 +167,8 @@ func newParams() Params {
 					},
 				},
 				License: securityv1.License{
-					Accept: true,
+					Accept:     true,
+					SecretName: "gateway-license",
 				},
 			},
 			Status: securityv1.GatewayStatus{

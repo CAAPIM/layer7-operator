@@ -12,13 +12,20 @@ spec:
     kind: Gateway
     listKind: GatewayList
     plural: gateways
+    shortNames:
+    - gws
+    - gw
+    - l7gw
+    - l7gws
+    - l7gateway
+    - l7gateways
     singular: gateway
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Gateway is the Schema for the Gateways API
+        description: Gateway is the Schema for the Gateway Custom Resource
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -910,10 +917,18 @@ spec:
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations for the Gateway Deployment
                     type: object
+                  autoMountServiceAccountToken:
+                    description: AutoMountServiceAccountToken optionally adds the
+                      Gateway Container's Kubernetes Service Account Token to Stored
+                      Passwords
+                    type: boolean
                   autoscaling:
+                    description: Autoscaling configuration for the Gateway
                     properties:
                       enabled:
+                        description: Enabled or disabled
                         type: boolean
                       hpa:
                         properties:
@@ -1044,6 +1059,7 @@ spec:
                                 type: object
                             type: object
                           maxReplicas:
+                            description: MaxReplicas
                             format: int32
                             type: integer
                           metrics:
@@ -1571,6 +1587,7 @@ spec:
                               type: object
                             type: array
                           minReplicas:
+                            description: MinReplicas
                             format: int32
                             type: integer
                         type: object
@@ -1584,6 +1601,7 @@ spec:
                         description: BootstrapScript - enable/disable this functionality
                         properties:
                           enabled:
+                            description: Enabled or disabled
                             type: boolean
                         type: object
                     type: object
@@ -1591,36 +1609,30 @@ spec:
                     items:
                       description: Bundle A Restman or Graphman bundle
                       properties:
-                        configMap:
-                          description: Add secret... Secret    Secret    `json:"secret,omitempty"`
-                          properties:
-                            defaultMode:
-                              format: int32
-                              type: integer
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          type: object
                         csi:
-                          description: CSI
+                          description: ConfigMap ConfigMap `json:"configMap,omitempty"`
                           properties:
                             driver:
+                              description: Driver is the secretstore csi driver
                               type: string
                             readOnly:
+                              description: ReadOnly
                               type: boolean
                             volumeAttributes:
                               description: VolumeAtttributes
                               properties:
                                 secretProviderClass:
+                                  description: SecretProviderClass
                                   type: string
                               type: object
                           type: object
                         name:
                           type: string
                         source:
+                          description: Source
                           type: string
                         type:
+                          description: Type can be restman or graphman
                           type: string
                       type: object
                     type: array
@@ -1794,19 +1806,34 @@ spec:
                         type: object
                     type: object
                   customConfig:
+                    description: CustomConfig Certain folders on the Container Gateway
+                      are not writeable by design. This configuration allows you to
+                      mount existing configMap/Secret keys to specific paths on the
+                      Gateway without the need for a root user or a custom/derived
+                      image.
                     properties:
                       enabled:
+                        description: Enabled or disabled
                         type: boolean
                       mounts:
                         items:
+                          description: CustomConfigMount
                           properties:
                             mountPath:
+                              description: MountPath is the location on the container
+                                gateway this should go
                               type: string
                             name:
+                              description: Name is the mount name
                               type: string
                             ref:
+                              description: ConfigRef configures the secret or configmap
+                                for a CustomConfigMount
                               properties:
                                 item:
+                                  description: ConfigRefItem is the key in the secret
+                                    or configmap to mount, path is where it should
+                                    be created.
                                   properties:
                                     key:
                                       type: string
@@ -1814,11 +1841,37 @@ spec:
                                       type: string
                                   type: object
                                 name:
+                                  description: Name of the Secret or Configmap which
+                                    already exists in Kubernetes
                                   type: string
                                 type:
+                                  description: Type is secret or configmap
                                   type: string
                               type: object
                             subPath:
+                              description: SubPath is the file name
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  customHosts:
+                    properties:
+                      enabled:
+                        description: Enabled or disabled
+                        type: boolean
+                      hostAliases:
+                        items:
+                          description: HostAlias holds the mapping between IP and
+                            hostnames that will be injected as an entry in the pod's
+                            hosts file.
+                          properties:
+                            hostnames:
+                              description: Hostnames for the above IP address.
+                              items:
+                                type: string
+                              type: array
+                            ip:
+                              description: IP address of the host file entry.
                               type: string
                           type: object
                         type: array
@@ -1828,14 +1881,18 @@ spec:
                       cluster-wide properties you wish to bootstrap to your Gateway.
                     properties:
                       enabled:
+                        description: Enabled bootstraps clusterProperties to the Gateway
                         type: boolean
                       properties:
+                        description: Properties are key/value pairs
                         items:
-                          description: Property is a cluster-wide property k/v pair
+                          description: Property is a simple k/v pair
                           properties:
                             name:
+                              description: Name
                               type: string
                             value:
+                              description: Value
                               type: string
                           type: object
                         type: array
@@ -1849,14 +1906,20 @@ spec:
                         secrets using tools like cert-manager
                       properties:
                         enabled:
+                          description: Enabled or disabled
                           type: boolean
                         name:
+                          description: Name of the kubernetes.io/tls Secret which
+                            already exists in Kubernetes
                           type: string
                         port:
+                          description: Port is reserved for future use
                           type: string
                       type: object
                     type: array
                   externalKeysSyncIntervalSeconds:
+                    description: ExternalKeysSyncIntervalSeconds is the period of
+                      time between attempts to apply external keys to gateways.
                     type: integer
                   externalSecrets:
                     items:
@@ -1868,8 +1931,11 @@ spec:
                         (external-secrets.io)
                       properties:
                         description:
+                          description: Description given the Stored Password in the
+                            Gateway
                           type: string
                         enabled:
+                          description: Enabled or disabled
                           type: boolean
                         encryption:
                           description: BundleEncryption allows setting an encryption
@@ -1889,23 +1955,31 @@ spec:
                               type: string
                           type: object
                         name:
-                          type: string
-                        type:
+                          description: Name of the Opaque/Generic Secret which already
+                            exists in Kubernetes
                           type: string
                         variableReferencable:
+                          description: VariableReferencable permits/restricts use
+                            of the Stored Password in policy
                           type: boolean
                       type: object
                     type: array
                   externalSecretsSyncIntervalSeconds:
+                    description: ExternalSecretsSyncIntervalSeconds is the period
+                      of time between attempts to apply external secrets to gateways.
                     type: integer
                   hazelcast:
                     properties:
                       endpoint:
+                        description: Endpoint is the hazelcast server and port my.hazelcast:5701
                         type: string
                       external:
+                        description: External set to true adds config for an external
+                          Hazelcast instance to the Gateway
                         type: boolean
                     type: object
                   image:
+                    description: Image is the Gateway image
                     type: string
                   imagePullPolicy:
                     description: PullPolicy describes a policy for if/when to pull
@@ -1928,12 +2002,16 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations for the ingress resource
                         type: object
                       enabled:
+                        description: Enabled or disabled
                         type: boolean
                       ingressClassName:
+                        description: IngressClassName
                         type: string
                       rules:
+                        description: Rules
                         items:
                           description: IngressRule represents the rules mapping the
                             paths under a specified host to the related backend services.
@@ -2098,6 +2176,7 @@ spec:
                           type: object
                         type: array
                       tls:
+                        description: TLS
                         items:
                           description: IngressTLS describes the transport layer security
                             associated with an ingress.
@@ -3446,24 +3525,35 @@ spec:
                       type: object
                     type: array
                   java:
+                    description: Java configuration for the Gateway
                     properties:
                       extraArgs:
+                        description: ExtraArgs java
                         items:
                           type: string
                         type: array
                       jvmHeap:
                         properties:
                           calculate:
+                            description: Calculate the JVMHeap size based on resource
+                              requests and limits if resources are left unset this
+                              will be ignored
                             type: boolean
                           default:
+                            description: Default Heap Size to use if calculate is
+                              false or requests.limits.memory is not set Set to 2g
                             type: string
                           percentage:
+                            description: Percentage of requests.limits.memory to allocate
+                              to the jvm 50% is the default, should be no higher than
+                              75%
                             type: integer
                         type: object
                     type: object
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels for the Gateway Deployment
                     type: object
                   lifecycleHooks:
                     description: Lifecycle describes actions that the management system
@@ -3672,69 +3762,109 @@ spec:
                       Cipher Suites \n - 2124 (Inter-Node Communication) - Not created
                       - if using an existing database 2124 will not be modified"
                     properties:
-                      cipherSuites:
-                        items:
-                          type: string
-                        type: array
                       custom:
                         description: CustomListenPort - enable/disable custom listen
                           ports
                         properties:
                           enabled:
+                            description: Enabled or disabled
                             type: boolean
                         type: object
                       harden:
+                        description: Harden
                         type: boolean
                       ports:
                         items:
+                          description: ListenPort is translated into a Restman Bundle
                           properties:
                             enabled:
+                              description: Enabled or disabled
                               type: boolean
                             managementFeatures:
+                              description: ManagementFeatures that should be available
+                                on this port - Published service message input - Administrative
+                                access - Browser-based administration - Built-in services
                               items:
                                 type: string
                               type: array
                             name:
+                              description: Name of the listen port
                               type: string
                             port:
+                              description: Port
                               type: string
                             properties:
                               items:
-                                description: Property is a cluster-wide property k/v
-                                  pair
+                                description: Property is a simple k/v pair
                                 properties:
                                   name:
+                                    description: Name
                                     type: string
                                   value:
+                                    description: Value
                                     type: string
                                 type: object
                               type: array
                             protocol:
+                              description: Protocol
                               type: string
                             tls:
+                              description: Tls configuration for Gateway Ports
                               properties:
                                 cipherSuites:
+                                  description: CipherSuites - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+                                    - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+                                    - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+                                    - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+                                    - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+                                    - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+                                    - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+                                    - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+                                    - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+                                    - TLS_DHE_RSA_WITH_AES_128_CBC_SHA - TLS_AES_256_GCM_SHA384
+                                    - TLS_AES_128_GCM_SHA256 - TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384
+                                    (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384
+                                    (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384
+                                    (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384
+                                    (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA
+                                    (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA
+                                    (Disabled by Harden) - TLS_RSA_WITH_AES_256_GCM_SHA384
+                                    (Disabled by Harden) - TLS_RSA_WITH_AES_256_CBC_SHA256
+                                    (Disabled by Harden) - TLS_RSA_WITH_AES_256_CBC_SHA
+                                    (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256
+                                    (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256
+                                    (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256
+                                    (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256
+                                    (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA
+                                    (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA
+                                    (Disabled by Harden) - TLS_RSA_WITH_AES_128_GCM_SHA256
+                                    (Disabled by Harden) - TLS_RSA_WITH_AES_128_CBC_SHA256
+                                    (Disabled by Harden) - TLS_RSA_WITH_AES_128_CBC_SHA
+                                    (Disabled by Harden)
                                   items:
                                     type: string
                                   type: array
                                 clientAuthentication:
+                                  description: ClientAuthentication MTLS for the Port
+                                    None, Optional, Required
                                   type: string
                                 enabled:
+                                  description: Enabled or disabled
                                   type: boolean
                                 privateKey:
+                                  description: PrivateKey the Port should use
                                   type: string
                                 useCipherSuitesOrder:
+                                  description: UseCipherSuitesOrder
                                   type: boolean
                                 versions:
+                                  description: Versions of TLS - TLS1.0 (not recommended)
+                                    - TLS1.1 (not recommended) - TLS1.2 - TLS1.3
                                   items:
                                     type: string
                                   type: array
                               type: object
                           type: object
-                        type: array
-                      tlsVersions:
-                        items:
-                          type: string
                         type: array
                     type: object
                   livenessProbe:
@@ -3887,29 +4017,42 @@ spec:
                         format: int32
                         type: integer
                     type: object
+                  log:
+                    properties:
+                      override:
+                        description: Override default log properties
+                        type: boolean
+                      properties:
+                        type: string
+                    type: object
                   management:
                     description: Management defines configuration for Gateway Managment.
                     properties:
                       cluster:
+                        description: Cluster is gateway cluster configuration
                         properties:
                           hostname:
+                            description: Hostname is the Gateway Cluster Hostname
                             type: string
                           password:
+                            description: Password is the Gateway Cluster Passphrase
                             type: string
                         type: object
                       database:
                         description: Database configuration for the Gateway
                         properties:
                           enabled:
+                            description: Enabled or disabled
                             type: boolean
                           jdbcUrl:
+                            description: JDBCUrl for the Gateway
                             type: string
                           password:
+                            description: Password MySQL - can be set in management.secretName
                             type: string
                           username:
+                            description: Username MySQL - can be set in management.secretName
                             type: string
-                        required:
-                        - enabled
                         type: object
                       graphman:
                         description: Graphman is a GraphQL Gateway Management interface
@@ -3918,87 +4061,155 @@ spec:
                           by the repository controller.
                         properties:
                           dynamicSyncPort:
+                            description: DynamicSyncPort is the Port the Gateway controller
+                              uses to apply dynamic repositories, external keys/secrets
+                              to the Gateway
                             type: integer
                           enabled:
+                            description: Enabled optionally bootstrap the GraphQL
+                              Gateway Management Service
                             type: boolean
                           initContainerImage:
+                            description: InitContainerImage is the image used to bootstrap
+                              static repositories
                             type: string
                         type: object
                       password:
+                        description: Password is the Gateway Admin password
                         type: string
                       restman:
                         description: Restman is a Gateway Management interface that
                           can be automatically provisioned.
                         properties:
                           enabled:
+                            description: Enabled optionally bootstrap the Restman
+                              Gateway Managment API
                             type: boolean
                         type: object
                       secretName:
+                        description: SecretName is reference to an existing secret
+                          that contains SSG_ADMIN_USERNAME, SSG_ADMIN_PASSWORD, SSG_CLUSTER_PASSPHRASE
+                          and optionally SSG_DATABASE_USER and SSG_DATABASE_PASSWORD
+                          for mysql backed gateway clusters
                         type: string
                       service:
+                        description: Service is the Gateway Management Service
                         properties:
+                          allocateLoadBalancerNodePorts:
+                            type: boolean
                           annotations:
                             additionalProperties:
                               type: string
+                            description: Annotations for the service
                             type: object
-                          enabled:
-                            type: boolean
-                          ports:
+                          clusterIP:
+                            type: string
+                          clusterIPs:
                             items:
+                              type: string
+                            type: array
+                          enabled:
+                            description: Enabled or disabled
+                            type: boolean
+                          externalIPs:
+                            items:
+                              type: string
+                            type: array
+                          externalName:
+                            type: string
+                          externalTrafficPolicy:
+                            description: ServiceExternalTrafficPolicy describes how
+                              nodes distribute service traffic they receive on one
+                              of the Service's "externally-facing" addresses (NodePorts,
+                              ExternalIPs, and LoadBalancer IPs.
+                            type: string
+                          healthCheckNodePort:
+                            format: int32
+                            type: integer
+                          internalTrafficPolicy:
+                            description: ServiceInternalTrafficPolicy describes how
+                              nodes distribute service traffic they receive on the
+                              ClusterIP.
+                            type: string
+                          ipFamilies:
+                            items:
+                              description: IPFamily represents the IP Family (IPv4
+                                or IPv6). This type is used to express the family
+                                of an IP expressed by a type (e.g. service.spec.ipFamilies).
+                              type: string
+                            type: array
+                          ipFamilyPolicy:
+                            description: IPFamilyPolicy represents the dual-stack-ness
+                              requested or required by a Service
+                            type: string
+                          loadBalancerClass:
+                            type: string
+                          loadBalancerIP:
+                            type: string
+                          loadBalancerSourceRanges:
+                            items:
+                              type: string
+                            type: array
+                          ports:
+                            description: Ports exposed by the Service These are appended
+                              to the Gateway deployment containerPorts
+                            items:
+                              description: Ports
                               properties:
                                 name:
+                                  description: Name of the Port
                                   type: string
                                 port:
+                                  description: Port number
                                   format: int32
                                   type: integer
                                 protocol:
+                                  description: Protocol
                                   type: string
                                 targetPort:
+                                  description: TargetPort on the Gateway Application
                                   format: int32
                                   type: integer
                               type: object
                             type: array
+                          sessionAffinity:
+                            description: Session Affinity Type string
+                            type: string
+                          sessionAffinityConfig:
+                            description: SessionAffinityConfig represents the configurations
+                              of session affinity.
+                            properties:
+                              clientIP:
+                                description: clientIP contains the configurations
+                                  of Client IP based session affinity.
+                                properties:
+                                  timeoutSeconds:
+                                    description: timeoutSeconds specifies the seconds
+                                      of ClientIP type session sticky time. The value
+                                      must be >0 && <=86400(for 1 day) if ServiceAffinity
+                                      == "ClientIP". Default value is 10800(for 3
+                                      hours).
+                                    format: int32
+                                    type: integer
+                                type: object
+                            type: object
                           type:
-                            description: Service Type string describes ingress methods
-                              for a service
+                            description: Type ClusterIP, NodePort, LoadBalancer
                             type: string
                         type: object
                       username:
+                        description: Username is the Gateway Admin username
                         type: string
-                    type: object
-                  monitoring:
-                    description: Monitoring - experimental feature that creates an
-                      OTEL Collector and Prometheus Service Monitor custom collectors
-                      and service monitors can be created separately
-                    properties:
-                      enabled:
-                        type: boolean
-                      otel:
-                        description: Otel
-                        properties:
-                          collector:
-                            description: Collector is an OpenTelemetryCollector Configuration
-                            properties:
-                              create:
-                                description: Name   string
-                                type: boolean
-                            type: object
-                        type: object
-                      serviceMonitor:
-                        description: ServiceMonitor is a Prom Service Monitor Configuration
-                        properties:
-                          create:
-                            description: Name   string
-                            type: boolean
-                        type: object
                     type: object
                   nodeSelector:
                     additionalProperties:
                       type: string
                     type: object
                   pdb:
+                    description: PodDisruptionBudgetSpec
                     properties:
                       enabled:
+                        description: Enabled or disabled
                         type: boolean
                       maxUnavailable:
                         anyOf:
@@ -4014,6 +4225,7 @@ spec:
                   podAnnotations:
                     additionalProperties:
                       type: string
+                    description: PodAnnotations for Gateway Pods
                     type: object
                   podSecurityContext:
                     description: PodSecurityContext holds pod-level security attributes
@@ -4190,9 +4402,8 @@ spec:
                             type: string
                         type: object
                     type: object
-                  portalApiSyncIntervalSeconds:
-                    type: integer
                   portalReference:
+                    description: PortalReference
                     properties:
                       enabled:
                         type: boolean
@@ -4202,16 +4413,47 @@ spec:
                     - enabled
                     type: object
                   preStopScript:
+                    description: PreStopScript During upgrades and other events where
+                      Gateway pods are replaced you may have APIs/Services that have
+                      long running connections open. This functionality delays Kubernetes
+                      sending a SIGTERM to the container gateway while connections
+                      remain open. This works in conjunction with terminationGracePeriodSeconds
+                      which should always be higher than preStopScript.timeoutSeconds.
+                      If preStopScript.timeoutSeconds is exceeded, the script will
+                      exit 0 and normal pod termination will resume. The preStop script
+                      will monitor connections to inbound (not outbound) Gateway Application
+                      TCP ports (i.e. inbound listener ports opened by the Gateway
+                      Application and not some other process) except those that are
+                      explicitly excluded. The following ports are excluded from monitoring
+                      by default. 8777 (Hazelcast) - Embedded Hazelcast. 2124 (Internode-Communication)
+                      - not utilised by the Container Gateway. If there are no open
+                      connections, the preStop script will exit immediately ignoring
+                      preStopScript.timeoutSeconds to avoid unnecessary resource utilisation
+                      (pod stuck in terminating state) during upgrades. While there
+                      aren't any explicit limits on preStopScript.timeoutSeconds and
+                      terminationGracePeriodSeconds running these for extended periods
+                      of time (i.e. more than 5 minutes) may be less reliable where
+                      other Kubernetes processes may remove the pod before terminationGracePeriodSeconds
+                      is reached. If you do run services like this we recommend testing
+                      before any real life implementation or better, creating a dedicated
+                      workload without autoscaling enabled (HPA) where you have more
+                      control over when/how pods are replaced.
                     properties:
                       enabled:
+                        description: Enabled or disabled
                         type: boolean
                       excludedPorts:
+                        description: ExcludedPorts is an array of port numbers, if
+                          not set the defaults are 8777 and 2124
                         items:
                           type: integer
                         type: array
                       periodSeconds:
+                        description: PeriodSeconds between checks
                         type: integer
                       timeoutSeconds:
+                        description: TimeoutSeconds is the total time this script
+                          should run
                         type: integer
                     type: object
                   readinessProbe:
@@ -4365,16 +4607,23 @@ spec:
                         type: integer
                     type: object
                   replicas:
+                    description: Replicas to deploy, overridden if autoscaling is
+                      enabled
                     format: int32
                     type: integer
                   repositoryReferences:
                     items:
+                      description: RepositoryReference is reference to a Git repository
+                        or HTTP endpoint that contains graphman bundles
                       properties:
                         directories:
+                          description: Directories from the remote repository to sync
+                            with the Gateway Limited to dynamic type
                           items:
                             type: string
                           type: array
                         enabled:
+                          description: Enabled or disabled
                           type: boolean
                         encryption:
                           description: BundleEncryption allows setting an encryption
@@ -4394,6 +4643,7 @@ spec:
                               type: string
                           type: object
                         name:
+                          description: Name of the existing repository
                           type: string
                         notification:
                           description: This is currently configured for Slack
@@ -4428,17 +4678,25 @@ spec:
                             name:
                               type: string
                           type: object
-                        singleton:
-                          type: boolean
                         type:
+                          description: Type static or dynamic static repositories
+                            are bootstrapped to the container gateway using an initContainer
+                            it is recommended that these stay under 1mb in size when
+                            compressed for larger static repositories it is recommended
+                            that you use a dedicated initContainer dynamic repositories
+                            are applied directly to the gateway whenever the commit
+                            of a repository changes
                           type: string
                       required:
                       - enabled
                       type: object
                     type: array
                   repositorySyncIntervalSeconds:
+                    description: RepositorySyncIntervalSeconds is the period of time
+                      between attempts to apply repository references to gateways.
                     type: integer
                   resources:
+                    description: PodResources
                     properties:
                       limits:
                         additionalProperties:
@@ -4462,35 +4720,118 @@ spec:
                         type: object
                     type: object
                   service:
+                    description: Service
                     properties:
+                      allocateLoadBalancerNodePorts:
+                        type: boolean
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations for the service
                         type: object
-                      enabled:
-                        type: boolean
-                      ports:
+                      clusterIP:
+                        type: string
+                      clusterIPs:
                         items:
+                          type: string
+                        type: array
+                      enabled:
+                        description: Enabled or disabled
+                        type: boolean
+                      externalIPs:
+                        items:
+                          type: string
+                        type: array
+                      externalName:
+                        type: string
+                      externalTrafficPolicy:
+                        description: ServiceExternalTrafficPolicy describes how nodes
+                          distribute service traffic they receive on one of the Service's
+                          "externally-facing" addresses (NodePorts, ExternalIPs, and
+                          LoadBalancer IPs.
+                        type: string
+                      healthCheckNodePort:
+                        format: int32
+                        type: integer
+                      internalTrafficPolicy:
+                        description: ServiceInternalTrafficPolicy describes how nodes
+                          distribute service traffic they receive on the ClusterIP.
+                        type: string
+                      ipFamilies:
+                        items:
+                          description: IPFamily represents the IP Family (IPv4 or
+                            IPv6). This type is used to express the family of an IP
+                            expressed by a type (e.g. service.spec.ipFamilies).
+                          type: string
+                        type: array
+                      ipFamilyPolicy:
+                        description: IPFamilyPolicy represents the dual-stack-ness
+                          requested or required by a Service
+                        type: string
+                      loadBalancerClass:
+                        type: string
+                      loadBalancerIP:
+                        type: string
+                      loadBalancerSourceRanges:
+                        items:
+                          type: string
+                        type: array
+                      ports:
+                        description: Ports exposed by the Service These are appended
+                          to the Gateway deployment containerPorts
+                        items:
+                          description: Ports
                           properties:
                             name:
+                              description: Name of the Port
                               type: string
                             port:
+                              description: Port number
                               format: int32
                               type: integer
                             protocol:
+                              description: Protocol
                               type: string
                             targetPort:
+                              description: TargetPort on the Gateway Application
                               format: int32
                               type: integer
                           type: object
                         type: array
+                      sessionAffinity:
+                        description: Session Affinity Type string
+                        type: string
+                      sessionAffinityConfig:
+                        description: SessionAffinityConfig represents the configurations
+                          of session affinity.
+                        properties:
+                          clientIP:
+                            description: clientIP contains the configurations of Client
+                              IP based session affinity.
+                            properties:
+                              timeoutSeconds:
+                                description: timeoutSeconds specifies the seconds
+                                  of ClientIP type session sticky time. The value
+                                  must be >0 && <=86400(for 1 day) if ServiceAffinity
+                                  == "ClientIP". Default value is 10800(for 3 hours).
+                                format: int32
+                                type: integer
+                            type: object
+                        type: object
                       type:
-                        description: Service Type string describes ingress methods
-                          for a service
+                        description: Type ClusterIP, NodePort, LoadBalancer
                         type: string
                     type: object
-                  serviceAccountName:
-                    type: string
+                  serviceAccount:
+                    description: ServiceAccount to use for the Gateway Deployment
+                    properties:
+                      create:
+                        description: Create a service account for the Gateway Deployment
+                        type: boolean
+                      name:
+                        description: Name of the service account
+                        type: string
+                    type: object
                   sidecars:
                     items:
                       description: A single application container that you want to
@@ -5813,13 +6154,23 @@ spec:
                       type: object
                     type: array
                   singletonExtraction:
+                    description: SingletonExtraction works with the Gateway in Ephemeral
+                      mode. this enables scheduled tasks that are set to execute on
+                      a single node and jms destinations that are outbound to be applied
+                      to one ephemeral gateway only. This works inconjunction with
+                      repository references and only supports dynamic repository references.
                     type: boolean
                   system:
+                    description: System
                     properties:
                       properties:
+                        description: Properties for the Gateway
                         type: string
                     type: object
                   terminationGracePeriodSeconds:
+                    description: TerminationGracePeriodSeconds is the time kubernetes
+                      will wait for the Gateway to shutdown before forceably removing
+                      it
                     format: int64
                     type: integer
                   tolerations:
@@ -6041,6 +6392,7 @@ spec:
                       type: object
                     type: array
                   updateStrategy:
+                    description: UpdateStrategy for the Gateway Deployment
                     properties:
                       rollingUpdate:
                         description: Spec to control the desired behavior of rolling
@@ -6094,58 +6446,32 @@ spec:
                   accept:
                     type: boolean
                   secretName:
+                    description: SecretName is the Kubernetes Secret that contains
+                      the Gateway license There must be a key called license.xml
                     type: string
                 type: object
               version:
                 description: Version references the Gateway release that this Operator
                   is intended to be used with while all supported container gateway
-                  versions will work, some functionality will not be available like
-                  bootstrapping graphman bundles which is currently unique to 10.1.00_CR3
+                  versions will work, some functionality will not be available
                 type: string
             type: object
           status:
-            description: GatewayStatus defines the observed state of Gateway
+            description: GatewayStatus defines the observed state of Gateways
             properties:
-              ApiSyncStatus:
-                description: L7ApiSyncStatus tracks the status of l7apis applied to
-                  a gateway.
+              PortalSyncStatus:
+                description: PortalSyncStatus tracks the status of which portals are
+                  synced with a gateway.
                 properties:
-                  apis:
-                    items:
-                      properties:
-                        lastUpdated:
-                          type: string
-                        name:
-                          type: string
-                        type:
-                          description: Type is Gateway or Portal - defaults to Gateway
-                          type: string
-                      type: object
-                    type: array
-                  count:
+                  apiCount:
+                    description: ApiCount is number of APIs that are related to the
+                      Referenced Portal
                     type: integer
                   lastUpdated:
+                    description: LastUpdated is the last time this status was updated
                     type: string
-                type: object
-              PortalApiSyncStatus:
-                description: L7ApiSyncStatus tracks the status of l7apis applied to
-                  a gateway.
-                properties:
-                  apis:
-                    items:
-                      properties:
-                        lastUpdated:
-                          type: string
-                        name:
-                          type: string
-                        type:
-                          description: Type is Gateway or Portal - defaults to Gateway
-                          type: string
-                      type: object
-                    type: array
-                  count:
-                    type: integer
-                  lastUpdated:
+                  name:
+                    description: Name of the L7Portal
                     type: string
                 type: object
               conditions:
@@ -6185,51 +6511,42 @@ spec:
                   description: GatewayState tracks the status of Gateway Resources
                   properties:
                     name:
+                      description: Name of the Gateway Pod
                       type: string
                     phase:
                       description: PodPhase is a label for the condition of a pod
                         at the current time.
                       type: string
                     ready:
+                      description: Ready is the state of the Gateway pod
                       type: boolean
                     startTime:
+                      description: StartTime is when the Gateway pod was started
                       type: string
                   required:
                   - ready
                   type: object
                 type: array
               host:
+                description: Host is the Gateway Cluster Hostname
                 type: string
               image:
-                type: string
-              labelSelectorPath:
+                description: Image of the Gateway
                 type: string
               managementPod:
+                description: Management Pod is a Gateway with a special annotation
+                  is used as a selector for the management service and applying singleton
+                  resources
                 type: string
-              observedGeneration:
-                format: int64
-                type: integer
               phase:
                 description: PodPhase is a label for the condition of a pod at the
                   current time.
                 type: string
-              portalSyncStatus:
-                items:
-                  description: PortalSyncStatus tracks the status of which portals
-                    are synced with a gateway.
-                  properties:
-                    apiCount:
-                      type: integer
-                    lastUpdated:
-                      type: string
-                    name:
-                      type: string
-                  type: object
-                type: array
               ready:
                 format: int32
                 type: integer
               replicas:
+                description: Replicas is the number of Gateway Pods
                 format: int32
                 type: integer
               repositoryStatus:
@@ -6238,14 +6555,20 @@ spec:
                     Graphman repositories have been applied to the Gateway Resource.
                   properties:
                     branch:
+                      description: Branch of the Git repo
                       type: string
                     commit:
+                      description: Commit is the last commit that was applied
                       type: string
                     enabled:
+                      description: Enabled shows whether or not this repository reference
+                        is enabled
                       type: boolean
                     endpoint:
+                      description: Endoint is the Git repo
                       type: string
                     name:
+                      description: Name of the Repository Reference
                       type: string
                     secretName:
                       description: SecretName is used to mount the correct repository
@@ -6256,7 +6579,11 @@ spec:
                         bundles to the initContainer these will be less than 1mb in
                         size
                       type: string
+                    tag:
+                      description: Tag is the git tag in the Git repo
+                      type: string
                     type:
+                      description: Type is static or dynamic
                       type: string
                   required:
                   - enabled
@@ -6266,6 +6593,7 @@ spec:
                 description: PodConditionType is a valid value for PodCondition.Type
                 type: string
               version:
+                description: Version of the Gateway
                 type: string
             type: object
         type: object

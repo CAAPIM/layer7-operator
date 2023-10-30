@@ -13,7 +13,8 @@ func TestDeploymentWithPorts(t *testing.T) {
 	gateway.Namespace = "testNamespace"
 	gateway.Spec.App.Image = "testImage"
 	gateway.Spec.App.Replicas = 5
-	gateway.Spec.App.ServiceAccountName = "testServiceAccount"
+	gateway.Spec.App.ServiceAccount.Name = "testServiceAccount"
+	gateway.Spec.App.ServiceAccount.Create = true
 	gateway.Spec.App.PodSecurityContext = corev1.PodSecurityContext{}
 	gateway.Spec.App.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{{TopologyKey: "testTopology"}}
 	gateway.Spec.App.Tolerations = []corev1.Toleration{{Key: "testKey", Value: "testValue"}}

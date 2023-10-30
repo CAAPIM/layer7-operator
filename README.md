@@ -10,6 +10,12 @@ The initial release gives basic coverage to instantiating one or more Operator m
 
 The Layer7 Operator is restricted to manage the namespace it's deployed in by default. There is also a cluster-wide option available where the operator can watch all or multiple namespaces.
 
+
+## Documentation
+- [API (Custom Resource) Docs](./docs/readme.md)
+- [Wiki](https://github.com/CAAPIM/layer7-operator/wiki)
+- Techdocs (coming soon)
+
 ### Deployment Types
 
 #### Application Level
@@ -21,6 +27,7 @@ The Layer7 Operator is restricted to manage the namespace it's deployed in by de
 - Repository
 - L7Api
 - L7Portal
+
 
 #### Features
 - Gateway Helm Chart feature parity (no sample mysql/hazelcast/influxdb/grafana deployments)

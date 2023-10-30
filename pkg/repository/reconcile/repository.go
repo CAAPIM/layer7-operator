@@ -13,11 +13,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func syncRepository(ctx context.Context, params Params) error {
 	repository, err := getRepository(ctx, params)
 	var commit string
+	var username string
+	var token string
+	var repositorySecret *corev1.Secret
+	var sshKey []byte
+	var sshKeyPass string
+	var knownHosts []byte
+	//authType := "none"
+	authType := securityv1.RepositoryAuthTypeNone
 	if err != nil {
 		params.Log.Info("repository unavailable", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
 		_ = s.RemoveByTag(params.Instance.Name + "-sync-repository")
@@ -32,19 +41,34 @@ func syncRepository(ctx context.Context, params Params) error {
 		return nil
 	}
 
-	rSecret, err := getSecret(ctx, repository, params)
+	if repository.Spec.Auth != (securityv1.RepositoryAuth{}) {
 
-	if err != nil {
-		params.Log.Info("secret unavailable", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
-		return nil
+		repositorySecret, err = getSecret(ctx, repository, params)
+
+		if err != nil {
+			params.Log.Info("secret unavailable", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+			return nil
+		}
+
+		token = string(repositorySecret.Data["TOKEN"])
+		if token == "" {
+			token = string(repositorySecret.Data["PASSWORD"])
+		}
+
+		username = string(repositorySecret.Data["USERNAME"])
+		sshKey = repositorySecret.Data["SSH_KEY"]
+		sshKeyPass = string(repositorySecret.Data["SSH_KEY_PASS"])
+		knownHosts = repositorySecret.Data["KNOWN_HOSTS"]
+		authType = repository.Spec.Auth.Type
+
+		if authType == "" && username != "" && token != "" {
+			authType = securityv1.RepositoryAuthTypeBasic
+		}
+
+		if authType == "" && username == "" && sshKey != nil {
+			authType = securityv1.RepositoryAuthTypeSSH
+		}
 	}
-
-	token := string(rSecret.Data["TOKEN"])
-	if token == "" {
-		token = string(rSecret.Data["PASSWORD"])
-	}
-
-	username := string(rSecret.Data["USERNAME"])
 
 	ext := repository.Spec.Branch
 	if ext == "" {
@@ -56,22 +80,49 @@ func syncRepository(ctx context.Context, params Params) error {
 	requestCacheEntry := repository.Name
 	syncRequest, _ := syncCache.Read(requestCacheEntry)
 
-	if syncRequest.Attempts > 2 {
-		params.Log.V(2).Info("request has failed more than 3 times in the last 30 seconds, backing off", "name", repository.Name, "namespace", repository.Namespace)
+	backoffRequestCacheEntry := repository.Name + "-backoff"
+	backoffSyncRequest, _ := syncCache.Read(backoffRequestCacheEntry)
+
+	if backoffSyncRequest.Attempts > 4 {
+		params.Log.Info("several attempts to sync this repository have failed, please check your configuration", "name", repository.Name, "namespace", repository.Namespace)
 		return nil
 	}
+
+	if syncRequest.Attempts > 2 {
+		params.Log.V(2).Info("request has failed more than 3 times in the last 30 seconds", "name", repository.Name, "namespace", repository.Namespace)
+		return nil
+	}
+
+	patch := []byte(`[{"op": "replace", "path": "/status/ready", "value": false}]`)
 
 	switch strings.ToLower(repository.Spec.Type) {
 	case "http":
 		forceUpdate := false
 		if repository.Status.Summary != repository.Spec.Endpoint {
 			forceUpdate = true
+
 		}
 		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name, forceUpdate)
 		if err != nil {
+			if err == util.ErrInvalidFileFormatError || err == util.ErrInvalidTarArchive || err == util.ErrInvalidZipArchive {
+				params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+				backoffAttempts := 5
+				syncCache.Update(util.SyncRequest{RequestName: backoffRequestCacheEntry, Attempts: backoffAttempts}, time.Now().Add(360*time.Second).Unix())
+				err = setRepoStatus(ctx, params, patch)
+				if err != nil {
+					params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+				}
+				return nil
+			}
 			params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			attempts := syncRequest.Attempts + 1
+			backoffAttempts := backoffSyncRequest.Attempts + 1
+			syncCache.Update(util.SyncRequest{RequestName: backoffRequestCacheEntry, Attempts: backoffAttempts}, time.Now().Add(360*time.Second).Unix())
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			err = setRepoStatus(ctx, params, patch)
+			if err != nil {
+				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+			}
 			return nil
 		}
 		fileURL, _ := url.Parse(repository.Spec.Endpoint)
@@ -86,7 +137,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		storageSecretName = repository.Name + "-repository-" + folderName
 	case "git":
 	default:
-		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor)
+		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			return nil
@@ -96,6 +147,10 @@ func syncRepository(ctx context.Context, params Params) error {
 			params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
 			attempts := syncRequest.Attempts + 1
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			err = setRepoStatus(ctx, params, patch)
+			if err != nil {
+				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+			}
 			return nil
 		}
 	}
@@ -164,4 +219,19 @@ func getRepository(ctx context.Context, params Params) (securityv1.Repository, e
 		}
 	}
 	return repository, nil
+}
+
+func setRepoStatus(ctx context.Context, params Params, patch []byte) error {
+
+	if !params.Instance.Status.Ready {
+		return nil
+	}
+
+	if err := params.Client.Status().Patch(context.Background(), params.Instance,
+		client.RawPatch(types.JSONPatchType, patch)); err != nil {
+		return err
+	}
+	params.Log.Info("repository status has been updated", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+
+	return nil
 }

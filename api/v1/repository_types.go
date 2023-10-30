@@ -50,6 +50,7 @@ type RepositorySpec struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=repo;repos;l7repo;l7repos;l7repository;l7repositories
 
 // Repository is the Schema for the repositories API
 type Repository struct {
@@ -87,28 +88,44 @@ type RepositoryAuth struct {
 	Vendor string `json:"vendor,omitempty"`
 	// Auth Type defaults to basic, possible options are
 	// basic or ssh
-	Type string `json:"type,omitempty"`
+	Type RepositoryAuthType `json:"type,omitempty"`
 	// Username repository username
 	Username string `json:"username,omitempty"`
 	// Password repository Password
 	// password or token are acceptable
 	Password string `json:"password,omitempty"`
 	// Token repository Access Token
-	Token  string `json:"token,omitempty"`
-	SshKey string `json:"sshkey,omitempty"`
+	Token string `json:"token,omitempty"`
+	// SSHKey for Git SSH Authentication
+	SSHKey string `json:"sshKey,omitempty"`
+	// SSHKey Pass
+	SSHKeyPass string `json:"sshKeyPass,omitempty"`
+	// KnownHosts is required for SSH Auth
+	KnownHosts string `json:"knownHosts,omitempty"`
+	// AutoTrust SSH Host
+	AutoTrustSSHHost bool `json:"autoTrustSshHost,omitempty"`
 	// ExistingSecretName reference an existing secret
 	ExistingSecretName string `json:"existingSecretName,omitempty"`
 }
 
+type RepositoryAuthType string
+
+const (
+	RepositoryAuthTypeBasic RepositoryAuthType = "basic"
+	RepositoryAuthTypeSSH   RepositoryAuthType = "ssh"
+	RepositoryAuthTypeNone  RepositoryAuthType = "none"
+)
+
 // RepositoryStatus defines the observed state of Repository
 type RepositoryStatus struct {
-	Name              string `json:"name,omitempty"`
-	Ready             bool   `json:"ready,omitempty"`
-	Commit            string `json:"commit,omitempty"`
-	Updated           string `json:"updated,omitempty"`
-	Summary           string `json:"summary,omitempty"`
-	Vendor            string `json:"vendor,omitempty"`
-	StorageSecretName string `json:"storageSecretName,omitempty"`
+	Name               string `json:"name,omitempty"`
+	Ready              bool   `json:"ready,omitempty"`
+	Commit             string `json:"commit,omitempty"`
+	Updated            string `json:"updated,omitempty"`
+	Summary            string `json:"summary,omitempty"`
+	LastAppliedSummary string `json:"lastAppliedSummary,omitempty"`
+	Vendor             string `json:"vendor,omitempty"`
+	StorageSecretName  string `json:"storageSecretName,omitempty"`
 }
 
 func init() {

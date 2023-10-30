@@ -46,8 +46,6 @@ func HorizontalPodAutoscaler(ctx context.Context, params Params) error {
 		return nil
 	}
 
-	params.Log.V(2).Info("horizontal pod autoscaler", "current", currentHpa.Spec, "desired", desiredHpa.Spec)
-
 	updated := currentHpa.DeepCopy()
 	updated.Spec = desiredHpa.Spec
 

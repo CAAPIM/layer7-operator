@@ -2,10 +2,13 @@ package reconcile
 
 import (
 	"context"
+
 	appsv1 "k8s.io/api/apps/v1"
+
 	//"context"
-	"k8s.io/apimachinery/pkg/types"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestNewDeployment(t *testing.T) {
@@ -35,7 +38,7 @@ func TestNewDeployment(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		params.Instance.Spec.App.ServiceAccountName = "modified"
+		params.Instance.Spec.App.ServiceAccount.Name = "modified"
 		err = Deployment(ctx, params)
 		if err != nil {
 			t.Fatal(err)

@@ -147,8 +147,6 @@ endif
 .PHONY: kuttl
 kuttl:
 ifeq (, $(shell which kubectl-kuttl))
-	echo ${PATH}
-	ls -l /usr/local/bin
 	which kubectl-kuttl
 
 	@{ \
@@ -336,6 +334,12 @@ version:
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/operator/kustomization.yaml
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/bundle/kustomization.yaml
+
+generate-docs:
+	crdoc --resources config/crd/bases/security.brcmlabs.com_gateways.yaml --output docs/gateway.md
+	crdoc --resources config/crd/bases/security.brcmlabs.com_repositories.yaml --output docs/repository.md
+	crdoc --resources config/crd/bases/security.brcmlabs.com_l7portals.yaml --output docs/l7portals.md
+	crdoc --resources config/crd/bases/security.brcmlabs.com_l7apis.yaml --output docs/l7apis.md
 
 helmify:
 #$(call go-get-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify@v0.3.7)

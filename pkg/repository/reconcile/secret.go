@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	v1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/repository"
 	"github.com/caapim/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -17,15 +18,27 @@ import (
 
 func Secret(ctx context.Context, params Params) error {
 
-	if params.Instance.Spec.Auth.ExistingSecretName != "" {
+	if params.Instance.Spec.Auth.ExistingSecretName != "" || params.Instance.Spec.Auth == (v1.RepositoryAuth{}) {
 		return nil
 	}
 
-	data := map[string][]byte{
-		"USERNAME": []byte(params.Instance.Spec.Auth.Username),
-		"PASSWORD": []byte(params.Instance.Spec.Auth.Password),
-		"TOKEN":    []byte(params.Instance.Spec.Auth.Token),
+	data := map[string][]byte{}
+
+	switch params.Instance.Spec.Auth.Type {
+	case v1.RepositoryAuthTypeBasic:
+		data["USERNAME"] = []byte(params.Instance.Spec.Auth.Username)
+		data["PASSWORD"] = []byte(params.Instance.Spec.Auth.Password)
+		data["TOKEN"] = []byte(params.Instance.Spec.Auth.Token)
+	case v1.RepositoryAuthTypeSSH:
+		data["SSH_KEY"] = []byte(params.Instance.Spec.Auth.SSHKey)
+		data["SSH_KEY_PASS"] = []byte(params.Instance.Spec.Auth.SSHKeyPass)
+		data["KNOWN_HOSTS"] = []byte(params.Instance.Spec.Auth.KnownHosts)
+	case v1.RepositoryAuthTypeNone:
+		return nil
+	default:
+		return fmt.Errorf("failed to reconcile secret: %s please set auth type to basic, ssh or none", params.Instance.Name)
 	}
+
 	desiredSecret := repository.NewSecret(params.Instance, params.Instance.Name, data)
 
 	if err := reconcileSecret(ctx, params, desiredSecret); err != nil {

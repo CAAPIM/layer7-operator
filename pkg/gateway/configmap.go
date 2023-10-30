@@ -47,6 +47,17 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			data["graceful-shutdown"] = string(f)
 		}
 
+		if gw.Spec.App.AutoMountServiceAccountToken {
+			f, _ := os.ReadFile("./load-service-account-token.sh")
+			data["load-service-account-token"] = string(f)
+			f, _ = os.ReadFile("./update-service-account-token.xml")
+			data["service-account-token-template"] = string(f)
+		}
+
+		if gw.Spec.App.Log.Override {
+			data["log-override-properties"] = gw.Spec.App.Log.Properties
+		}
+
 		if gw.Spec.App.Bootstrap.Script.Enabled {
 			f, _ := os.ReadFile("./003-parse-custom-files.sh")
 			data["003-parse-custom-files"] = string(f)

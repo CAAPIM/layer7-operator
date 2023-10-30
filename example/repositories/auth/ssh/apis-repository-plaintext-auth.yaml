@@ -1,0 +1,21 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Repository
+metadata:
+  name: l7-gw-myapis
+spec:
+  name: l7-gw-myapis
+  enabled: true
+  endpoint: ssh://git@[yourgitserver.com]/[username]/[reponame]
+  #endpoint: ssh://git@[yourgitserver.com]:[port]/[username]/[reponame]
+  branch: main
+  auth:
+    type: ssh
+    sshKey: |+
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      encrypted key value
+      -----END OPENSSH PRIVATE KEY-----
+    sshKeyPass: 7layer
+    knownHosts: |+
+      github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+      gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf
+      bitbucket.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO

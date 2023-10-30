@@ -11,6 +11,7 @@ func TestNewSecret(t *testing.T) {
 	repository.Spec.Auth.Username = "testUser"
 	repository.Spec.Auth.Password = "testPassword"
 	repository.Spec.Auth.Token = "testToken"
+	repository.Spec.Auth.Type = securityv1.RepositoryAuthTypeBasic
 	repositoryName := "layer7-repository-test"
 
 	data := map[string][]byte{

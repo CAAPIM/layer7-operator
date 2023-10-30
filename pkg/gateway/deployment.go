@@ -97,8 +97,15 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			},
 		}
 		for _, port := range gw.Spec.App.PreStopScript.ExcludedPorts {
-			lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, strconv.Itoa(port))
+			// ignore 2124 and 8777 as they are manually set
+			if port != 2124 && port != 8777 {
+				lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, strconv.Itoa(port))
+			}
 		}
+
+		lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, "2124")
+		lifecycleHooks.PreStop.Exec.Command = append(lifecycleHooks.PreStop.Exec.Command, "8777")
+
 		terminationGracePeriodSeconds = int64(gw.Spec.App.PreStopScript.TimeoutSeconds) + 30
 	}
 
@@ -111,23 +118,10 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		Name: "gateway-license",
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: "gateway-license",
+				SecretName: gw.Spec.License.SecretName,
 				Items: []corev1.KeyToPath{{
 					Path: "license.xml",
 					Key:  "license.xml"},
-				},
-				DefaultMode: &defaultMode,
-				Optional:    &optional,
-			},
-		},
-	}, {
-		Name: "system-properties",
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-system"},
-				Items: []corev1.KeyToPath{{
-					Path: "system.properties",
-					Key:  "system.properties"},
 				},
 				DefaultMode: &defaultMode,
 				Optional:    &optional,
@@ -139,11 +133,94 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		Name:      "gateway-license",
 		MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml",
 		SubPath:   "license.xml",
-	}, {
-		Name:      "system-properties",
-		MountPath: "/opt/SecureSpan/Gateway/node/default/etc/conf/system.properties",
-		SubPath:   "system.properties",
 	}}
+
+	if gw.Spec.App.System.Properties != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: "system-properties",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-system"},
+					Items: []corev1.KeyToPath{{
+						Path: "system.properties",
+						Key:  "system.properties"},
+					},
+					DefaultMode: &defaultMode,
+					Optional:    &optional,
+				},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "system-properties",
+			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/conf/system.properties",
+			SubPath:   "system.properties",
+		})
+	}
+
+	if gw.Spec.App.AutoMountServiceAccountToken {
+		volumes = append(volumes, corev1.Volume{
+			Name: "service-account-token-script",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					Items: []corev1.KeyToPath{{
+						Path: "load-service-account-token.sh",
+						Key:  "load-service-account-token"},
+					},
+					DefaultMode: &defaultMode,
+					Optional:    &optional,
+				},
+			},
+		}, corev1.Volume{
+			Name: "service-account-token-template",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					Items: []corev1.KeyToPath{{
+						Path: "update-service-account-token.xml",
+						Key:  "service-account-token-template"},
+					},
+					DefaultMode: &defaultMode,
+					Optional:    &optional,
+				},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "service-account-token-script",
+			MountPath: "/opt/docker/rc.d/load-service-account-token.sh",
+			SubPath:   "load-service-account-token.sh",
+		}, corev1.VolumeMount{
+			Name:      "service-account-token-template",
+			MountPath: "/opt/docker/rc.d/base/update-service-account-token.xml",
+			SubPath:   "update-service-account-token.xml",
+		})
+	}
+
+	if gw.Spec.App.Log.Override {
+		volumes = append(volumes, corev1.Volume{
+			Name: "log-override-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					Items: []corev1.KeyToPath{{
+						Path: "log-override.properties",
+						Key:  "log-override-properties"},
+					},
+					DefaultMode: &defaultMode,
+					Optional:    &optional,
+				},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "log-override-config",
+			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties",
+			SubPath:   "log-override.properties",
+		})
+
+	}
 
 	if gw.Spec.App.ClusterProperties.Enabled {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -282,23 +359,11 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/" + baseFolder,
 			})
 
-			if gw.Spec.App.Bundle[v].ConfigMap.DefaultMode != nil {
-				defaultMode = *gw.Spec.App.Bundle[v].ConfigMap.DefaultMode
-			}
-
 			vs := corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.Bundle[v].Name},
 				DefaultMode:          &defaultMode,
 				Optional:             &optional,
 			}}
-
-			if gw.Spec.App.Bundle[v].ConfigMap != (securityv1.ConfigMap{}) {
-				vs = corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.Bundle[v].Name},
-					DefaultMode:          &defaultMode,
-					Optional:             &gw.Spec.App.Bundle[v].ConfigMap.Optional,
-				}}
-			}
 
 			volumes = append(volumes, corev1.Volume{
 				Name:         gw.Spec.App.Bundle[v].Name,
@@ -561,6 +626,16 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
 	revisionHistoryLimit := int32(10)
 	progressDeadlineSeconds := int32(600)
+
+	serviceAccountName := gw.Spec.App.ServiceAccount.Name
+	if gw.Spec.App.ServiceAccount.Name == "" {
+		serviceAccountName = gw.Name
+	}
+
+	if gw.Spec.App.ServiceAccount == (securityv1.ServiceAccount{}) {
+		serviceAccountName = "default"
+	}
+
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gw.Name,
@@ -581,10 +656,10 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			ProgressDeadlineSeconds: &progressDeadlineSeconds,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: gw.Spec.App.Annotations,
+					Annotations: gw.Spec.App.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName:            gw.Spec.App.ServiceAccountName,
+					ServiceAccountName:            serviceAccountName,
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					SecurityContext:               &gw.Spec.App.PodSecurityContext,
 					TopologySpreadConstraints:     gw.Spec.App.TopologySpreadConstraints,
@@ -594,12 +669,21 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 					Affinity:                      &gw.Spec.App.Affinity,
 					NodeSelector:                  gw.Spec.App.NodeSelector,
 					SchedulerName:                 "default-scheduler",
-					//InitContainers:                initContainers,
-					Containers: containers,
-					Volumes:    volumes,
+					Containers:                    containers,
+					Volumes:                       volumes,
 				},
 			},
 		},
+	}
+
+	if gw.Spec.App.CustomHosts.Enabled {
+		if len(gw.Spec.App.CustomHosts.HostAliases) > 0 {
+			dep.Spec.Template.Spec.HostAliases = gw.Spec.App.CustomHosts.HostAliases
+		}
+	}
+
+	if len(gw.Spec.App.Annotations) != 0 {
+		dep.ObjectMeta.Annotations = gw.Spec.App.Annotations
 	}
 
 	if len(initContainers) > 0 {
@@ -608,10 +692,6 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 
 	dep.Spec.Template.Spec.ImagePullSecrets = append(dep.Spec.Template.Spec.ImagePullSecrets, gw.Spec.App.ImagePullSecrets...)
 	dep.Spec.Template.Labels = ls
-
-	// if gw.Spec.App.Repository.Enabled {
-	// 	dep.Spec.Template.Annotations = map[string]string{"commitId": gw.Status.CommitID}
-	// }
 
 	if !gw.Spec.App.Autoscaling.Enabled {
 		dep.Spec.Replicas = &gw.Spec.App.Replicas

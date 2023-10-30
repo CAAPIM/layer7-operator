@@ -113,7 +113,8 @@ func TestGatewayPropertiesConfigMap(t *testing.T) {
 	if !strings.Contains(jvmExtraArgs, "-Dcom.l7tech.server.extension.sharedCounterProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedKeyValueStoreProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedClusterInfoProvider=externalhazelcast") {
 		t.Errorf("jvmExtraArgs %s should containe hazelcast property", jvmExtraArgs)
 	}
-	expectHazelcaseClientConfig := "<hazelcast-client xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.hazelcast.com/schema/client-config http://www.hazelcast.com/schema/client-config/hazelcast-client-config-3.10.xsd\" xmlns=\"http://www.hazelcast.com/schema/client-config\"><instance-name>test-hazelcast-client</instance-name><network><cluster-members><address>hazelcasthost</address></cluster-members><connection-attempt-limit>10</connection-attempt-limit><redo-operation>true</redo-operation></network><connection-strategy async-start=\"false\" reconnect-mode=\"ON\" /></hazelcast-client>"
+	expectHazelcaseClientConfig := `<hazelcast-client xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.hazelcast.com/schema/client-config http://www.hazelcast.com/schema/client-config/hazelcast-client-config-5.2.xsd" xmlns="http://www.hazelcast.com/schema/client-config"><instance-name>test-hazelcast-client</instance-name><network><cluster-members><address>hazelcasthost</address></cluster-members><redo-operation>true</redo-operation></network><connection-strategy async-start="false" reconnect-mode="ON"><connection-retry><cluster-connect-timeout-millis>-1</cluster-connect-timeout-millis></connection-retry></connection-strategy></hazelcast-client>`
+
 	hazelcaseClientConfig := configMap.Data["hazelcast-client.xml"]
 	if hazelcaseClientConfig != expectHazelcaseClientConfig {
 		t.Errorf("Expected %s, but Actual %s", expectHazelcaseClientConfig, hazelcaseClientConfig)

@@ -9,3 +9,4 @@ metadata:
 status:
   repositoryStatus:
     - name: l7-gw-myframework
+      enabled: true

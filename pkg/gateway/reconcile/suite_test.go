@@ -167,7 +167,8 @@ func newParams() Params {
 					},
 				},
 				License: securityv1.License{
-					Accept: true,
+					Accept:     true,
+					SecretName: "gateway-license",
 				},
 			},
 			Status: securityv1.GatewayStatus{

@@ -31,3 +31,4 @@ deploy.sh
 dev
 license.xml
 .DS_Store
+testdata

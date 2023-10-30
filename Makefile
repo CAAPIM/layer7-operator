@@ -147,8 +147,6 @@ endif
 .PHONY: kuttl
 kuttl:
 ifeq (, $(shell which kubectl-kuttl))
-	echo ${PATH}
-	ls -l /usr/local/bin
 	which kubectl-kuttl
 
 	@{ \

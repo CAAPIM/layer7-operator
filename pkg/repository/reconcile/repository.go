@@ -26,7 +26,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	var sshKeyPass string
 	var knownHosts []byte
 	//authType := "none"
-	authType := securityv1.RepositoryAuthTypeNone
+	authType := params.Instance.Spec.Auth.Type
 	if err != nil {
 		params.Log.Info("repository unavailable", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
 		_ = s.RemoveByTag(params.Instance.Name + "-sync-repository")
@@ -68,6 +68,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		if authType == "" && username == "" && sshKey != nil {
 			authType = securityv1.RepositoryAuthTypeSSH
 		}
+
 	}
 
 	ext := repository.Spec.Branch

@@ -498,7 +498,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	commits := ""
 	gmanInitContainerVolumeMounts := []corev1.VolumeMount{}
 	for _, staticRepository := range gw.Status.RepositoryStatus {
-		if staticRepository.Enabled && staticRepository.Type == "static" {
+		if staticRepository.Enabled && staticRepository.Type == "static" && staticRepository.SecretName != "" {
 			commits = commits + staticRepository.Commit
 			graphmanInitContainer = true
 			gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{

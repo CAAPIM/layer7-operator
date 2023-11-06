@@ -46,6 +46,10 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			secretName = repository.Spec.Auth.ExistingSecretName
 		}
 
+		if repository.Spec.Auth == (securityv1.RepositoryAuth{}) {
+			secretName = ""
+		}
+
 		commit := repository.Status.Commit
 
 		newRepoStatus := securityv1.GatewayRepositoryStatus{

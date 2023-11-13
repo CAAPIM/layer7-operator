@@ -498,21 +498,24 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	commits := ""
 	gmanInitContainerVolumeMounts := []corev1.VolumeMount{}
 	for _, staticRepository := range gw.Status.RepositoryStatus {
-		if staticRepository.Enabled && staticRepository.Type == "static" && staticRepository.SecretName != "" {
+		if staticRepository.Enabled && staticRepository.Type == "static" {
 			commits = commits + staticRepository.Commit
 			graphmanInitContainer = true
-			gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-				Name:      staticRepository.SecretName,
-				MountPath: "/graphman/secrets/" + staticRepository.Name,
-			})
-			volumes = append(volumes, corev1.Volume{
-				Name: staticRepository.SecretName,
-				VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
-					SecretName:  staticRepository.SecretName,
-					DefaultMode: &defaultMode,
-					Optional:    &optional,
-				}},
-			})
+
+			if staticRepository.SecretName != "" {
+				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+					Name:      staticRepository.SecretName,
+					MountPath: "/graphman/secrets/" + staticRepository.Name,
+				})
+				volumes = append(volumes, corev1.Volume{
+					Name: staticRepository.SecretName,
+					VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+						SecretName:  staticRepository.SecretName,
+						DefaultMode: &defaultMode,
+						Optional:    &optional,
+					}},
+				})
+			}
 
 			// if the repository compressed is less than 1mb in size it will be
 			// available as an existing Kubernetes secret which reduces reliance on an external Git repository for Gateway boot.

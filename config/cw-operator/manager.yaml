@@ -33,6 +33,9 @@ spec:
         - "--leader-elect"
         - "--zap-log-level=info"
         - "--zap-time-encoding=rfc3339nano"
+        env:
+          - name: WATCH_NAMESPACE
+            value: ""
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager
@@ -79,9 +82,6 @@ spec:
           requests:
             cpu: 5m
             memory: 64Mi
-        env:
-          - name: WATCH_NAMESPACE
-            value: ""
 
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

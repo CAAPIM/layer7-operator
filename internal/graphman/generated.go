@@ -574,7 +574,7 @@ type FipInput struct {
 	EnableCredentialTypeX509 bool                      `json:"enableCredentialTypeX509"`
 	CertificateValidation    CertificateValidationType `json:"certificateValidation"`
 	// The certificates in the trusted certificate table that establish the trust for this FIP
-	CertificateReferences []*FipCertInput `json:"certificateReferences,omitempty"`
+	CertificateReferences []*FipCertInput `json:"certificateReferences"`
 	// The optional checksum is ignored during the mutation but can be used to compare bundle content
 	Checksum string `json:"checksum"`
 }

@@ -84,9 +84,10 @@ There is a pre-configured example with an existing Portal Tenant containing 3 Po
 3. Apply the l7portal CR [here](./config/samples/security_v1alpha1_l7portal.yaml)
   - kubectl apply -f ./config/samples/security_v1alpha1_l7portal.yaml
 
-
 ### Under consideration
 - OTK support (operator managed)
+  - experimental options available
+    - ephemeral gateway only
 - Additional Custom Resources
 
 ## Prerequisites

@@ -15,7 +15,7 @@ func TestNewSecret(t *testing.T) {
 	gateway.Spec.App.Management.Cluster.Password = "testClusterPassword"
 	gateway.Spec.App.Management.Database = securityv1.Database{Enabled: true, JDBCUrl: "jdbc:mysql:localhost:3606", Username: "testDBUser", Password: "testDBPassword"}
 
-	secret := NewSecret(&gateway)
+	secret := NewSecret(&gateway, gateway.Name)
 
 	if string(secret.Data["SSG_ADMIN_USERNAME"]) != gateway.Spec.App.Management.Username {
 		t.Errorf("expected %s, actual %s", gateway.Spec.App.Management.Username, string(secret.Data["SSG_ADMIN_USERNAME"]))

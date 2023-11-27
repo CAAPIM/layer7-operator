@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	v1 "github.com/caapim/layer7-operator/api/v1"
 
 	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -572,15 +573,152 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		h := sha1.New()
 		h.Write([]byte(commits))
 		commits = fmt.Sprintf("%x", h.Sum(nil))
+
+		graphmanInitContainerImage := "docker.io/layer7api/graphman-static-init:1.0.1"
+		graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
+		graphmanInitContainerSecurityContext := corev1.SecurityContext{}
+
+		if gw.Spec.App.Management.Graphman.InitContainerImage != "" {
+			graphmanInitContainerImage = gw.Spec.App.Management.Graphman.InitContainerImage
+		}
+
+		if gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy != "" {
+			graphmanInitContainerImagePullPolicy = gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy
+		}
+
+		if gw.Spec.App.Management.Graphman.InitContainerSecurityContext != (corev1.SecurityContext{}) {
+			graphmanInitContainerSecurityContext = gw.Spec.App.Management.Graphman.InitContainerSecurityContext
+		}
+
 		initContainers = append(initContainers, corev1.Container{
 			Name:            "graphman-static-init-" + commits[30:],
-			Image:           gw.Spec.App.Management.Graphman.InitContainerImage,
-			ImagePullPolicy: corev1.PullIfNotPresent,
+			Image:           graphmanInitContainerImage,
+			ImagePullPolicy: graphmanInitContainerImagePullPolicy,
+			SecurityContext: &graphmanInitContainerSecurityContext,
 			VolumeMounts:    gmanInitContainerVolumeMounts,
 			Env: []corev1.EnvVar{{
 				Name:  "BOOTSTRAP_BASE",
 				Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
 			}},
+			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		})
+	}
+
+	otkInstallInitContainer := false
+	otkDbInitContainer := false
+	otkBootstrapDirectory := "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK"
+	otkInitContainerVolumeMounts := []corev1.VolumeMount{}
+	otkInitContainerImage := "docker.io/layer7api/otk-install:latest"
+	otkInitContainerImagePullPolicy := corev1.PullIfNotPresent
+	otkInitContainerSecurityContext := corev1.SecurityContext{}
+
+	otkInitContainerSecret := gw.Name + "-otk-db-credentials"
+
+	if gw.Spec.App.Otk.Database.Auth.ExistingSecret != "" {
+		otkInitContainerSecret = gw.Spec.App.Otk.Database.Auth.ExistingSecret
+	}
+
+	if gw.Spec.App.Otk.InitContainerImage != "" {
+		otkInitContainerImage = gw.Spec.App.Otk.InitContainerImage
+	}
+
+	if gw.Spec.App.Otk.InitContainerImagePullPolicy != "" {
+		otkInitContainerImagePullPolicy = gw.Spec.App.Otk.InitContainerImagePullPolicy
+	}
+
+	if gw.Spec.App.Otk.InitContainerSecurityContext != (corev1.SecurityContext{}) {
+		otkInitContainerSecurityContext = gw.Spec.App.Otk.InitContainerSecurityContext
+	}
+
+	if gw.Spec.App.Otk.Overrides.Enabled {
+		if gw.Spec.App.Otk.Overrides.BootstrapDirectory != "" {
+			otkBootstrapDirectory = gw.Spec.App.Otk.Overrides.BootstrapDirectory
+		}
+	}
+
+	if gw.Spec.App.Otk.Enabled {
+		otkInstallInitContainer = true
+		otkInitContainerVolumeMounts = append(otkInitContainerVolumeMounts, corev1.VolumeMount{
+			Name:      gw.Name + "-otk-bundle-dest",
+			MountPath: otkBootstrapDirectory,
+		})
+
+		volumeMounts = append(volumeMounts, otkInitContainerVolumeMounts...)
+		volumes = append(volumes, corev1.Volume{
+			Name: gw.Name + "-otk-bundle-dest",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+		if gw.Spec.App.Otk.Database.Type == v1.OtkDatabaseTypeMySQL || gw.Spec.App.Otk.Database.Type == v1.OtkDatabaseTypeOracle {
+			if gw.Spec.App.Otk.Database.Create {
+				otkDbInitContainer = true
+			}
+		}
+	}
+
+	if otkInstallInitContainer {
+		initContainers = append(initContainers, corev1.Container{
+			Name:            "otk-install-init",
+			Image:           otkInitContainerImage,
+			ImagePullPolicy: otkInitContainerImagePullPolicy,
+			SecurityContext: &otkInitContainerSecurityContext,
+			VolumeMounts:    otkInitContainerVolumeMounts,
+			EnvFrom: []corev1.EnvFromSource{
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: gw.Name + "-otk-shared-init-config",
+						},
+					},
+				},
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: gw.Name + "-otk-install-init-config",
+						},
+						Optional: &optional,
+					},
+				},
+				{
+					SecretRef: &corev1.SecretEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: otkInitContainerSecret,
+						},
+						Optional: &optional,
+					},
+				},
+			},
+			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		})
+	}
+
+	if otkDbInitContainer && gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle {
+		initContainers = append(initContainers, corev1.Container{
+			Name:            "otk-db-init",
+			Image:           otkInitContainerImage,
+			ImagePullPolicy: otkInitContainerImagePullPolicy,
+			SecurityContext: &otkInitContainerSecurityContext,
+			EnvFrom: []corev1.EnvFromSource{
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: gw.Name + "-otk-db-init-config",
+						},
+						Optional: &optional,
+					},
+				},
+				{
+					SecretRef: &corev1.SecretEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: otkInitContainerSecret,
+						},
+						Optional: &optional,
+					},
+				},
+			},
 			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		})

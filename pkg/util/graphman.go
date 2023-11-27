@@ -4,19 +4,27 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/gazza7205/go-pkcs12"
 )
+
+const fipsProviderGuid = "41e5cacd15f86758f03ff2952616d4f3"
+
+var internalPolicies = []string{"#OTK Client Context Variables", "OTK FIP Client Authentication Extension"}
+var externalPolicies = []string{"#OTK OVP Configuration", "#OTK Storage Configuration", "OTK Client DB GET", ""}
 
 type GraphmanSecret struct {
 	Name                 string `json:"name,omitempty"`
@@ -30,6 +38,11 @@ type GraphmanKey struct {
 	Crt  string `json:"crt,omitempty"`
 	Key  string `json:"key,omitempty"`
 	Port string `json:"port,omitempty"`
+}
+
+type GraphmanOtkConfig struct {
+	Type                     string `json:"type,omitempty"`
+	InternalGatewayReference string `json:"internalGatewayReference,omitempty"`
 }
 
 func ApplyToGraphmanTarget(path string, singleton bool, username string, password string, target string, encpass string) error {
@@ -318,6 +331,93 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 		return nil, err
 	}
 	return bundleBytes, nil
+}
+
+func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byte, string, error) {
+	var bundle graphman.Bundle
+	var policyXml []byte
+	switch mode {
+	case "INTERNAL":
+		for _, internalPolicy := range internalPolicies {
+			switch internalPolicy {
+			case "#OTK Client Context Variables":
+				policyXml, _ = BuildLayer7PolicyXml(internalPolicy, gatewayHost, "")
+				bundle.PolicyFragments = append(bundle.PolicyFragments, &graphman.PolicyFragmentInput{
+					FolderPath: "/OTK/Customizations",
+					Guid:       "105d3617-d61c-4c83-a952-2ed5a93425e9",
+					Goid:       "bc9a31b7578652a08a514d7d4fef1fb7",
+					Name:       internalPolicy,
+					Policy:     &graphman.PolicyInput{Xml: string(policyXml)},
+					Soap:       false,
+				})
+			case "OTK FIP Client Authentication Extension":
+				policyXml, _ = BuildLayer7PolicyXml(internalPolicy, "", fipsProviderGuid)
+				bundle.PolicyFragments = append(bundle.PolicyFragments, &graphman.PolicyFragmentInput{
+					FolderPath: "/OTK/Customizations/authentication",
+					Guid:       "7847c7a6-ac68-456b-841a-122726323efd",
+					Goid:       "bc9a31b7578652a08a514d7d4fef30e1",
+					Name:       internalPolicy,
+					Policy:     &graphman.PolicyInput{Xml: string(policyXml)},
+					Soap:       false,
+				})
+			}
+		}
+
+		bundle.Fips = append(bundle.Fips, &graphman.FipInput{
+			Name:                     "otk-fips-provider",
+			Goid:                     fipsProviderGuid,
+			EnableCredentialTypeSaml: false,
+			EnableCredentialTypeX509: true,
+			CertificateValidation:    graphman.CertificateValidationTypeCertificateOnly,
+			CertificateReferences:    []*graphman.FipCertInput{},
+		})
+	case "DMZ":
+		for _, externalPolicy := range externalPolicies {
+			switch externalPolicy {
+			case "#OTK OVP Configuration":
+				policyXml, _ = BuildLayer7PolicyXml(externalPolicy, gatewayHost, "")
+				bundle.PolicyFragments = append(bundle.PolicyFragments, &graphman.PolicyFragmentInput{
+					FolderPath: "/OTK/Customizations",
+					Name:       externalPolicy,
+					Guid:       "a4448be1-9b0e-417f-b498-8a268cadf8a5",
+					Goid:       "24e6fd7c5b6fb3a96690246c8ac492ec",
+					Policy:     &graphman.PolicyInput{Xml: string(policyXml)},
+					Soap:       false,
+				})
+			case "#OTK Storage Configuration":
+				policyXml, _ = BuildLayer7PolicyXml(externalPolicy, gatewayHost, "")
+				bundle.PolicyFragments = append(bundle.PolicyFragments, &graphman.PolicyFragmentInput{
+					FolderPath: "/OTK/Customizations",
+					Name:       externalPolicy,
+					Guid:       "cfa7239a-60e4-483a-9d45-c364f2fb673d",
+					Goid:       "24e6fd7c5b6fb3a96690246c8ac49304",
+					Policy:     &graphman.PolicyInput{Xml: string(policyXml)},
+					Soap:       false,
+				})
+			}
+		}
+	case "SINGLE":
+		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
+			Name:        "otk.port",
+			Value:       strconv.Itoa(otkPort),
+			Description: "OTK Port",
+		})
+	default:
+		return nil, "", fmt.Errorf("invalid otk installation type %s. Valid types are single, dmz and internal", mode)
+	}
+
+	bundleBytes := new(bytes.Buffer)
+	enc := json.NewEncoder(bundleBytes)
+	enc.SetEscapeHTML(false)
+	enc.Encode(&bundle)
+
+	//bundleBytes, _ := json.Marshal(bundle)
+	h := sha1.New()
+	h.Write(bundleBytes.Bytes())
+	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+	bundleCheckSum := sha1Sum
+
+	return bundleBytes.Bytes(), bundleCheckSum, nil
 }
 
 // Reserved for future use.

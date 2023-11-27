@@ -1,8 +1,8 @@
 ### Generate Schema
 
 ```
-$ go get github.com/Khan/genqlient@v0.5.0
-$ go run github.com/Khan/genqlient@v0.5.0
+$ go get github.com/Khan/genqlient@v0.6.0
+$ go run github.com/Khan/genqlient@v0.6.0
 ```
 
 ### Retrieve Schema
@@ -12,4 +12,5 @@ $ NODE_TLS_REJECT_UNAUTHORIZED=0 get-graphql-schema -h "Authorization=Basic YWRt
 ```
 
 ### NOTE
-generated.go treats EncassArgInput.GuiPrompt as a string regardless of the schema... has to be changed manually. 
+generated.go treats EncassArgInput.GuiPrompt as a string regardless of the schema... has to be changed manually.
+manual modification to certificateReferences in FIPS - remove Omitempty

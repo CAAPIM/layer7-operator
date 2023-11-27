@@ -25,6 +25,7 @@ testbin/*
 *.swo
 *~
 
+mysql-values.yaml
 example/tls.*
 deploy.sh
 .dockerconfigjson

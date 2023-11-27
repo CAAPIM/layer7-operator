@@ -197,7 +197,171 @@ type App struct {
 	LifecycleHooks                corev1.Lifecycle `json:"lifecycleHooks,omitempty"`
 	PreStopScript                 PreStopScript    `json:"preStopScript,omitempty"`
 	CustomHosts                   CustomHosts      `json:"customHosts,omitempty"`
+	Otk                           Otk              `json:"otk,omitempty"`
 }
+
+type Otk struct {
+	// Enable or disable the OTK initContainer
+	Enabled bool `json:"enabled,omitempty"`
+	// InitContainerImage for the initContainer
+	InitContainerImage string `json:"initContainerImage,omitempty"`
+	// InitContainerImagePullPolicy
+	InitContainerImagePullPolicy corev1.PullPolicy `json:"initContainerImagePullPolicy,omitempty"`
+	// InitContainerSecurityContext
+	InitContainerSecurityContext corev1.SecurityContext `json:"initContainerSecurityContext,omitempty"`
+	// Type of OTK installation single, internal or dmz
+	Type OtkType `json:"type,omitempty"`
+	// Database configuration
+	Database OtkDatabase `json:"database,omitempty"`
+	// Overrides default OTK install functionality
+	Overrides OtkOverrides `json:"overrides,omitempty"`
+	// A list of subSolutionKitNames - all,internal or dmz cover the primary use cases for the OTK. Only use if directed by support
+	SubSolutionKitNames []string `json:"subSolutionKitNames,omitempty"`
+	// InternalOtkGatewayReference to an Operator managed Gateway deployment that is configured with otk.type: internal
+	// This configures a relationship between DMZ and Internal Gateways.
+	InternalOtkGatewayReference string `json:"internalGatewayReference,omitempty"`
+	// InternalGatewayPort defaults to 9443 or graphmanDynamicSync port
+	InternalGatewayPort int `json:"internalGatewayPort,omitempty"`
+	// OTKPort is used in Single mode - sets the otk.port cluster-wide property and in Dual-Mode
+	// sets host_oauth2_auth_server port in #OTK Client Context Variables
+	// TODO: Make this an array for many dmz deployments to one internal
+	DmzOtkGatewayReference string `json:"dmzGatewayReference,omitempty"`
+	// defaults to 8443
+	OTKPort int `json:"port,omitempty"`
+	// MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds
+	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
+	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
+	RuntimeSyncIntervalSeconds int `json:"runtimeSyncIntervalSeconds,omitempty"`
+}
+
+// OtkMaintenanceTasks are run via API Call to Layer7 API Gateways
+// in ephemeral mode these tasks will run against one Gateway node automatically selected by the Operator.
+// This configuration allows that functionality to be disabled or customized.
+type OtkMaintenanceTasks struct {
+	// Enable or disable database maintenance tasks
+	Enabled bool `json:"enabled,omitempty"`
+	// OperatorManaged lets the Operator configure a hardened version of the db-maintenance policy
+	OperatorManaged bool `json:"operatorManaged,omitempty"`
+	// Uri for custom db-maintenance services
+	// Corresponding maintenance policy must support a parameter called task
+	Uri string `json:"uri,omitempty"`
+	// Period in seconds between maintenance task runs
+	Period int64 `json:"periodSeconds,omitempty"`
+}
+
+type OtkOverrides struct {
+	// Enable or disable otk overrides
+	Enabled bool `json:"enabled,omitempty"`
+	// BootstrapDirectory that is used for the initContainer the default is /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK
+	BootstrapDirectory string `json:"bootstrapDirectory,omitempty"`
+	// SkipInternalServerTools subSolutionKit install
+	// defaults to false
+	SkipInternalServerTools bool `json:"skipInternalServerTools,omitempty"`
+	// SkipPortalIntegrationComponents subSolutionKit install. This does not perform portal integration
+	// defaults to true
+	SkipPortalIntegrationComponents bool `json:"skipPortalIntegrationComponents,omitempty"`
+	// CreateTestClients for mysql & oracle setup test clients
+	CreateTestClients bool `json:"createTestClients,omitempty"`
+	// TestClientsRedirectUrlPrefix. Required if createTestClients is true.
+	TestClientsRedirectUrlPrefix string `json:"testClientsRedirectUrlPrefix,omitempty"`
+	// ManagePostInstallConfig represent post-installation tasks required for internal/dmz otk gateways
+	// These are enabled by default and will override the following customization policies
+	// This should be disabled if you intend to manage these via Graphman/Restman bundle.
+	// - #OTK OVP Configuration
+	// - #OTK Storage Configuration
+	// - #OTK  Client Context Variables
+	// - OTK FIP Client Authentication Extension
+	ManagePostInstallPolicies bool `json:"managePostInstallPolicies,omitempty"`
+}
+
+type OtkDatabase struct {
+	// Type of OTK Database
+	Type OtkDatabaseType `json:"type,omitempty"`
+	// Create the OTK database. Only applies to oracle and mysql
+	Create bool `json:"create,omitempty"`
+	// ConnectionName for the JDBC or Cassandra Connection Gateway entity
+	ConnectionName string `json:"connectionName,omitempty"`
+	// Auth for the OTK Database
+	Auth OtkDatabaseAuth `json:"auth,omitempty"`
+	// Cassandra configuration
+	Cassandra OtkCassandra `json:"cassandra,omitempty"`
+	// SQL configuration
+	Sql OtkSql `json:"sql,omitempty"`
+	// CreateReadOnlySqlConnection
+	CreateReadOnlySqlConnection bool `json:"createReadOnlySqlConnection,omitempty"`
+	// SqlReadOnly configuration
+	SqlReadOnly OtkSql `json:"sqlReadOnly,omitempty"`
+	// SqlReadOnlyConnectionName for the JDBC or Cassandra Connection Gateway entity
+	SqlReadOnlyConnectionName string `json:"sqlReadOnlyConnectionName,omitempty"`
+	// Properties
+	Properties map[string]intstr.IntOrString `json:"properties,omitempty"`
+}
+
+type OtkDatabaseAuth struct {
+	// ExistingSecret containing database credentials
+	// The following keys can be set
+	// Gateway user (typically otk_user)
+	// OTK_DATABASE_USERNAME
+	// OTK_DATABASE_PASSWORD
+	// Gateway Readonly user (typically otk_user_readonly)
+	// OTK_RO_DATABASE_USERNAME
+	// OTK_RO_DATABASE_PASSWORD
+	// Database admin credentials used to create or update the OTK database
+	// OTK_DATABASE_DDL_USERNAME
+	// OTK_DATABASE_DDL_PASSWORD
+	ExistingSecret string `json:"existingSecret,omitempty"`
+	// GatewayUser configured in the Gateway OAuth Database Connection entity
+	GatewayUser OtkDatabaseAuthCredentials `json:"gateway,omitempty"`
+	// ReadOnlyUser for Oracle/MySQL
+	ReadOnlyUser OtkDatabaseAuthCredentials `json:"readOnly,omitempty"`
+	// AdminUser for database creation
+	AdminUser OtkDatabaseAuthCredentials `json:"admin,omitempty"`
+}
+
+type OtkDatabaseAuthCredentials struct {
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+type OtkCassandra struct {
+	ConnectionPoints string `json:"connectionPoints,omitempty"`
+	Port             string `json:"port,omitempty"`
+	Keyspace         string `json:"keySpace,omitempty"`
+	// DriverConfig is supported from GW 11.x
+	DriverConfig map[string]intstr.IntOrString `json:"driverConfig,omitempty"`
+}
+
+type OtkSql struct {
+	//ConnectionName string `json:"connectionName,omitempty"`
+	DatabaseName string `json:"databaseName,omitempty"`
+	// JDBCUrl for the OTK
+	JDBCUrl string `json:"jdbcUrl,omitempty"`
+	// JDBCDriverClass to use in the Gateway JDBC Connection entity
+	// defaults to com.mysql.jdbc.Driver
+	JDBCDriverClass      string                        `json:"jdbcDriverClass,omitempty"`
+	ConnectionProperties map[string]intstr.IntOrString `json:"connectionProperties,omitempty"`
+	// ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database
+	// only supports MySQL and Oracle
+	ManageSchema bool `json:"manageSchema,omitempty"`
+	// DatabaseWaitTimeout applies to the db-initcontainer only
+	DatabaseWaitTimeout int `json:"databaseWaitTimeout,omitempty"`
+}
+
+type OtkDatabaseType string
+
+const (
+	OtkDatabaseTypeMySQL     OtkDatabaseType = "mysql"
+	OtkDatabaseTypeOracle    OtkDatabaseType = "oracle"
+	OtkDatabaseTypeCassandra OtkDatabaseType = "cassandra"
+)
+
+type OtkType string
+
+const (
+	OtkTypeSingle   OtkType = "single"
+	OtkTypeInternal OtkType = "internal"
+	OtkTypeDMZ      OtkType = "dmz"
+)
 
 type ServiceAccount struct {
 	// Create a service account for the Gateway Deployment
@@ -271,6 +435,10 @@ type Graphman struct {
 	DynamicSyncPort int `json:"dynamicSyncPort,omitempty"`
 	// InitContainerImage is the image used to bootstrap static repositories
 	InitContainerImage string `json:"initContainerImage,omitempty"`
+	// InitContainerPullPolicy
+	InitContainerImagePullPolicy corev1.PullPolicy `json:"initContainerImagePullPolicy,omitempty"`
+	// ContainerSecurityContext
+	InitContainerSecurityContext corev1.SecurityContext `json:"initContainerSecurityContext,omitempty"`
 }
 
 // Service

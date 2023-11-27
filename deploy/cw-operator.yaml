@@ -50,6 +50,9 @@ spec:
         - --zap-time-encoding=rfc3339nano
         command:
         - /manager
+        env:
+        - name: WATCH_NAMESPACE
+          value: ""
         image: docker.io/layer7api/layer7-operator:main
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -79,9 +82,6 @@ spec:
         - --upstream=http://127.0.0.1:8080/
         - --logtostderr=true
         - --v=0
-        env:
-        - name: WATCH_NAMESPACE
-          value: ""
         image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
         name: kube-rbac-proxy
         ports:

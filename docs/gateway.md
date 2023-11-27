@@ -324,6 +324,13 @@ App contains Gateway specific deployment and application level configuration
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappotk">otk</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecapppdb">pdb</a></b></td>
         <td>object</td>
         <td>
@@ -7788,6 +7795,286 @@ Graphman is a GraphQL Gateway Management interface that can be automatically pro
           InitContainerImage is the image used to bootstrap static repositories<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>initContainerImagePullPolicy</b></td>
+        <td>string</td>
+        <td>
+          InitContainerPullPolicy<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontext">initContainerSecurityContext</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSecurityContext<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.graphman.initContainerSecurityContext
+<sup><sup>[↩ Parent](#gatewayspecappmanagementgraphman)</sup></sup>
+
+
+
+ContainerSecurityContext
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>allowPrivilegeEscalation</b></td>
+        <td>boolean</td>
+        <td>
+          AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextcapabilities">capabilities</a></b></td>
+        <td>object</td>
+        <td>
+          The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>privileged</b></td>
+        <td>boolean</td>
+        <td>
+          Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>procMount</b></td>
+        <td>string</td>
+        <td>
+          procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>readOnlyRootFilesystem</b></td>
+        <td>boolean</td>
+        <td>
+          Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runAsGroup</b></td>
+        <td>integer</td>
+        <td>
+          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runAsNonRoot</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runAsUser</b></td>
+        <td>integer</td>
+        <td>
+          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
+        <td>object</td>
+        <td>
+          The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextseccompprofile">seccompProfile</a></b></td>
+        <td>object</td>
+        <td>
+          The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextwindowsoptions">windowsOptions</a></b></td>
+        <td>object</td>
+        <td>
+          The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.graphman.initContainerSecurityContext.capabilities
+<sup><sup>[↩ Parent](#gatewayspecappmanagementgraphmaninitcontainersecuritycontext)</sup></sup>
+
+
+
+The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>add</b></td>
+        <td>[]string</td>
+        <td>
+          Added capabilities<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>drop</b></td>
+        <td>[]string</td>
+        <td>
+          Removed capabilities<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.graphman.initContainerSecurityContext.seLinuxOptions
+<sup><sup>[↩ Parent](#gatewayspecappmanagementgraphmaninitcontainersecuritycontext)</sup></sup>
+
+
+
+The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>level</b></td>
+        <td>string</td>
+        <td>
+          Level is SELinux level label that applies to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>role</b></td>
+        <td>string</td>
+        <td>
+          Role is a SELinux role label that applies to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type is a SELinux type label that applies to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>user</b></td>
+        <td>string</td>
+        <td>
+          User is a SELinux user label that applies to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.graphman.initContainerSecurityContext.seccompProfile
+<sup><sup>[↩ Parent](#gatewayspecappmanagementgraphmaninitcontainersecuritycontext)</sup></sup>
+
+
+
+The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of seccomp profile will be applied. Valid options are: 
+ Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.graphman.initContainerSecurityContext.windowsOptions
+<sup><sup>[↩ Parent](#gatewayspecappmanagementgraphmaninitcontainersecuritycontext)</sup></sup>
+
+
+
+The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>gmsaCredentialSpec</b></td>
+        <td>string</td>
+        <td>
+          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gmsaCredentialSpecName</b></td>
+        <td>string</td>
+        <td>
+          GMSACredentialSpecName is the name of the GMSA credential spec to use.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>hostProcess</b></td>
+        <td>boolean</td>
+        <td>
+          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runAsUserName</b></td>
+        <td>string</td>
+        <td>
+          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -8076,6 +8363,921 @@ clientIP contains the configurations of Client IP based session affinity.
           timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP". Default value is 10800(for 3 hours).<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappotkdatabase">database</a></b></td>
+        <td>object</td>
+        <td>
+          Database configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>dmzGatewayReference</b></td>
+        <td>string</td>
+        <td>
+          OTKPort is used in Single mode - sets the otk.port cluster-wide property and in Dual-Mode sets host_oauth2_auth_server port in #OTK Client Context Variables TODO: Make this an array for many dmz deployments to one internal<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable the OTK initContainer<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>initContainerImage</b></td>
+        <td>string</td>
+        <td>
+          InitContainerImage for the initContainer<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>initContainerImagePullPolicy</b></td>
+        <td>string</td>
+        <td>
+          InitContainerImagePullPolicy<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkinitcontainersecuritycontext">initContainerSecurityContext</a></b></td>
+        <td>object</td>
+        <td>
+          InitContainerSecurityContext<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>internalGatewayPort</b></td>
+        <td>integer</td>
+        <td>
+          InternalGatewayPort defaults to 9443 or graphmanDynamicSync port<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>internalGatewayReference</b></td>
+        <td>string</td>
+        <td>
+          InternalOtkGatewayReference to an Operator managed Gateway deployment that is configured with otk.type: internal This configures a relationship between DMZ and Internal Gateways.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkmaintenancetasks">maintenanceTasks</a></b></td>
+        <td>object</td>
+        <td>
+          MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkoverrides">overrides</a></b></td>
+        <td>object</td>
+        <td>
+          Overrides default OTK install functionality<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          defaults to 8443<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runtimeSyncIntervalSeconds</b></td>
+        <td>integer</td>
+        <td>
+          RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>subSolutionKitNames</b></td>
+        <td>[]string</td>
+        <td>
+          A list of subSolutionKitNames - all,internal or dmz cover the primary use cases for the OTK. Only use if directed by support<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type of OTK installation single, internal or dmz<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database
+<sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
+
+
+
+Database configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappotkdatabaseauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Auth for the OTK Database<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabasecassandra">cassandra</a></b></td>
+        <td>object</td>
+        <td>
+          Cassandra configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>connectionName</b></td>
+        <td>string</td>
+        <td>
+          ConnectionName for the JDBC or Cassandra Connection Gateway entity<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>create</b></td>
+        <td>boolean</td>
+        <td>
+          Create the OTK database. Only applies to oracle and mysql<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>createReadOnlySqlConnection</b></td>
+        <td>boolean</td>
+        <td>
+          CreateReadOnlySqlConnection<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>properties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          Properties<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabasesql">sql</a></b></td>
+        <td>object</td>
+        <td>
+          SQL configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabasesqlreadonly">sqlReadOnly</a></b></td>
+        <td>object</td>
+        <td>
+          SqlReadOnly configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sqlReadOnlyConnectionName</b></td>
+        <td>string</td>
+        <td>
+          SqlReadOnlyConnectionName for the JDBC or Cassandra Connection Gateway entity<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type of OTK Database<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.auth
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabase)</sup></sup>
+
+
+
+Auth for the OTK Database
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappotkdatabaseauthadmin">admin</a></b></td>
+        <td>object</td>
+        <td>
+          AdminUser for database creation<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecret</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecret containing database credentials The following keys can be set Gateway user (typically otk_user) OTK_DATABASE_USERNAME OTK_DATABASE_PASSWORD Gateway Readonly user (typically otk_user_readonly) OTK_RO_DATABASE_USERNAME OTK_RO_DATABASE_PASSWORD Database admin credentials used to create or update the OTK database OTK_DATABASE_DDL_USERNAME OTK_DATABASE_DDL_PASSWORD<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabaseauthgateway">gateway</a></b></td>
+        <td>object</td>
+        <td>
+          GatewayUser configured in the Gateway OAuth Database Connection entity<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabaseauthreadonly">readOnly</a></b></td>
+        <td>object</td>
+        <td>
+          ReadOnlyUser for Oracle/MySQL<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.auth.admin
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabaseauth)</sup></sup>
+
+
+
+AdminUser for database creation
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>password</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.auth.gateway
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabaseauth)</sup></sup>
+
+
+
+GatewayUser configured in the Gateway OAuth Database Connection entity
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>password</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.auth.readOnly
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabaseauth)</sup></sup>
+
+
+
+ReadOnlyUser for Oracle/MySQL
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>password</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.cassandra
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabase)</sup></sup>
+
+
+
+Cassandra configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>connectionPoints</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>driverConfig</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          DriverConfig is supported from GW 11.x<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>keySpace</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.sql
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabase)</sup></sup>
+
+
+
+SQL configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>connectionProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseName</b></td>
+        <td>string</td>
+        <td>
+          ConnectionName string `json:"connectionName,omitempty"`<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseWaitTimeout</b></td>
+        <td>integer</td>
+        <td>
+          DatabaseWaitTimeout applies to the db-initcontainer only<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcDriverClass</b></td>
+        <td>string</td>
+        <td>
+          JDBCDriverClass to use in the Gateway JDBC Connection entity defaults to com.mysql.jdbc.Driver<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcUrl</b></td>
+        <td>string</td>
+        <td>
+          JDBCUrl for the OTK<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>manageSchema</b></td>
+        <td>boolean</td>
+        <td>
+          ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database only supports MySQL and Oracle<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.sqlReadOnly
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabase)</sup></sup>
+
+
+
+SqlReadOnly configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>connectionProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseName</b></td>
+        <td>string</td>
+        <td>
+          ConnectionName string `json:"connectionName,omitempty"`<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseWaitTimeout</b></td>
+        <td>integer</td>
+        <td>
+          DatabaseWaitTimeout applies to the db-initcontainer only<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcDriverClass</b></td>
+        <td>string</td>
+        <td>
+          JDBCDriverClass to use in the Gateway JDBC Connection entity defaults to com.mysql.jdbc.Driver<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcUrl</b></td>
+        <td>string</td>
+        <td>
+          JDBCUrl for the OTK<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>manageSchema</b></td>
+        <td>boolean</td>
+        <td>
+          ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database only supports MySQL and Oracle<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.initContainerSecurityContext
+<sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
+
+
+
+InitContainerSecurityContext
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>allowPrivilegeEscalation</b></td>
+        <td>boolean</td>
+        <td>
+          AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextcapabilities">capabilities</a></b></td>
+        <td>object</td>
+        <td>
+          The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>privileged</b></td>
+        <td>boolean</td>
+        <td>
+          Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>procMount</b></td>
+        <td>string</td>
+        <td>
+          procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>readOnlyRootFilesystem</b></td>
+        <td>boolean</td>
+        <td>
+          Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runAsGroup</b></td>
+        <td>integer</td>
+        <td>
+          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runAsNonRoot</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runAsUser</b></td>
+        <td>integer</td>
+        <td>
+          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
+        <td>object</td>
+        <td>
+          The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextseccompprofile">seccompProfile</a></b></td>
+        <td>object</td>
+        <td>
+          The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextwindowsoptions">windowsOptions</a></b></td>
+        <td>object</td>
+        <td>
+          The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.initContainerSecurityContext.capabilities
+<sup><sup>[↩ Parent](#gatewayspecappotkinitcontainersecuritycontext)</sup></sup>
+
+
+
+The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>add</b></td>
+        <td>[]string</td>
+        <td>
+          Added capabilities<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>drop</b></td>
+        <td>[]string</td>
+        <td>
+          Removed capabilities<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.initContainerSecurityContext.seLinuxOptions
+<sup><sup>[↩ Parent](#gatewayspecappotkinitcontainersecuritycontext)</sup></sup>
+
+
+
+The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>level</b></td>
+        <td>string</td>
+        <td>
+          Level is SELinux level label that applies to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>role</b></td>
+        <td>string</td>
+        <td>
+          Role is a SELinux role label that applies to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type is a SELinux type label that applies to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>user</b></td>
+        <td>string</td>
+        <td>
+          User is a SELinux user label that applies to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.initContainerSecurityContext.seccompProfile
+<sup><sup>[↩ Parent](#gatewayspecappotkinitcontainersecuritycontext)</sup></sup>
+
+
+
+The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of seccomp profile will be applied. Valid options are: 
+ Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.initContainerSecurityContext.windowsOptions
+<sup><sup>[↩ Parent](#gatewayspecappotkinitcontainersecuritycontext)</sup></sup>
+
+
+
+The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>gmsaCredentialSpec</b></td>
+        <td>string</td>
+        <td>
+          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gmsaCredentialSpecName</b></td>
+        <td>string</td>
+        <td>
+          GMSACredentialSpecName is the name of the GMSA credential spec to use.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>hostProcess</b></td>
+        <td>boolean</td>
+        <td>
+          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>runAsUserName</b></td>
+        <td>string</td>
+        <td>
+          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.maintenanceTasks
+<sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
+
+
+
+MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable database maintenance tasks<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>operatorManaged</b></td>
+        <td>boolean</td>
+        <td>
+          OperatorManaged lets the Operator configure a hardened version of the db-maintenance policy<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>periodSeconds</b></td>
+        <td>integer</td>
+        <td>
+          Period in seconds between maintenance task runs<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>uri</b></td>
+        <td>string</td>
+        <td>
+          Uri for custom db-maintenance services Corresponding maintenance policy must support a parameter called task<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.overrides
+<sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
+
+
+
+Overrides default OTK install functionality
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>bootstrapDirectory</b></td>
+        <td>string</td>
+        <td>
+          BootstrapDirectory that is used for the initContainer the default is /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>createTestClients</b></td>
+        <td>boolean</td>
+        <td>
+          CreateTestClients for mysql & oracle setup test clients<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable otk overrides<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>managePostInstallPolicies</b></td>
+        <td>boolean</td>
+        <td>
+          ManagePostInstallConfig represent post-installation tasks required for internal/dmz otk gateways These are enabled by default and will override the following customization policies This should be disabled if you intend to manage these via Graphman/Restman bundle. - #OTK OVP Configuration - #OTK Storage Configuration - #OTK  Client Context Variables - OTK FIP Client Authentication Extension<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>skipInternalServerTools</b></td>
+        <td>boolean</td>
+        <td>
+          SkipInternalServerTools subSolutionKit install defaults to false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>skipPortalIntegrationComponents</b></td>
+        <td>boolean</td>
+        <td>
+          SkipPortalIntegrationComponents subSolutionKit install. This does not perform portal integration defaults to true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>testClientsRedirectUrlPrefix</b></td>
+        <td>string</td>
+        <td>
+          TestClientsRedirectUrlPrefix. Required if createTestClients is true.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/gateway"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,6 +26,17 @@ func ConfigMaps(ctx context.Context, params Params) error {
 
 	if params.Instance.Spec.App.ListenPorts.Harden || params.Instance.Spec.App.ListenPorts.Custom.Enabled {
 		desiredConfigMaps = append(desiredConfigMaps, gateway.NewConfigMap(params.Instance, params.Instance.Name+"-listen-port-bundle"))
+	}
+
+	if params.Instance.Spec.App.Otk.Enabled {
+		desiredConfigMaps = append(desiredConfigMaps, gateway.NewConfigMap(params.Instance, params.Instance.Name+"-otk-install-init-config"))
+		desiredConfigMaps = append(desiredConfigMaps, gateway.NewConfigMap(params.Instance, params.Instance.Name+"-otk-shared-init-config"))
+	}
+
+	if params.Instance.Spec.App.Otk.Database.Type == securityv1.OtkDatabaseTypeMySQL || params.Instance.Spec.App.Otk.Database.Type == securityv1.OtkDatabaseTypeOracle {
+		if params.Instance.Spec.App.Otk.Database.Sql.ManageSchema {
+			desiredConfigMaps = append(desiredConfigMaps, gateway.NewConfigMap(params.Instance, params.Instance.Name+"-otk-db-init-config"))
+		}
 	}
 
 	if err := reconcileConfigMaps(ctx, params, desiredConfigMaps); err != nil {

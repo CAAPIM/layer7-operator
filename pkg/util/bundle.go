@@ -3,6 +3,7 @@ package util
 import (
 	"crypto/rand"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
@@ -161,6 +162,80 @@ type Property struct {
 	BooleanValue bool   `xml:"l7:BooleanValue,omitempty"`
 }
 
+type PolicyXml struct {
+	XMLName  xml.Name   `xml:"wsp:Policy"`
+	XMLNSL7p string     `xml:"xmlns:L7p,attr"`
+	XMLNSWsp string     `xml:"xmlns:wsp,attr"`
+	All      PolicyBody `xml:"wsp:All"`
+}
+
+type PolicyBody struct {
+	Usage            string                  `xml:"wsp:Usage,attr"`
+	CommentAssertion *CommentAssertion       `xml:"L7p:CommentAssertion"`
+	SetVariable      *[]SetVariableAssertion `xml:"L7p:SetVariable"`
+	OneOrMore        *OneOrMore              `xml:"wsp:OneOrMore"`
+}
+
+type CommentAssertion struct {
+	Comment CommentAssertionComment `xml:"L7p:Comment"`
+}
+
+type CommentAssertionComment struct {
+	StringValue string `xml:"stringValue,attr"`
+}
+
+type SetVariableAssertion struct {
+	AssertionComment AssertionComment  `xml:"L7p:AssertionComment"`
+	Base64Expression PolicyStringValue `xml:"L7p:Base64Expression"`
+	VariableToSet    PolicyStringValue `xml:"L7p:VariableToSet"`
+}
+
+type AssertionComment struct {
+	AssertionComment string            `xml:"assertionComment,attr"`
+	Properties       MappingProperties `xml:"L7p:Properties"`
+}
+
+type MappingProperties struct {
+	MapValue string         `xml:"mapValue,attr"`
+	Entry    []MappingEntry `xml:"L7p:entry"`
+}
+
+type MappingEntry struct {
+	Key   PolicyStringValue `xml:"L7p:key"`
+	Value PolicyStringValue `xml:"L7p:value"`
+}
+
+type PolicyStringValue struct {
+	StringValue string `xml:"stringValue,attr"`
+}
+
+type GPolicy struct {
+	Xml string `json:"xml"`
+}
+
+type OneOrMore struct {
+	Text             string                          `xml:",chardata"`
+	Usage            string                          `xml:"Usage,attr"`
+	CommentAssertion *CommentAssertion               `xml:"L7p:CommentAssertion"`
+	Authentication   AuthenticateAgainstIdpAssertion `xml:"L7p:Authentication"`
+	Encapsulated     EncapsulatedAssertion           `xml:"L7p:Encapsulated"`
+}
+
+type AuthenticateAgainstIdpAssertion struct {
+	IdentityProviderOid IdentityProviderOid `xml:"L7p:IdentityProviderOid"`
+}
+
+type IdentityProviderOid struct {
+	GoidValue string `xml:"goidValue,attr"`
+}
+
+type EncapsulatedAssertion struct {
+	AssertionComment                *AssertionComment `xml:"L7p:AssertionComment"`
+	EncapsulatedAssertionConfigGuid PolicyStringValue `xml:"L7p:EncapsulatedAssertionConfigGuid"`
+	EncapsulatedAssertionConfigName PolicyStringValue `xml:"L7p:EncapsulatedAssertionConfigName"`
+	Parameters                      MappingProperties `xml:"L7p:Parameters"`
+}
+
 func randToken(n int) (string, error) {
 	bytes := make([]byte, n)
 	if _, err := rand.Read(bytes); err != nil {
@@ -204,6 +279,159 @@ type EnabledCipherSuites struct {
 
 type EnabledFeatures struct {
 	StringValue []string `xml:"l7:StringValue"`
+}
+
+func BuildLayer7PolicyXml(name string, gatewayHost string, fipId string) ([]byte, error) {
+	switch name {
+	case "#OTK Client Context Variables":
+		policy := PolicyXml{
+			XMLNSL7p: "http://www.layer7tech.com/ws/policy",
+			XMLNSWsp: "http://schemas.xmlsoap.org/ws/2002/12/policy",
+			All: PolicyBody{
+				Usage: "Required",
+				SetVariable: &[]SetVariableAssertion{
+					{
+						VariableToSet: PolicyStringValue{
+							StringValue: "host_oauth2_auth_server",
+						},
+						Base64Expression: PolicyStringValue{
+							StringValue: base64.StdEncoding.EncodeToString([]byte(gatewayHost)),
+						},
+					},
+					{
+						VariableToSet: PolicyStringValue{
+							StringValue: "audience_recipient_restriction",
+						},
+						Base64Expression: PolicyStringValue{
+							StringValue: base64.StdEncoding.EncodeToString([]byte(gatewayHost)),
+						},
+					},
+				},
+			},
+		}
+		policyBytes, err := xml.Marshal(policy)
+		if err != nil {
+			return nil, err
+		}
+
+		return policyBytes, nil
+	case "OTK FIP Client Authentication Extension":
+		policy := PolicyXml{
+			XMLNSL7p: "http://www.layer7tech.com/ws/policy",
+			XMLNSWsp: "http://schemas.xmlsoap.org/ws/2002/12/policy",
+			All: PolicyBody{
+				Usage: "Required",
+				OneOrMore: &OneOrMore{
+					Authentication: AuthenticateAgainstIdpAssertion{
+						IdentityProviderOid: IdentityProviderOid{
+							GoidValue: "41e5cacd15f86758f03ff2952616d4f3",
+						},
+					},
+					Encapsulated: EncapsulatedAssertion{
+						EncapsulatedAssertionConfigGuid: PolicyStringValue{
+							StringValue: "56bd8147-3ab4-4d09-9460-8b2de02b7a9e",
+						},
+						EncapsulatedAssertionConfigName: PolicyStringValue{
+							StringValue: "OTK Fail with error message",
+						},
+						Parameters: MappingProperties{
+							MapValue: "included",
+							Entry: []MappingEntry{
+								{
+									Key: PolicyStringValue{
+										StringValue: "apiPrefix",
+									},
+									Value: PolicyStringValue{
+										StringValue: "${apiPrefix}",
+									},
+								},
+								{
+									Key: PolicyStringValue{
+										StringValue: "givenErrorCode",
+									},
+									Value: PolicyStringValue{
+										StringValue: "205",
+									},
+								},
+							},
+						},
+					},
+					Usage: "Required",
+				},
+			},
+		}
+		policyBytes, err := xml.Marshal(policy)
+		if err != nil {
+			return nil, err
+		}
+
+		return policyBytes, nil
+
+	case "#OTK OVP Configuration":
+		policy := PolicyXml{
+			XMLNSL7p: "http://www.layer7tech.com/ws/policy",
+			XMLNSWsp: "http://schemas.xmlsoap.org/ws/2002/12/policy",
+			All: PolicyBody{
+				Usage: "Required",
+				SetVariable: &[]SetVariableAssertion{{
+					VariableToSet: PolicyStringValue{
+						StringValue: "host_oauth_ovp_server",
+					},
+					Base64Expression: PolicyStringValue{
+						StringValue: base64.StdEncoding.EncodeToString([]byte(gatewayHost)),
+					}},
+				},
+			},
+		}
+		policyBytes, err := xml.Marshal(policy)
+		if err != nil {
+			return nil, err
+		}
+
+		return policyBytes, nil
+
+	case "#OTK Storage Configuration":
+		policy := PolicyXml{
+			XMLNSL7p: "http://www.layer7tech.com/ws/policy",
+			XMLNSWsp: "http://schemas.xmlsoap.org/ws/2002/12/policy",
+			All: PolicyBody{
+				Usage: "Required",
+				SetVariable: &[]SetVariableAssertion{
+					{
+						VariableToSet: PolicyStringValue{
+							StringValue: "host_oauth_tokenstore_server",
+						},
+						Base64Expression: PolicyStringValue{
+							StringValue: base64.StdEncoding.EncodeToString([]byte(gatewayHost)),
+						},
+					},
+					{
+						VariableToSet: PolicyStringValue{
+							StringValue: "host_oauth_clientstore_server",
+						},
+						Base64Expression: PolicyStringValue{
+							StringValue: base64.StdEncoding.EncodeToString([]byte(gatewayHost)),
+						},
+					},
+					{
+						VariableToSet: PolicyStringValue{
+							StringValue: "host_oauth_session_server",
+						},
+						Base64Expression: PolicyStringValue{
+							StringValue: base64.StdEncoding.EncodeToString([]byte(gatewayHost)),
+						},
+					},
+				},
+			},
+		}
+		policyBytes, err := xml.Marshal(policy)
+		if err != nil {
+			return nil, err
+		}
+
+		return policyBytes, nil
+	}
+	return nil, nil
 }
 
 func BuildCWPBundle(cwps []securityv1.Property) ([]byte, string, error) {

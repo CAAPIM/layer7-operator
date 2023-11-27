@@ -2,16 +2,17 @@ package reconcile
 
 import (
 	"context"
+	"testing"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"testing"
 )
 
 func TestNewSecret(t *testing.T) {
 	t.Run("should create secret", func(t *testing.T) {
 		params := newParams()
 		ctx := context.Background()
-		err := Secret(ctx, params)
+		err := Secrets(ctx, params)
 		if err != nil {
 			t.Fatal(err)
 		}

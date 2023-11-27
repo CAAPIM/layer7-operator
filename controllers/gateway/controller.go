@@ -77,7 +77,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	err = reconcile.Secret(ctx, params)
+	err = reconcile.Secrets(ctx, params)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

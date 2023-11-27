@@ -2,9 +2,11 @@ package gateway
 
 import (
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -83,7 +85,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		} else {
 			bundle, dataCheckSum, _ = util.BuildCustomListenPortBundle(gw)
 		}
-
 		data["listen-ports.bundle"] = string(bundle)
 	case gw.Name + "-repository-init-config":
 		initContainerStaticConfig := InitContainerStaticConfig{}
@@ -108,9 +109,154 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 
 			}
 		}
-
 		initContainerStaticConfigBytes, _ := json.Marshal(initContainerStaticConfig)
 		data["config.json"] = string(initContainerStaticConfigBytes)
+	case gw.Name + "-otk-shared-init-config":
+		// parse properties in raw JSON Object without []
+		data["OTK_TYPE"] = strings.ToUpper(string(securityv1.OtkTypeSingle))
+		data["OTK_SK_UPGRADE"] = "true" // only applies when this runs as a job
+		data["OTK_UPDATE_DATABASE_CONNECTION"] = "true"
+		data["OTK_DATABASE_PROPERTIES"] = "na"
+		data["OTK_RO_DATABASE_PROPERTIES"] = "na"
+
+		if gw.Spec.App.Otk.Type != "" {
+			data["OTK_TYPE"] = strings.ToUpper(string(gw.Spec.App.Otk.Type))
+		}
+		if gw.Spec.App.Otk.Database.Properties != nil {
+			dbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.Properties)
+			dbPropertyString := strings.ReplaceAll(string(dbPropertyBytes), "[", "")
+			dbPropertyString = strings.ReplaceAll(dbPropertyString, "]", "")
+			data["OTK_DATABASE_PROPERTIES"] = base64.RawStdEncoding.EncodeToString([]byte(dbPropertyString))
+			if gw.Spec.App.Otk.Database.CreateReadOnlySqlConnection {
+				data["OTK_RO_DATABASE_PROPERTIES"] = base64.RawStdEncoding.EncodeToString([]byte(dbPropertyString))
+			}
+		}
+
+		switch gw.Spec.App.Otk.Database.Type {
+		case securityv1.OtkDatabaseTypeMySQL, securityv1.OtkDatabaseTypeOracle:
+			data["OTK_DATABASE_CONN_PROPERTIES"] = "na"
+			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
+			data["OTK_DATABASE_NAME"] = gw.Spec.App.Otk.Database.Sql.DatabaseName
+			data["OTK_JDBC_URL"] = gw.Spec.App.Otk.Database.Sql.JDBCUrl
+			data["OTK_JDBC_DRIVER_CLASS"] = "com.mysql.cj.jdbc.Driver"
+			if gw.Spec.App.Otk.Database.Sql.ConnectionProperties != nil {
+				dbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.Sql.ConnectionProperties)
+				dbPropertyString := strings.Replace(string(dbPropertyBytes), "[", "", 1)
+				dbPropertyString = strings.Replace(dbPropertyString, "]", "", 1)
+
+				data["OTK_DATABASE_CONN_PROPERTIES"] = base64.RawStdEncoding.EncodeToString([]byte(dbPropertyString)) // needs to be comma separated JSON objects (no array) :'(
+			}
+
+			if gw.Spec.App.Otk.Database.Sql.JDBCDriverClass != "" {
+				data["OTK_JDBC_DRIVER_CLASS"] = string(gw.Spec.App.Otk.Database.Sql.JDBCDriverClass)
+
+			}
+
+		case securityv1.OtkDatabaseTypeCassandra:
+			data["OTK_CASSANDRA_DRIVER_CONFIG"] = "na"
+			data["OTK_CASSANDRA_CONNECTION_POINTS"] = gw.Spec.App.Otk.Database.Cassandra.ConnectionPoints
+			data["OTK_CASSANDRA_PORT"] = gw.Spec.App.Otk.Database.Cassandra.Port
+			data["OTK_CASSANDRA_KEYSPACE"] = gw.Spec.App.Otk.Database.Cassandra.Keyspace
+			if gw.Spec.App.Otk.Database.Cassandra.DriverConfig != nil {
+				driverConfigBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.Cassandra.DriverConfig)
+				driverConfigString := strings.Replace(string(driverConfigBytes), "[", "", 1)
+				driverConfigString = strings.Replace(driverConfigString, "]", "", 1)
+				data["OTK_CASSANDRA_DRIVER_CONFIG"] = base64.RawStdEncoding.EncodeToString([]byte(driverConfigString)) // needs to be comma separated JSON objects (no array) :'(
+			}
+		}
+
+		if gw.Spec.App.Otk.Database.CreateReadOnlySqlConnection {
+			data["OTK_CREATE_RO_DATABASE_CONN"] = "false"
+			if !reflect.DeepEqual(gw.Spec.App.Otk.Database.SqlReadOnly, securityv1.OtkSql{}) {
+				data["OTK_RO_DATABASE_CONNECTION_NAME"] = "OAuth_ReadOnly"
+
+				data["OTK_RO_DATABASE_CONN_PROPERTIES"] = "na"
+				data["OTK_CREATE_RO_DATABASE_CONN"] = "true"
+				data["OTK_RO_DATABASE_NAME"] = gw.Spec.App.Otk.Database.SqlReadOnly.DatabaseName
+				data["OTK_RO_JDBC_URL"] = gw.Spec.App.Otk.Database.SqlReadOnly.JDBCUrl
+				data["OTK_RO_JDBC_DRIVER_CLASS"] = gw.Spec.App.Otk.Database.SqlReadOnly.JDBCDriverClass
+
+				if gw.Spec.App.Otk.Database.SqlReadOnlyConnectionName != "" {
+					data["OTK_RO_DATABASE_CONNECTION_NAME"] = gw.Spec.App.Otk.Database.SqlReadOnlyConnectionName
+				}
+				if gw.Spec.App.Otk.Database.SqlReadOnly.ConnectionProperties != nil {
+					roDbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.SqlReadOnly.ConnectionProperties)
+					dbPropertyString := strings.Replace("[", string(roDbPropertyBytes), "", 1)
+					dbPropertyString = strings.Replace("]", dbPropertyString, "", 1)
+					data["OTK_RO_DATABASE_CONN_PROPERTIES"] = base64.RawStdEncoding.EncodeToString([]byte(dbPropertyString)) // needs to be comma separated JSON objects (no array) :'(
+				}
+			}
+		}
+
+	case gw.Name + "-otk-install-init-config":
+		data["OTK_INSTALL_MODE"] = "initContainer"
+		data["BOOTSTRAP_DIR"] = "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK"
+		data["OTK_INTEGRATE_WITH_PORTAL"] = "true"
+		data["OTK_SKIP_INTERNAL_SERVER_TOOLS"] = "false"
+		data["OTK_SKIP_POST_INSTALLATION_TASKS"] = "false"
+		data["OTK_DATABASE_UPGRADE"] = "false"
+		data["OTK_INTERNAL_CERT_ENCODED"] = ""
+		data["OTK_INTERNAL_CERT_ISS"] = ""
+		data["OTK_INTERNAL_CERT_SERIAL"] = "12345"
+		data["OTK_INTERNAL_CERT_SUB"] = ""
+		data["OTK_DMZ_CERT_ENCODED"] = ""
+		data["OTK_DMZ_CERT_ISS"] = ""
+		data["OTK_DMZ_CERT_SERIAL"] = "12345"
+		data["OTK_DMZ_CERT_SUB"] = ""
+		data["OTK_DATABASE_CONNECTION_NAME"] = "OAuth"
+
+		data["OTK_INTERNAL_GW_HOST"] = ""
+		data["OTK_INTERNAL_GW_PORT"] = ""
+		data["OTK_DMZ_GW_HOST"] = ""
+		data["OTK_DMZ_GW_PORT"] = ""
+		if gw.Spec.App.Otk.Overrides.Enabled {
+			if gw.Spec.App.Otk.Overrides.BootstrapDirectory != "" {
+				data["BOOTSTRAP_DIR"] = gw.Spec.App.Otk.Overrides.BootstrapDirectory
+			}
+			if gw.Spec.App.Otk.Overrides.SkipInternalServerTools {
+				data["OTK_SKIP_INTERNAL_SERVER_TOOLS"] = "true"
+			}
+			if gw.Spec.App.Otk.Overrides.SkipPortalIntegrationComponents {
+				data["OTK_INTEGRATE_WITH_PORTAL"] = "false"
+			}
+
+		}
+
+		if gw.Spec.App.Otk.Database.ConnectionName != "" {
+			data["OTK_DATABASE_CONNECTION_NAME"] = gw.Spec.App.Otk.Database.ConnectionName
+		}
+
+	case gw.Name + "-otk-db-init-config":
+		data["OTK_TYPE"] = strings.ToUpper(string(securityv1.OtkTypeSingle))
+		data["OTK_SK_UPGRADE"] = "false"
+
+		if gw.Spec.App.Otk.Type != "" {
+			data["OTK_TYPE"] = strings.ToUpper(string(gw.Spec.App.Otk.Type))
+		}
+
+		switch gw.Spec.App.Otk.Database.Type {
+		case securityv1.OtkDatabaseTypeMySQL, securityv1.OtkDatabaseTypeOracle:
+			data["OTK_DATABASE_CONN_PROPERTIES"] = "na"
+			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
+			data["OTK_DATABASE_NAME"] = gw.Spec.App.Otk.Database.Sql.DatabaseName
+			data["OTK_JDBC_URL"] = gw.Spec.App.Otk.Database.Sql.JDBCUrl
+			data["OTK_JDBC_DRIVER_CLASS"] = "com.mysql.cj.jdbc.Driver"
+			if gw.Spec.App.Otk.Database.Sql.JDBCDriverClass != "" {
+				data["OTK_JDBC_DRIVER_CLASS"] = string(gw.Spec.App.Otk.Database.Sql.JDBCDriverClass)
+
+			}
+			data["OTK_DATABASE_UPGRADE"] = "true"
+			data["OTK_CREATE_TEST_CLIENTS"] = "false"
+			data["OTK_TEST_CLIENTS_REDIRECT_URL_PREFIX"] = ""
+			//data["OTK_LIQUIBASE_OPERATION"] = "changelogSync"
+			if gw.Spec.App.Otk.Overrides.Enabled {
+				if gw.Spec.App.Otk.Overrides.CreateTestClients {
+					data["OTK_CREATE_TEST_CLIENTS"] = "true"
+					data["OTK_TEST_CLIENTS_REDIRECT_URL_PREFIX"] = gw.Spec.App.Otk.Overrides.TestClientsRedirectUrlPrefix
+				}
+			}
+			data["OTK_DATABASE_WAIT_TIMEOUT"] = strconv.Itoa(gw.Spec.App.Otk.Database.Sql.DatabaseWaitTimeout)
+		}
 	}
 
 	if dataCheckSum == "" {

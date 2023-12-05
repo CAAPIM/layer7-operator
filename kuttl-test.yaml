@@ -12,3 +12,4 @@ commands:
   - command: kubectl create namespace l7operator
   - command: kubectl apply -f deploy/bundle.yaml --namespace l7operator
   - command: kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
+  - command: kubectl create secret generic test-repository-secret --from-literal=USERNAME=uppoju --from-literal=TOKEN=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 --namespace l7operator

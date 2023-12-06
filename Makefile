@@ -147,7 +147,7 @@ e2e:
 prepare-e2e: kuttl docker-build start-kind load-image-all
 	kubectl create namespace l7operator
 	kubectl apply -f deploy/bundle.yaml --namespace l7operator
-	kubectl create secret generic gateway-license --from-literal=license.xml=${LICENSE} --namespace l7operator
+	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
 
 .PHONY: load-image-all
 load-image-all: load-image-operator load-image-gateway

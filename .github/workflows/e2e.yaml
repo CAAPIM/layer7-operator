@@ -8,6 +8,7 @@ on:
       - main
       - develop
       - experimental
+      - develop_l7operator
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

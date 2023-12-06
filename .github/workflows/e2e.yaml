@@ -38,14 +38,18 @@ jobs:
         run: go install sigs.k8s.io/kind@v${KIND_VERSION}
       - name: "install kuttl"
         run: ./hack/install-kuttl.sh
+      - name: "create license"
+        env:
+          LICENSE: ${{ secrets.GATEWAY_LICENSE }}
+        run: 'echo "$LICENSE" >> ./testdata/license.xml'
+        shell: bash
+
       - name: "run tests"
         env:
           KUBE_VERSION: ${{ matrix.kube-version }}
-          LICENSE: ${{ secrets.GATEWAY_LICENSE }}
         run: |
-           'echo "$LICENSE" >> ./license.xml'
            make prepare-e2e ${{ matrix.group }} KUBE_VERSION=$KUBE_VERSION VERSION=e2e
-           rm license.xml
+           rm ./testdata/license.xml
   e2e-tests-check:
     runs-on: ubuntu-22.04
     if: always()

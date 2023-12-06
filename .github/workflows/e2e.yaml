@@ -43,9 +43,9 @@ jobs:
           KUBE_VERSION: ${{ matrix.kube-version }}
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
         run: |
-           'echo "$LICENSE" > ./testdata/license.xml'
+           'echo "$LICENSE" > license.xml'
            make prepare-e2e ${{ matrix.group }} KUBE_VERSION=$KUBE_VERSION VERSION=e2e
-           rm ./testdata/license.xml
+           rm license.xml
   e2e-tests-check:
     runs-on: ubuntu-22.04
     if: always()

@@ -41,8 +41,9 @@ jobs:
       - name: "run tests"
         env:
           KUBE_VERSION: ${{ matrix.kube-version }}
+          LICENSE: ${{ secrets.GATEWAY_LICENSE }}
         run: |
-           echo ${{ secrets.GATEWAY_LICENSE }} > ./testdata/license.xml
+           'echo "$LICENSE" > ./testdata/license.xml'
            make prepare-e2e ${{ matrix.group }} KUBE_VERSION=$KUBE_VERSION VERSION=e2e
            rm ./testdata/license.xml
   e2e-tests-check:

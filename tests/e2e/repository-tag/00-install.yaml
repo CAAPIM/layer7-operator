@@ -5,7 +5,7 @@ metadata:
 spec:
   name: l7-gw-myframework-tag
   enabled: true
-  endpoint: https://github.com/uppoju/l7GWMyFramework
+  endpoint: $TESTREPO_URL
   tag: test1
   auth:
     vendor: Github

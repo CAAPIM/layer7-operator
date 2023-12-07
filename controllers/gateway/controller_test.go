@@ -41,7 +41,7 @@ var _ = Describe("Gateway controller", func() {
 		It("Should create Gateway custom resources", func() {
 			By("Creating a first Gateway custom resource")
 			ctx := context.Background()
-			license, err := os.ReadFile("example/base/resources/secrets/license/license.xml")
+			license, err := os.ReadFile("testdata/license.xml")
 			Expect(err).NotTo(HaveOccurred())
 
 			data := make(map[string][]byte)

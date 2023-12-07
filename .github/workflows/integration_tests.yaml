@@ -40,7 +40,7 @@ jobs:
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
           TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
-        run: make test KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
+        run: make prepare-e2e test KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
   integration-tests-check:
     runs-on: ubuntu-22.04
     if: always()

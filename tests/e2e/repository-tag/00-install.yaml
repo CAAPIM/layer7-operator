@@ -1,12 +1,12 @@
 apiVersion: security.brcmlabs.com/v1
 kind: Repository
 metadata:
-  name: l7-gw-myframework
+  name: l7-gw-myframework-tag
 spec:
-  name: l7-gw-myframework
+  name: l7-gw-myframework-tag
   enabled: true
   endpoint: https://github.com/uppoju/l7GWMyFramework
-  branch: main
+  tag: test1
   auth:
     vendor: Github
     existingSecretName: test-repository-secret

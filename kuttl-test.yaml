@@ -9,6 +9,4 @@ namespace: l7operator
 #skipDelete: true
 parallel: 1
 commands:
-  - command: kubectl create namespace l7operator
-  - command: kubectl apply -f deploy/bundle.yaml --namespace l7operator
-  - command: kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
+  - command: kubectl create secret generic graphman-encryption-secret --from-literal=FRAMEWORK_ENCRYPTION_PASSPHRASE=7layer -n l7operator

@@ -150,7 +150,7 @@ prepare-e2e: kuttl docker-build start-kind load-image-all
 	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
 	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator
 	kubectl apply -f ./testdata/metallb-native.yaml
-	kubectl apply -f metallb.yaml
+	kubectl apply -f ./testdata/metallb.yaml
 	kind get kubeconfig > ./testdata/kubeconfig
 
 .PHONY: load-image-all

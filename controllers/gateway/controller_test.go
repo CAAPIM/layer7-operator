@@ -41,11 +41,11 @@ var _ = Describe("Gateway controller", func() {
 		It("Should create Gateway custom resources", func() {
 			By("Creating a first Gateway custom resource")
 			ctx := context.Background()
-			license, err := os.ReadFile("testdata/license.xml")
-			Expect(err).NotTo(HaveOccurred())
+			license, found := os.LookupEnv("LICENSE")
+			Expect(found).NotTo(BeFalse())
 
 			data := make(map[string][]byte)
-			data["license.xml"] = license
+			data["license.xml"] = []byte(license)
 
 			gatewayLicense := corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{

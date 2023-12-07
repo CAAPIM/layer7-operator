@@ -145,6 +145,7 @@ func newParams() Params {
 					},
 					PodDisruptionBudget: securityv1.PodDisruptionBudgetSpec{
 						MaxUnavailable: intstr.IntOrString{IntVal: 5},
+						Enabled:        true,
 					},
 					Ingress: securityv1.Ingress{
 						Enabled:          true,

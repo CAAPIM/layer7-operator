@@ -145,8 +145,8 @@ e2e:
 .PHONY: prepare-e2e
 prepare-e2e: kuttl docker-build start-kind load-image-all
 	kubectl create namespace l7operator
-	echo $TESTREPO_USER
-	echo $TESTREPO_TOKEN
+	echo ${TESTREPO_USER}
+	echo ${TESTREPO_TOKEN}
 	kubectl apply -f deploy/bundle.yaml --namespace l7operator
 	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
 	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator

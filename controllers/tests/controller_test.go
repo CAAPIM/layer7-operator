@@ -30,10 +30,10 @@ import (
 var _ = Describe("Gateway controller", func() {
 	Context("When repo of type static is updated", func() {
 		var (
-			gwLicenseSecretName = "gw-license-secret"
+			gwLicenseSecretName = "gateway-license"
 			repoSecretName      = "test-repository-secret"
 			encSecretName       = "graphman-encryption-secret"
-			namespace           = "default"
+			namespace           = "l7_operator"
 			gatewayName         = "ssg"
 			version             = "10.1.00_CR3"
 			image               = "docker.io/caapim/gateway:10.1.00_CR3"
@@ -46,9 +46,9 @@ var _ = Describe("Gateway controller", func() {
 
 		BeforeEach(func() {
 			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
-			createGatewayLicenseSecret(Secret{k8sClient, ctx, gwLicenseSecretName, namespace})
-			createGraphmanEncSecret(Secret{k8sClient, ctx, encSecretName, namespace})
-			createRepositorySecret(Secret{k8sClient, ctx, repoSecretName, namespace})
+			// createGatewayLicenseSecret(Secret{k8sClient, ctx, gwLicenseSecretName, namespace})
+			// createGraphmanEncSecret(Secret{k8sClient, ctx, encSecretName, namespace})
+			// createRepositorySecret(Secret{k8sClient, ctx, repoSecretName, namespace})
 			DeferCleanup(func() {
 				cleanupRepo(repo)
 				k8sClient.Delete(ctx, &securityv1.Gateway{
@@ -63,24 +63,24 @@ var _ = Describe("Gateway controller", func() {
 						Namespace: namespace,
 					},
 				})
-				k8sClient.Delete(ctx, &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      gwLicenseSecretName,
-						Namespace: namespace,
-					},
-				})
-				k8sClient.Delete(ctx, &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      encSecretName,
-						Namespace: namespace,
-					},
-				})
-				k8sClient.Delete(ctx, &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      repoSecretName,
-						Namespace: namespace,
-					},
-				})
+				// k8sClient.Delete(ctx, &corev1.Secret{
+				// 	ObjectMeta: metav1.ObjectMeta{
+				// 		Name:      gwLicenseSecretName,
+				// 		Namespace: namespace,
+				// 	},
+				// })
+				// k8sClient.Delete(ctx, &corev1.Secret{
+				// 	ObjectMeta: metav1.ObjectMeta{
+				// 		Name:      encSecretName,
+				// 		Namespace: namespace,
+				// 	},
+				// })
+				// k8sClient.Delete(ctx, &corev1.Secret{
+				// 	ObjectMeta: metav1.ObjectMeta{
+				// 		Name:      repoSecretName,
+				// 		Namespace: namespace,
+				// 	},
+				// })
 			})
 		})
 

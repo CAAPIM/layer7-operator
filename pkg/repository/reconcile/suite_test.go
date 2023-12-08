@@ -79,6 +79,7 @@ func newParams() Params {
 					Username: "testUser",
 					Password: "testPassword",
 					Token:    "testToken",
+					Type:     securityv1.RepositoryAuthTypeBasic,
 				},
 			},
 		},

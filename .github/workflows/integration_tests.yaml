@@ -47,6 +47,7 @@ jobs:
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
           TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
+          USE_EXISTING_CLUSTER: true
         run: |
           make prepare-e2e test KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
           rm ./testdata/license.xml

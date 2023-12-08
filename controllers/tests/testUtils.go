@@ -40,7 +40,7 @@ type Repo struct {
 
 func createGatewayLicenseSecret(secret Secret) {
 	// Gateway licence
-	license, found := os.LookupEnv("GW_LICENSE")
+	license, found := os.LookupEnv("LICENSE")
 	Expect(found).NotTo(BeFalse())
 
 	data := make(map[string][]byte)

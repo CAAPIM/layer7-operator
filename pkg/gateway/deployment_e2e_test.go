@@ -47,7 +47,7 @@ func TestDeploymentE2EWithPorts(t *testing.T) {
 	//create gateway resource
 	err = createGatewayResource(client)
 	checkIfError(err)
-	time.Sleep(6 * time.Minute)
+	time.Sleep(2 * time.Minute)
 
 	currentDeployment := &appsv1.Deployment{}
 	err = client.Get(context.Background(), types.NamespacedName{Name: "demo", Namespace: "l7operator"}, currentDeployment)
@@ -66,7 +66,7 @@ func TestDeploymentE2EWithPorts(t *testing.T) {
 	err = commitAndPushNewFile(client)
 	checkIfError(err)
 
-	time.Sleep(5 * time.Minute)
+	time.Sleep(1 * time.Minute)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}

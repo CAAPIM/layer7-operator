@@ -12,6 +12,9 @@ jobs:
     env:
       VERSION: ${{ github.ref_name }}
       IMAGE_TAG_BASE: docker.io/layer7api/layer7-operator
+      GH_UNAME: ${{secrets.GIT_HUB_USERNAME}}
+      GH_TOKEN: ${{secrets.GIT_HUB_TOKEN}}
+      GW_LICENSE: ${{secrets.GW_LICENSE}}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3

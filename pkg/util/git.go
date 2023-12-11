@@ -32,11 +32,13 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 
 	if tag != "" {
 		cloneOpts.ReferenceName = plumbing.ReferenceName(tag)
+		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + tag)
 	}
 
 	// this supercedes tag if set.
 	if branch != "" {
 		cloneOpts.ReferenceName = plumbing.ReferenceName(branch)
+		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + branch)
 
 	}
 
@@ -121,7 +123,6 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 		if ext == tag {
 			return commit.Hash.String(), nil
 		}
-
 		gbytes, _ := os.ReadFile("/tmp/" + name + "-" + ext + "/.git/config")
 		if !strings.Contains(string(gbytes), cloneOpts.URL) {
 			err = os.RemoveAll("/tmp/" + name + "-" + ext)
@@ -130,7 +131,6 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			}
 			return "", fmt.Errorf("invalid git config for %s removing temp storage", name)
 		}
-
 		err = w.Pull(&pullOpts)
 		if err != nil {
 			if err == git.NoErrAlreadyUpToDate {
@@ -138,7 +138,6 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			}
 			return "", err
 		}
-
 		return commit.Hash.String(), nil
 	}
 

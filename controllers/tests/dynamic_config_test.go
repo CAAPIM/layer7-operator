@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -158,8 +159,8 @@ var _ = Describe("Gateway controller", func() {
 				}
 
 				for _, repoStatus := range gateway.Status.RepositoryStatus {
-					GinkgoWriter.Println("Gateway Repo status %s and %s", repoStatus.Name, repoStatus.Commit)
 					if repoStatus.Name == repoName && repoStatus.Commit == commitHash {
+						fmt.Printf("Gateway Repo status %s and %s", repoStatus.Name, repoStatus.Commit)
 						return true
 					}
 				}

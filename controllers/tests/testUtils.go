@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"fmt"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -187,30 +185,12 @@ func commitAndPushNewFile(repo Repo) string {
 }
 
 func commitAndPushUpdatedFile(repo Repo) string {
-	repositorySecret := &corev1.Secret{}
-
-	err := repo.Client.Get(context.Background(), types.NamespacedName{Name: repo.SecretName, Namespace: repo.Namespace}, repositorySecret)
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			panic(err)
-		}
-	}
-	token := string(repositorySecret.Data["TOKEN"])
-	if token == "" {
-		token = string(repositorySecret.Data["PASSWORD"])
-	}
-
-	username := string(repositorySecret.Data["USERNAME"])
-	sshKey := repositorySecret.Data["SSH_KEY"]
-	sshKeyPass := string(repositorySecret.Data["SSH_KEY_PASS"])
-	knownHosts := repositorySecret.Data["KNOWN_HOSTS"]
-	var commit string
-	commit, err = util.CloneRepository(repo.Url, username, token, sshKey, sshKeyPass, repo.Branch, "", "", repo.Name, "Github", string(securityv1.RepositoryAuthTypeBasic), knownHosts)
-	if err != nil {
-		fmt.Print(err.Error())
-	}
-
-	GinkgoWriter.Printf("commit version %s", commit)
+	ghUname, found := os.LookupEnv("TESTREPO_USER")
+	Expect(found).NotTo(BeFalse())
+	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
+	Expect(found).NotTo(BeFalse())
+	token := string(ghToken)
+	username := string(ghUname)
 
 	r, err := git.PlainOpen(repo.CheckoutPath)
 	Expect(err).NotTo(HaveOccurred())
@@ -272,57 +252,6 @@ func cleanupRepo(repo Repo) {
 	filename := filepath.Join(repo.CheckoutPath, "clusterProperties", "c.json")
 	err = os.Remove(filename)
 	_, err = w.Remove("clusterProperties/c.json")
-
-	// We can verify the current status of the worktree using the method Status.
-	status, err := w.Status()
-	Expect(err).NotTo(HaveOccurred())
-	fmt.Println(status)
-
-	// Commits the current staging area to the repository, with the new file
-
-	commitHash, err := w.Commit("clean up the file created", &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "Test",
-			Email: "test@test.org",
-			When:  time.Now(),
-		},
-	})
-	Expect(err).NotTo(HaveOccurred())
-
-	// Prints the current HEAD to verify that all worked well.
-	obj, _ := r.CommitObject(commitHash)
-
-	fmt.Println(obj)
-	auth := &gitHttp.BasicAuth{
-		Username: username,
-		Password: token,
-	}
-	err = r.Push(&git.PushOptions{
-		Auth: auth,
-	})
-	Expect(err).NotTo(HaveOccurred())
-}
-
-func cleanupRepoUpdate(repo Repo) {
-	repositorySecret := &corev1.Secret{}
-
-	err := repo.Client.Get(context.Background(), types.NamespacedName{Name: repo.SecretName, Namespace: repo.Namespace}, repositorySecret)
-	Expect(err).NotTo(HaveOccurred())
-
-	token := string(repositorySecret.Data["TOKEN"])
-	if token == "" {
-		token = string(repositorySecret.Data["PASSWORD"])
-	}
-
-	username := string(repositorySecret.Data["USERNAME"])
-
-	r, err := git.PlainOpen(repo.CheckoutPath)
-
-	w, err := r.Worktree()
-	filename := filepath.Join("/tmp/l7-gw-myapis-main/tree/myApis", "Rest Api 3-+api3.webapi.json")
-	err = os.Remove(filename)
-	err = os.WriteFile(filename, []byte("{\n  \"goid\": \"84449671abe2a5b143051dbdfdf7e684\",\n  \"name\": \"Rest Api 3\",\n  \"resolutionPath\": \"/api3\",\n  \"checksum\": \"ad069ae7b081636f7334ff76b99d09b75dd78b81\",\n  \"enabled\": true,\n  \"folderPath\": \"/myApis\",\n  \"methodsAllowed\": [\n    \"GET\",\n    \"POST\",\n    \"PUT\",\n    \"DELETE\"\n  ],\n  \"tracingEnabled\": false,\n  \"wssProcessingEnabled\": false,\n  \"policy\": {\n    \"xml\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<wsp:Policy xmlns:L7p=\\\"http://www.layer7tech.com/ws/policy\\\" xmlns:wsp=\\\"http://schemas.xmlsoap.org/ws/2002/12/policy\\\">\\n    <wsp:All wsp:Usage=\\\"Required\\\">\\n    <L7p:HardcodedResponse><L7p:Base64ResponseBody stringValue=\\\"aGVsbG8gd29ybGQ=\\\"/>    </L7p:HardcodedResponse>    </wsp:All>\\n</wsp:Policy>\\n\"\n  }\n}"), 0644)
-	_, err = w.Add("tree/myApis/Rest Api 3-+api3.webapi.json")
 
 	// We can verify the current status of the worktree using the method Status.
 	status, err := w.Status()

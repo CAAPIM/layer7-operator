@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"os"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -24,14 +25,15 @@ var _ = Describe("Gateway controller", func() {
 			repoName            = "l7-gw-myapis"
 			repoCheckoutPath    = "/tmp/l7-gw-myapis-main"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyAPIs"
-			branchName          = "main"
 			repo                Repo
 		)
 
 		BeforeEach(func() {
+			var found bool
+			branchName, found := os.LookupEnv("BRANCH_NAME")
+			Expect(found).NotTo(BeFalse())
 			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
 			DeferCleanup(func() {
-				cleanupRepoUpdate(repo)
 				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      gatewayName,

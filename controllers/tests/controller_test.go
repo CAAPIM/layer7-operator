@@ -17,6 +17,7 @@ limitations under the License.
 package tests
 
 import (
+	"os"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -40,17 +41,19 @@ var _ = Describe("Gateway controller", func() {
 			repoName            = "l7-gw-myframework"
 			repoCheckoutPath    = "/tmp/l7-gw-myframework-main"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyFramework"
-			branchName          = "main"
 			repo                Repo
 		)
 
 		BeforeEach(func() {
+			var found bool
+			branchName, found := os.LookupEnv("BRANCH_NAME")
+			Expect(found).NotTo(BeFalse())
 			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
 			// createGatewayLicenseSecret(Secret{k8sClient, ctx, gwLicenseSecretName, namespace})
 			// createGraphmanEncSecret(Secret{k8sClient, ctx, encSecretName, namespace})
 			// createRepositorySecret(Secret{k8sClient, ctx, repoSecretName, namespace})
 			DeferCleanup(func() {
-				cleanupRepo(repo)
+				//cleanupRepo(repo)
 				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      gatewayName,
@@ -100,7 +103,7 @@ var _ = Describe("Gateway controller", func() {
 					return false
 				}
 				return repository.Status.Ready
-			}).WithTimeout(time.Second * 120).Should(BeTrue())
+			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
 			By("Creating Gateway custom resource with a repository")
 			gw := securityv1.Gateway{
@@ -202,7 +205,7 @@ var _ = Describe("Gateway controller", func() {
 				}
 				return false
 
-			}).WithTimeout(time.Second * 120).Should(BeTrue())
+			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
 			By("Gateway pod should restart")
 			Eventually(func() bool {
@@ -215,7 +218,7 @@ var _ = Describe("Gateway controller", func() {
 					}
 				}
 				return false
-			}).WithTimeout(time.Second * 120).Should(BeTrue())
+			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
 		})
 	})

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -127,27 +126,21 @@ func createRepository(repo Repo) {
 }
 
 func commitAndPushNewFile(repo Repo) string {
-	repositorySecret := &corev1.Secret{}
-	err := repo.Client.Get(context.Background(), types.NamespacedName{Name: repo.SecretName, Namespace: repo.Namespace}, repositorySecret)
-	Expect(err).NotTo(HaveOccurred())
+	ghUname, found := os.LookupEnv("TESTREPO_USER")
+	Expect(found).NotTo(BeFalse())
+	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
+	Expect(found).NotTo(BeFalse())
+	token := string(ghToken)
+	username := string(ghUname)
 
-	token := string(repositorySecret.Data["TOKEN"])
-	if token == "" {
-		token = string(repositorySecret.Data["PASSWORD"])
-	}
+	// var commit string
+	// commit, err := util.CloneRepository(repo.Url, username, token, nil, "", repo.Branch, "", "", repo.Name, "Github", string(securityv1.RepositoryAuthTypeBasic), nil)
 
-	username := string(repositorySecret.Data["USERNAME"])
-	sshKey := repositorySecret.Data["SSH_KEY"]
-	sshKeyPass := string(repositorySecret.Data["SSH_KEY_PASS"])
-	knownHosts := repositorySecret.Data["KNOWN_HOSTS"]
-	var commit string
-	commit, err = util.CloneRepository(repo.Url, username, token, sshKey, sshKeyPass, repo.Branch, "", "", repo.Name, "Github", string(securityv1.RepositoryAuthTypeBasic), knownHosts)
+	// if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
+	// 	fmt.Print(err.Error())
+	// }
 
-	if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
-		fmt.Print(err.Error())
-	}
-
-	GinkgoWriter.Printf("commit version %s", commit)
+	// GinkgoWriter.Printf("commit version %s", commit)
 
 	r, err := git.PlainOpen(repo.CheckoutPath)
 	Expect(err).NotTo(HaveOccurred())

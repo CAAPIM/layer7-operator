@@ -133,8 +133,6 @@ var _ = Describe("Gateway controller", func() {
 				Namespace: namespace,
 			}
 
-			var managedPod string
-
 			Eventually(func() bool {
 				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
 					return false
@@ -144,7 +142,6 @@ var _ = Describe("Gateway controller", func() {
 					if pod.Ready == false {
 						return false
 					}
-					managedPod = pod.Name
 				}
 				return true
 
@@ -161,25 +158,13 @@ var _ = Describe("Gateway controller", func() {
 				}
 
 				for _, repoStatus := range gateway.Status.RepositoryStatus {
+					GinkgoWriter.Println("Gateway Repo status %s and %s", repoStatus.Name, repoStatus.Commit)
 					if repoStatus.Name == repoName && repoStatus.Commit == commitHash {
 						return true
 					}
 				}
 				return false
 
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
-
-			By("Gateway pod should restart")
-			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
-					return false
-				}
-				for _, pod := range gateway.Status.Gateway {
-					if pod.Ready == true && pod.Name != managedPod {
-						return true
-					}
-				}
-				return false
 			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
 		})

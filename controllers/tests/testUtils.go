@@ -212,10 +212,11 @@ func commitAndPushUpdatedFile(repo Repo) string {
 	sshKeyPass := string(repositorySecret.Data["SSH_KEY_PASS"])
 	knownHosts := repositorySecret.Data["KNOWN_HOSTS"]
 	var commit string
-	commit, err = util.CloneRepository("https://github.com/uppoju/l7GWMyAPIs", username, token, sshKey, sshKeyPass, repo.Branch, "", "", repo.Name, "Github", string(securityv1.RepositoryAuthTypeBasic), knownHosts)
-	if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
+	commit, err = util.CloneRepository(repo.Url, username, token, sshKey, sshKeyPass, repo.Branch, "", "", repo.Name, "Github", string(securityv1.RepositoryAuthTypeBasic), knownHosts)
+	if err != nil {
 		fmt.Print(err.Error())
 	}
+
 	GinkgoWriter.Printf("commit version %s", commit)
 
 	r, err := git.PlainOpen(repo.CheckoutPath)

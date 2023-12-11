@@ -39,7 +39,7 @@ var _ = Describe("Gateway controller", func() {
 			version             = "10.1.00_CR3"
 			image               = "docker.io/caapim/gateway:10.1.00_CR3"
 			repoName            = "l7-gw-myframework"
-			repoCheckoutPath    = "/tmp/l7-gw-myframework-main"
+			repoCheckoutPath    = "/tmp/l7GWMyFramework"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyFramework"
 			repo                Repo
 		)

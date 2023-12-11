@@ -65,8 +65,7 @@ jobs:
           BRANCH_NAME: ingtest-${{ github.run_id }}
         run: |           
            make prepare-e2e ${{ matrix.group }} KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
-           rm ./testdata/license.xml
-           git push origin --delete ${BRANCH_NAME}
+           rm ./testdata/license.xml           
       - name: "Delete repo"
         env:
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}

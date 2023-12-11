@@ -46,24 +46,20 @@ jobs:
         env:
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
         run: 'echo "$LICENSE" > ./testdata/license.xml'
-        shell: bash
-      - name: "create test branch"
-        run: |
-          git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
-          git checkout -b ingtest-$GITHUB_RUN_ID
-          git push --set-upstream origin ingtest-$GITHUB_RUN_ID
+        shell: bash          
       - name: "run tests"
         env:
           KUBE_VERSION: ${{ matrix.kube-version }}
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
           TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
-          BRANCH: ingtest-${{ GITHUB_RUN_ID }}
+          BRANCH_NAME: ingtest-${{ GITHUB_RUN_ID }}
         run: |
+           git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework
+           git checkout -b ${BRANCH_NAME}
+           git push --set-upstream origin ${BRANCH_NAME}
            make prepare-e2e ${{ matrix.group }} KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
            rm ./testdata/license.xml
-      - name: "delete branch"
-        run: |
-            git push origin --delete test-$GITHUB_RUN_ID
+           git push origin --delete ${BRANCH_NAME}
   e2e-tests-check:
     runs-on: ubuntu-22.04
     if: always()

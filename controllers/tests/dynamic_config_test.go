@@ -31,7 +31,7 @@ var _ = Describe("Gateway controller", func() {
 		BeforeEach(func() {
 			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
 			DeferCleanup(func() {
-				cleanupRepo(repo)
+				cleanupRepoUpdate(repo)
 				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      gatewayName,

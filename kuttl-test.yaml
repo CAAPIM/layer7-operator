@@ -8,5 +8,3 @@ crdDir: ./config/crd/bases/
 namespace: l7operator
 #skipDelete: true
 parallel: 1
-commands:
-  - command: kubectl create secret generic graphman-encryption-secret --from-literal=FRAMEWORK_ENCRYPTION_PASSPHRASE=7layer -n l7operator

@@ -30,12 +30,26 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: "~1.21.3"
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
       - name: Setup kind
         env:
           KIND_VERSION: "0.20.0"
         run: go install sigs.k8s.io/kind@v${KIND_VERSION}
       - name: "install kuttl"
         run: ./hack/install-kuttl.sh
+      - name: Create test branch
+        env:
+          TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
+          TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
+          BRANCH_NAME: ingtest-${{ github.run_id }}
+        run: |
+           git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework
+           cd /tmp/l7GWMyFramework
+           git checkout -b ${BRANCH_NAME}
+           git push --set-upstream origin ${BRANCH_NAME}
       - name: "create license"
         env:
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
@@ -47,9 +61,19 @@ jobs:
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
           TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
+          BRANCH_NAME: ingtest-${{ github.run_id }}
+          USE_EXISTING_CLUSTER: true
         run: |
           make prepare-e2e test KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
           rm ./testdata/license.xml
+      - name: Delete repo
+        env:
+          TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
+          TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
+          BRANCH_NAME: ingtest-${{ github.run_id }}
+        run: |
+           cd /tmp/l7GWMyFramework
+           git push origin --delete ${BRANCH_NAME}
   integration-tests-check:
     runs-on: ubuntu-22.04
     if: always()

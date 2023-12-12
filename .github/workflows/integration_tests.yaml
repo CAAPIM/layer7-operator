@@ -50,6 +50,10 @@ jobs:
            cd /tmp/l7GWMyFramework
            git checkout -b ${BRANCH_NAME}
            git push --set-upstream origin ${BRANCH_NAME}
+           git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs
+           cd /tmp/l7GWMyAPIs
+           git checkout -b ${BRANCH_NAME}
+           git push --set-upstream origin ${BRANCH_NAME}
       - name: "create license"
         env:
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
@@ -73,6 +77,8 @@ jobs:
           BRANCH_NAME: ingtest-${{ github.run_id }}
         run: |
            cd /tmp/l7GWMyFramework
+           git push origin --delete ${BRANCH_NAME}
+           cd /tmp/l7GWMyAPIs
            git push origin --delete ${BRANCH_NAME}
   integration-tests-check:
     runs-on: ubuntu-22.04

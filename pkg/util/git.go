@@ -139,7 +139,7 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			}
 			return "", err
 		}
-
+		
 		return commit.Hash.String(), nil
 	}
 

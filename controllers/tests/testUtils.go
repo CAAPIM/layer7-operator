@@ -2,7 +2,9 @@ package tests
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -173,4 +175,63 @@ func commitAndPushNewFile(repo Repo) string {
 	})
 	Expect(err).NotTo(HaveOccurred())
 	return commitHash.String()
+}
+
+func commitAndPushUpdatedFile(repo Repo) string {
+	ghUname, found := os.LookupEnv("TESTREPO_USER")
+	Expect(found).NotTo(BeFalse())
+	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
+	Expect(found).NotTo(BeFalse())
+	token := string(ghToken)
+	username := string(ghUname)
+
+	r, err := git.PlainOpen(repo.CheckoutPath)
+	Expect(err).NotTo(HaveOccurred())
+
+	w, err := r.Worktree()
+	Expect(err).NotTo(HaveOccurred())
+
+	filename := filepath.Join("/tmp/l7GWMyAPIs/tree/myApis/", "Rest Api 3-+api3.webapi.json")
+	err = os.Remove(filename)
+	err = os.WriteFile(filename, []byte("{\n  \"goid\": \"84449671abe2a5b143051dbdfdf7e684\",\n  \"name\": \"Rest Api 3\",\n  \"resolutionPath\": \"/api3\",\n  \"checksum\": \"ad069ae7b081636f7334ff76b99d09b75dd78b81\",\n  \"enabled\": true,\n  \"folderPath\": \"/myApis\",\n  \"methodsAllowed\": [\n    \"GET\",\n    \"POST\",\n    \"PUT\",\n    \"DELETE\"\n  ],\n  \"tracingEnabled\": false,\n  \"wssProcessingEnabled\": false,\n  \"policy\": {\n    \"xml\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<wsp:Policy xmlns:L7p=\\\"http://www.layer7tech.com/ws/policy\\\" xmlns:wsp=\\\"http://schemas.xmlsoap.org/ws/2002/12/policy\\\">\\n    <wsp:All wsp:Usage=\\\"Required\\\">\\n        <L7p:HardcodedResponse><L7p:Base64ResponseBody stringValue=\\\"aGVsbG8gdGVzdA==\\\"/>    </L7p:HardcodedResponse>    </wsp:All>\\n</wsp:Policy>\\n\"\n  }\n}"), 0644)
+	_, err = w.Add("tree/myApis/Rest Api 3-+api3.webapi.json")
+
+	// We can verify the current status of the worktree using the method Status.
+	status, err := w.Status()
+	Expect(err).NotTo(HaveOccurred())
+	fmt.Println(status)
+
+	// Commits the current staging area to the repository, with the new file
+
+	commitHash, err := w.Commit("example go-git commit", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Test",
+			Email: "test@test.org",
+			When:  time.Now(),
+		},
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	// Prints the current HEAD to verify that all worked well.
+	obj, _ := r.CommitObject(commitHash)
+
+	fmt.Println(obj)
+	auth := &gitHttp.BasicAuth{
+		Username: username,
+		Password: token,
+	}
+	err = r.Push(&git.PushOptions{
+		Auth: auth,
+	})
+	return commitHash.String()
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func redirectPolicyFunc(req *http.Request, via []*http.Request) error {
+	req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
+	return nil
 }

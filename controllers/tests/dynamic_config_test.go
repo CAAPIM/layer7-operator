@@ -204,7 +204,7 @@ var _ = Describe("Gateway controller", func() {
 				GinkgoWriter.Printf("client: could not read response body: %s\n", err)
 				os.Exit(1)
 			}
-			GinkgoWriter.Printf("client: response body: %s\n", resBody)
+			fmt.Printf("client: response body: %s\n", resBody)
 			Expect(strings.Contains(string(resBody), "hello test")).Should(BeTrue())
 		})
 	})

@@ -2,7 +2,9 @@ package tests
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -281,4 +283,14 @@ func cleanupRepo(repo Repo) {
 		Auth: auth,
 	})
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func redirectPolicyFunc(req *http.Request, via []*http.Request) error {
+	req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
+	return nil
 }

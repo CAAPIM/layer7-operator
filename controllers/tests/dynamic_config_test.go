@@ -1,8 +1,12 @@
 package tests
 
 import (
+	"crypto/tls"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -152,7 +156,7 @@ var _ = Describe("Gateway controller", func() {
 			var commitHash = commitAndPushUpdatedFile(repo)
 
 			By("Gateway CRD should have new commit")
-			GinkgoWriter.Println("Repo name %s and %s", repoName, commitHash)
+			GinkgoWriter.Printf("Repo name %s and %s", repoName, commitHash)
 			Eventually(func() bool {
 				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
 					return false
@@ -160,7 +164,6 @@ var _ = Describe("Gateway controller", func() {
 
 				for _, repoStatus := range gateway.Status.RepositoryStatus {
 					if repoStatus.Name == repoName && repoStatus.Commit == commitHash {
-						fmt.Printf("Gateway Repo status %s and %s", repoStatus.Name, repoStatus.Commit)
 						return true
 					}
 				}
@@ -168,6 +171,41 @@ var _ = Describe("Gateway controller", func() {
 
 			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
+			By("Updated Policy is deployed to Gateway")
+
+			currentService := &corev1.Service{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, gwRequest, currentService); err != nil {
+					return false
+				}
+				return repository.Status.Ready
+			}).WithTimeout(time.Second * 120).Should(BeTrue())
+
+			time.Sleep(2 * time.Minute)
+
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			httpclient := &http.Client{
+				CheckRedirect: redirectPolicyFunc,
+				Transport:     tr,
+			}
+
+			requestURL := fmt.Sprintf("https://%s:8443/api3", currentService.Status.LoadBalancer.Ingress[0].IP)
+			req, err := http.NewRequest("GET", requestURL, nil)
+			req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
+			resp, err := httpclient.Do(req)
+			if err != nil {
+				GinkgoWriter.Printf("client: request failed: %s\n", err)
+				os.Exit(1)
+			}
+			resBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				GinkgoWriter.Printf("client: could not read response body: %s\n", err)
+				os.Exit(1)
+			}
+			GinkgoWriter.Printf("client: response body: %s\n", resBody)
+			Expect(strings.Contains(string(resBody), "hello test")).Should(BeTrue())
 		})
 	})
 })

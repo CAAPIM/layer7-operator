@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -133,19 +134,10 @@ func commitAndPushNewFile(repo Repo) string {
 	token := string(ghToken)
 	username := string(ghUname)
 
-	// var commit string
-	// commit, err := util.CloneRepository(repo.Url, username, token, nil, "", repo.Branch, "", "", repo.Name, "Github", string(securityv1.RepositoryAuthTypeBasic), nil)
-
-	// if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
-	// 	fmt.Print(err.Error())
-	// }
-
-	// GinkgoWriter.Printf("commit version %s", commit)
-
-	r, err := git.PlainOpen(repo.CheckoutPath)
+	gRepo, err := git.PlainOpen(repo.CheckoutPath)
 	Expect(err).NotTo(HaveOccurred())
 
-	w, err := r.Worktree()
+	w, err := gRepo.Worktree()
 	Expect(err).NotTo(HaveOccurred())
 
 	filename := filepath.Join(repo.CheckoutPath, "clusterProperties", "c.json")
@@ -172,14 +164,14 @@ func commitAndPushNewFile(repo Repo) string {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Prints the current HEAD to verify that all worked well.
-	obj, _ := r.CommitObject(commitHash)
-	fmt.Println(obj)
+	obj, _ := gRepo.CommitObject(commitHash)
+	GinkgoWriter.Printf("Commit hash %s", obj.Hash)
 
 	auth := &gitHttp.BasicAuth{
 		Username: username,
 		Password: token,
 	}
-	err = r.Push(&git.PushOptions{
+	err = gRepo.Push(&git.PushOptions{
 		Auth: auth,
 	})
 	Expect(err).NotTo(HaveOccurred())

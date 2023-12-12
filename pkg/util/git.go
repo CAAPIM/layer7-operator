@@ -39,7 +39,6 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 	if branch != "" {
 		cloneOpts.ReferenceName = plumbing.ReferenceName(branch)
 		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + branch)
-
 	}
 
 	switch strings.ToLower(authType) {

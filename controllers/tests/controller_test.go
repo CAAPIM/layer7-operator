@@ -49,11 +49,7 @@ var _ = Describe("Gateway controller", func() {
 			branchName, found := os.LookupEnv("BRANCH_NAME")
 			Expect(found).NotTo(BeFalse())
 			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
-			// createGatewayLicenseSecret(Secret{k8sClient, ctx, gwLicenseSecretName, namespace})
-			// createGraphmanEncSecret(Secret{k8sClient, ctx, encSecretName, namespace})
-			// createRepositorySecret(Secret{k8sClient, ctx, repoSecretName, namespace})
 			DeferCleanup(func() {
-				//cleanupRepo(repo)
 				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      gatewayName,
@@ -66,24 +62,6 @@ var _ = Describe("Gateway controller", func() {
 						Namespace: namespace,
 					},
 				})
-				// k8sClient.Delete(ctx, &corev1.Secret{
-				// 	ObjectMeta: metav1.ObjectMeta{
-				// 		Name:      gwLicenseSecretName,
-				// 		Namespace: namespace,
-				// 	},
-				// })
-				// k8sClient.Delete(ctx, &corev1.Secret{
-				// 	ObjectMeta: metav1.ObjectMeta{
-				// 		Name:      encSecretName,
-				// 		Namespace: namespace,
-				// 	},
-				// })
-				// k8sClient.Delete(ctx, &corev1.Secret{
-				// 	ObjectMeta: metav1.ObjectMeta{
-				// 		Name:      repoSecretName,
-				// 		Namespace: namespace,
-				// 	},
-				// })
 			})
 		})
 

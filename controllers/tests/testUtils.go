@@ -15,7 +15,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -132,19 +131,10 @@ func commitAndPushNewFile(repo Repo) string {
 	token := string(ghToken)
 	username := string(ghUname)
 
-	// var commit string
-	// commit, err := util.CloneRepository(repo.Url, username, token, nil, "", repo.Branch, "", "", repo.Name, "Github", string(securityv1.RepositoryAuthTypeBasic), nil)
-
-	// if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
-	// 	fmt.Print(err.Error())
-	// }
-
-	// GinkgoWriter.Printf("commit version %s", commit)
-
-	r, err := git.PlainOpen(repo.CheckoutPath)
+	gRepo, err := git.PlainOpen(repo.CheckoutPath)
 	Expect(err).NotTo(HaveOccurred())
 
-	w, err := r.Worktree()
+	w, err := gRepo.Worktree()
 	Expect(err).NotTo(HaveOccurred())
 
 	filename := filepath.Join(repo.CheckoutPath, "clusterProperties", "c.json")
@@ -171,66 +161,16 @@ func commitAndPushNewFile(repo Repo) string {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Prints the current HEAD to verify that all worked well.
-	obj, _ := r.CommitObject(commitHash)
-	fmt.Println(obj)
+	obj, _ := gRepo.CommitObject(commitHash)
+	GinkgoWriter.Printf("Commit hash %s", obj.Hash)
 
 	auth := &gitHttp.BasicAuth{
 		Username: username,
 		Password: token,
 	}
-	err = r.Push(&git.PushOptions{
+	err = gRepo.Push(&git.PushOptions{
 		Auth: auth,
 	})
 	Expect(err).NotTo(HaveOccurred())
 	return commitHash.String()
-}
-
-func cleanupRepo(repo Repo) {
-	repositorySecret := &corev1.Secret{}
-
-	err := repo.Client.Get(context.Background(), types.NamespacedName{Name: repo.SecretName, Namespace: repo.Namespace}, repositorySecret)
-	Expect(err).NotTo(HaveOccurred())
-
-	token := string(repositorySecret.Data["TOKEN"])
-	if token == "" {
-		token = string(repositorySecret.Data["PASSWORD"])
-	}
-
-	username := string(repositorySecret.Data["USERNAME"])
-
-	r, err := git.PlainOpen(repo.CheckoutPath)
-
-	w, err := r.Worktree()
-	filename := filepath.Join(repo.CheckoutPath, "clusterProperties", "c.json")
-	err = os.Remove(filename)
-	_, err = w.Remove("clusterProperties/c.json")
-
-	// We can verify the current status of the worktree using the method Status.
-	status, err := w.Status()
-	Expect(err).NotTo(HaveOccurred())
-	fmt.Println(status)
-
-	// Commits the current staging area to the repository, with the new file
-
-	commitHash, err := w.Commit("clean up the file created", &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "Test",
-			Email: "test@test.org",
-			When:  time.Now(),
-		},
-	})
-	Expect(err).NotTo(HaveOccurred())
-
-	// Prints the current HEAD to verify that all worked well.
-	obj, _ := r.CommitObject(commitHash)
-
-	fmt.Println(obj)
-	auth := &gitHttp.BasicAuth{
-		Username: username,
-		Password: token,
-	}
-	err = r.Push(&git.PushOptions{
-		Auth: auth,
-	})
-	Expect(err).NotTo(HaveOccurred())
 }

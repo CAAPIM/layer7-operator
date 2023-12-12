@@ -152,7 +152,6 @@ prepare-e2e: kuttl docker-build start-kind load-image-all
 	kubectl apply -f ./testdata/metallb-native.yaml
 	sleep 90s
 	kubectl apply -f ./testdata/metallb.yaml
-	kind get kubeconfig > ./testdata/kubeconfig
 
 .PHONY: load-image-all
 load-image-all: load-image-operator load-image-gateway

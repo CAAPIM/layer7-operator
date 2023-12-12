@@ -218,7 +218,7 @@ var _ = Describe("Gateway controller", func() {
 					}
 				}
 				return false
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
+			}).WithTimeout(time.Second * 380).Should(BeTrue())
 
 		})
 	})

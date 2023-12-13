@@ -6,6 +6,34 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ssg
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    spec:
+      containers:
+        - securityContext:
+            runAsUser: 1000
+            runAsGroup: 3000
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: ssg
+          maxSkew: 2
+          topologyKey: testTopology
+          whenUnsatisfiable: ScheduleAnyway
+      tolerations:
+        - key: "key1"
+          operator: "Equal"
+          value: "value1"
+          effect: "NoSchedule"
 status:
   replicas: 1
   readyReplicas: 1

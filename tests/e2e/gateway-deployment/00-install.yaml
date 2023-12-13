@@ -12,11 +12,32 @@ spec:
     image: docker.io/caapim/gateway:10.1.00_CR3
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
+    podAnnotations:
+      testAnnotation: test1
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 2
+    topologySpreadConstraints:
+      - maxSkew: 2
+        topologyKey: testTopology
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: ssg
+    tolerations:
+      - key: "key1"
+        operator: "Equal"
+        value: "value1"
+        effect: "NoSchedule"
+    podSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 2000
+    containerSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
     resources:
       requests: {}
       limits: {}

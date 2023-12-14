@@ -11,6 +11,7 @@ data:
     -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true -Dcom.l7tech.security.ssl.hostAllowWildcard=true
   SSG_CLUSTER_HOST: "gateway.brcmlabs.com"
   SSG_JVM_HEAP: 2g
+  SSG_DATABASE_JDBC_URL: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
   log-override-properties: |-
     com.l7tech.level = INFO
     com.l7tech.server.policy.variable.ServerVariables.level = SEVERE

@@ -13,6 +13,9 @@ spec:
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
     management:
+      database:
+        enabled: true
+        jdbcUrl: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
       cluster:
         hostname: "gateway.brcmlabs.com"
     updateStrategy:

@@ -19,6 +19,25 @@ spec:
       preStop:
         exec:
           command: [ "/bin/sh", "-c", "echo Hello" ]
+    management:
+      restman:
+        enabled: true
+      graphman:
+        enabled: true
+      service:
+        enabled: true
+        type: LoadBalancer
+        ports:
+          - name: test
+            port: 9443
+            targetPort: 9443
+            protocol: TCP
+        sessionAffinity: ClientIP
+        sessionAffinityConfig:
+          clientIP:
+            timeoutSeconds: 10800
+        internalTrafficPolicy: Local
+        externalTrafficPolicy: Local
     podAnnotations:
       testAnnotation: test1
     updateStrategy:

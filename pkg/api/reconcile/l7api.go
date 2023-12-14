@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strconv"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
+	v1 "github.com/caapim/layer7-operator/api/v1"
+	v1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	"github.com/caapim/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,9 +24,9 @@ func Gateway(ctx context.Context, params Params) error {
 	tryRequest := true
 	isMarkedToBeDeleted := params.Instance.DeletionTimestamp != nil
 	// going to need a mechanism to throw an error if sync doesn't fully complete without interrupting other updates.
-	updatedStatus := securityv1alpha1.L7ApiStatus{}
+	updatedStatus := v1alpha1.L7ApiStatus{}
 	for _, tag := range params.Instance.Spec.DeploymentTags {
-		gateway := &securityv1.Gateway{}
+		gateway := &v1.Gateway{}
 		err := params.Client.Get(ctx, types.NamespacedName{Name: tag, Namespace: params.Instance.Namespace}, gateway)
 		if err != nil && k8serrors.IsNotFound(err) {
 			params.Log.V(2).Info("gateway not found", "name", tag, "namespace", params.Instance.Namespace)
@@ -112,7 +112,7 @@ func Gateway(ctx context.Context, params Params) error {
 						}
 
 						if !statusExists {
-							updatedStatus.Gateways = append(updatedStatus.Gateways, securityv1alpha1.LinkedGatewayStatus{Checksum: checksum, Deployment: tag, Name: pod.Name, Phase: pod.Status.Phase, Ready: true})
+							updatedStatus.Gateways = append(updatedStatus.Gateways, v1alpha1.LinkedGatewayStatus{Checksum: checksum, Deployment: tag, Name: pod.Name, Phase: pod.Status.Phase, Ready: true})
 						}
 
 						if !reflect.DeepEqual(updatedStatus, params.Instance.Status) && !isMarkedToBeDeleted {
@@ -152,7 +152,7 @@ func Gateway(ctx context.Context, params Params) error {
 }
 
 // GetGatewayPods returns the pods in a Gateway Deployment
-func getGatewayPods(ctx context.Context, params Params, gateway *securityv1.Gateway) (*corev1.PodList, error) {
+func getGatewayPods(ctx context.Context, params Params, gateway *v1.Gateway) (*corev1.PodList, error) {
 	podList := &corev1.PodList{}
 
 	listOpts := []client.ListOption{

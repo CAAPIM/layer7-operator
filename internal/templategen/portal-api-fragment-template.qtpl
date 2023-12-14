@@ -1,0 +1,68 @@
+----------------------------------------------
+
+
+Variables Used:
+- portalApi.Uuid
+- portalApi.LocationUrl
+- portalApi.SsgUrlBase64
+- portalApi.PolicyTemplates
+-------------------------------------------------
+
+{% func FromApiFragmentTemplate(portalApi PortalAPI) %}
+    <?xml version="1.0" encoding="UTF-8"?>
+    <wsp:Policy xmlns:L7p="http://www.layer7tech.com/ws/policy" xmlns:wsp="http://schemas.xmlsoap.org/ws/2002/12/policy">
+      <wsp:All wsp:Usage="Required">
+        <L7p:CommentAssertion>
+          <L7p:Comment stringValue="============================="/>
+        </L7p:CommentAssertion>
+        <L7p:CommentAssertion>
+          <L7p:Comment stringValue="======= Published thru API Portal ======="/>
+        </L7p:CommentAssertion>
+        <L7p:CommentAssertion>
+          <L7p:Comment stringValue="======= Don't modify block starts ======="/>
+        </L7p:CommentAssertion>
+        <L7p:CommentAssertion>
+          <L7p:Comment stringValue="============================="/>
+        </L7p:CommentAssertion>
+        <L7p:ApiPortalIntegration>
+          <L7p:ApiGroup stringValue=""/>
+          <L7p:ApiId stringValue="{%s portalApi.Uuid %}"/>
+          <L7p:PortalManagedApiFlag stringValue="L7p:ApiPortalManagedServiceAssertion"/>
+        </L7p:ApiPortalIntegration>
+        <L7p:SetVariable>
+          <L7p:Base64Expression stringValue="{%s portalApi.LocationUrl %}"/>
+          <L7p:VariableToSet stringValue="apiLocation"/>
+        </L7p:SetVariable>
+        <L7p:SetVariable>
+          <L7p:Base64Expression stringValue="{%s portalApi.SsgUrlBase64 %}"/>
+          <L7p:VariableToSet stringValue="serviceUrl"/>
+        </L7p:SetVariable>
+        <L7p:SetVariable>
+          <L7p:Base64Expression stringValue="JHtwb3J0YWwubWFuYWdlZC5zZXJ2aWNlLmFwaUlkfQ=="/>
+          <L7p:VariableToSet stringValue="counterName"/>
+        </L7p:SetVariable>
+        {% for _, policyTemplate := range portalApi.PolicyTemplates %}
+        <L7p:Encapsulated>
+          <L7p:EncapsulatedAssertionConfigGuid stringValue="{%s policyTemplate.Uuid %}"/>
+          <L7p:Parameters mapValue="included">
+              {% for _, policyTemplateArg := range policyTemplate.ApiPolicyTemplateArguments %}
+              <L7p:entry xmlns:L7p="http://www.layer7tech.com/ws/policy" >
+                <L7p:key stringValue="{%s policyTemplateArg.Name %}"/>
+                <L7p:value stringValue="{%s policyTemplateArg.Value %}"/>
+              </L7p:entry>
+              {% endfor %}
+          </L7p:Parameters>
+        </L7p:Encapsulated>
+        {% endfor %}
+        <L7p:CommentAssertion>
+          <L7p:Comment stringValue="============================="/>
+        </L7p:CommentAssertion>
+        <L7p:CommentAssertion>
+          <L7p:Comment stringValue="======= Don't modify block ends ======="/>
+        </L7p:CommentAssertion>
+        <L7p:CommentAssertion>
+          <L7p:Comment stringValue="============================="/>
+        </L7p:CommentAssertion>
+      </wsp:All>
+    </wsp:Policy>
+{% endfunc %}

@@ -199,6 +199,62 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		})
 	}
 
+	if gw.Spec.App.Redis.Enabled {
+
+		secretName := gw.Name + "-redis-properties"
+
+		if gw.Spec.App.Redis.ExistingSecret != "" {
+			secretName = gw.Name + "-redis-properties"
+		}
+
+		items := []corev1.KeyToPath{{Key: "redis.properties", Path: "redis.properties"}}
+
+		if gw.Spec.App.Redis.Tls.Enabled {
+			if gw.Spec.App.Redis.Tls.ExistingSecret != "" && gw.Spec.App.Redis.ExistingSecret == "" {
+				key := "redis.crt"
+				if gw.Spec.App.Redis.Tls.ExistingSecretKey != "" {
+					key = gw.Spec.App.Redis.Tls.ExistingSecretKey
+					volumes = append(volumes, corev1.Volume{
+						Name: "redis-tls",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: gw.Spec.App.Redis.Tls.ExistingSecret,
+								Optional:   &optional,
+								Items: []corev1.KeyToPath{{
+									Key:  key,
+									Path: "redis.crt",
+								}},
+							},
+						},
+					})
+					volumeMounts = append(volumeMounts, corev1.VolumeMount{
+						Name:      "redis-tls",
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/assertions/RedisSharedStateProviderAssertion/redis.crt",
+						SubPath:   "redis.crt",
+					})
+				}
+			} else {
+				items = append(items, corev1.KeyToPath{Key: "redis.crt", Path: "redis.crt"})
+			}
+		}
+
+		volumes = append(volumes, corev1.Volume{
+			Name: "redis-properties",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+					Optional:   &optional,
+					Items:      items,
+				},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "redis-properties",
+			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/assertions/RedisSharedStateProviderAssertion/",
+		})
+	}
+
 	if gw.Spec.App.Log.Override {
 		volumes = append(volumes, corev1.Volume{
 			Name: "log-override-config",
@@ -319,6 +375,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 						Key:  "003-parse-custom-files"},
 					},
 					DefaultMode: &defaultMode,
+					Optional:    &optional,
 				},
 			},
 		})
@@ -798,6 +855,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: gw.Spec.App.PodAnnotations,
+					Labels:      gw.Spec.App.PodLabels,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            serviceAccountName,

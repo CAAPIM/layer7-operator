@@ -238,6 +238,7 @@ func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) 
 
 func ApplyGraphmanBundle(username string, password string, target string, encpass string, bundle []byte) error {
 	_, err := graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundle)
+
 	if err != nil {
 		return err
 	}

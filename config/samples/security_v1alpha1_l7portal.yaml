@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/part-of: layer7-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: layer7-operator
-  name: l7portal-sample
+  name: dev-portal
 spec:
   name: portal
   enabled: true
@@ -16,8 +16,6 @@ spec:
   enrollmentBundle: ""
   deploymentTags:
   - ssg
-  - ssg1
-  - testgateway
   auth:
     endpoint: dev-ssg.brcmlabs.com
     clientId: 3d8f8967b8e54909b5e9a86e09063406

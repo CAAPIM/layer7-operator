@@ -515,7 +515,7 @@ spec:
                   annotations:
                     additionalProperties:
                       type: string
-                    description: Annotations for the Gateway Deployment
+                    description: Annotations for Operator managed resources do not apply to services
                     type: object
                   autoMountServiceAccountToken:
                     description: AutoMountServiceAccountToken optionally adds the Gateway Container's Kubernetes Service Account Token to Stored Passwords
@@ -2172,7 +2172,7 @@ spec:
                   labels:
                     additionalProperties:
                       type: string
-                    description: Labels for the Gateway Deployment
+                    description: Labels for Operator managed resources
                     type: object
                   lifecycleHooks:
                     description: Lifecycle describes actions that the management system should take in response to container lifecycle events. For the PostStart and PreStop lifecycle handlers, management of the container blocks until the action is complete, unless the container process fails, in which case the handler is aborted.
@@ -3050,6 +3050,11 @@ spec:
                       type: string
                     description: PodAnnotations for Gateway Pods
                     type: object
+                  podLabels:
+                    additionalProperties:
+                      type: string
+                    description: PodLabels for the Gateway Deployment
+                    type: object
                   podSecurityContext:
                     description: PodSecurityContext holds pod-level security attributes and common container settings. Some fields are also present in container.securityContext.  Field values of container.securityContext take precedence over field values of PodSecurityContext.
                     properties:
@@ -3137,16 +3142,6 @@ spec:
                             description: The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
                             type: string
                         type: object
-                    type: object
-                  portalReference:
-                    description: PortalReference
-                    properties:
-                      enabled:
-                        type: boolean
-                      name:
-                        type: string
-                    required:
-                    - enabled
                     type: object
                   preStopScript:
                     description: PreStopScript During upgrades and other events where Gateway pods are replaced you may have APIs/Services that have long running connections open. This functionality delays Kubernetes sending a SIGTERM to the container gateway while connections remain open. This works in conjunction with terminationGracePeriodSeconds which should always be higher than preStopScript.timeoutSeconds. If preStopScript.timeoutSeconds is exceeded, the script will exit 0 and normal pod termination will resume. The preStop script will monitor connections to inbound (not outbound) Gateway Application TCP ports (i.e. inbound listener ports opened by the Gateway Application and not some other process) except those that are explicitly excluded. The following ports are excluded from monitoring by default. 8777 (Hazelcast) - Embedded Hazelcast. 2124 (Internode-Communication) - not utilised by the Container Gateway. If there are no open connections, the preStop script will exit immediately ignoring preStopScript.timeoutSeconds to avoid unnecessary resource utilisation (pod stuck in terminating state) during upgrades. While there aren't any explicit limits on preStopScript.timeoutSeconds and terminationGracePeriodSeconds running these for extended periods of time (i.e. more than 5 minutes) may be less reliable where other Kubernetes processes may remove the pod before terminationGracePeriodSeconds is reached. If you do run services like this we recommend testing before any real life implementation or better, creating a dedicated workload without autoscaling enabled (HPA) where you have more control over when/how pods are replaced.
@@ -3267,6 +3262,71 @@ spec:
                         description: 'Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
                         format: int32
                         type: integer
+                    type: object
+                  redis:
+                    properties:
+                      auth:
+                        description: Auth if using sentinel
+                        properties:
+                          enabled:
+                            description: Enable or disable Redis auth Authentication is only available for Redis Sentinel
+                            type: boolean
+                          passwordEncoded:
+                            type: string
+                          passwordPlaintext:
+                            type: string
+                          username:
+                            type: string
+                        type: object
+                      enabled:
+                        description: Enable or disable a Redis integration
+                        type: boolean
+                      existingSecret:
+                        description: ExistingSecret mounts an existing secret containing redis configuration to the container gateway. The secret should contain a key called redis.properties and redis.crt if tls is enabled
+                        type: string
+                      groupName:
+                        description: GroupName that should be used when connecting to Redis
+                        type: string
+                      sentinel:
+                        description: Sentinel configuration
+                        properties:
+                          masterSet:
+                            type: string
+                          nodes:
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      standalone:
+                        description: Standalone configuration
+                        properties:
+                          hostname:
+                            type: string
+                          port:
+                            type: integer
+                        type: object
+                      tls:
+                        description: TLS configuration
+                        properties:
+                          crt:
+                            description: Crt in plaintext
+                            type: string
+                          enabled:
+                            description: If TLS is enabled on the Redis server set this to true
+                            type: boolean
+                          existingSecret:
+                            description: Reference an existing secret that contains a key called redis.crt with the redis public cert
+                            type: string
+                          key:
+                            description: Change if using a different key. Defaults to redis.crt
+                            type: string
+                          verifyPeer:
+                            description: VerifyPeer
+                            type: boolean
+                        type: object
+                      type:
+                        description: Type of sentinel deployment valid options are standalone or sentinel standalone does not support auth or tls and should only be used in non-critical environments for development purposes
+                        type: string
                     type: object
                   replicas:
                     description: Replicas to deploy, overridden if autoscaling is enabled
@@ -4700,6 +4760,9 @@ spec:
               name:
                 description: Name Portal name
                 type: string
+              syncIntervalSeconds:
+                description: SyncIntervalSeconds how often the Portal CR is reconciled. Default is 10 seconds
+                type: integer
             type: object
           status:
             description: L7PortalStatus defines the observed state of L7Portal
@@ -4707,6 +4770,8 @@ spec:
               apiCount:
                 type: integer
               apiSummaryConfigMap:
+                type: string
+              checksum:
                 type: string
               enrollmentBundle:
                 description: EnrollmentBundle
@@ -4716,6 +4781,9 @@ spec:
                   secretName:
                     type: string
                 type: object
+              lastUpdated:
+                format: int64
+                type: integer
               proxies:
                 items:
                   description: GatewayProxy
@@ -4740,8 +4808,6 @@ spec:
                 type: array
               ready:
                 type: boolean
-              updated:
-                type: string
             type: object
         type: object
     served: true

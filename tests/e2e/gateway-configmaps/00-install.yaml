@@ -12,6 +12,9 @@ spec:
     image: docker.io/caapim/gateway:10.1.00_CR3
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
+    management:
+      cluster:
+        hostname: "gateway.brcmlabs.com"
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
@@ -22,11 +25,50 @@ spec:
       limits: {}
     autoscaling:
       enabled: false
+    log:
+      override: true
+      properties: |-
+        com.l7tech.level = INFO
+        com.l7tech.server.policy.variable.ServerVariables.level = SEVERE
+    java:
+      jvmHeap:
+        calculate: true
+        percentage: 50
+        default: 2g
+      extraArgs:
+        - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
+        - -Dcom.l7tech.server.audit.message.saveToInternal=false
+        - -Dcom.l7tech.server.audit.admin.saveToInternal=false
+        - -Dcom.l7tech.server.audit.system.saveToInternal=false
+        - -Dcom.l7tech.server.audit.log.format=json
+        - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
+        - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true
+        - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
     listenPorts:
       harden: true
       custom:
-        enabled: false
-      ports: [ ]
+        enabled: true
+      ports:
+        - name: Default HTTPS (8443)
+          port: "8443"
+          enabled: true
+          protocol: HTTPS
+          managementFeatures:
+            - Published service message input
+          properties:
+            - name: server
+              value: A
+          tls:
+            enabled: true
+            clientAuthentication: Optional
+            versions:
+              - TLSv1.2
+              - TLSv1.3
+            useCipherSuitesOrder: true
+            cipherSuites:
+              - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+              - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+              - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
     cwp:
       enabled: true
       properties:
@@ -34,8 +76,6 @@ spec:
           value: "true"
     system:
       properties: |-
-        # Default Gateway system properties
-        # Configuration properties for shared state extensions.
         com.l7tech.server.extension.sharedKeyValueStoreProvider=embeddedhazelcast
     service:
       # annotations:

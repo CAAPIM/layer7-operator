@@ -13,11 +13,26 @@ spec:
       maxUnavailable: 0
     type: RollingUpdate
   template:
+    metadata:
+      annotations:
+        testAnnotation: test1
     spec:
       containers:
         - securityContext:
             runAsUser: 1000
             runAsGroup: 3000
+          envFrom:
+            - configMapRef:
+                name: ssg
+            - secretRef:
+                name: ssg
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/bin/sh", "-c", "echo Hello" ]
+            preStop:
+              exec:
+                command: [ "/bin/sh","-c","echo Hello" ]
       securityContext:
         runAsUser: 1000
         runAsGroup: 3000

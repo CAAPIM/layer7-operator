@@ -43,6 +43,9 @@ spec:
               name: restman
             - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/graphman
               name: graphman
+            - mountPath: /opt/docker/rc.d/003-parse-custom-files.sh
+              name: ssg-parse-custom-files-script
+              subPath: 003-parse-custom-files.sh
             - mountPath: /opt/SecureSpan/Gateway/node/default/etc/conf/sample.properties
               name: config-override-secret
               subPath: sample.properties
@@ -58,6 +61,24 @@ spec:
         runAsUser: 1000
         runAsGroup: 3000
         fsGroup: 2000
+      hostAliases:
+        - hostnames:
+            - dev.ca.com
+            - dev1.ca.com
+          ip: 0.0.0.0
+        - hostnames:
+            - example.ca.com
+          ip: 127.0.0.1
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - preference:
+                matchExpressions:
+                  - key: disktype
+                    operator: In
+                    values:
+                      - ssd
+              weight: 1
       topologySpreadConstraints:
         - labelSelector:
             matchLabels:
@@ -88,6 +109,13 @@ spec:
           name: restman
         - emptyDir: { }
           name: graphman
+        - configMap:
+            defaultMode: 493
+            items:
+              - key: 003-parse-custom-files
+                path: 003-parse-custom-files.sh
+            name: ssg
+          name: ssg-parse-custom-files-script
         - name: config-override-secret
           secret:
             defaultMode: 444

@@ -58,6 +58,16 @@ spec:
         operator: "Equal"
         value: "value1"
         effect: "NoSchedule"
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+                - key: disktype
+                  operator: In
+                  values:
+                    - ssd
     podSecurityContext:
       runAsUser: 1000
       runAsGroup: 3000
@@ -65,6 +75,19 @@ spec:
     containerSecurityContext:
       runAsUser: 1000
       runAsGroup: 3000
+    bootstrap:
+      script:
+        enabled: true
+    customHosts:
+      enabled: true
+      hostAliases:
+       - hostnames:
+         - "dev.ca.com"
+         - "dev1.ca.com"
+         ip: "0.0.0.0"
+       - hostnames:
+         - "example.ca.com"
+         ip: "127.0.0.1"
     resources:
       requests: {}
       limits: {}

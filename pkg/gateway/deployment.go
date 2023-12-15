@@ -416,7 +416,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				})
 
 				vs := corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.CustomConfig.Mounts[v].Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Spec.App.CustomConfig.Mounts[v].ConfigRef.Name},
 					DefaultMode:          &defaultMode,
 					Optional:             &optional,
 				}}

@@ -82,7 +82,7 @@ spec:
            item:
              key: sample.properties
              path: sample.properties
-       - name: test-override
+       - name: system-override
          mountPath: /opt/docker/test.properties
          subPath: test.properties
          ref:

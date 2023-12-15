@@ -24,7 +24,7 @@ var _ = Describe("Gateway controller", func() {
 			repoSecretName      = "test-repository-secret"
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
-			gatewayName         = "dynamic"
+			gatewayName         = "ssg-dynamic"
 			version             = "10.1.00_CR4"
 			image               = "docker.io/caapim/gateway:10.1.00_CR4"
 			repoName            = "l7-gw-myapis"
@@ -54,7 +54,7 @@ var _ = Describe("Gateway controller", func() {
 			})
 		})
 
-		It("Should pick up changes in repo with gw restart", func() {
+		It("Should pick up changes in repo of type dynamic without gw restart", func() {
 
 			By("Creating repository CRD")
 			//Repository resource

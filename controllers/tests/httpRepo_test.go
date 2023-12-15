@@ -23,7 +23,7 @@ var _ = Describe("Gateway controller", func() {
 			gwLicenseSecretName = "gateway-license"
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
-			gatewayName         = "ssg"
+			gatewayName         = "ssg-repo"
 			version             = "10.1.00_CR4"
 			image               = "docker.io/caapim/gateway:10.1.00_CR4"
 			repoName            = "file-repository"
@@ -46,7 +46,7 @@ var _ = Describe("Gateway controller", func() {
 			})
 		})
 
-		It("Should pick up changes in repo with gw restart", func() {
+		It("Should be able to pick up changes from http type repo", func() {
 			By("Creating repository CRD")
 			//Repository resource
 			repo := securityv1.Repository{

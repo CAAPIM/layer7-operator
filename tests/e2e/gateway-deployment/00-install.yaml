@@ -1,3 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-system-override
+data:
+  test.properties: |-
+    com.l7tech.server.extension.sharedKeyValueStoreProvider=embeddedhazelcast
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: config-override-secret
+data:
+  sample.properties: ICBjb20ubDd0ZWNoLmxldmVsID0gSU5GTwogICAgY29tLmw3dGVjaC5zZXJ2ZXIucG9saWN5LnZhcmlhYmxlLlNlcnZlclZhcmlhYmxlcy5sZXZlbCA9IFNFVkVSRQ==
+---
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
@@ -24,20 +39,6 @@ spec:
         enabled: true
       graphman:
         enabled: true
-      service:
-        enabled: true
-        type: LoadBalancer
-        ports:
-          - name: test
-            port: 9443
-            targetPort: 9443
-            protocol: TCP
-        sessionAffinity: ClientIP
-        sessionAffinityConfig:
-          clientIP:
-            timeoutSeconds: 10800
-        internalTrafficPolicy: Local
-        externalTrafficPolicy: Local
     podAnnotations:
       testAnnotation: test1
     updateStrategy:
@@ -69,6 +70,27 @@ spec:
       limits: {}
     autoscaling:
       enabled: false
+    customConfig:
+      enabled: true
+      mounts:
+       - name: sample-override
+         mountPath: /opt/SecureSpan/Gateway/node/default/etc/conf/sample.properties
+         subPath: sample.properties
+         ref:
+           type: secret
+           name: config-override-secret
+           item:
+             key: sample.properties
+             path: sample.properties
+       - name: test-override
+         mountPath: /opt/docker/test.properties
+         subPath: test.properties
+         ref:
+           type: configmap
+           name: test-system-override
+           item:
+             key: test.properties
+             path: test.properties
     java:
       jvmHeap:
         calculate: true

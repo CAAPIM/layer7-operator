@@ -422,7 +422,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				}}
 
 				volumes = append(volumes, corev1.Volume{
-					Name:         gw.Spec.App.CustomConfig.Mounts[v].Name,
+					Name:         gw.Spec.App.CustomConfig.Mounts[v].ConfigRef.Name,
 					VolumeSource: vs,
 				})
 			case "secret":

@@ -24,12 +24,12 @@ var _ = Describe("Gateway controller", func() {
 
 		BeforeEach(func() {
 			DeferCleanup(func() {
-				/*k8sClient.Delete(ctx, &securityv1.Gateway{
+				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      gatewayName,
 						Namespace: namespace,
 					},
-				})*/
+				})
 			})
 		})
 

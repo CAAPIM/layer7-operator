@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: graphman-bootstrap-bundle
+data:
+  cwp.bundle: |-
+    {
+      "goid": "84449671abe2a5b143051dbdfdf7e5f3",
+      "name": "a",
+      "checksum": "b77d1a0eca5224e5a33453b8fa6ace8fcbb1ce5e",
+      "description": "a cwp",
+      "hiddenProperty": false,
+      "value": "a"
+    }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: graphman-bootstrap-secret-bundle
+data:
+  secret.bundle: ewogICJnb2lkIjogIjAxMmNlNjUzZWQ2NGEyZjQyOWQzOTA3YjI0OGE2NzgyIiwKICAibmFtZSI6ICJuZXdwYXNzd2QiLAogICJjaGVja3N1bSI6ICIxZTM5NjRmOGZkNGUwZGJiZjhlZDg0NTcwY2NhOTdkYTUzMGI3ZDQ0IiwKICAiZGVzY3JpcHRpb24iOiAiaGVsbG8iLAogICJzZWNyZXQiOiAiSkV3M1JYWXdNaVJtVC9NTXFUY1NybGJNRXBjUGpFeTdwSzNJWjZtOEY2YUhGbS81ek95R0dRPT0iLAogICJzZWNyZXRUeXBlIjogIlBBU1NXT1JEIiwKICAidmFyaWFibGVSZWZlcmVuY2FibGUiOiB0cnVlCn0=
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restman-bootstrap-bundle
+data:
+  test.bundle: |-
+    <l7:Bundle xmlns:l7="http://ns.l7tech.com/2010/04/gateway-management"><l7:References><l7:Item><l7:Name>io.httpsHostAllowWildcard</l7:Name><l7:Id>f5dd5dfed96347430128a14b1a18f6c2</l7:Id><l7:Type>CLUSTER_PROPERTY</l7:Type><l7:Resource><l7:ClusterProperty
+    id="f5dd5dfed96347430128a14b1a18f6c2"><l7:Name>io.httpsHostAllowWildcard</l7:Name><l7:Value>true</l7:Value></l7:ClusterProperty></l7:Resource></l7:Item></l7:References><l7:Mappings><l7:Mapping
+    action="NewOrUpdate" srcId="f5dd5dfed96347430128a14b1a18f6c2" type="CLUSTER_PROPERTY"><l7:Properties><l7:Property
+    key="MapBy"><l7:StringValue>name</l7:StringValue></l7:Property><l7:Property key="MapTo"><l7:StringValue>io.httpsHostAllowWildcard</l7:StringValue></l7:Property></l7:Properties></l7:Mapping></l7:Mappings></l7:Bundle>
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: restman-bootstrap-secret-bundle
+data:
+  secret.bundle: PGw3OkJ1bmRsZSB4bWxuczpsNz0iaHR0cDovL25zLmw3dGVjaC5jb20vMjAxMC8wNC9nYXRld2F5LW1hbmFnZW1lbnQiPgogICAgPGw3OlJlZmVyZW5jZXM+CiAgICAgICAgPGw3Okl0ZW0+CiAgICAgICAgICAgIDxsNzpOYW1lPmxheWVyNzwvbDc6TmFtZT4KICAgICAgICAgICAgPGw3OklkPjg2OTk3YTE3YjAwMjdiNGI4YTc3NDkwNjU0MTY3ZTgyPC9sNzpJZD4KICAgICAgICAgICAgPGw3OlR5cGU+U0VDVVJFX1BBU1NXT1JEPC9sNzpUeXBlPgogICAgICAgICAgICA8bDc6UmVzb3VyY2U+CiAgICAgICAgICAgICAgICA8bDc6U3RvcmVkUGFzc3dvcmQgaWQ9Ijg2OTk3YTE3YjAwMjdiNGI4YTc3NDkwNjU0MTY3ZTgyIiB2ZXJzaW9uPSIxIj4KICAgICAgICAgICAgICAgICAgICA8bDc6TmFtZT5sYXllcjc8L2w3Ok5hbWU+CiAgICAgICAgICAgICAgICAgICAgPGw3OlBhc3N3b3JkPiEhUFdhYjEyYTwvbDc6UGFzc3dvcmQ+CiAgICAgICAgICAgICAgICAgICAgPGw3OlByb3BlcnRpZXM+CiAgICAgICAgICAgICAgICAgICAgICAgIDxsNzpQcm9wZXJ0eSBrZXk9ImRlc2NyaXB0aW9uIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxsNzpTdHJpbmdWYWx1ZT48L2w3OlN0cmluZ1ZhbHVlPgogICAgICAgICAgICAgICAgICAgICAgICA8L2w3OlByb3BlcnR5PgogICAgICAgICAgICAgICAgICAgICAgICA8bDc6UHJvcGVydHkga2V5PSJsYXN0VXBkYXRlZCI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bDc6RGF0ZVZhbHVlPjIwMjMtMTAtMDVUMDI6MTQ6MTYuNDYyLTA3OjAwPC9sNzpEYXRlVmFsdWU+CiAgICAgICAgICAgICAgICAgICAgICAgIDwvbDc6UHJvcGVydHk+CiAgICAgICAgICAgICAgICAgICAgICAgIDxsNzpQcm9wZXJ0eSBrZXk9InR5cGUiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGw3OlN0cmluZ1ZhbHVlPlBhc3N3b3JkPC9sNzpTdHJpbmdWYWx1ZT4KICAgICAgICAgICAgICAgICAgICAgICAgPC9sNzpQcm9wZXJ0eT4KICAgICAgICAgICAgICAgICAgICAgICAgPGw3OlByb3BlcnR5IGtleT0idXNhZ2VGcm9tVmFyaWFibGUiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGw3OkJvb2xlYW5WYWx1ZT5mYWxzZTwvbDc6Qm9vbGVhblZhbHVlPgogICAgICAgICAgICAgICAgICAgICAgICA8L2w3OlByb3BlcnR5PgogICAgICAgICAgICAgICAgICAgIDwvbDc6UHJvcGVydGllcz4KICAgICAgICAgICAgICAgIDwvbDc6U3RvcmVkUGFzc3dvcmQ+CiAgICAgICAgICAgIDwvbDc6UmVzb3VyY2U+CiAgICAgICAgPC9sNzpJdGVtPgogICAgICAgIAogICAgPC9sNzpSZWZlcmVuY2VzPgogICAgPGw3Ok1hcHBpbmdzPgogICAgICAgIDxsNzpNYXBwaW5nIGFjdGlvbj0iTmV3T3JFeGlzdGluZyIgc3JjSWQ9Ijg2OTk3YTE3YjAwMjdiNGI4YTc3NDkwNjU0MTY3ZTgyIiB0eXBlPSJTRUNVUkVfUEFTU1dPUkQiLz4KICAgIDwvbDc6TWFwcGluZ3M+CjwvbDc6QnVuZGxlPg==
+---
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  version: "10.1.00_CR3"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:10.1.00_CR3
+    imagePullPolicy: IfNotPresent
+    #serviceAccountName: ssg-serviceaccount
+    autoscaling:
+      enabled: false
+    nodeSelector:
+      diskSpace: empty
+    listenPorts:
+      harden: true
+      custom:
+        enabled: false
+      ports: [ ]
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+          protocol: TCP
+        - name: management
+          port: 9443
+          targetPort: 9443
+          protocol: TCP

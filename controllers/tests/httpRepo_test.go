@@ -26,7 +26,7 @@ var _ = Describe("Gateway controller", func() {
 			gatewayName         = "ssg-repo"
 			version             = "10.1.00_CR4"
 			image               = "docker.io/caapim/gateway:10.1.00_CR4"
-			repoName            = "file-repository"
+			repoName            = "http-repo"
 		)
 
 		BeforeEach(func() {
@@ -135,36 +135,25 @@ var _ = Describe("Gateway controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, &gw)).Should(Succeed())
 
-			var gateway securityv1.Gateway
 			gwRequest := types.NamespacedName{
 				Name:      gatewayName,
 				Namespace: namespace,
 			}
 
+			By("Verify Gateway status")
+
 			Eventually(func() bool {
+				var gateway securityv1.Gateway
 				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
 					return false
 				}
 
 				for _, pod := range gateway.Status.Gateway {
-					if pod.Ready == false {
+					if pod.Ready == false || pod.Phase != corev1.PodRunning || gateway.Status.State != "Ready" {
 						return false
 					}
 				}
 				return true
-
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
-
-			By("Verify Gateway status")
-			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
-					return false
-				}
-
-				if gateway.Status.State == "Ready" {
-					return true
-				}
-				return false
 
 			}).WithTimeout(time.Second * 180).Should(BeTrue())
 

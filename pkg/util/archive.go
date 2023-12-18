@@ -107,8 +107,18 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 		case tar.TypeXGlobalHeader:
 			continue
 		case tar.TypeDir:
-			if err := os.Mkdir("/tmp/"+repoName+"-"+header.Name, 0755); err != nil {
-				if _, err = os.Stat("/tmp/" + repoName + "-" + header.Name); err != nil {
+			path := "/tmp/" + repoName + "-" + header.Name
+			if header.Name == "./" {
+				continue
+			}
+
+			if strings.HasPrefix(header.Name, "./") {
+				header.Name = strings.Replace(header.Name, "./", "", 1)
+				path = folderName + "/" + header.Name
+			}
+
+			if err := os.Mkdir(path, 0755); err != nil {
+				if _, err = os.Stat(path); err != nil {
 					return fmt.Errorf("failed to create folder %s", header.Name)
 				}
 			}

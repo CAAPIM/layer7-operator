@@ -191,19 +191,24 @@ var _ = Describe("Gateway controller", func() {
 				Transport:     tr,
 			}
 
+			Eventually(func() bool {
+				requestURL := fmt.Sprintf("https://%s:8443/restman/1.0/services/84449671abe2a5b143051dbdfdf7e684", currentService.Status.LoadBalancer.Ingress[0].IP)
+				req, err := http.NewRequest("GET", requestURL, nil)
+				req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
+				_, err = httpclient.Do(req)
+				if err != nil {
+					return false
+				}
+				return true
+			}).WithTimeout(time.Second * 180).Should(BeTrue())
+
 			requestURL := fmt.Sprintf("https://%s:8443/api3", currentService.Status.LoadBalancer.Ingress[0].IP)
 			req, err := http.NewRequest("GET", requestURL, nil)
 			req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
 			resp, err := httpclient.Do(req)
-			if err != nil {
-				GinkgoWriter.Printf("client: request failed: %s\n", err)
-				os.Exit(1)
-			}
+			Expect(err).ToNot(HaveOccurred())
 			resBody, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				GinkgoWriter.Printf("client: could not read response body: %s\n", err)
-				os.Exit(1)
-			}
+			Expect(err).ToNot(HaveOccurred())
 			fmt.Printf("client: response body: %s\n", resBody)
 			Expect(strings.Contains(string(resBody), "hello test")).Should(BeTrue())
 		})

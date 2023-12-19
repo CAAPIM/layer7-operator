@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -17,27 +16,19 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("Gateway controller", func() {
+var _ = Describe("Gateway controller support for http repo", func() {
 	Context("When repo of type static is updated", func() {
 		var (
 			gwLicenseSecretName = "gateway-license"
-			repoSecretName      = "test-repository-secret"
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
-			gatewayName         = "dynamic"
+			gatewayName         = "ssg-repo"
 			version             = "10.1.00_CR4"
 			image               = "docker.io/caapim/gateway:10.1.00_CR4"
-			repoName            = "l7-gw-myapis"
-			repoCheckoutPath    = "/tmp/l7GWMyAPIs"
-			repoGitUrl          = "https://github.com/uppoju/l7GWMyAPIs"
-			repo                Repo
+			repoName            = "http-repo"
 		)
 
 		BeforeEach(func() {
-			var found bool
-			branchName, found := os.LookupEnv("BRANCH_NAME")
-			Expect(found).NotTo(BeFalse())
-			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
 			DeferCleanup(func() {
 				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
@@ -54,11 +45,22 @@ var _ = Describe("Gateway controller", func() {
 			})
 		})
 
-		It("Should pick up changes in repo with gw restart", func() {
-
+		It("Should be able to pick up changes from http type repo", func() {
 			By("Creating repository CRD")
 			//Repository resource
-			createRepository(repo)
+			repo := securityv1.Repository{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      repoName,
+					Namespace: namespace,
+				},
+				Spec: securityv1.RepositorySpec{
+					Name:     repoName,
+					Enabled:  true,
+					Type:     "http",
+					Endpoint: "https://raw.githubusercontent.com/uppoju/l7GWMyAPIs/main/implodedbundle.zip",
+				},
+			}
+			Expect(k8sClient.Create(ctx, &repo)).Should(Succeed())
 
 			var repository securityv1.Repository
 			repoReq := types.NamespacedName{
@@ -70,7 +72,7 @@ var _ = Describe("Gateway controller", func() {
 					return false
 				}
 				return repository.Status.Ready
-			}).WithTimeout(time.Second * 120).Should(BeTrue())
+			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
 			By("Creating Gateway custom resource with a repository")
 			gw := securityv1.Gateway{
@@ -132,56 +134,33 @@ var _ = Describe("Gateway controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, &gw)).Should(Succeed())
 
-			var gateway securityv1.Gateway
 			gwRequest := types.NamespacedName{
 				Name:      gatewayName,
 				Namespace: namespace,
 			}
 
+			By("Verify Gateway status")
+
 			Eventually(func() bool {
+				var gateway securityv1.Gateway
 				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
 					return false
 				}
 
-				for _, pod := range gateway.Status.Gateway {
-					if pod.Ready == false {
-						return false
-					}
-				}
-				return true
-
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
-
-			By("Updating the repo")
-			var commitHash = commitAndPushUpdatedFile(repo)
-
-			By("Gateway CRD should have new commit")
-			GinkgoWriter.Printf("Repo name %s and %s", repoName, commitHash)
-			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
-					return false
-				}
-
-				for _, repoStatus := range gateway.Status.RepositoryStatus {
-					if repoStatus.Name == repoName && repoStatus.Commit == commitHash {
-						return true
-					}
+				if gateway.Status.State == corev1.PodReady && gateway.Status.RepositoryStatus[0].Enabled == true {
+					return true
 				}
 				return false
-
 			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
-			By("Updated Policy is deployed to Gateway")
-
+			By("Verify service deployed to Gateway")
 			currentService := &corev1.Service{}
-			Eventually(func() bool {
+			Eventually(func() int {
 				if err := k8sClient.Get(ctx, gwRequest, currentService); err != nil {
-					return false
+					return 0
 				}
-				return repository.Status.Ready
-			}).WithTimeout(time.Second * 120).Should(BeTrue())
-
-			time.Sleep(2 * time.Minute)
+				return len(currentService.Status.LoadBalancer.Ingress)
+			}).WithTimeout(time.Second * 120).Should(BeNumerically("==", 1))
 
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -209,8 +188,9 @@ var _ = Describe("Gateway controller", func() {
 			Expect(err).ToNot(HaveOccurred())
 			resBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
-			fmt.Printf("client: response body: %s\n", resBody)
-			Expect(strings.Contains(string(resBody), "hello test")).Should(BeTrue())
+
+			GinkgoWriter.Printf("Response %s", resBody)
+			Expect(strings.Contains(string(resBody), "hello world")).Should(BeTrue())
 		})
 	})
 })

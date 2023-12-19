@@ -1,11 +1,23 @@
+/*
+Copyright 2021.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package tests
 
 import (
-	"crypto/tls"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
+	"os"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -16,19 +28,27 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("Gateway controller support for http repo", func() {
+var _ = Describe("Gateway controller", func() {
 	Context("When repo of type static is updated", func() {
 		var (
 			gwLicenseSecretName = "gateway-license"
+			repoSecretName      = "test-repository-secret"
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
-			gatewayName         = "ssg-repo"
-			version             = "10.1.00_CR4"
-			image               = "docker.io/caapim/gateway:10.1.00_CR4"
-			repoName            = "http-repo"
+			gatewayName         = "ssg"
+			version             = "10.1.00_CR3"
+			image               = "docker.io/caapim/gateway:10.1.00_CR3"
+			repoName            = "l7-gw-myframework"
+			repoCheckoutPath    = "/tmp/l7GWMyFramework"
+			repoGitUrl          = "https://github.com/uppoju/l7GWMyFramework"
+			repo                Repo
 		)
 
 		BeforeEach(func() {
+			var found bool
+			branchName, found := os.LookupEnv("BRANCH_NAME")
+			Expect(found).NotTo(BeFalse())
+			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
 			DeferCleanup(func() {
 				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
@@ -45,22 +65,11 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			})
 		})
 
-		It("Should be able to pick up changes from http type repo", func() {
+		It("Should pick up chnges in repo with gw restart", func() {
+
 			By("Creating repository CRD")
 			//Repository resource
-			repo := securityv1.Repository{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      repoName,
-					Namespace: namespace,
-				},
-				Spec: securityv1.RepositorySpec{
-					Name:     repoName,
-					Enabled:  true,
-					Type:     "http",
-					Endpoint: "https://raw.githubusercontent.com/uppoju/l7GWMyAPIs/main/implodedbundle.zip",
-				},
-			}
-			Expect(k8sClient.Create(ctx, &repo)).Should(Succeed())
+			createRepository(repo)
 
 			var repository securityv1.Repository
 			repoReq := types.NamespacedName{
@@ -111,7 +120,7 @@ var _ = Describe("Gateway controller support for http repo", func() {
 							{
 								Name:    repoName,
 								Enabled: true,
-								Type:    "dynamic",
+								Type:    "static",
 								Encryption: securityv1.BundleEncryption{
 									ExistingSecret: encSecretName,
 									Key:            "FRAMEWORK_ENCRYPTION_PASSPHRASE",
@@ -134,63 +143,61 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			}
 			Expect(k8sClient.Create(ctx, &gw)).Should(Succeed())
 
+			var gateway securityv1.Gateway
 			gwRequest := types.NamespacedName{
 				Name:      gatewayName,
 				Namespace: namespace,
 			}
 
-			By("Verify Gateway status")
+			var managedPod string
 
 			Eventually(func() bool {
-				var gateway securityv1.Gateway
 				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
 					return false
 				}
 
-				if gateway.Status.State == corev1.PodReady && gateway.Status.RepositoryStatus[0].Enabled == true {
-					return true
-				}
-				return false
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
-
-			By("Verify service deployed to Gateway")
-			currentService := &corev1.Service{}
-			Eventually(func() int {
-				if err := k8sClient.Get(ctx, gwRequest, currentService); err != nil {
-					return 0
-				}
-				return len(currentService.Status.LoadBalancer.Ingress)
-			}).WithTimeout(time.Second * 120).Should(BeNumerically("==", 1))
-
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			}
-			httpclient := &http.Client{
-				CheckRedirect: redirectPolicyFunc,
-				Transport:     tr,
-			}
-
-			Eventually(func() bool {
-				requestURL := fmt.Sprintf("https://%s:8443/restman/1.0/services/84449671abe2a5b143051dbdfdf7e684", currentService.Status.LoadBalancer.Ingress[0].IP)
-				req, err := http.NewRequest("GET", requestURL, nil)
-				req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
-				_, err = httpclient.Do(req)
-				if err != nil {
-					return false
+				for _, pod := range gateway.Status.Gateway {
+					if pod.Ready == false {
+						return false
+					}
+					managedPod = pod.Name
 				}
 				return true
+
+			}).WithTimeout(time.Second * 120).Should(BeTrue())
+
+			By("Updating the repo")
+			var commitHash = commitAndPushNewFile(repo)
+
+			By("Gateway CRD should have new commit")
+			GinkgoWriter.Println("Repo name %s and %s", repoName, commitHash)
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
+					return false
+				}
+
+				for _, repoStatus := range gateway.Status.RepositoryStatus {
+					if repoStatus.Name == repoName && repoStatus.Commit == commitHash {
+						return true
+					}
+				}
+				return false
+
 			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
-			requestURL := fmt.Sprintf("https://%s:8443/api3", currentService.Status.LoadBalancer.Ingress[0].IP)
-			req, err := http.NewRequest("GET", requestURL, nil)
-			req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
-			resp, err := httpclient.Do(req)
-			Expect(err).ToNot(HaveOccurred())
-			resBody, err := ioutil.ReadAll(resp.Body)
-			Expect(err).ToNot(HaveOccurred())
+			By("Gateway pod should restart")
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
+					return false
+				}
+				for _, pod := range gateway.Status.Gateway {
+					if pod.Ready == true && pod.Name != managedPod {
+						return true
+					}
+				}
+				return false
+			}).WithTimeout(time.Second * 380).Should(BeTrue())
 
-			GinkgoWriter.Printf("Response %s", resBody)
-			Expect(strings.Contains(string(resBody), "hello world")).Should(BeTrue())
 		})
 	})
 })

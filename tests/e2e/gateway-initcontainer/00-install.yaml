@@ -12,16 +12,15 @@ spec:
     image: docker.io/caapim/gateway:10.1.00_CR3
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
-    updateStrategy:
-      type: rollingUpdate
-      rollingUpdate:
-        maxUnavailable: 0
-        maxSurge: 2
-    resources:
-      requests: {}
-      limits: {}
     autoscaling:
       enabled: false
+    initContainers:
+     - name: simple-init
+       image: docker.io/layer7api/simple-init:1.0.1
+       imagePullPolicy: Always
+       volumeMounts:
+       - name: config-directory
+         mountPath: /opt/docker/custom
     listenPorts:
       harden: true
       custom:
@@ -39,22 +38,3 @@ spec:
           port: 9443
           targetPort: 9443
           protocol: TCP
-    ingress:
-      enabled: true
-      ingressClassName: nginx
-      tls:
-        - hosts:
-            - testing.com
-          secretName: default
-      rules:
-        - host: testing.com
-          http:
-            paths:
-              - backend:
-                  service:
-                    name: ssg
-                    port:
-                      name: https
-                      number: 8443
-                path: /
-                pathType: Prefix

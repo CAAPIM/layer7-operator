@@ -1,3 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-system-override
+data:
+  test.properties: |-
+    com.l7tech.server.extension.sharedKeyValueStoreProvider=embeddedhazelcast
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: config-override-secret
+data:
+  sample.properties: ICBjb20ubDd0ZWNoLmxldmVsID0gSU5GTwogICAgY29tLmw3dGVjaC5zZXJ2ZXIucG9saWN5LnZhcmlhYmxlLlNlcnZlclZhcmlhYmxlcy5sZXZlbCA9IFNFVkVSRQ==
+---
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
@@ -12,16 +27,111 @@ spec:
     image: docker.io/caapim/gateway:10.1.00_CR3
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
+    lifecycleHooks:
+      postStart:
+        exec:
+          command: [ "/bin/sh", "-c", "echo Hello" ]
+      preStop:
+        exec:
+          command: [ "/bin/sh", "-c", "echo Hello" ]
+    management:
+      restman:
+        enabled: true
+      graphman:
+        enabled: true
+    podAnnotations:
+      testAnnotation: test1
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 2
+    topologySpreadConstraints:
+      - maxSkew: 2
+        topologyKey: testTopology
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: ssg
+    tolerations:
+      - key: "key1"
+        operator: "Equal"
+        value: "value1"
+        effect: "NoSchedule"
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+                - key: disktype
+                  operator: In
+                  values:
+                    - ssd
+    podSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 2000
+    containerSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+    bootstrap:
+      script:
+        enabled: true
+    customHosts:
+      enabled: true
+      hostAliases:
+       - hostnames:
+         - "dev.ca.com"
+         - "dev1.ca.com"
+         ip: "0.0.0.0"
+       - hostnames:
+         - "example.ca.com"
+         ip: "127.0.0.1"
     resources:
       requests: {}
       limits: {}
+    livenessProbe:
+      exec:
+        command:
+          - /opt/docker/rc.d/diagnostic/health_check.sh
+      initialDelaySeconds: 40
+      timeoutSeconds: 1
+      periodSeconds: 15
+      successThreshold: 1
+      failureThreshold: 25
+    readinessProbe:
+      exec:
+        command:
+          - /opt/docker/rc.d/diagnostic/health_check.sh
+      initialDelaySeconds: 40
+      timeoutSeconds: 1
+      periodSeconds: 15
+      successThreshold: 1
+      failureThreshold: 25
     autoscaling:
       enabled: false
+    customConfig:
+      enabled: true
+      mounts:
+       - name: sample-override
+         mountPath: /opt/SecureSpan/Gateway/node/default/etc/conf/sample.properties
+         subPath: sample.properties
+         ref:
+           type: secret
+           name: config-override-secret
+           item:
+             key: sample.properties
+             path: sample.properties
+       - name: system-override
+         mountPath: /opt/docker/test.properties
+         subPath: test.properties
+         ref:
+           type: configmap
+           name: test-system-override
+           item:
+             key: test.properties
+             path: test.properties
     java:
       jvmHeap:
         calculate: true

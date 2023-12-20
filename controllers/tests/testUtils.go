@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/caapim/layer7-operator/pkg/util"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -234,4 +235,16 @@ func basicAuth(username, password string) string {
 func redirectPolicyFunc(req *http.Request, via []*http.Request) error {
 	req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
 	return nil
+}
+func getGatewayPods(ctx context.Context, name string, namespace string, k8sClient client.Client) (*corev1.PodList, error) {
+	podList := &corev1.PodList{}
+
+	listOpts := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels(util.DefaultLabels(name, map[string]string{})),
+	}
+	if err := k8sClient.List(ctx, podList, listOpts...); err != nil {
+		return podList, err
+	}
+	return podList, nil
 }

@@ -76,9 +76,8 @@ metadata:
 spec:
   name: l7-gw-myframework
   enabled: true
-  endpoint: https://github.com/Gazza7205/l7GWMyFramework
+  endpoint: https://github.com/uppoju/l7GWMyFramework
   branch: main
   auth:
     vendor: Github
-    username: gazza7205
-    token: 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
+    existingSecretName: test-repository-secret

@@ -1,0 +1,71 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 200
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssg
+spec:
+  template:
+    spec:
+      containers:
+        - volumeMounts:
+            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
+              name: gateway-license
+              subPath: license.xml
+            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-listen-port-bundle
+              name: ssg-listen-port-bundle
+            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/restman-bootstrap-bundle
+              name: restman-bootstrap-bundle
+            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/restman-bootstrap-secret-bundle
+              name: restman-bootstrap-secret-bundle
+            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/1
+              name: graphman-bootstrap-bundle
+            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/2
+              name: graphman-bootstrap-secret-bundle
+            - mountPath: /graphman/config.json
+              name: ssg-repository-init-config
+              subPath: config.json
+            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
+              name: ssg-repository-bundle-dest
+      volumes:
+        - name: gateway-license
+          secret:
+            defaultMode: 493
+            items:
+            - key: license.xml
+              path: license.xml
+            optional: false
+            secretName: gateway-license
+        - configMap:
+            defaultMode: 493
+            name: ssg-listen-port-bundle
+            optional: false
+          name: ssg-listen-port-bundle
+        - configMap:
+            defaultMode: 444
+            name: restman-bootstrap-bundle
+            optional: false
+          name: restman-bootstrap-bundle
+        - name: restman-bootstrap-secret-bundle
+          secret:
+            defaultMode: 444
+            secretName: restman-bootstrap-secret-bundle
+        - configMap:
+            defaultMode: 444
+            name: graphman-bootstrap-bundle
+            optional: false
+        - csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: my-provider
+          name: graphman-bootstrap-secret-bundle
+        - configMap:
+            defaultMode: 493
+            name: ssg-repository-init-config
+            optional: false
+          name: ssg-repository-init-config
+        - emptyDir: { }
+          name: ssg-repository-bundle-dest

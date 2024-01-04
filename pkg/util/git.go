@@ -32,12 +32,13 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 
 	if tag != "" {
 		cloneOpts.ReferenceName = plumbing.ReferenceName(tag)
+		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + tag)
 	}
 
 	// this supercedes tag if set.
 	if branch != "" {
 		cloneOpts.ReferenceName = plumbing.ReferenceName(branch)
-
+		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + branch)
 	}
 
 	switch strings.ToLower(authType) {
@@ -138,7 +139,7 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			}
 			return "", err
 		}
-
+		
 		return commit.Hash.String(), nil
 	}
 

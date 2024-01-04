@@ -29,9 +29,11 @@ var (
 func TestMain(m *testing.M) {
 	ctx, cancel = context.WithCancel(context.TODO())
 	defer cancel()
+	flag := false
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
+		UseExistingCluster:    &flag,
 	}
 	cfg, err := testEnv.Start()
 	if err != nil {
@@ -79,6 +81,7 @@ func newParams() Params {
 					Username: "testUser",
 					Password: "testPassword",
 					Token:    "testToken",
+					Type:     securityv1.RepositoryAuthTypeBasic,
 				},
 			},
 		},

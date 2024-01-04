@@ -6,4 +6,20 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ssg
-
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: testing.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: ssg
+                port:
+                  name: https
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - testing.com
+      secretName: default

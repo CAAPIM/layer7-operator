@@ -58,7 +58,6 @@ START_KIND_CLUSTER ?= true
 KUBE_VERSION ?= 1.28
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
-GATEWAY_LICENSE_PATH ?= /path/to/license.xml
 GATEWAY_IMG ?= docker.io/caapim/gateway:10.1.00_CR3
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -119,7 +118,7 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test -vet=off -v -timeout 1000s ./... -coverprofile cover.out
 
 GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
 GOLANGCI_LINT_VERSION ?= v1.54.2
@@ -144,21 +143,19 @@ e2e:
 	kubectl delete namespace l7operator
 
 .PHONY: prepare-e2e
-prepare-e2e: kuttl docker-build start-kind load-image-all
-	cp ${GATEWAY_LICENSE_PATH} ./testdata/
-
-.PHONY: load-image-all
-load-image-all: load-image-operator load-image-gateway
-
-.PHONY: load-image-operator
-load-image-operator:
-  kind load docker-image $(IMG)
-
-.PHONY: load-image-gateway
-load-image-gateway:
-  docker pull ${GATEWAY_IMG}
-  kind load docker-image $(GATEWAY_IMG)
-
+prepare-e2e: kuttl docker-build start-kind
+	kubectl create namespace l7operator
+	kind load docker-image $(IMG)
+	docker pull ${GATEWAY_IMG}
+	kind load docker-image $(GATEWAY_IMG)
+	sed -i 's+layer7-operator:main+layer7-operator:$(VERSION)+g' deploy/bundle.yaml
+	kubectl apply -f deploy/bundle.yaml --namespace l7operator
+	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
+	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator
+	kubectl create secret generic graphman-encryption-secret --from-literal=FRAMEWORK_ENCRYPTION_PASSPHRASE=7layer -n l7operator
+	kubectl apply -f ./testdata/metallb-native.yaml
+	sleep 90s
+	kubectl apply -f ./testdata/metallb.yaml
 
 .PHONY: start-kind
 start-kind:

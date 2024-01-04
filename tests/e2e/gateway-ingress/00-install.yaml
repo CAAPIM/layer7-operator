@@ -22,20 +22,6 @@ spec:
       limits: {}
     autoscaling:
       enabled: false
-    java:
-      jvmHeap:
-        calculate: true
-        percentage: 50
-        default: 2g
-      extraArgs:
-        - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
-        - -Dcom.l7tech.server.audit.message.saveToInternal=false
-        - -Dcom.l7tech.server.audit.admin.saveToInternal=false
-        - -Dcom.l7tech.server.audit.system.saveToInternal=false
-        - -Dcom.l7tech.server.audit.log.format=json
-        - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
-        - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true
-        - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
     listenPorts:
       harden: true
       custom:
@@ -56,6 +42,10 @@ spec:
     ingress:
       enabled: true
       ingressClassName: nginx
+      tls:
+        - hosts:
+            - testing.com
+          secretName: default
       rules:
         - host: testing.com
           http:

@@ -33,6 +33,11 @@ spec:
       cluster:
         hostname: gateway.brcmlabs.com
         password: 7layer
+      database:
+        enabled: true
+        jdbcUrl: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
+        username: gateway
+        password: 7layer
     cwp:
       enabled: true
       properties:

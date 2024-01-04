@@ -1,0 +1,34 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  version: "10.1.00_CR3"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:10.1.00_CR3
+    imagePullPolicy: IfNotPresent
+    #serviceAccountName: ssg-serviceaccount
+    autoscaling:
+      enabled: false
+    autoMountServiceAccountToken: true
+    listenPorts:
+      harden: true
+      custom:
+        enabled: false
+      ports: [ ]
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+          protocol: TCP
+        - name: management
+          port: 9443
+          targetPort: 9443
+          protocol: TCP

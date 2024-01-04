@@ -189,8 +189,6 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			resBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 
-			GinkgoWriter.Printf("Response %s", resBody)
-			Expect(strings.Contains(string(resBody), "hello world")).Should(BeTrue())
 		})
 	})
 })

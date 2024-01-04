@@ -188,6 +188,7 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			resBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
+			GinkgoWriter.Printf("Response %s", resBody)
 
 		})
 	})

@@ -8,7 +8,3 @@ crdDir: ./config/crd/bases/
 namespace: l7operator
 #skipDelete: true
 parallel: 1
-commands:
-  - command: kubectl create namespace l7operator
-  - command: kubectl apply -f deploy/bundle.yaml --namespace l7operator
-  - command: kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator

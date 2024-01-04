@@ -4864,9 +4864,6 @@ spec:
               auth:
                 description: Auth contains a reference to the credentials required to connect to your Git repository
                 properties:
-                  autoTrustSshHost:
-                    description: AutoTrust SSH Host
-                    type: boolean
                   existingSecretName:
                     description: ExistingSecretName reference an existing secret
                     type: string

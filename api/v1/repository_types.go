@@ -102,8 +102,6 @@ type RepositoryAuth struct {
 	SSHKeyPass string `json:"sshKeyPass,omitempty"`
 	// KnownHosts is required for SSH Auth
 	KnownHosts string `json:"knownHosts,omitempty"`
-	// AutoTrust SSH Host
-	AutoTrustSSHHost bool `json:"autoTrustSshHost,omitempty"`
 	// ExistingSecretName reference an existing secret
 	ExistingSecretName string `json:"existingSecretName,omitempty"`
 }

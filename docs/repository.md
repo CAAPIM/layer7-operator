@@ -181,13 +181,6 @@ Auth contains a reference to the credentials required to connect to your Git rep
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>autoTrustSshHost</b></td>
-        <td>boolean</td>
-        <td>
-          AutoTrust SSH Host<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>existingSecretName</b></td>
         <td>string</td>
         <td>

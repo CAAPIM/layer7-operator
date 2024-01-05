@@ -6,6 +6,7 @@ pipeline {
     agent { label "default" }
     environment {
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
+        DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
         VERSION = '$BRANCH_NAME'
     }
     parameters {
@@ -28,7 +29,11 @@ pipeline {
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
-                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
+                        if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
+                           docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW
+                        elif
+                           docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
+                        fi
                         make docker-build docker-push
                     '''
                 }
@@ -37,7 +42,11 @@ pipeline {
                     if ("${BRANCH_NAME}" == "main") {
                        sh '''#!/bin/bash
                              VERSION=$RELEASE_VERSION
-                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
+                             if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
+                                docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW
+                             elif
+                                docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
+                             fi
                              make docker-build docker-push
                        '''
                     }

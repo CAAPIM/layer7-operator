@@ -15,3 +15,5 @@ bindings:
     type: time.Time
   NonEmptyString:
     type: string
+  AnyObject:
+    type: interface{}

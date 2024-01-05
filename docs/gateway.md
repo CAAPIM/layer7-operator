@@ -135,7 +135,7 @@ App contains Gateway specific deployment and application level configuration
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
-          Annotations for the Gateway Deployment<br/>
+          Annotations for Operator managed resources do not apply to services<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -275,7 +275,7 @@ App contains Gateway specific deployment and application level configuration
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
-          Labels for the Gateway Deployment<br/>
+          Labels for Operator managed resources<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -345,17 +345,17 @@ App contains Gateway specific deployment and application level configuration
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>podLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          PodLabels for the Gateway Deployment<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecapppodsecuritycontext">podSecurityContext</a></b></td>
         <td>object</td>
         <td>
           PodSecurityContext holds pod-level security attributes and common container settings. Some fields are also present in container.securityContext.  Field values of container.securityContext take precedence over field values of PodSecurityContext.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b><a href="#gatewayspecappportalreference">portalReference</a></b></td>
-        <td>object</td>
-        <td>
-          PortalReference<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -370,6 +370,13 @@ App contains Gateway specific deployment and application level configuration
         <td>object</td>
         <td>
           Probe describes a health check to be performed against a container to determine whether it is alive or ready to receive traffic.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredis">redis</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9588,40 +9595,6 @@ The Windows specific settings applied to all containers. If unspecified, the opt
 </table>
 
 
-### Gateway.spec.app.portalReference
-<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
-
-
-
-PortalReference
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody><tr>
-        <td><b>enabled</b></td>
-        <td>boolean</td>
-        <td>
-          <br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr></tbody>
-</table>
-
-
 ### Gateway.spec.app.preStopScript
 <sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
 
@@ -9953,6 +9926,253 @@ TCPSocket specifies an action involving a TCP port.
         <td>string</td>
         <td>
           Optional: Host name to connect to, defaults to the pod IP.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappredisauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Auth if using sentinel<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable a Redis integration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecret</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecret mounts an existing secret containing redis configuration to the container gateway. The secret should contain a key called redis.properties and redis.crt if tls is enabled<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>groupName</b></td>
+        <td>string</td>
+        <td>
+          GroupName that should be used when connecting to Redis<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredissentinel">sentinel</a></b></td>
+        <td>object</td>
+        <td>
+          Sentinel configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredisstandalone">standalone</a></b></td>
+        <td>object</td>
+        <td>
+          Standalone configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredistls">tls</a></b></td>
+        <td>object</td>
+        <td>
+          TLS configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type of sentinel deployment valid options are standalone or sentinel standalone does not support auth or tls and should only be used in non-critical environments for development purposes<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.auth
+<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+
+
+
+Auth if using sentinel
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable Redis auth Authentication is only available for Redis Sentinel<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordEncoded</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordPlaintext</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.sentinel
+<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+
+
+
+Sentinel configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>masterSet</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>nodes</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.standalone
+<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+
+
+
+Standalone configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>hostname</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.tls
+<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+
+
+
+TLS configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>crt</b></td>
+        <td>string</td>
+        <td>
+          Crt in plaintext<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          If TLS is enabled on the Redis server set this to true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecret</b></td>
+        <td>string</td>
+        <td>
+          Reference an existing secret that contains a key called redis.crt with the redis public cert<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          Change if using a different key. Defaults to redis.crt<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>verifyPeer</b></td>
+        <td>boolean</td>
+        <td>
+          VerifyPeer<br/>
         </td>
         <td>false</td>
       </tr></tbody>

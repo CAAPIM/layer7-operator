@@ -62,6 +62,30 @@ const (
 	ActiveConnectorTypeMqNative            ActiveConnectorType = "MQ_NATIVE"
 )
 
+// The inputs sent with the setClusterProperty Mutation
+type AdministrativeUserAccountPropertyInput struct {
+	// The administrative user account minimum property unique identifier
+	Goid string `json:"goid"`
+	// The name of administrative user account minimum property
+	Name string `json:"name"`
+	// The value of the administrative user account minimum property
+	Value string `json:"value"`
+	// Ignored at creation time but can be used to compare bundle with gw state
+	Checksum string `json:"checksum"`
+}
+
+// GetGoid returns AdministrativeUserAccountPropertyInput.Goid, and is useful for accessing the field via an interface.
+func (v *AdministrativeUserAccountPropertyInput) GetGoid() string { return v.Goid }
+
+// GetName returns AdministrativeUserAccountPropertyInput.Name, and is useful for accessing the field via an interface.
+func (v *AdministrativeUserAccountPropertyInput) GetName() string { return v.Name }
+
+// GetValue returns AdministrativeUserAccountPropertyInput.Value, and is useful for accessing the field via an interface.
+func (v *AdministrativeUserAccountPropertyInput) GetValue() string { return v.Value }
+
+// GetChecksum returns AdministrativeUserAccountPropertyInput.Checksum, and is useful for accessing the field via an interface.
+func (v *AdministrativeUserAccountPropertyInput) GetChecksum() string { return v.Checksum }
+
 type BackgroundTaskPolicyInput struct {
 	// The internal entity unique identifier
 	Goid string `json:"goid"`
@@ -174,6 +198,19 @@ func (v *CassandraConnectionInput) GetProperties() []*EntityPropertyInput { retu
 // GetChecksum returns CassandraConnectionInput.Checksum, and is useful for accessing the field via an interface.
 func (v *CassandraConnectionInput) GetChecksum() string { return v.Checksum }
 
+type CertRevocationCheckPropertyType string
+
+const (
+	// Type for checking against a CRL from a URL contained in an X.509 Certificate
+	CertRevocationCheckPropertyTypeCrlFromCertificate CertRevocationCheckPropertyType = "CRL_FROM_CERTIFICATE"
+	// Type for checking against a CRL from a specified URL
+	CertRevocationCheckPropertyTypeCrlFromUrl CertRevocationCheckPropertyType = "CRL_FROM_URL"
+	// Type for OCSP check against a responder URL contained in an X.509 Certificate
+	CertRevocationCheckPropertyTypeOcspFromCertificate CertRevocationCheckPropertyType = "OCSP_FROM_CERTIFICATE"
+	// Type for OCSP check against a specified responder URL
+	CertRevocationCheckPropertyTypeOcspFromUrl CertRevocationCheckPropertyType = "OCSP_FROM_URL"
+)
+
 type CertificateValidationType string
 
 const (
@@ -215,6 +252,30 @@ func (v *ClusterPropertyInput) GetHiddenProperty() bool { return v.HiddenPropert
 
 // GetChecksum returns ClusterPropertyInput.Checksum, and is useful for accessing the field via an interface.
 func (v *ClusterPropertyInput) GetChecksum() string { return v.Checksum }
+
+// The inputs sent with the setCustomKeyValue Mutation
+type CustomKeyValueInput struct {
+	// The goid for the custom key value
+	Goid string `json:"goid"`
+	// The custom key
+	Key string `json:"key"`
+	// The custom value in Base64 encoded format
+	Value string `json:"value"`
+	// Ignored at creation time but can be used to compare bundle with gw state
+	Checksum string `json:"checksum"`
+}
+
+// GetGoid returns CustomKeyValueInput.Goid, and is useful for accessing the field via an interface.
+func (v *CustomKeyValueInput) GetGoid() string { return v.Goid }
+
+// GetKey returns CustomKeyValueInput.Key, and is useful for accessing the field via an interface.
+func (v *CustomKeyValueInput) GetKey() string { return v.Key }
+
+// GetValue returns CustomKeyValueInput.Value, and is useful for accessing the field via an interface.
+func (v *CustomKeyValueInput) GetValue() string { return v.Value }
+
+// GetChecksum returns CustomKeyValueInput.Checksum, and is useful for accessing the field via an interface.
+func (v *CustomKeyValueInput) GetChecksum() string { return v.Checksum }
 
 type DataType string
 
@@ -449,14 +510,34 @@ func (v *EncassResultInput) GetName() string { return v.Name }
 // GetType returns EncassResultInput.Type, and is useful for accessing the field via an interface.
 func (v *EncassResultInput) GetType() DataType { return v.Type }
 
+type EntityFieldOption string
+
+const (
+	EntityFieldOptionDefault EntityFieldOption = "DEFAULT"
+	EntityFieldOptionNone    EntityFieldOption = "NONE"
+	EntityFieldOptionCustom  EntityFieldOption = "CUSTOM"
+)
+
+type EntityMutationAction string
+
+const (
+	EntityMutationActionNewOrUpdate     EntityMutationAction = "NEW_OR_UPDATE"
+	EntityMutationActionNewOrExisting   EntityMutationAction = "NEW_OR_EXISTING"
+	EntityMutationActionAlwaysCreateNew EntityMutationAction = "ALWAYS_CREATE_NEW"
+	EntityMutationActionIgnore          EntityMutationAction = "IGNORE"
+	EntityMutationActionDelete          EntityMutationAction = "DELETE"
+)
+
 type EntityMutationStatus string
 
 const (
-	EntityMutationStatusNone    EntityMutationStatus = "NONE"
-	EntityMutationStatusCreated EntityMutationStatus = "CREATED"
-	EntityMutationStatusUpdated EntityMutationStatus = "UPDATED"
-	EntityMutationStatusDeleted EntityMutationStatus = "DELETED"
-	EntityMutationStatusError   EntityMutationStatus = "ERROR"
+	EntityMutationStatusNone         EntityMutationStatus = "NONE"
+	EntityMutationStatusCreated      EntityMutationStatus = "CREATED"
+	EntityMutationStatusUpdated      EntityMutationStatus = "UPDATED"
+	EntityMutationStatusDeleted      EntityMutationStatus = "DELETED"
+	EntityMutationStatusUsedExisting EntityMutationStatus = "USED_EXISTING"
+	EntityMutationStatusIgnored      EntityMutationStatus = "IGNORED"
+	EntityMutationStatusError        EntityMutationStatus = "ERROR"
 )
 
 type EntityPropertyInput struct {
@@ -574,7 +655,7 @@ type FipInput struct {
 	EnableCredentialTypeX509 bool                      `json:"enableCredentialTypeX509"`
 	CertificateValidation    CertificateValidationType `json:"certificateValidation"`
 	// The certificates in the trusted certificate table that establish the trust for this FIP
-	CertificateReferences []*FipCertInput `json:"certificateReferences"`
+	CertificateReferences []*FipCertInput `json:"certificateReferences,omitempty"`
 	// The optional checksum is ignored during the mutation but can be used to compare bundle content
 	Checksum string `json:"checksum"`
 }
@@ -608,8 +689,9 @@ type FipUserInput struct {
 	Goid string `json:"goid"`
 	// The name of the FiP this user is defined as part of
 	ProviderName string `json:"providerName"`
-	// The list of fip group names that this user is member of. If you pass empty
-	// array, will reset memberships. If absent, does not affect memberships for current user.
+	// The list of fip group details (names) that this user is member of. If you pass
+	// empty array, will reset memberships. If absent, does not affect memberships
+	// for current user.
 	MemberOf  []*MembershipInput `json:"memberOf,omitempty"`
 	Login     string             `json:"login"`
 	SubjectDn string             `json:"subjectDn"`
@@ -653,6 +735,29 @@ func (v *FipUserInput) GetEmail() string { return v.Email }
 
 // GetChecksum returns FipUserInput.Checksum, and is useful for accessing the field via an interface.
 func (v *FipUserInput) GetChecksum() string { return v.Checksum }
+
+type FolderInput struct {
+	// The goid for the folder
+	Goid string `json:"goid"`
+	// The folder name
+	Name string `json:"name"`
+	// The folder Path
+	Path string `json:"path"`
+	// The configuration checksum of this folder
+	Checksum string `json:"checksum"`
+}
+
+// GetGoid returns FolderInput.Goid, and is useful for accessing the field via an interface.
+func (v *FolderInput) GetGoid() string { return v.Goid }
+
+// GetName returns FolderInput.Name, and is useful for accessing the field via an interface.
+func (v *FolderInput) GetName() string { return v.Name }
+
+// GetPath returns FolderInput.Path, and is useful for accessing the field via an interface.
+func (v *FolderInput) GetPath() string { return v.Path }
+
+// GetChecksum returns FolderInput.Checksum, and is useful for accessing the field via an interface.
+func (v *FolderInput) GetChecksum() string { return v.Checksum }
 
 type GlobalPolicyInput struct {
 	// The name of the policy. Policies are unique by name.
@@ -721,6 +826,111 @@ func (v *GroupMappingInput) GetMemberAttrName() string { return v.MemberAttrName
 // GetMemberStrategy returns GroupMappingInput.MemberStrategy, and is useful for accessing the field via an interface.
 func (v *GroupMappingInput) GetMemberStrategy() *MemberStrategyInput { return v.MemberStrategy }
 
+type HttpConfigurationInput struct {
+	// The goid for the http configuration
+	Goid string `json:"goid"`
+	// The host of the http configuration
+	Host string `json:"host"`
+	// The port of the http configuration
+	Port int `json:"port"`
+	// The protocol of the http configuration
+	Protocol HttpScheme `json:"protocol"`
+	// The path of the http configuration
+	Path string `json:"path"`
+	// The username of the http configuration
+	Username string `json:"username"`
+	// The securePasswordName of the http configuration
+	SecurePasswordName string `json:"securePasswordName"`
+	// The ntlmHost of the http configuration
+	NtlmHost string `json:"ntlmHost"`
+	// The ntlmDomain of the http configuration
+	NtlmDomain string `json:"ntlmDomain"`
+	// The tlsVersion of the http configuration
+	TlsVersion string `json:"tlsVersion"`
+	// The tlsKeyUse of the http configuration
+	TlsKeyUse EntityFieldOption `json:"tlsKeyUse"`
+	// The tlsKeystoreId of the http configuration
+	TlsKeystoreId string `json:"tlsKeystoreId"`
+	// The tlsKeyAlias of the http configuration
+	TlsKeyAlias string `json:"tlsKeyAlias"`
+	// The tlsCipherSuites of the http configuration
+	TlsCipherSuites []string `json:"tlsCipherSuites"`
+	// The connectTimeout of the http configuration
+	ConnectTimeout int `json:"connectTimeout"`
+	// The readTimeout of the http configuration
+	ReadTimeout int `json:"readTimeout"`
+	// The followRedirects of the http configuration
+	FollowRedirects bool `json:"followRedirects"`
+	// The proxyUse of the http configuration
+	ProxyUse EntityFieldOption `json:"proxyUse"`
+	// The HttpProxyConfiguration of the http configuration
+	ProxyConfiguration *HttpProxyConfigurationInput `json:"proxyConfiguration,omitempty"`
+	// Ignored at creation time but can be used to compare bundle with gw state
+	Checksum string `json:"checksum"`
+}
+
+// GetGoid returns HttpConfigurationInput.Goid, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetGoid() string { return v.Goid }
+
+// GetHost returns HttpConfigurationInput.Host, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetHost() string { return v.Host }
+
+// GetPort returns HttpConfigurationInput.Port, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetPort() int { return v.Port }
+
+// GetProtocol returns HttpConfigurationInput.Protocol, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetProtocol() HttpScheme { return v.Protocol }
+
+// GetPath returns HttpConfigurationInput.Path, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetPath() string { return v.Path }
+
+// GetUsername returns HttpConfigurationInput.Username, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetUsername() string { return v.Username }
+
+// GetSecurePasswordName returns HttpConfigurationInput.SecurePasswordName, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetSecurePasswordName() string { return v.SecurePasswordName }
+
+// GetNtlmHost returns HttpConfigurationInput.NtlmHost, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetNtlmHost() string { return v.NtlmHost }
+
+// GetNtlmDomain returns HttpConfigurationInput.NtlmDomain, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetNtlmDomain() string { return v.NtlmDomain }
+
+// GetTlsVersion returns HttpConfigurationInput.TlsVersion, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetTlsVersion() string { return v.TlsVersion }
+
+// GetTlsKeyUse returns HttpConfigurationInput.TlsKeyUse, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetTlsKeyUse() EntityFieldOption { return v.TlsKeyUse }
+
+// GetTlsKeystoreId returns HttpConfigurationInput.TlsKeystoreId, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetTlsKeystoreId() string { return v.TlsKeystoreId }
+
+// GetTlsKeyAlias returns HttpConfigurationInput.TlsKeyAlias, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetTlsKeyAlias() string { return v.TlsKeyAlias }
+
+// GetTlsCipherSuites returns HttpConfigurationInput.TlsCipherSuites, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetTlsCipherSuites() []string { return v.TlsCipherSuites }
+
+// GetConnectTimeout returns HttpConfigurationInput.ConnectTimeout, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetConnectTimeout() int { return v.ConnectTimeout }
+
+// GetReadTimeout returns HttpConfigurationInput.ReadTimeout, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetReadTimeout() int { return v.ReadTimeout }
+
+// GetFollowRedirects returns HttpConfigurationInput.FollowRedirects, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetFollowRedirects() bool { return v.FollowRedirects }
+
+// GetProxyUse returns HttpConfigurationInput.ProxyUse, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetProxyUse() EntityFieldOption { return v.ProxyUse }
+
+// GetProxyConfiguration returns HttpConfigurationInput.ProxyConfiguration, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetProxyConfiguration() *HttpProxyConfigurationInput {
+	return v.ProxyConfiguration
+}
+
+// GetChecksum returns HttpConfigurationInput.Checksum, and is useful for accessing the field via an interface.
+func (v *HttpConfigurationInput) GetChecksum() string { return v.Checksum }
+
 // Support Http methods for Web API Service
 type HttpMethod string
 
@@ -733,6 +943,37 @@ const (
 	HttpMethodOptions HttpMethod = "OPTIONS"
 	HttpMethodPatch   HttpMethod = "PATCH"
 	HttpMethodOther   HttpMethod = "OTHER"
+)
+
+type HttpProxyConfigurationInput struct {
+	// The proxyHost of the http proxy configuration
+	Host string `json:"host"`
+	// The proxyPort of the http proxy configuration
+	Port int `json:"port"`
+	// The proxyUsername of the http proxy configuration
+	Username string `json:"username"`
+	// The securePasswordName of the http proxy configuration
+	SecurePasswordName string `json:"securePasswordName"`
+}
+
+// GetHost returns HttpProxyConfigurationInput.Host, and is useful for accessing the field via an interface.
+func (v *HttpProxyConfigurationInput) GetHost() string { return v.Host }
+
+// GetPort returns HttpProxyConfigurationInput.Port, and is useful for accessing the field via an interface.
+func (v *HttpProxyConfigurationInput) GetPort() int { return v.Port }
+
+// GetUsername returns HttpProxyConfigurationInput.Username, and is useful for accessing the field via an interface.
+func (v *HttpProxyConfigurationInput) GetUsername() string { return v.Username }
+
+// GetSecurePasswordName returns HttpProxyConfigurationInput.SecurePasswordName, and is useful for accessing the field via an interface.
+func (v *HttpProxyConfigurationInput) GetSecurePasswordName() string { return v.SecurePasswordName }
+
+type HttpScheme string
+
+const (
+	HttpSchemeHttp  HttpScheme = "HTTP"
+	HttpSchemeHttps HttpScheme = "HTTPS"
+	HttpSchemeAny   HttpScheme = "ANY"
 )
 
 type InternalGroupInput struct {
@@ -760,9 +1001,9 @@ type InternalUserInput struct {
 	Name string `json:"name"`
 	// If provided, will try to honour at creation time
 	Goid string `json:"goid"`
-	// The list of internal group names that this user is member of. If you pass
-	// empty array, will reset memberships. If absent, does not affect memberships
-	// for current users.
+	// The list of internal group details (names) that this user is member of. If you
+	// pass empty array, will reset memberships. If absent, does not affect
+	// memberships for current users.
 	MemberOf []*MembershipInput `json:"memberOf,omitempty"`
 	Login    string             `json:"login"`
 	// You can either pass in the hashed password which comes back in queries or the raw passwd directly
@@ -772,6 +1013,8 @@ type InternalUserInput struct {
 	FirstName  string `json:"firstName"`
 	LastName   string `json:"lastName"`
 	Email      string `json:"email"`
+	// Is user enabled or not!
+	Enabled bool `json:"enabled"`
 	// Ignored at creation time but can be used to compare bundle with gw state
 	Checksum string `json:"checksum"`
 }
@@ -802,6 +1045,9 @@ func (v *InternalUserInput) GetLastName() string { return v.LastName }
 
 // GetEmail returns InternalUserInput.Email, and is useful for accessing the field via an interface.
 func (v *InternalUserInput) GetEmail() string { return v.Email }
+
+// GetEnabled returns InternalUserInput.Enabled, and is useful for accessing the field via an interface.
+func (v *InternalUserInput) GetEnabled() bool { return v.Enabled }
 
 // GetChecksum returns InternalUserInput.Checksum, and is useful for accessing the field via an interface.
 func (v *InternalUserInput) GetChecksum() string { return v.Checksum }
@@ -1023,12 +1269,16 @@ type KeyInput struct {
 	// Base64 encoded PKCS12 keystore containing the private key and cert chain for the key entry.
 	// The keystore is password-protected using the transaction encryption passphrase provided.
 	P12 string `json:"p12"`
+	// The private key data in PEM format
+	Pem string `json:"pem"`
 	// Will try to match at creation time is specified
 	Goid string `json:"goid"`
 	// SubjectDn of the certificate associated with the key. (Note that, this field has no effect on the mutation)
 	SubjectDn string `json:"subjectDn"`
 	// Key type. (Note that, this field has no effect on the mutation)
 	KeyType string `json:"keyType"`
+	// The Key usage types. (Note that, the key usage will not be reset when this field is not specified)
+	UsageTypes []KeyUsageType `json:"usageTypes"`
 	// The certificate chain in PEM format. (Note that, this field has no effect on the mutation)
 	CertChain []string `json:"certChain"`
 	// Ignored at entity creation time but declared here so you can embed checksums in graphman bundles
@@ -1044,6 +1294,9 @@ func (v *KeyInput) GetAlias() string { return v.Alias }
 // GetP12 returns KeyInput.P12, and is useful for accessing the field via an interface.
 func (v *KeyInput) GetP12() string { return v.P12 }
 
+// GetPem returns KeyInput.Pem, and is useful for accessing the field via an interface.
+func (v *KeyInput) GetPem() string { return v.Pem }
+
 // GetGoid returns KeyInput.Goid, and is useful for accessing the field via an interface.
 func (v *KeyInput) GetGoid() string { return v.Goid }
 
@@ -1053,11 +1306,27 @@ func (v *KeyInput) GetSubjectDn() string { return v.SubjectDn }
 // GetKeyType returns KeyInput.KeyType, and is useful for accessing the field via an interface.
 func (v *KeyInput) GetKeyType() string { return v.KeyType }
 
+// GetUsageTypes returns KeyInput.UsageTypes, and is useful for accessing the field via an interface.
+func (v *KeyInput) GetUsageTypes() []KeyUsageType { return v.UsageTypes }
+
 // GetCertChain returns KeyInput.CertChain, and is useful for accessing the field via an interface.
 func (v *KeyInput) GetCertChain() []string { return v.CertChain }
 
 // GetChecksum returns KeyInput.Checksum, and is useful for accessing the field via an interface.
 func (v *KeyInput) GetChecksum() string { return v.Checksum }
+
+type KeyUsageType string
+
+const (
+	// Represents a key marked as the default SSL key
+	KeyUsageTypeSsl KeyUsageType = "SSL"
+	// Represents a key marked as the default CA key
+	KeyUsageTypeCa KeyUsageType = "CA"
+	// Represents a key marked as the default audit viewer/decryption key
+	KeyUsageTypeAuditViewer KeyUsageType = "AUDIT_VIEWER"
+	// Represents a key marked as the default audit signing key
+	KeyUsageTypeAuditSigning KeyUsageType = "AUDIT_SIGNING"
+)
 
 type LdapInput struct {
 	Name string `json:"name"`
@@ -1245,6 +1514,110 @@ func (v *ListenPortTlsSettingsInput) GetCipherSuites() []string { return v.Ciphe
 // GetUseCipherSuitesOrder returns ListenPortTlsSettingsInput.UseCipherSuitesOrder, and is useful for accessing the field via an interface.
 func (v *ListenPortTlsSettingsInput) GetUseCipherSuitesOrder() bool { return v.UseCipherSuitesOrder }
 
+// Indicates severity threshold of the log sink
+type LogSeverityThreshold string
+
+const (
+	LogSeverityThresholdAll     LogSeverityThreshold = "ALL"
+	LogSeverityThresholdFinest  LogSeverityThreshold = "FINEST"
+	LogSeverityThresholdFiner   LogSeverityThreshold = "FINER"
+	LogSeverityThresholdFine    LogSeverityThreshold = "FINE"
+	LogSeverityThresholdConfig  LogSeverityThreshold = "CONFIG"
+	LogSeverityThresholdInfo    LogSeverityThreshold = "INFO"
+	LogSeverityThresholdWarning LogSeverityThreshold = "WARNING"
+	LogSeverityThresholdSevere  LogSeverityThreshold = "SEVERE"
+)
+
+// Indicates the Sink Category
+type LogSinkCategory string
+
+const (
+	LogSinkCategoryLog     LogSinkCategory = "LOG"
+	LogSinkCategoryTraffic LogSinkCategory = "TRAFFIC"
+	LogSinkCategoryAudit   LogSinkCategory = "AUDIT"
+	LogSinkCategorySspc    LogSinkCategory = "SSPC"
+)
+
+// Indicate the long sink filter, consist of a type and list of values
+type LogSinkFilterInput struct {
+	// defines the type of log sink
+	Type string `json:"type"`
+	// defines the list of values
+	Values []string `json:"values"`
+}
+
+// GetType returns LogSinkFilterInput.Type, and is useful for accessing the field via an interface.
+func (v *LogSinkFilterInput) GetType() string { return v.Type }
+
+// GetValues returns LogSinkFilterInput.Values, and is useful for accessing the field via an interface.
+func (v *LogSinkFilterInput) GetValues() []string { return v.Values }
+
+type LogSinkInput struct {
+	// The internal entity unique identifier
+	Goid string `json:"goid"`
+	// log sink unique name
+	Name string `json:"name"`
+	// description of log sink
+	Description string `json:"description"`
+	// defines whether its a file based log or sysLog
+	Type LogSinkType `json:"type"`
+	// Whether this log sink is enabled
+	Enabled bool `json:"enabled"`
+	// defines the severity threshold of log Sink
+	Severity LogSeverityThreshold `json:"severity"`
+	// defines list of categories
+	Categories []LogSinkCategory `json:"categories"`
+	// defines syslog host list
+	SyslogHosts []string `json:"syslogHosts"`
+	// defines list of Log sink filters
+	Filters []*LogSinkFilterInput `json:"filters,omitempty"`
+	// defines list of log Sink properties
+	Properties []*EntityPropertyInput `json:"properties,omitempty"`
+	// Ignored at creation time but can be used to compare bundle with gw state
+	Checksum string `json:"checksum"`
+}
+
+// GetGoid returns LogSinkInput.Goid, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetGoid() string { return v.Goid }
+
+// GetName returns LogSinkInput.Name, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetName() string { return v.Name }
+
+// GetDescription returns LogSinkInput.Description, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetDescription() string { return v.Description }
+
+// GetType returns LogSinkInput.Type, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetType() LogSinkType { return v.Type }
+
+// GetEnabled returns LogSinkInput.Enabled, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetEnabled() bool { return v.Enabled }
+
+// GetSeverity returns LogSinkInput.Severity, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetSeverity() LogSeverityThreshold { return v.Severity }
+
+// GetCategories returns LogSinkInput.Categories, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetCategories() []LogSinkCategory { return v.Categories }
+
+// GetSyslogHosts returns LogSinkInput.SyslogHosts, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetSyslogHosts() []string { return v.SyslogHosts }
+
+// GetFilters returns LogSinkInput.Filters, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetFilters() []*LogSinkFilterInput { return v.Filters }
+
+// GetProperties returns LogSinkInput.Properties, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetProperties() []*EntityPropertyInput { return v.Properties }
+
+// GetChecksum returns LogSinkInput.Checksum, and is useful for accessing the field via an interface.
+func (v *LogSinkInput) GetChecksum() string { return v.Checksum }
+
+// Indicates the type of sink . File Based Or SYSLOG based
+type LogSinkType string
+
+const (
+	LogSinkTypeFile   LogSinkType = "FILE"
+	LogSinkTypeSyslog LogSinkType = "SYSLOG"
+)
+
 type MemberStrategyInput struct {
 	// Possible values are 0 for MEMBERS_ARE_DN, 1 MEMBERS_ARE_LOGIN, 2 MEMBERS_ARE_NVPAIR, 3 MEMBERS_BY_OU
 	Val int `json:"val"`
@@ -1254,17 +1627,45 @@ type MemberStrategyInput struct {
 func (v *MemberStrategyInput) GetVal() int { return v.Val }
 
 type MembershipInput struct {
-	Name string `json:"name"`
+	// The name of group to which the membership is defined
+	Name         string `json:"name"`
+	Goid         string `json:"goid"`
+	Description  string `json:"description"`
+	ProviderName string `json:"providerName"`
+	Checksum     string `json:"checksum"`
 }
 
 // GetName returns MembershipInput.Name, and is useful for accessing the field via an interface.
 func (v *MembershipInput) GetName() string { return v.Name }
+
+// GetGoid returns MembershipInput.Goid, and is useful for accessing the field via an interface.
+func (v *MembershipInput) GetGoid() string { return v.Goid }
+
+// GetDescription returns MembershipInput.Description, and is useful for accessing the field via an interface.
+func (v *MembershipInput) GetDescription() string { return v.Description }
+
+// GetProviderName returns MembershipInput.ProviderName, and is useful for accessing the field via an interface.
+func (v *MembershipInput) GetProviderName() string { return v.ProviderName }
+
+// GetChecksum returns MembershipInput.Checksum, and is useful for accessing the field via an interface.
+func (v *MembershipInput) GetChecksum() string { return v.Checksum }
 
 type ModuleType string
 
 const (
 	ModuleTypeModularAssertion ModuleType = "MODULAR_ASSERTION"
 	ModuleTypeCustomAssertion  ModuleType = "CUSTOM_ASSERTION"
+)
+
+type OcspNonceUsage string
+
+const (
+	// To include nonce in OCSP requests
+	OcspNonceUsageIncludeNonce OcspNonceUsage = "INCLUDE_NONCE"
+	// Do not include nonce in OCSP requests
+	OcspNonceUsageExcludeNonce OcspNonceUsage = "EXCLUDE_NONCE"
+	// Let pkix.ocsp.useNonce cluster wide property decide
+	OcspNonceUsageUseNonceConditionally OcspNonceUsage = "USE_NONCE_CONDITIONALLY"
 )
 
 type PasswdStrategyInput struct {
@@ -1275,6 +1676,86 @@ type PasswdStrategyInput struct {
 // GetVal returns PasswdStrategyInput.Val, and is useful for accessing the field via an interface.
 func (v *PasswdStrategyInput) GetVal() int { return v.Val }
 
+type PasswordPolicyInput struct {
+	// The internal entity unique identifier
+	Goid string `json:"goid"`
+	// Ignored at creation time but can be used to compare bundle with gw state
+	Checksum string `json:"checksum"`
+	// Force password change for new user and reset
+	ForcePasswordChangeNewUser bool `json:"forcePasswordChangeNewUser"`
+	// To enable/disable no repeating characters
+	NoRepeatingCharacters bool `json:"noRepeatingCharacters"`
+	// Minimum Password Length - Enter the minimum number of characters ranging from 3 to 128 required for the password.
+	MinPasswordLength int `json:"minPasswordLength"`
+	// Maximum Password Length - Enter the maximum number of characters ranging from 3 to 128 required for the password.
+	MaxPasswordLength int `json:"maxPasswordLength"`
+	// Set the number of uppercase letters that are required for the password. ranging from 1 to 128
+	UpperMinimum int `json:"upperMinimum"`
+	// Set the number of lowercase letters that are required for the password. ranging from 1 to 128
+	LowerMinimum int `json:"lowerMinimum"`
+	// Sets how many numbers (0-9) are required for the password. ranging from 1 to 128
+	NumberMinimum int `json:"numberMinimum"`
+	// Sets how many symbol characters are required for the password. ranging from 1 to 128
+	SymbolMinimum int `json:"symbolMinimum"`
+	// Sets how many non numeric characters are required for the password. ranging from 1 to 128
+	NonNumericMinimum int `json:"nonNumericMinimum"`
+	// Sets how many characters are required for the password. ranging from 1 to 128
+	CharDiffMinimum int `json:"charDiffMinimum"`
+	// Enter the number of times, between 1 and 50, that a new password must be different from the current password
+	RepeatFrequency int `json:"repeatFrequency"`
+	// Days required for the password to be expired. ranging from 1 to 1825
+	PasswordExpiry int `json:"passwordExpiry"`
+	// Allow One Password Change Per 24 Hours
+	AllowableChangesPerDay bool `json:"allowableChangesPerDay"`
+}
+
+// GetGoid returns PasswordPolicyInput.Goid, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetGoid() string { return v.Goid }
+
+// GetChecksum returns PasswordPolicyInput.Checksum, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetChecksum() string { return v.Checksum }
+
+// GetForcePasswordChangeNewUser returns PasswordPolicyInput.ForcePasswordChangeNewUser, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetForcePasswordChangeNewUser() bool {
+	return v.ForcePasswordChangeNewUser
+}
+
+// GetNoRepeatingCharacters returns PasswordPolicyInput.NoRepeatingCharacters, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetNoRepeatingCharacters() bool { return v.NoRepeatingCharacters }
+
+// GetMinPasswordLength returns PasswordPolicyInput.MinPasswordLength, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetMinPasswordLength() int { return v.MinPasswordLength }
+
+// GetMaxPasswordLength returns PasswordPolicyInput.MaxPasswordLength, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetMaxPasswordLength() int { return v.MaxPasswordLength }
+
+// GetUpperMinimum returns PasswordPolicyInput.UpperMinimum, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetUpperMinimum() int { return v.UpperMinimum }
+
+// GetLowerMinimum returns PasswordPolicyInput.LowerMinimum, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetLowerMinimum() int { return v.LowerMinimum }
+
+// GetNumberMinimum returns PasswordPolicyInput.NumberMinimum, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetNumberMinimum() int { return v.NumberMinimum }
+
+// GetSymbolMinimum returns PasswordPolicyInput.SymbolMinimum, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetSymbolMinimum() int { return v.SymbolMinimum }
+
+// GetNonNumericMinimum returns PasswordPolicyInput.NonNumericMinimum, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetNonNumericMinimum() int { return v.NonNumericMinimum }
+
+// GetCharDiffMinimum returns PasswordPolicyInput.CharDiffMinimum, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetCharDiffMinimum() int { return v.CharDiffMinimum }
+
+// GetRepeatFrequency returns PasswordPolicyInput.RepeatFrequency, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetRepeatFrequency() int { return v.RepeatFrequency }
+
+// GetPasswordExpiry returns PasswordPolicyInput.PasswordExpiry, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetPasswordExpiry() int { return v.PasswordExpiry }
+
+// GetAllowableChangesPerDay returns PasswordPolicyInput.AllowableChangesPerDay, and is useful for accessing the field via an interface.
+func (v *PasswordPolicyInput) GetAllowableChangesPerDay() bool { return v.AllowableChangesPerDay }
+
 type PolicyFragmentInput struct {
 	// The internal entity unique identifier
 	Goid string `json:"goid"`
@@ -1282,7 +1763,7 @@ type PolicyFragmentInput struct {
 	FolderPath string `json:"folderPath"`
 	// The name of the policy. Policies are unique by name.
 	Name string `json:"name"`
-	// The guid for this service, if none provided, assigned at creation
+	// The guid for this policy, if none provided, assigned at creation
 	Guid string `json:"guid"`
 	// The policy
 	Policy *PolicyInput `json:"policy,omitempty"`
@@ -1330,6 +1811,83 @@ const (
 	// Use the specified revocation check policy
 	PolicyUsageTypeSpecified PolicyUsageType = "SPECIFIED"
 )
+
+type RevocationCheckPolicyInput struct {
+	// The goid for this revocation check policy
+	Goid string `json:"goid"`
+	// Name that describes the revocation checking policy
+	Name string `json:"name"`
+	// Ignored at creation time but can be used to compare bundle with gw state
+	Checksum string `json:"checksum"`
+	// Use as default revocation check policy
+	DefaultPolicy bool `json:"defaultPolicy"`
+	// Succeed if revocation status is unknown
+	DefaultSuccess bool `json:"defaultSuccess"`
+	// Continue processing if server is unavailable
+	ContinueOnServerUnavailable bool `json:"continueOnServerUnavailable"`
+	// Certificate revocation check properties
+	RevocationCheckPolicyItems []*RevocationCheckPolicyItemInput `json:"revocationCheckPolicyItems,omitempty"`
+}
+
+// GetGoid returns RevocationCheckPolicyInput.Goid, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyInput) GetGoid() string { return v.Goid }
+
+// GetName returns RevocationCheckPolicyInput.Name, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyInput) GetName() string { return v.Name }
+
+// GetChecksum returns RevocationCheckPolicyInput.Checksum, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyInput) GetChecksum() string { return v.Checksum }
+
+// GetDefaultPolicy returns RevocationCheckPolicyInput.DefaultPolicy, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyInput) GetDefaultPolicy() bool { return v.DefaultPolicy }
+
+// GetDefaultSuccess returns RevocationCheckPolicyInput.DefaultSuccess, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyInput) GetDefaultSuccess() bool { return v.DefaultSuccess }
+
+// GetContinueOnServerUnavailable returns RevocationCheckPolicyInput.ContinueOnServerUnavailable, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyInput) GetContinueOnServerUnavailable() bool {
+	return v.ContinueOnServerUnavailable
+}
+
+// GetRevocationCheckPolicyItems returns RevocationCheckPolicyInput.RevocationCheckPolicyItems, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyInput) GetRevocationCheckPolicyItems() []*RevocationCheckPolicyItemInput {
+	return v.RevocationCheckPolicyItems
+}
+
+type RevocationCheckPolicyItemInput struct {
+	// Type for Checking OCSP or CRL
+	Type CertRevocationCheckPropertyType `json:"type"`
+	// If the CRL from URL or OCSP from URL option was selected, enter the URL Otherwise provide regex.
+	// CRL_FROM_CERTIFICATE &  OCSP_FROM_CERTIFICATE options uses URL Regex &
+	// CRL_FROM_URL & OCSP_FROM_URL options uses URLs.
+	// This is caller's responsibility to provide valid URL or Regex, Graphman won't validate it.
+	Url string `json:"url"`
+	// If user permitting the entity that issued the certificate
+	AllowIssuerSignature bool `json:"allowIssuerSignature"`
+	// Whether to include a nonce in OCSP request, default is to set INCLUDE_NONCE
+	NonceUsage OcspNonceUsage `json:"nonceUsage"`
+	// The sha1 thumbprint of the certificate
+	SignerThumbprintSha1s []string `json:"signerThumbprintSha1s"`
+}
+
+// GetType returns RevocationCheckPolicyItemInput.Type, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyItemInput) GetType() CertRevocationCheckPropertyType { return v.Type }
+
+// GetUrl returns RevocationCheckPolicyItemInput.Url, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyItemInput) GetUrl() string { return v.Url }
+
+// GetAllowIssuerSignature returns RevocationCheckPolicyItemInput.AllowIssuerSignature, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyItemInput) GetAllowIssuerSignature() bool {
+	return v.AllowIssuerSignature
+}
+
+// GetNonceUsage returns RevocationCheckPolicyItemInput.NonceUsage, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyItemInput) GetNonceUsage() OcspNonceUsage { return v.NonceUsage }
+
+// GetSignerThumbprintSha1s returns RevocationCheckPolicyItemInput.SignerThumbprintSha1s, and is useful for accessing the field via an interface.
+func (v *RevocationCheckPolicyItemInput) GetSignerThumbprintSha1s() []string {
+	return v.SignerThumbprintSha1s
+}
 
 type SMConfigInput struct {
 	// The goid for the CA SSO connection
@@ -1609,9 +2167,60 @@ func (v *ServerModuleFileInput) GetProperties() []*EntityPropertyInput { return 
 // GetChecksum returns ServerModuleFileInput.Checksum, and is useful for accessing the field via an interface.
 func (v *ServerModuleFileInput) GetChecksum() string { return v.Checksum }
 
+type ServiceResolutionConfigInput struct {
+	// The internal entity unique identifier
+	Goid string `json:"goid"`
+	// Ignored at creation time but can be used to compare bundle with gw state
+	Checksum string `json:"checksum"`
+	// Only Services with a resolution path are accessible
+	ResolutionPathRequired bool `json:"resolutionPathRequired"`
+	// Resolution paths are case sensitive
+	ResolutionPathCaseSensitive bool `json:"resolutionPathCaseSensitive"`
+	// Allow resolution by L7-Original-URL header
+	UseL7OriginalUrl bool `json:"useL7OriginalUrl"`
+	// Allow resolution by Service GOID/OID in URLs
+	UseServiceGoid bool `json:"useServiceGoid"`
+	// Use SOAP action
+	UseSoapAction bool `json:"useSoapAction"`
+	// Use SOAP body child namespace
+	UseSoapBodyChildNamespace bool `json:"useSoapBodyChildNamespace"`
+}
+
+// GetGoid returns ServiceResolutionConfigInput.Goid, and is useful for accessing the field via an interface.
+func (v *ServiceResolutionConfigInput) GetGoid() string { return v.Goid }
+
+// GetChecksum returns ServiceResolutionConfigInput.Checksum, and is useful for accessing the field via an interface.
+func (v *ServiceResolutionConfigInput) GetChecksum() string { return v.Checksum }
+
+// GetResolutionPathRequired returns ServiceResolutionConfigInput.ResolutionPathRequired, and is useful for accessing the field via an interface.
+func (v *ServiceResolutionConfigInput) GetResolutionPathRequired() bool {
+	return v.ResolutionPathRequired
+}
+
+// GetResolutionPathCaseSensitive returns ServiceResolutionConfigInput.ResolutionPathCaseSensitive, and is useful for accessing the field via an interface.
+func (v *ServiceResolutionConfigInput) GetResolutionPathCaseSensitive() bool {
+	return v.ResolutionPathCaseSensitive
+}
+
+// GetUseL7OriginalUrl returns ServiceResolutionConfigInput.UseL7OriginalUrl, and is useful for accessing the field via an interface.
+func (v *ServiceResolutionConfigInput) GetUseL7OriginalUrl() bool { return v.UseL7OriginalUrl }
+
+// GetUseServiceGoid returns ServiceResolutionConfigInput.UseServiceGoid, and is useful for accessing the field via an interface.
+func (v *ServiceResolutionConfigInput) GetUseServiceGoid() bool { return v.UseServiceGoid }
+
+// GetUseSoapAction returns ServiceResolutionConfigInput.UseSoapAction, and is useful for accessing the field via an interface.
+func (v *ServiceResolutionConfigInput) GetUseSoapAction() bool { return v.UseSoapAction }
+
+// GetUseSoapBodyChildNamespace returns ServiceResolutionConfigInput.UseSoapBodyChildNamespace, and is useful for accessing the field via an interface.
+func (v *ServiceResolutionConfigInput) GetUseSoapBodyChildNamespace() bool {
+	return v.UseSoapBodyChildNamespace
+}
+
 type SoapServiceInput struct {
 	// The internal entity unique identifier
 	Goid string `json:"goid"`
+	// The guid for this service, if none provided, assigned at creation
+	Guid string `json:"guid"`
 	// The folder path where to create this service.  If the path does not exist, it will be created
 	FolderPath string `json:"folderPath"`
 	// The name of the service
@@ -1620,6 +2229,8 @@ type SoapServiceInput struct {
 	Wsdl string `json:"wsdl"`
 	// The resolution path of the service
 	ResolutionPath string `json:"resolutionPath"`
+	// Soap service resolvers
+	Resolvers *SoapServiceResolverInput `json:"resolvers,omitempty"`
 	// The policy
 	Policy *PolicyInput `json:"policy,omitempty"`
 	// Whether the service is enabled (optional, default true)
@@ -1641,6 +2252,9 @@ type SoapServiceInput struct {
 // GetGoid returns SoapServiceInput.Goid, and is useful for accessing the field via an interface.
 func (v *SoapServiceInput) GetGoid() string { return v.Goid }
 
+// GetGuid returns SoapServiceInput.Guid, and is useful for accessing the field via an interface.
+func (v *SoapServiceInput) GetGuid() string { return v.Guid }
+
 // GetFolderPath returns SoapServiceInput.FolderPath, and is useful for accessing the field via an interface.
 func (v *SoapServiceInput) GetFolderPath() string { return v.FolderPath }
 
@@ -1652,6 +2266,9 @@ func (v *SoapServiceInput) GetWsdl() string { return v.Wsdl }
 
 // GetResolutionPath returns SoapServiceInput.ResolutionPath, and is useful for accessing the field via an interface.
 func (v *SoapServiceInput) GetResolutionPath() string { return v.ResolutionPath }
+
+// GetResolvers returns SoapServiceInput.Resolvers, and is useful for accessing the field via an interface.
+func (v *SoapServiceInput) GetResolvers() *SoapServiceResolverInput { return v.Resolvers }
 
 // GetPolicy returns SoapServiceInput.Policy, and is useful for accessing the field via an interface.
 func (v *SoapServiceInput) GetPolicy() *PolicyInput { return v.Policy }
@@ -1679,6 +2296,31 @@ func (v *SoapServiceInput) GetProperties() []*EntityPropertyInput { return v.Pro
 
 // GetChecksum returns SoapServiceInput.Checksum, and is useful for accessing the field via an interface.
 func (v *SoapServiceInput) GetChecksum() string { return v.Checksum }
+
+// Must have minimum (1 soapAction + baseUri) OR resolutionPath. You can have both too.
+type SoapServiceResolverInput struct {
+	// One of the SoapAction of the service to resolved. This must be specified along with a base ns from the WSDL
+	SoapAction string `json:"soapAction"`
+	// One or more soap actions of the service to resolved. This must be specified in the absence of soapAction field.
+	SoapActions []string `json:"soapActions"`
+	// Base uri from the wsdl of the service. Use this alongside the soapaction
+	// property to resolve a soap service without resolutionUri
+	BaseUri string `json:"baseUri"`
+	// The resolution path of the service if that is how the soap service is resolved
+	ResolutionPath string `json:"resolutionPath"`
+}
+
+// GetSoapAction returns SoapServiceResolverInput.SoapAction, and is useful for accessing the field via an interface.
+func (v *SoapServiceResolverInput) GetSoapAction() string { return v.SoapAction }
+
+// GetSoapActions returns SoapServiceResolverInput.SoapActions, and is useful for accessing the field via an interface.
+func (v *SoapServiceResolverInput) GetSoapActions() []string { return v.SoapActions }
+
+// GetBaseUri returns SoapServiceResolverInput.BaseUri, and is useful for accessing the field via an interface.
+func (v *SoapServiceResolverInput) GetBaseUri() string { return v.BaseUri }
+
+// GetResolutionPath returns SoapServiceResolverInput.ResolutionPath, and is useful for accessing the field via an interface.
+func (v *SoapServiceResolverInput) GetResolutionPath() string { return v.ResolutionPath }
 
 type SoapVersion string
 
@@ -1827,6 +2469,8 @@ func (v *UserMappingInput) GetPasswdType() *PasswdStrategyInput { return v.Passw
 type WebApiServiceInput struct {
 	// The internal entity unique identifier
 	Goid string `json:"goid"`
+	// The guid for this service, if none provided, assigned at creation
+	Guid string `json:"guid"`
 	// The folder path where to create this service.  If the path does not exist, it will be created
 	FolderPath string `json:"folderPath"`
 	// The name of the service
@@ -1848,6 +2492,9 @@ type WebApiServiceInput struct {
 
 // GetGoid returns WebApiServiceInput.Goid, and is useful for accessing the field via an interface.
 func (v *WebApiServiceInput) GetGoid() string { return v.Goid }
+
+// GetGuid returns WebApiServiceInput.Guid, and is useful for accessing the field via an interface.
+func (v *WebApiServiceInput) GetGuid() string { return v.Guid }
 
 // GetFolderPath returns WebApiServiceInput.FolderPath, and is useful for accessing the field via an interface.
 func (v *WebApiServiceInput) GetFolderPath() string { return v.FolderPath }
@@ -1881,35 +2528,61 @@ func (v *WebApiServiceInput) GetChecksum() string { return v.Checksum }
 
 // __applyBundleInput is used internally by genqlient
 type __applyBundleInput struct {
-	ClusterProperties      []*ClusterPropertyInput      `json:"clusterProperties,omitempty"`
-	WebApiServices         []*WebApiServiceInput        `json:"webApiServices,omitempty"`
-	EncassConfigs          []*EncassConfigInput         `json:"encassConfigs,omitempty"`
-	TrustedCerts           []*TrustedCertInput          `json:"trustedCerts,omitempty"`
-	Dtds                   []*DtdInput                  `json:"dtds,omitempty"`
-	Schemas                []*SchemaInput               `json:"schemas,omitempty"`
-	JdbcConnections        []*JdbcConnectionInput       `json:"jdbcConnections,omitempty"`
-	SoapServices           []*SoapServiceInput          `json:"soapServices,omitempty"`
-	PolicyFragments        []*PolicyFragmentInput       `json:"policyFragments,omitempty"`
-	Fips                   []*FipInput                  `json:"fips,omitempty"`
-	Ldaps                  []*LdapInput                 `json:"ldaps,omitempty"`
-	FipGroups              []*FipGroupInput             `json:"fipGroups,omitempty"`
-	InternalGroups         []*InternalGroupInput        `json:"internalGroups,omitempty"`
-	FipUsers               []*FipUserInput              `json:"fipUsers,omitempty"`
-	InternalUsers          []*InternalUserInput         `json:"internalUsers,omitempty"`
-	Keys                   []*KeyInput                  `json:"keys,omitempty"`
-	Secrets                []*SecretInput               `json:"secrets,omitempty"`
-	CassandraConnections   []*CassandraConnectionInput  `json:"cassandraConnections,omitempty"`
-	JmsDestinations        []*JmsDestinationInput       `json:"jmsDestinations,omitempty"`
-	InternalWebApiServices []*WebApiServiceInput        `json:"internalWebApiServices,omitempty"`
-	InternalSoapServices   []*SoapServiceInput          `json:"internalSoapServices,omitempty"`
-	EmailListeners         []*EmailListenerInput        `json:"emailListeners,omitempty"`
-	ListenPorts            []*ListenPortInput           `json:"listenPorts,omitempty"`
-	ActiveConnectors       []*ActiveConnectorInput      `json:"activeConnectors,omitempty"`
-	SmConfigs              []*SMConfigInput             `json:"smConfigs,omitempty"`
-	GlobalPolicies         []*GlobalPolicyInput         `json:"globalPolicies,omitempty"`
-	BackgroundTaskPolicies []*BackgroundTaskPolicyInput `json:"backgroundTaskPolicies,omitempty"`
-	ScheduledTasks         []*ScheduledTaskInput        `json:"scheduledTasks,omitempty"`
-	ServerModuleFiles      []*ServerModuleFileInput     `json:"serverModuleFiles,omitempty"`
+	ActiveConnectors                    []*ActiveConnectorInput                   `json:"activeConnectors,omitempty"`
+	AdministrativeUserAccountProperties []*AdministrativeUserAccountPropertyInput `json:"administrativeUserAccountProperties,omitempty"`
+	BackgroundTaskPolicies              []*BackgroundTaskPolicyInput              `json:"backgroundTaskPolicies,omitempty"`
+	CassandraConnections                []*CassandraConnectionInput               `json:"cassandraConnections,omitempty"`
+	ClusterProperties                   []*ClusterPropertyInput                   `json:"clusterProperties,omitempty"`
+	Dtds                                []*DtdInput                               `json:"dtds,omitempty"`
+	EmailListeners                      []*EmailListenerInput                     `json:"emailListeners,omitempty"`
+	EncassConfigs                       []*EncassConfigInput                      `json:"encassConfigs,omitempty"`
+	FipGroups                           []*FipGroupInput                          `json:"fipGroups,omitempty"`
+	FipUsers                            []*FipUserInput                           `json:"fipUsers,omitempty"`
+	Fips                                []*FipInput                               `json:"fips,omitempty"`
+	GlobalPolicies                      []*GlobalPolicyInput                      `json:"globalPolicies,omitempty"`
+	InternalGroups                      []*InternalGroupInput                     `json:"internalGroups,omitempty"`
+	InternalSoapServices                []*SoapServiceInput                       `json:"internalSoapServices,omitempty"`
+	InternalUsers                       []*InternalUserInput                      `json:"internalUsers,omitempty"`
+	InternalWebApiServices              []*WebApiServiceInput                     `json:"internalWebApiServices,omitempty"`
+	JdbcConnections                     []*JdbcConnectionInput                    `json:"jdbcConnections,omitempty"`
+	JmsDestinations                     []*JmsDestinationInput                    `json:"jmsDestinations,omitempty"`
+	Keys                                []*KeyInput                               `json:"keys,omitempty"`
+	Ldaps                               []*LdapInput                              `json:"ldaps,omitempty"`
+	ListenPorts                         []*ListenPortInput                        `json:"listenPorts,omitempty"`
+	PasswordPolicies                    []*PasswordPolicyInput                    `json:"passwordPolicies,omitempty"`
+	PolicyFragments                     []*PolicyFragmentInput                    `json:"policyFragments,omitempty"`
+	RevocationCheckPolicies             []*RevocationCheckPolicyInput             `json:"revocationCheckPolicies,omitempty"`
+	ScheduledTasks                      []*ScheduledTaskInput                     `json:"scheduledTasks,omitempty"`
+	LogSinks                            []*LogSinkInput                           `json:"logSinks,omitempty"`
+	Schemas                             []*SchemaInput                            `json:"schemas,omitempty"`
+	Secrets                             []*SecretInput                            `json:"secrets,omitempty"`
+	HttpConfigurations                  []*HttpConfigurationInput                 `json:"httpConfigurations,omitempty"`
+	CustomKeyValues                     []*CustomKeyValueInput                    `json:"customKeyValues,omitempty"`
+	ServerModuleFiles                   []*ServerModuleFileInput                  `json:"serverModuleFiles,omitempty"`
+	ServiceResolutionConfigs            []*ServiceResolutionConfigInput           `json:"serviceResolutionConfigs,omitempty"`
+	Folders                             []*FolderInput                            `json:"folders,omitempty"`
+	SmConfigs                           []*SMConfigInput                          `json:"smConfigs,omitempty"`
+	SoapServices                        []*SoapServiceInput                       `json:"soapServices,omitempty"`
+	TrustedCerts                        []*TrustedCertInput                       `json:"trustedCerts,omitempty"`
+	WebApiServices                      []*WebApiServiceInput                     `json:"webApiServices,omitempty"`
+}
+
+// GetActiveConnectors returns __applyBundleInput.ActiveConnectors, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetActiveConnectors() []*ActiveConnectorInput { return v.ActiveConnectors }
+
+// GetAdministrativeUserAccountProperties returns __applyBundleInput.AdministrativeUserAccountProperties, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetAdministrativeUserAccountProperties() []*AdministrativeUserAccountPropertyInput {
+	return v.AdministrativeUserAccountProperties
+}
+
+// GetBackgroundTaskPolicies returns __applyBundleInput.BackgroundTaskPolicies, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetBackgroundTaskPolicies() []*BackgroundTaskPolicyInput {
+	return v.BackgroundTaskPolicies
+}
+
+// GetCassandraConnections returns __applyBundleInput.CassandraConnections, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetCassandraConnections() []*CassandraConnectionInput {
+	return v.CassandraConnections
 }
 
 // GetClusterProperties returns __applyBundleInput.ClusterProperties, and is useful for accessing the field via an interface.
@@ -1917,99 +2590,113 @@ func (v *__applyBundleInput) GetClusterProperties() []*ClusterPropertyInput {
 	return v.ClusterProperties
 }
 
-// GetWebApiServices returns __applyBundleInput.WebApiServices, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetWebApiServices() []*WebApiServiceInput { return v.WebApiServices }
+// GetDtds returns __applyBundleInput.Dtds, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetDtds() []*DtdInput { return v.Dtds }
+
+// GetEmailListeners returns __applyBundleInput.EmailListeners, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetEmailListeners() []*EmailListenerInput { return v.EmailListeners }
 
 // GetEncassConfigs returns __applyBundleInput.EncassConfigs, and is useful for accessing the field via an interface.
 func (v *__applyBundleInput) GetEncassConfigs() []*EncassConfigInput { return v.EncassConfigs }
 
-// GetTrustedCerts returns __applyBundleInput.TrustedCerts, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetTrustedCerts() []*TrustedCertInput { return v.TrustedCerts }
-
-// GetDtds returns __applyBundleInput.Dtds, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetDtds() []*DtdInput { return v.Dtds }
-
-// GetSchemas returns __applyBundleInput.Schemas, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetSchemas() []*SchemaInput { return v.Schemas }
-
-// GetJdbcConnections returns __applyBundleInput.JdbcConnections, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetJdbcConnections() []*JdbcConnectionInput { return v.JdbcConnections }
-
-// GetSoapServices returns __applyBundleInput.SoapServices, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetSoapServices() []*SoapServiceInput { return v.SoapServices }
-
-// GetPolicyFragments returns __applyBundleInput.PolicyFragments, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetPolicyFragments() []*PolicyFragmentInput { return v.PolicyFragments }
-
-// GetFips returns __applyBundleInput.Fips, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetFips() []*FipInput { return v.Fips }
-
-// GetLdaps returns __applyBundleInput.Ldaps, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetLdaps() []*LdapInput { return v.Ldaps }
-
 // GetFipGroups returns __applyBundleInput.FipGroups, and is useful for accessing the field via an interface.
 func (v *__applyBundleInput) GetFipGroups() []*FipGroupInput { return v.FipGroups }
-
-// GetInternalGroups returns __applyBundleInput.InternalGroups, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetInternalGroups() []*InternalGroupInput { return v.InternalGroups }
 
 // GetFipUsers returns __applyBundleInput.FipUsers, and is useful for accessing the field via an interface.
 func (v *__applyBundleInput) GetFipUsers() []*FipUserInput { return v.FipUsers }
 
-// GetInternalUsers returns __applyBundleInput.InternalUsers, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetInternalUsers() []*InternalUserInput { return v.InternalUsers }
+// GetFips returns __applyBundleInput.Fips, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetFips() []*FipInput { return v.Fips }
 
-// GetKeys returns __applyBundleInput.Keys, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetKeys() []*KeyInput { return v.Keys }
+// GetGlobalPolicies returns __applyBundleInput.GlobalPolicies, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetGlobalPolicies() []*GlobalPolicyInput { return v.GlobalPolicies }
 
-// GetSecrets returns __applyBundleInput.Secrets, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetSecrets() []*SecretInput { return v.Secrets }
-
-// GetCassandraConnections returns __applyBundleInput.CassandraConnections, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetCassandraConnections() []*CassandraConnectionInput {
-	return v.CassandraConnections
-}
-
-// GetJmsDestinations returns __applyBundleInput.JmsDestinations, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetJmsDestinations() []*JmsDestinationInput { return v.JmsDestinations }
-
-// GetInternalWebApiServices returns __applyBundleInput.InternalWebApiServices, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetInternalWebApiServices() []*WebApiServiceInput {
-	return v.InternalWebApiServices
-}
+// GetInternalGroups returns __applyBundleInput.InternalGroups, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetInternalGroups() []*InternalGroupInput { return v.InternalGroups }
 
 // GetInternalSoapServices returns __applyBundleInput.InternalSoapServices, and is useful for accessing the field via an interface.
 func (v *__applyBundleInput) GetInternalSoapServices() []*SoapServiceInput {
 	return v.InternalSoapServices
 }
 
-// GetEmailListeners returns __applyBundleInput.EmailListeners, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetEmailListeners() []*EmailListenerInput { return v.EmailListeners }
+// GetInternalUsers returns __applyBundleInput.InternalUsers, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetInternalUsers() []*InternalUserInput { return v.InternalUsers }
+
+// GetInternalWebApiServices returns __applyBundleInput.InternalWebApiServices, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetInternalWebApiServices() []*WebApiServiceInput {
+	return v.InternalWebApiServices
+}
+
+// GetJdbcConnections returns __applyBundleInput.JdbcConnections, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetJdbcConnections() []*JdbcConnectionInput { return v.JdbcConnections }
+
+// GetJmsDestinations returns __applyBundleInput.JmsDestinations, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetJmsDestinations() []*JmsDestinationInput { return v.JmsDestinations }
+
+// GetKeys returns __applyBundleInput.Keys, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetKeys() []*KeyInput { return v.Keys }
+
+// GetLdaps returns __applyBundleInput.Ldaps, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetLdaps() []*LdapInput { return v.Ldaps }
 
 // GetListenPorts returns __applyBundleInput.ListenPorts, and is useful for accessing the field via an interface.
 func (v *__applyBundleInput) GetListenPorts() []*ListenPortInput { return v.ListenPorts }
 
-// GetActiveConnectors returns __applyBundleInput.ActiveConnectors, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetActiveConnectors() []*ActiveConnectorInput { return v.ActiveConnectors }
+// GetPasswordPolicies returns __applyBundleInput.PasswordPolicies, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetPasswordPolicies() []*PasswordPolicyInput { return v.PasswordPolicies }
 
-// GetSmConfigs returns __applyBundleInput.SmConfigs, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetSmConfigs() []*SMConfigInput { return v.SmConfigs }
+// GetPolicyFragments returns __applyBundleInput.PolicyFragments, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetPolicyFragments() []*PolicyFragmentInput { return v.PolicyFragments }
 
-// GetGlobalPolicies returns __applyBundleInput.GlobalPolicies, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetGlobalPolicies() []*GlobalPolicyInput { return v.GlobalPolicies }
-
-// GetBackgroundTaskPolicies returns __applyBundleInput.BackgroundTaskPolicies, and is useful for accessing the field via an interface.
-func (v *__applyBundleInput) GetBackgroundTaskPolicies() []*BackgroundTaskPolicyInput {
-	return v.BackgroundTaskPolicies
+// GetRevocationCheckPolicies returns __applyBundleInput.RevocationCheckPolicies, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetRevocationCheckPolicies() []*RevocationCheckPolicyInput {
+	return v.RevocationCheckPolicies
 }
 
 // GetScheduledTasks returns __applyBundleInput.ScheduledTasks, and is useful for accessing the field via an interface.
 func (v *__applyBundleInput) GetScheduledTasks() []*ScheduledTaskInput { return v.ScheduledTasks }
 
+// GetLogSinks returns __applyBundleInput.LogSinks, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetLogSinks() []*LogSinkInput { return v.LogSinks }
+
+// GetSchemas returns __applyBundleInput.Schemas, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetSchemas() []*SchemaInput { return v.Schemas }
+
+// GetSecrets returns __applyBundleInput.Secrets, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetSecrets() []*SecretInput { return v.Secrets }
+
+// GetHttpConfigurations returns __applyBundleInput.HttpConfigurations, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetHttpConfigurations() []*HttpConfigurationInput {
+	return v.HttpConfigurations
+}
+
+// GetCustomKeyValues returns __applyBundleInput.CustomKeyValues, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetCustomKeyValues() []*CustomKeyValueInput { return v.CustomKeyValues }
+
 // GetServerModuleFiles returns __applyBundleInput.ServerModuleFiles, and is useful for accessing the field via an interface.
 func (v *__applyBundleInput) GetServerModuleFiles() []*ServerModuleFileInput {
 	return v.ServerModuleFiles
 }
+
+// GetServiceResolutionConfigs returns __applyBundleInput.ServiceResolutionConfigs, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetServiceResolutionConfigs() []*ServiceResolutionConfigInput {
+	return v.ServiceResolutionConfigs
+}
+
+// GetFolders returns __applyBundleInput.Folders, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetFolders() []*FolderInput { return v.Folders }
+
+// GetSmConfigs returns __applyBundleInput.SmConfigs, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetSmConfigs() []*SMConfigInput { return v.SmConfigs }
+
+// GetSoapServices returns __applyBundleInput.SoapServices, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetSoapServices() []*SoapServiceInput { return v.SoapServices }
+
+// GetTrustedCerts returns __applyBundleInput.TrustedCerts, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetTrustedCerts() []*TrustedCertInput { return v.TrustedCerts }
+
+// GetWebApiServices returns __applyBundleInput.WebApiServices, and is useful for accessing the field via an interface.
+func (v *__applyBundleInput) GetWebApiServices() []*WebApiServiceInput { return v.WebApiServices }
 
 // __deleteL7PortalApiInput is used internally by genqlient
 type __deleteL7PortalApiInput struct {
@@ -2033,11 +2720,36 @@ type applyBundleResponse struct {
 	// exist, one will be created, otherwise the existing one will be updated. This returns the list of
 	// entities created and/or updated
 	SetClusterProperties *applyBundleSetClusterPropertiesClusterPropertiesPayload `json:"setClusterProperties"`
+	// Update Service Resolution Configs
+	SetServiceResolutionConfigs *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoad `json:"setServiceResolutionConfigs"`
+	// Set/Update the Password Policies
+	SetPasswordPolicies *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoad `json:"setPasswordPolicies"`
+	// Create or update existing Administrative User Account Minimum cluster properties.
+	// If Administrative User Account Minimum cluster property with the given name
+	// does not exist, one will be created, otherwise the existing one will be updated.
+	// This returns the list of entities created and/or updated.
+	// Below are the allowed Administrative User Account Minimum properties
+	// logonMaxAllowableAttempts : Logon attempts must be between 1 and 20
+	// logonLockoutTime : Lockout period must be between 1 and 86400 seconds
+	// logonSessionExpiry : Expiry period must be between 1 and 86400 seconds
+	// logonInactivityPeriod : Inactivity period must be between 1 and 365 days
+	SetAdministrativeUserAccountProperties *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayload `json:"setAdministrativeUserAccountProperties"`
+	// Set the Folders
+	SetFolders *applyBundleSetFoldersFoldersPayload `json:"setFolders"`
+	// Create or update existing revocation check policies.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetRevocationCheckPolicies *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayload `json:"setRevocationCheckPolicies"`
 	// Create or update trusted certificates.
 	// If a certificate with the same sha1 thumbprint already exist, it will be updated.
 	SetTrustedCerts *applyBundleSetTrustedCertsTrustedCertsPayload `json:"setTrustedCerts"`
 	// Creates or updates one or more secrets
 	SetSecrets *applyBundleSetSecretsSecretsPayload `json:"setSecrets"`
+	// Create or update existing http configuration.
+	SetHttpConfigurations *applyBundleSetHttpConfigurationsHttpConfigurationsPayload `json:"setHttpConfigurations"`
+	// Create or update existing custom key values data.  If a custom key value with the given key does not
+	// exist, one will be created, otherwise the existing one will be updated. This returns the list of
+	// entities created and/or updated
+	SetCustomKeyValues *applyBundleSetCustomKeyValuesCustomKeyValuePayload `json:"setCustomKeyValues"`
 	// Create or Update multiple XML schemas
 	SetSchemas *applyBundleSetSchemasSchemasPayload `json:"setSchemas"`
 	// Create or Update multiple DTD resources
@@ -2054,7 +2766,8 @@ type applyBundleResponse struct {
 	SetFipGroups *applyBundleSetFipGroupsFipGroupsPayload `json:"setFipGroups"`
 	// Creates or updates one or more internal groups
 	SetInternalGroups *applyBundleSetInternalGroupsInternalGroupsPayload `json:"setInternalGroups"`
-	// Creates or updates one or more fip users
+	// Creates or updates one or more fip users.
+	// NOTE: Existing user will be found by either login or subjectDn or name.
 	SetFipUsers *applyBundleSetFipUsersFipUsersPayload `json:"setFipUsers"`
 	// Creates or updates one or more internal users
 	SetInternalUsers *applyBundleSetInternalUsersInternalUsersPayload `json:"setInternalUsers"`
@@ -2097,6 +2810,10 @@ type applyBundleResponse struct {
 	SetActiveConnectors *applyBundleSetActiveConnectorsActiveConnectorsPayload `json:"setActiveConnectors"`
 	// Creates or updates one or more scheduled tasks
 	SetScheduledTasks *applyBundleSetScheduledTasksScheduledTasksPayload `json:"setScheduledTasks"`
+	// Create or update Log Sinks.
+	// If Log Sink with the same name exist, the Log Sink will be updated.
+	// If no Log Sink with the name exist, a new Log Sink will be created.
+	SetLogSinks *applyBundleSetLogSinksLogSinksPayload `json:"setLogSinks"`
 	// Creates or updates one or more keys
 	SetKeys *applyBundleSetKeysKeysPayload `json:"setKeys"`
 }
@@ -2111,6 +2828,31 @@ func (v *applyBundleResponse) GetSetClusterProperties() *applyBundleSetClusterPr
 	return v.SetClusterProperties
 }
 
+// GetSetServiceResolutionConfigs returns applyBundleResponse.SetServiceResolutionConfigs, and is useful for accessing the field via an interface.
+func (v *applyBundleResponse) GetSetServiceResolutionConfigs() *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoad {
+	return v.SetServiceResolutionConfigs
+}
+
+// GetSetPasswordPolicies returns applyBundleResponse.SetPasswordPolicies, and is useful for accessing the field via an interface.
+func (v *applyBundleResponse) GetSetPasswordPolicies() *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoad {
+	return v.SetPasswordPolicies
+}
+
+// GetSetAdministrativeUserAccountProperties returns applyBundleResponse.SetAdministrativeUserAccountProperties, and is useful for accessing the field via an interface.
+func (v *applyBundleResponse) GetSetAdministrativeUserAccountProperties() *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayload {
+	return v.SetAdministrativeUserAccountProperties
+}
+
+// GetSetFolders returns applyBundleResponse.SetFolders, and is useful for accessing the field via an interface.
+func (v *applyBundleResponse) GetSetFolders() *applyBundleSetFoldersFoldersPayload {
+	return v.SetFolders
+}
+
+// GetSetRevocationCheckPolicies returns applyBundleResponse.SetRevocationCheckPolicies, and is useful for accessing the field via an interface.
+func (v *applyBundleResponse) GetSetRevocationCheckPolicies() *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayload {
+	return v.SetRevocationCheckPolicies
+}
+
 // GetSetTrustedCerts returns applyBundleResponse.SetTrustedCerts, and is useful for accessing the field via an interface.
 func (v *applyBundleResponse) GetSetTrustedCerts() *applyBundleSetTrustedCertsTrustedCertsPayload {
 	return v.SetTrustedCerts
@@ -2119,6 +2861,16 @@ func (v *applyBundleResponse) GetSetTrustedCerts() *applyBundleSetTrustedCertsTr
 // GetSetSecrets returns applyBundleResponse.SetSecrets, and is useful for accessing the field via an interface.
 func (v *applyBundleResponse) GetSetSecrets() *applyBundleSetSecretsSecretsPayload {
 	return v.SetSecrets
+}
+
+// GetSetHttpConfigurations returns applyBundleResponse.SetHttpConfigurations, and is useful for accessing the field via an interface.
+func (v *applyBundleResponse) GetSetHttpConfigurations() *applyBundleSetHttpConfigurationsHttpConfigurationsPayload {
+	return v.SetHttpConfigurations
+}
+
+// GetSetCustomKeyValues returns applyBundleResponse.SetCustomKeyValues, and is useful for accessing the field via an interface.
+func (v *applyBundleResponse) GetSetCustomKeyValues() *applyBundleSetCustomKeyValuesCustomKeyValuePayload {
+	return v.SetCustomKeyValues
 }
 
 // GetSetSchemas returns applyBundleResponse.SetSchemas, and is useful for accessing the field via an interface.
@@ -2235,19 +2987,17 @@ func (v *applyBundleResponse) GetSetScheduledTasks() *applyBundleSetScheduledTas
 	return v.SetScheduledTasks
 }
 
+// GetSetLogSinks returns applyBundleResponse.SetLogSinks, and is useful for accessing the field via an interface.
+func (v *applyBundleResponse) GetSetLogSinks() *applyBundleSetLogSinksLogSinksPayload {
+	return v.SetLogSinks
+}
+
 // GetSetKeys returns applyBundleResponse.SetKeys, and is useful for accessing the field via an interface.
 func (v *applyBundleResponse) GetSetKeys() *applyBundleSetKeysKeysPayload { return v.SetKeys }
 
 // applyBundleSetActiveConnectorsActiveConnectorsPayload includes the requested fields of the GraphQL type ActiveConnectorsPayload.
 type applyBundleSetActiveConnectorsActiveConnectorsPayload struct {
-	// The mutated active connectors
-	ActiveConnectors []*applyBundleSetActiveConnectorsActiveConnectorsPayloadActiveConnectorsActiveConnector            `json:"activeConnectors"`
-	DetailedStatus   []*applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetActiveConnectors returns applyBundleSetActiveConnectorsActiveConnectorsPayload.ActiveConnectors, and is useful for accessing the field via an interface.
-func (v *applyBundleSetActiveConnectorsActiveConnectorsPayload) GetActiveConnectors() []*applyBundleSetActiveConnectorsActiveConnectorsPayloadActiveConnectorsActiveConnector {
-	return v.ActiveConnectors
+	DetailedStatus []*applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetActiveConnectorsActiveConnectorsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2255,21 +3005,18 @@ func (v *applyBundleSetActiveConnectorsActiveConnectorsPayload) GetDetailedStatu
 	return v.DetailedStatus
 }
 
-// applyBundleSetActiveConnectorsActiveConnectorsPayloadActiveConnectorsActiveConnector includes the requested fields of the GraphQL type ActiveConnector.
-type applyBundleSetActiveConnectorsActiveConnectorsPayloadActiveConnectorsActiveConnector struct {
-	// The goid for the active connector
-	Goid string `json:"goid"`
-}
-
-// GetGoid returns applyBundleSetActiveConnectorsActiveConnectorsPayloadActiveConnectorsActiveConnector.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadActiveConnectorsActiveConnector) GetGoid() string {
-	return v.Goid
-}
-
 // applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                                `json:"action"`
+	Status      EntityMutationStatus                                                                                                `json:"status"`
+	Description string                                                                                                              `json:"description"`
+	Source      []*applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2282,15 +3029,135 @@ func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEnti
 	return v.Description
 }
 
-// applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload includes the requested fields of the GraphQL type BackgroundTaskPoliciesPayload.
-type applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload struct {
-	BackgroundTaskPolicies []*applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadBackgroundTaskPoliciesBackgroundTaskPolicy `json:"backgroundTaskPolicies"`
-	DetailedStatus         []*applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+// GetSource returns applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetBackgroundTaskPolicies returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload.BackgroundTaskPolicies, and is useful for accessing the field via an interface.
-func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload) GetBackgroundTaskPolicies() []*applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadBackgroundTaskPoliciesBackgroundTaskPolicy {
-	return v.BackgroundTaskPolicies
+// GetTarget returns applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetActiveConnectorsActiveConnectorsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayload includes the requested fields of the GraphQL type AdministrativeUserAccountPropertiesPayload.
+type applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayload struct {
+	DetailedStatus []*applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayload) GetDetailedStatus() []*applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                                                                      `json:"action"`
+	Status      EntityMutationStatus                                                                                                                                      `json:"status"`
+	Description string                                                                                                                                                    `json:"description"`
+	Source      []*applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload includes the requested fields of the GraphQL type BackgroundTaskPoliciesPayload.
+type applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload struct {
+	DetailedStatus []*applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2298,24 +3165,18 @@ func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload) GetD
 	return v.DetailedStatus
 }
 
-// applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadBackgroundTaskPoliciesBackgroundTaskPolicy includes the requested fields of the GraphQL type BackgroundTaskPolicy.
-// The GraphQL type's documentation follows.
-//
-// A background task policy that is associated with a scheduled task to be run
-type applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadBackgroundTaskPoliciesBackgroundTaskPolicy struct {
-	// The internal entity unique identifier
-	Goid string `json:"goid"`
-}
-
-// GetGoid returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadBackgroundTaskPoliciesBackgroundTaskPolicy.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadBackgroundTaskPoliciesBackgroundTaskPolicy) GetGoid() string {
-	return v.Goid
-}
-
 // applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                                            `json:"action"`
+	Status      EntityMutationStatus                                                                                                            `json:"status"`
+	Description string                                                                                                                          `json:"description"`
+	Source      []*applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2328,16 +3189,55 @@ func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetail
 	return v.Description
 }
 
-// applyBundleSetCassandraConnectionsCassandraConnectionsPayload includes the requested fields of the GraphQL type CassandraConnectionsPayload.
-type applyBundleSetCassandraConnectionsCassandraConnectionsPayload struct {
-	// The mutated Cassandra connections.
-	CassandraConnections []*applyBundleSetCassandraConnectionsCassandraConnectionsPayloadCassandraConnectionsCassandraConnection    `json:"cassandraConnections"`
-	DetailedStatus       []*applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+// GetSource returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetCassandraConnections returns applyBundleSetCassandraConnectionsCassandraConnectionsPayload.CassandraConnections, and is useful for accessing the field via an interface.
-func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayload) GetCassandraConnections() []*applyBundleSetCassandraConnectionsCassandraConnectionsPayloadCassandraConnectionsCassandraConnection {
-	return v.CassandraConnections
+// GetTarget returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetCassandraConnectionsCassandraConnectionsPayload includes the requested fields of the GraphQL type CassandraConnectionsPayload.
+type applyBundleSetCassandraConnectionsCassandraConnectionsPayload struct {
+	DetailedStatus []*applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetCassandraConnectionsCassandraConnectionsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2345,24 +3245,18 @@ func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayload) GetDetai
 	return v.DetailedStatus
 }
 
-// applyBundleSetCassandraConnectionsCassandraConnectionsPayloadCassandraConnectionsCassandraConnection includes the requested fields of the GraphQL type CassandraConnection.
-// The GraphQL type's documentation follows.
-//
-// A Cassandra Connection
-type applyBundleSetCassandraConnectionsCassandraConnectionsPayloadCassandraConnectionsCassandraConnection struct {
-	// The goid for the Cassandra Connection
-	Goid string `json:"goid"`
-}
-
-// GetGoid returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadCassandraConnectionsCassandraConnection.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadCassandraConnectionsCassandraConnection) GetGoid() string {
-	return v.Goid
-}
-
 // applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                                        `json:"action"`
+	Status      EntityMutationStatus                                                                                                        `json:"status"`
+	Description string                                                                                                                      `json:"description"`
+	Source      []*applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2375,15 +3269,55 @@ func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedSt
 	return v.Description
 }
 
-// applyBundleSetClusterPropertiesClusterPropertiesPayload includes the requested fields of the GraphQL type ClusterPropertiesPayload.
-type applyBundleSetClusterPropertiesClusterPropertiesPayload struct {
-	ClusterProperties []*applyBundleSetClusterPropertiesClusterPropertiesPayloadClusterPropertiesClusterProperty           `json:"clusterProperties"`
-	DetailedStatus    []*applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+// GetSource returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetClusterProperties returns applyBundleSetClusterPropertiesClusterPropertiesPayload.ClusterProperties, and is useful for accessing the field via an interface.
-func (v *applyBundleSetClusterPropertiesClusterPropertiesPayload) GetClusterProperties() []*applyBundleSetClusterPropertiesClusterPropertiesPayloadClusterPropertiesClusterProperty {
-	return v.ClusterProperties
+// GetTarget returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCassandraConnectionsCassandraConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetClusterPropertiesClusterPropertiesPayload includes the requested fields of the GraphQL type ClusterPropertiesPayload.
+type applyBundleSetClusterPropertiesClusterPropertiesPayload struct {
+	DetailedStatus []*applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetClusterPropertiesClusterPropertiesPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2391,24 +3325,18 @@ func (v *applyBundleSetClusterPropertiesClusterPropertiesPayload) GetDetailedSta
 	return v.DetailedStatus
 }
 
-// applyBundleSetClusterPropertiesClusterPropertiesPayloadClusterPropertiesClusterProperty includes the requested fields of the GraphQL type ClusterProperty.
-// The GraphQL type's documentation follows.
-//
-// Cluster properties are used to set global properties
-type applyBundleSetClusterPropertiesClusterPropertiesPayloadClusterPropertiesClusterProperty struct {
-	// The goid for the cluster property
-	Goid string `json:"goid"`
-}
-
-// GetGoid returns applyBundleSetClusterPropertiesClusterPropertiesPayloadClusterPropertiesClusterProperty.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadClusterPropertiesClusterProperty) GetGoid() string {
-	return v.Goid
-}
-
 // applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                                  `json:"action"`
+	Status      EntityMutationStatus                                                                                                  `json:"status"`
+	Description string                                                                                                                `json:"description"`
+	Source      []*applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2421,15 +3349,135 @@ func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEn
 	return v.Description
 }
 
-// applyBundleSetDtdsDtdsPayload includes the requested fields of the GraphQL type DtdsPayload.
-type applyBundleSetDtdsDtdsPayload struct {
-	Dtds           []*applyBundleSetDtdsDtdsPayloadDtdsDtd                                    `json:"dtds"`
-	DetailedStatus []*applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+// GetSource returns applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetDtds returns applyBundleSetDtdsDtdsPayload.Dtds, and is useful for accessing the field via an interface.
-func (v *applyBundleSetDtdsDtdsPayload) GetDtds() []*applyBundleSetDtdsDtdsPayloadDtdsDtd {
-	return v.Dtds
+// GetTarget returns applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetClusterPropertiesClusterPropertiesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetCustomKeyValuesCustomKeyValuePayload includes the requested fields of the GraphQL type CustomKeyValuePayload.
+type applyBundleSetCustomKeyValuesCustomKeyValuePayload struct {
+	DetailedStatus []*applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns applyBundleSetCustomKeyValuesCustomKeyValuePayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayload) GetDetailedStatus() []*applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                             `json:"action"`
+	Status      EntityMutationStatus                                                                                             `json:"status"`
+	Description string                                                                                                           `json:"description"`
+	Source      []*applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetCustomKeyValuesCustomKeyValuePayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetDtdsDtdsPayload includes the requested fields of the GraphQL type DtdsPayload.
+type applyBundleSetDtdsDtdsPayload struct {
+	DetailedStatus []*applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetDtdsDtdsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2439,8 +3487,16 @@ func (v *applyBundleSetDtdsDtdsPayload) GetDetailedStatus() []*applyBundleSetDtd
 
 // applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                        `json:"action"`
+	Status      EntityMutationStatus                                                                        `json:"status"`
+	Description string                                                                                      `json:"description"`
+	Source      []*applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2453,28 +3509,55 @@ func (v *applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus
 	return v.Description
 }
 
-// applyBundleSetDtdsDtdsPayloadDtdsDtd includes the requested fields of the GraphQL type Dtd.
-// The GraphQL type's documentation follows.
-//
-// A Document Type Definition (DTD) which can be referred to in policy
-type applyBundleSetDtdsDtdsPayloadDtdsDtd struct {
-	// Internal goid for this DTD
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetDtdsDtdsPayloadDtdsDtd.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetDtdsDtdsPayloadDtdsDtd) GetGoid() string { return v.Goid }
+// GetTarget returns applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetDtdsDtdsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetEmailListenersEmailListenersPayload includes the requested fields of the GraphQL type EmailListenersPayload.
 type applyBundleSetEmailListenersEmailListenersPayload struct {
-	// The mutated email listener connections.
-	EmailListeners []*applyBundleSetEmailListenersEmailListenersPayloadEmailListenersEmailListener                `json:"emailListeners"`
 	DetailedStatus []*applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetEmailListeners returns applyBundleSetEmailListenersEmailListenersPayload.EmailListeners, and is useful for accessing the field via an interface.
-func (v *applyBundleSetEmailListenersEmailListenersPayload) GetEmailListeners() []*applyBundleSetEmailListenersEmailListenersPayloadEmailListenersEmailListener {
-	return v.EmailListeners
 }
 
 // GetDetailedStatus returns applyBundleSetEmailListenersEmailListenersPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2484,8 +3567,16 @@ func (v *applyBundleSetEmailListenersEmailListenersPayload) GetDetailedStatus() 
 
 // applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                            `json:"action"`
+	Status      EntityMutationStatus                                                                                            `json:"status"`
+	Description string                                                                                                          `json:"description"`
+	Source      []*applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2498,26 +3589,55 @@ func (v *applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMu
 	return v.Description
 }
 
-// applyBundleSetEmailListenersEmailListenersPayloadEmailListenersEmailListener includes the requested fields of the GraphQL type EmailListener.
-type applyBundleSetEmailListenersEmailListenersPayloadEmailListenersEmailListener struct {
-	// The goid for the email listener Connection
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetEmailListenersEmailListenersPayloadEmailListenersEmailListener.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetEmailListenersEmailListenersPayloadEmailListenersEmailListener) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEmailListenersEmailListenersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetEncassConfigsEncassConfigsPayload includes the requested fields of the GraphQL type EncassConfigsPayload.
 type applyBundleSetEncassConfigsEncassConfigsPayload struct {
-	EncassConfigs  []*applyBundleSetEncassConfigsEncassConfigsPayloadEncassConfigsEncassConfig                  `json:"encassConfigs"`
 	DetailedStatus []*applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetEncassConfigs returns applyBundleSetEncassConfigsEncassConfigsPayload.EncassConfigs, and is useful for accessing the field via an interface.
-func (v *applyBundleSetEncassConfigsEncassConfigsPayload) GetEncassConfigs() []*applyBundleSetEncassConfigsEncassConfigsPayloadEncassConfigsEncassConfig {
-	return v.EncassConfigs
 }
 
 // GetDetailedStatus returns applyBundleSetEncassConfigsEncassConfigsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2527,8 +3647,16 @@ func (v *applyBundleSetEncassConfigsEncassConfigsPayload) GetDetailedStatus() []
 
 // applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                          `json:"action"`
+	Status      EntityMutationStatus                                                                                          `json:"status"`
+	Description string                                                                                                        `json:"description"`
+	Source      []*applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2541,29 +3669,55 @@ func (v *applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMuta
 	return v.Description
 }
 
-// applyBundleSetEncassConfigsEncassConfigsPayloadEncassConfigsEncassConfig includes the requested fields of the GraphQL type EncassConfig.
-// The GraphQL type's documentation follows.
-//
-// An Encapsulated Assertion Configuration
-type applyBundleSetEncassConfigsEncassConfigsPayloadEncassConfigsEncassConfig struct {
-	// The goid for this encass config
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetEncassConfigsEncassConfigsPayloadEncassConfigsEncassConfig.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetEncassConfigsEncassConfigsPayloadEncassConfigsEncassConfig) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetEncassConfigsEncassConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetFipGroupsFipGroupsPayload includes the requested fields of the GraphQL type FipGroupsPayload.
 type applyBundleSetFipGroupsFipGroupsPayload struct {
-	FipGroups      []*applyBundleSetFipGroupsFipGroupsPayloadFipGroupsFipGroup                          `json:"fipGroups"`
 	DetailedStatus []*applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetFipGroups returns applyBundleSetFipGroupsFipGroupsPayload.FipGroups, and is useful for accessing the field via an interface.
-func (v *applyBundleSetFipGroupsFipGroupsPayload) GetFipGroups() []*applyBundleSetFipGroupsFipGroupsPayloadFipGroupsFipGroup {
-	return v.FipGroups
 }
 
 // GetDetailedStatus returns applyBundleSetFipGroupsFipGroupsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2573,8 +3727,16 @@ func (v *applyBundleSetFipGroupsFipGroupsPayload) GetDetailedStatus() []*applyBu
 
 // applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                  `json:"action"`
+	Status      EntityMutationStatus                                                                                  `json:"status"`
+	Description string                                                                                                `json:"description"`
+	Source      []*applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2587,26 +3749,55 @@ func (v *applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDeta
 	return v.Description
 }
 
-// applyBundleSetFipGroupsFipGroupsPayloadFipGroupsFipGroup includes the requested fields of the GraphQL type FipGroup.
-// The GraphQL type's documentation follows.
-//
-// A group defined in a federated identity provider
-type applyBundleSetFipGroupsFipGroupsPayloadFipGroupsFipGroup struct {
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetFipGroupsFipGroupsPayloadFipGroupsFipGroup.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetFipGroupsFipGroupsPayloadFipGroupsFipGroup) GetGoid() string { return v.Goid }
+// GetTarget returns applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipGroupsFipGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetFipUsersFipUsersPayload includes the requested fields of the GraphQL type FipUsersPayload.
 type applyBundleSetFipUsersFipUsersPayload struct {
-	FipUsers       []*applyBundleSetFipUsersFipUsersPayloadFipUsersFipUser                            `json:"fipUsers"`
 	DetailedStatus []*applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetFipUsers returns applyBundleSetFipUsersFipUsersPayload.FipUsers, and is useful for accessing the field via an interface.
-func (v *applyBundleSetFipUsersFipUsersPayload) GetFipUsers() []*applyBundleSetFipUsersFipUsersPayloadFipUsersFipUser {
-	return v.FipUsers
 }
 
 // GetDetailedStatus returns applyBundleSetFipUsersFipUsersPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2616,8 +3807,16 @@ func (v *applyBundleSetFipUsersFipUsersPayload) GetDetailedStatus() []*applyBund
 
 // applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                `json:"action"`
+	Status      EntityMutationStatus                                                                                `json:"status"`
+	Description string                                                                                              `json:"description"`
+	Source      []*applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2630,26 +3829,55 @@ func (v *applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetail
 	return v.Description
 }
 
-// applyBundleSetFipUsersFipUsersPayloadFipUsersFipUser includes the requested fields of the GraphQL type FipUser.
-// The GraphQL type's documentation follows.
-//
-// A user defined in a federated identity provider
-type applyBundleSetFipUsersFipUsersPayloadFipUsersFipUser struct {
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetFipUsersFipUsersPayloadFipUsersFipUser.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetFipUsersFipUsersPayloadFipUsersFipUser) GetGoid() string { return v.Goid }
+// GetTarget returns applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipUsersFipUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetFipsFipsPayload includes the requested fields of the GraphQL type FipsPayload.
 type applyBundleSetFipsFipsPayload struct {
-	Fips           []*applyBundleSetFipsFipsPayloadFipsFip                                    `json:"fips"`
 	DetailedStatus []*applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetFips returns applyBundleSetFipsFipsPayload.Fips, and is useful for accessing the field via an interface.
-func (v *applyBundleSetFipsFipsPayload) GetFips() []*applyBundleSetFipsFipsPayloadFipsFip {
-	return v.Fips
 }
 
 // GetDetailedStatus returns applyBundleSetFipsFipsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2659,8 +3887,16 @@ func (v *applyBundleSetFipsFipsPayload) GetDetailedStatus() []*applyBundleSetFip
 
 // applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                        `json:"action"`
+	Status      EntityMutationStatus                                                                        `json:"status"`
+	Description string                                                                                      `json:"description"`
+	Source      []*applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2673,26 +3909,135 @@ func (v *applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus
 	return v.Description
 }
 
-// applyBundleSetFipsFipsPayloadFipsFip includes the requested fields of the GraphQL type Fip.
-// The GraphQL type's documentation follows.
-//
-// A Federated Identity Provider
-type applyBundleSetFipsFipsPayloadFipsFip struct {
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetFipsFipsPayloadFipsFip.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetFipsFipsPayloadFipsFip) GetGoid() string { return v.Goid }
+// GetTarget returns applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFipsFipsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetFoldersFoldersPayload includes the requested fields of the GraphQL type FoldersPayload.
+type applyBundleSetFoldersFoldersPayload struct {
+	DetailedStatus []*applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns applyBundleSetFoldersFoldersPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayload) GetDetailedStatus() []*applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                              `json:"action"`
+	Status      EntityMutationStatus                                                                              `json:"status"`
+	Description string                                                                                            `json:"description"`
+	Source      []*applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetFoldersFoldersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetGlobalPoliciesGlobalPoliciesPayload includes the requested fields of the GraphQL type GlobalPoliciesPayload.
 type applyBundleSetGlobalPoliciesGlobalPoliciesPayload struct {
-	GlobalPolicies []*applyBundleSetGlobalPoliciesGlobalPoliciesPayloadGlobalPoliciesGlobalPolicy                 `json:"globalPolicies"`
 	DetailedStatus []*applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetGlobalPolicies returns applyBundleSetGlobalPoliciesGlobalPoliciesPayload.GlobalPolicies, and is useful for accessing the field via an interface.
-func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayload) GetGlobalPolicies() []*applyBundleSetGlobalPoliciesGlobalPoliciesPayloadGlobalPoliciesGlobalPolicy {
-	return v.GlobalPolicies
 }
 
 // GetDetailedStatus returns applyBundleSetGlobalPoliciesGlobalPoliciesPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2702,8 +4047,16 @@ func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayload) GetDetailedStatus() 
 
 // applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                            `json:"action"`
+	Status      EntityMutationStatus                                                                                            `json:"status"`
+	Description string                                                                                                          `json:"description"`
+	Source      []*applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2716,29 +4069,135 @@ func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMu
 	return v.Description
 }
 
-// applyBundleSetGlobalPoliciesGlobalPoliciesPayloadGlobalPoliciesGlobalPolicy includes the requested fields of the GraphQL type GlobalPolicy.
-// The GraphQL type's documentation follows.
-//
-// A Global policy
-type applyBundleSetGlobalPoliciesGlobalPoliciesPayloadGlobalPoliciesGlobalPolicy struct {
-	// The goid for this policy
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadGlobalPoliciesGlobalPolicy.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadGlobalPoliciesGlobalPolicy) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetGlobalPoliciesGlobalPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetHttpConfigurationsHttpConfigurationsPayload includes the requested fields of the GraphQL type HttpConfigurationsPayload.
+type applyBundleSetHttpConfigurationsHttpConfigurationsPayload struct {
+	DetailedStatus []*applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns applyBundleSetHttpConfigurationsHttpConfigurationsPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayload) GetDetailedStatus() []*applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                                    `json:"action"`
+	Status      EntityMutationStatus                                                                                                    `json:"status"`
+	Description string                                                                                                                  `json:"description"`
+	Source      []*applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetHttpConfigurationsHttpConfigurationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetInternalGroupsInternalGroupsPayload includes the requested fields of the GraphQL type InternalGroupsPayload.
 type applyBundleSetInternalGroupsInternalGroupsPayload struct {
-	InternalGroups []*applyBundleSetInternalGroupsInternalGroupsPayloadInternalGroupsInternalGroup                `json:"internalGroups"`
 	DetailedStatus []*applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetInternalGroups returns applyBundleSetInternalGroupsInternalGroupsPayload.InternalGroups, and is useful for accessing the field via an interface.
-func (v *applyBundleSetInternalGroupsInternalGroupsPayload) GetInternalGroups() []*applyBundleSetInternalGroupsInternalGroupsPayloadInternalGroupsInternalGroup {
-	return v.InternalGroups
 }
 
 // GetDetailedStatus returns applyBundleSetInternalGroupsInternalGroupsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2748,8 +4207,16 @@ func (v *applyBundleSetInternalGroupsInternalGroupsPayload) GetDetailedStatus() 
 
 // applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                            `json:"action"`
+	Status      EntityMutationStatus                                                                                            `json:"status"`
+	Description string                                                                                                          `json:"description"`
+	Source      []*applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2762,28 +4229,55 @@ func (v *applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMu
 	return v.Description
 }
 
-// applyBundleSetInternalGroupsInternalGroupsPayloadInternalGroupsInternalGroup includes the requested fields of the GraphQL type InternalGroup.
-// The GraphQL type's documentation follows.
-//
-// A group of users defined in the internal identity provider
-type applyBundleSetInternalGroupsInternalGroupsPayloadInternalGroupsInternalGroup struct {
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetInternalGroupsInternalGroupsPayloadInternalGroupsInternalGroup.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetInternalGroupsInternalGroupsPayloadInternalGroupsInternalGroup) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalGroupsInternalGroupsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetInternalSoapServicesInternalSoapServicesPayload includes the requested fields of the GraphQL type InternalSoapServicesPayload.
 type applyBundleSetInternalSoapServicesInternalSoapServicesPayload struct {
-	InternalSoapServices []*applyBundleSetInternalSoapServicesInternalSoapServicesPayloadInternalSoapServicesInternalSoapService    `json:"internalSoapServices"`
-	DetailedStatus       []*applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetInternalSoapServices returns applyBundleSetInternalSoapServicesInternalSoapServicesPayload.InternalSoapServices, and is useful for accessing the field via an interface.
-func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayload) GetInternalSoapServices() []*applyBundleSetInternalSoapServicesInternalSoapServicesPayloadInternalSoapServicesInternalSoapService {
-	return v.InternalSoapServices
+	DetailedStatus []*applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetInternalSoapServicesInternalSoapServicesPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2793,8 +4287,16 @@ func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayload) GetDetai
 
 // applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                                        `json:"action"`
+	Status      EntityMutationStatus                                                                                                        `json:"status"`
+	Description string                                                                                                                      `json:"description"`
+	Source      []*applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2807,29 +4309,55 @@ func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedSt
 	return v.Description
 }
 
-// applyBundleSetInternalSoapServicesInternalSoapServicesPayloadInternalSoapServicesInternalSoapService includes the requested fields of the GraphQL type InternalSoapService.
-// The GraphQL type's documentation follows.
-//
-// A Soap service published on the Layer7 Gateway
-type applyBundleSetInternalSoapServicesInternalSoapServicesPayloadInternalSoapServicesInternalSoapService struct {
-	// The goid for this service
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadInternalSoapServicesInternalSoapService.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadInternalSoapServicesInternalSoapService) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalSoapServicesInternalSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetInternalUsersInternalUsersPayload includes the requested fields of the GraphQL type InternalUsersPayload.
 type applyBundleSetInternalUsersInternalUsersPayload struct {
-	InternalUsers  []*applyBundleSetInternalUsersInternalUsersPayloadInternalUsersInternalUser                  `json:"internalUsers"`
 	DetailedStatus []*applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetInternalUsers returns applyBundleSetInternalUsersInternalUsersPayload.InternalUsers, and is useful for accessing the field via an interface.
-func (v *applyBundleSetInternalUsersInternalUsersPayload) GetInternalUsers() []*applyBundleSetInternalUsersInternalUsersPayloadInternalUsersInternalUser {
-	return v.InternalUsers
 }
 
 // GetDetailedStatus returns applyBundleSetInternalUsersInternalUsersPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2839,8 +4367,16 @@ func (v *applyBundleSetInternalUsersInternalUsersPayload) GetDetailedStatus() []
 
 // applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                          `json:"action"`
+	Status      EntityMutationStatus                                                                                          `json:"status"`
+	Description string                                                                                                        `json:"description"`
+	Source      []*applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2853,28 +4389,55 @@ func (v *applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMuta
 	return v.Description
 }
 
-// applyBundleSetInternalUsersInternalUsersPayloadInternalUsersInternalUser includes the requested fields of the GraphQL type InternalUser.
-// The GraphQL type's documentation follows.
-//
-// A user in the internal identity provider
-type applyBundleSetInternalUsersInternalUsersPayloadInternalUsersInternalUser struct {
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetInternalUsersInternalUsersPayloadInternalUsersInternalUser.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetInternalUsersInternalUsersPayloadInternalUsersInternalUser) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalUsersInternalUsersPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetInternalWebApiServicesInternalWebApiServicesPayload includes the requested fields of the GraphQL type InternalWebApiServicesPayload.
 type applyBundleSetInternalWebApiServicesInternalWebApiServicesPayload struct {
-	InternalWebApiServices []*applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadInternalWebApiServicesInternalWebApiService `json:"internalWebApiServices"`
-	DetailedStatus         []*applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus  `json:"detailedStatus"`
-}
-
-// GetInternalWebApiServices returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayload.InternalWebApiServices, and is useful for accessing the field via an interface.
-func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayload) GetInternalWebApiServices() []*applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadInternalWebApiServicesInternalWebApiService {
-	return v.InternalWebApiServices
+	DetailedStatus []*applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2884,8 +4447,16 @@ func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayload) GetD
 
 // applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                                            `json:"action"`
+	Status      EntityMutationStatus                                                                                                            `json:"status"`
+	Description string                                                                                                                          `json:"description"`
+	Source      []*applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2898,30 +4469,55 @@ func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetail
 	return v.Description
 }
 
-// applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadInternalWebApiServicesInternalWebApiService includes the requested fields of the GraphQL type InternalWebApiService.
-// The GraphQL type's documentation follows.
-//
-// A Internal Web API service published on the Layer7 Gateway
-type applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadInternalWebApiServicesInternalWebApiService struct {
-	// The goid for this service
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadInternalWebApiServicesInternalWebApiService.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadInternalWebApiServicesInternalWebApiService) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetInternalWebApiServicesInternalWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetJdbcConnectionsJdbcConnectionsPayload includes the requested fields of the GraphQL type JdbcConnectionsPayload.
 type applyBundleSetJdbcConnectionsJdbcConnectionsPayload struct {
-	// The created/updated JDBC connections.
-	JdbcConnections []*applyBundleSetJdbcConnectionsJdbcConnectionsPayloadJdbcConnectionsJdbcConnection              `json:"jdbcConnections"`
-	DetailedStatus  []*applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetJdbcConnections returns applyBundleSetJdbcConnectionsJdbcConnectionsPayload.JdbcConnections, and is useful for accessing the field via an interface.
-func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayload) GetJdbcConnections() []*applyBundleSetJdbcConnectionsJdbcConnectionsPayloadJdbcConnectionsJdbcConnection {
-	return v.JdbcConnections
+	DetailedStatus []*applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetJdbcConnectionsJdbcConnectionsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2931,8 +4527,16 @@ func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayload) GetDetailedStatus(
 
 // applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                              `json:"action"`
+	Status      EntityMutationStatus                                                                                              `json:"status"`
+	Description string                                                                                                            `json:"description"`
+	Source      []*applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2945,30 +4549,55 @@ func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntity
 	return v.Description
 }
 
-// applyBundleSetJdbcConnectionsJdbcConnectionsPayloadJdbcConnectionsJdbcConnection includes the requested fields of the GraphQL type JdbcConnection.
-// The GraphQL type's documentation follows.
-//
-// A JDBC Connection
-type applyBundleSetJdbcConnectionsJdbcConnectionsPayloadJdbcConnectionsJdbcConnection struct {
-	// The goid for the JDBC Connection
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadJdbcConnectionsJdbcConnection.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadJdbcConnectionsJdbcConnection) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJdbcConnectionsJdbcConnectionsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetJmsDestinationsJmsDestinationsPayload includes the requested fields of the GraphQL type JmsDestinationsPayload.
 type applyBundleSetJmsDestinationsJmsDestinationsPayload struct {
-	// The created/updated JMS destinations.
-	JmsDestinations []*applyBundleSetJmsDestinationsJmsDestinationsPayloadJmsDestinationsJmsDestination              `json:"jmsDestinations"`
-	DetailedStatus  []*applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetJmsDestinations returns applyBundleSetJmsDestinationsJmsDestinationsPayload.JmsDestinations, and is useful for accessing the field via an interface.
-func (v *applyBundleSetJmsDestinationsJmsDestinationsPayload) GetJmsDestinations() []*applyBundleSetJmsDestinationsJmsDestinationsPayloadJmsDestinationsJmsDestination {
-	return v.JmsDestinations
+	DetailedStatus []*applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetJmsDestinationsJmsDestinationsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -2978,8 +4607,16 @@ func (v *applyBundleSetJmsDestinationsJmsDestinationsPayload) GetDetailedStatus(
 
 // applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                              `json:"action"`
+	Status      EntityMutationStatus                                                                                              `json:"status"`
+	Description string                                                                                                            `json:"description"`
+	Source      []*applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -2992,29 +4629,55 @@ func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntity
 	return v.Description
 }
 
-// applyBundleSetJmsDestinationsJmsDestinationsPayloadJmsDestinationsJmsDestination includes the requested fields of the GraphQL type JmsDestination.
-// The GraphQL type's documentation follows.
-//
-// A JMS Destination
-type applyBundleSetJmsDestinationsJmsDestinationsPayloadJmsDestinationsJmsDestination struct {
-	// The goid for the JMS Destination
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetJmsDestinationsJmsDestinationsPayloadJmsDestinationsJmsDestination.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadJmsDestinationsJmsDestination) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetKeysKeysPayload includes the requested fields of the GraphQL type KeysPayload.
 type applyBundleSetKeysKeysPayload struct {
-	Keys           []*applyBundleSetKeysKeysPayloadKeysKey                                    `json:"keys"`
 	DetailedStatus []*applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetKeys returns applyBundleSetKeysKeysPayload.Keys, and is useful for accessing the field via an interface.
-func (v *applyBundleSetKeysKeysPayload) GetKeys() []*applyBundleSetKeysKeysPayloadKeysKey {
-	return v.Keys
 }
 
 // GetDetailedStatus returns applyBundleSetKeysKeysPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3024,8 +4687,16 @@ func (v *applyBundleSetKeysKeysPayload) GetDetailedStatus() []*applyBundleSetKey
 
 // applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                        `json:"action"`
+	Status      EntityMutationStatus                                                                        `json:"status"`
+	Description string                                                                                      `json:"description"`
+	Source      []*applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3038,30 +4709,55 @@ func (v *applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus
 	return v.Description
 }
 
-// applyBundleSetKeysKeysPayloadKeysKey includes the requested fields of the GraphQL type Key.
-// The GraphQL type's documentation follows.
-//
-// This is an entry in the gateway keystore. These entries combine a private
-// key and associated certificate and are used for example by listener ports
-// These represent the gateway's own certificates as opposed to the Certificate
-// type which represent a cert trusted by the gateway.
-type applyBundleSetKeysKeysPayloadKeysKey struct {
-	// The name assigned to the key
-	Alias string `json:"alias"`
+// GetSource returns applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetAlias returns applyBundleSetKeysKeysPayloadKeysKey.Alias, and is useful for accessing the field via an interface.
-func (v *applyBundleSetKeysKeysPayloadKeysKey) GetAlias() string { return v.Alias }
+// GetTarget returns applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetLdapsLdapsPayload includes the requested fields of the GraphQL type LdapsPayload.
 type applyBundleSetLdapsLdapsPayload struct {
-	Ldaps          []*applyBundleSetLdapsLdapsPayloadLdapsLdap                                  `json:"ldaps"`
 	DetailedStatus []*applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetLdaps returns applyBundleSetLdapsLdapsPayload.Ldaps, and is useful for accessing the field via an interface.
-func (v *applyBundleSetLdapsLdapsPayload) GetLdaps() []*applyBundleSetLdapsLdapsPayloadLdapsLdap {
-	return v.Ldaps
 }
 
 // GetDetailedStatus returns applyBundleSetLdapsLdapsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3071,8 +4767,16 @@ func (v *applyBundleSetLdapsLdapsPayload) GetDetailedStatus() []*applyBundleSetL
 
 // applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                          `json:"action"`
+	Status      EntityMutationStatus                                                                          `json:"status"`
+	Description string                                                                                        `json:"description"`
+	Source      []*applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3085,30 +4789,55 @@ func (v *applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStat
 	return v.Description
 }
 
-// applyBundleSetLdapsLdapsPayloadLdapsLdap includes the requested fields of the GraphQL type Ldap.
-// The GraphQL type's documentation follows.
-//
-// LdapIdp config itself is provided. Graphman wont get to
-// underlying users and groups in the ldap since they are not
-// part of the gateway configuration itself. When l7 policies
-// refer to these ldap users and groups, thee references are
-// interpreted by the ldap directory itself.
-type applyBundleSetLdapsLdapsPayloadLdapsLdap struct {
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetLdapsLdapsPayloadLdapsLdap.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetLdapsLdapsPayloadLdapsLdap) GetGoid() string { return v.Goid }
+// GetTarget returns applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLdapsLdapsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetListenPortsListenPortsPayload includes the requested fields of the GraphQL type ListenPortsPayload.
 type applyBundleSetListenPortsListenPortsPayload struct {
-	ListenPorts    []*applyBundleSetListenPortsListenPortsPayloadListenPortsListenPort                      `json:"listenPorts"`
 	DetailedStatus []*applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetListenPorts returns applyBundleSetListenPortsListenPortsPayload.ListenPorts, and is useful for accessing the field via an interface.
-func (v *applyBundleSetListenPortsListenPortsPayload) GetListenPorts() []*applyBundleSetListenPortsListenPortsPayloadListenPortsListenPort {
-	return v.ListenPorts
 }
 
 // GetDetailedStatus returns applyBundleSetListenPortsListenPortsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3118,8 +4847,16 @@ func (v *applyBundleSetListenPortsListenPortsPayload) GetDetailedStatus() []*app
 
 // applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                      `json:"action"`
+	Status      EntityMutationStatus                                                                                      `json:"status"`
+	Description string                                                                                                    `json:"description"`
+	Source      []*applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3132,26 +4869,215 @@ func (v *applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutation
 	return v.Description
 }
 
-// applyBundleSetListenPortsListenPortsPayloadListenPortsListenPort includes the requested fields of the GraphQL type ListenPort.
-type applyBundleSetListenPortsListenPortsPayloadListenPortsListenPort struct {
-	// The internal entity unique identifier
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetListenPortsListenPortsPayloadListenPortsListenPort.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetListenPortsListenPortsPayloadListenPortsListenPort) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetListenPortsListenPortsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetLogSinksLogSinksPayload includes the requested fields of the GraphQL type LogSinksPayload.
+type applyBundleSetLogSinksLogSinksPayload struct {
+	DetailedStatus []*applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns applyBundleSetLogSinksLogSinksPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayload) GetDetailedStatus() []*applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                `json:"action"`
+	Status      EntityMutationStatus                                                                                `json:"status"`
+	Description string                                                                                              `json:"description"`
+	Source      []*applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetLogSinksLogSinksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetPasswordPoliciesPasswordPoliciesPayLoad includes the requested fields of the GraphQL type PasswordPoliciesPayLoad.
+type applyBundleSetPasswordPoliciesPasswordPoliciesPayLoad struct {
+	DetailedStatus []*applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoad.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoad) GetDetailedStatus() []*applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                                `json:"action"`
+	Status      EntityMutationStatus                                                                                                `json:"status"`
+	Description string                                                                                                              `json:"description"`
+	Source      []*applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPasswordPoliciesPasswordPoliciesPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetPolicyFragmentsPolicyFragmentsPayload includes the requested fields of the GraphQL type PolicyFragmentsPayload.
 type applyBundleSetPolicyFragmentsPolicyFragmentsPayload struct {
-	PolicyFragments []*applyBundleSetPolicyFragmentsPolicyFragmentsPayloadPolicyFragmentsPolicyFragment              `json:"policyFragments"`
-	DetailedStatus  []*applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetPolicyFragments returns applyBundleSetPolicyFragmentsPolicyFragmentsPayload.PolicyFragments, and is useful for accessing the field via an interface.
-func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayload) GetPolicyFragments() []*applyBundleSetPolicyFragmentsPolicyFragmentsPayloadPolicyFragmentsPolicyFragment {
-	return v.PolicyFragments
+	DetailedStatus []*applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetPolicyFragmentsPolicyFragmentsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3161,8 +5087,16 @@ func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayload) GetDetailedStatus(
 
 // applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                              `json:"action"`
+	Status      EntityMutationStatus                                                                                              `json:"status"`
+	Description string                                                                                                            `json:"description"`
+	Source      []*applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3175,29 +5109,135 @@ func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntity
 	return v.Description
 }
 
-// applyBundleSetPolicyFragmentsPolicyFragmentsPayloadPolicyFragmentsPolicyFragment includes the requested fields of the GraphQL type PolicyFragment.
-// The GraphQL type's documentation follows.
-//
-// A policy fragment that can be included in another policy
-type applyBundleSetPolicyFragmentsPolicyFragmentsPayloadPolicyFragmentsPolicyFragment struct {
-	// The goid for this policy
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadPolicyFragmentsPolicyFragment.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadPolicyFragmentsPolicyFragment) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetPolicyFragmentsPolicyFragmentsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayload includes the requested fields of the GraphQL type RevocationCheckPoliciesPayload.
+type applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayload struct {
+	DetailedStatus []*applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayload) GetDetailedStatus() []*applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                                              `json:"action"`
+	Status      EntityMutationStatus                                                                                                              `json:"status"`
+	Description string                                                                                                                            `json:"description"`
+	Source      []*applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetSMConfigsSMConfigsPayload includes the requested fields of the GraphQL type SMConfigsPayload.
 type applyBundleSetSMConfigsSMConfigsPayload struct {
-	SmConfigs      []*applyBundleSetSMConfigsSMConfigsPayloadSmConfigsSMConfig                          `json:"smConfigs"`
 	DetailedStatus []*applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetSmConfigs returns applyBundleSetSMConfigsSMConfigsPayload.SmConfigs, and is useful for accessing the field via an interface.
-func (v *applyBundleSetSMConfigsSMConfigsPayload) GetSmConfigs() []*applyBundleSetSMConfigsSMConfigsPayloadSmConfigsSMConfig {
-	return v.SmConfigs
 }
 
 // GetDetailedStatus returns applyBundleSetSMConfigsSMConfigsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3207,8 +5247,16 @@ func (v *applyBundleSetSMConfigsSMConfigsPayload) GetDetailedStatus() []*applyBu
 
 // applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                  `json:"action"`
+	Status      EntityMutationStatus                                                                                  `json:"status"`
+	Description string                                                                                                `json:"description"`
+	Source      []*applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3221,24 +5269,55 @@ func (v *applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDeta
 	return v.Description
 }
 
-// applyBundleSetSMConfigsSMConfigsPayloadSmConfigsSMConfig includes the requested fields of the GraphQL type SMConfig.
-type applyBundleSetSMConfigsSMConfigsPayloadSmConfigsSMConfig struct {
-	// The goid for the CA SSO connection
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetSMConfigsSMConfigsPayloadSmConfigsSMConfig.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetSMConfigsSMConfigsPayloadSmConfigsSMConfig) GetGoid() string { return v.Goid }
+// GetTarget returns applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSMConfigsSMConfigsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetScheduledTasksScheduledTasksPayload includes the requested fields of the GraphQL type ScheduledTasksPayload.
 type applyBundleSetScheduledTasksScheduledTasksPayload struct {
-	ScheduledTasks []*applyBundleSetScheduledTasksScheduledTasksPayloadScheduledTasksScheduledTask                `json:"scheduledTasks"`
 	DetailedStatus []*applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetScheduledTasks returns applyBundleSetScheduledTasksScheduledTasksPayload.ScheduledTasks, and is useful for accessing the field via an interface.
-func (v *applyBundleSetScheduledTasksScheduledTasksPayload) GetScheduledTasks() []*applyBundleSetScheduledTasksScheduledTasksPayloadScheduledTasksScheduledTask {
-	return v.ScheduledTasks
 }
 
 // GetDetailedStatus returns applyBundleSetScheduledTasksScheduledTasksPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3248,8 +5327,16 @@ func (v *applyBundleSetScheduledTasksScheduledTasksPayload) GetDetailedStatus() 
 
 // applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                            `json:"action"`
+	Status      EntityMutationStatus                                                                                            `json:"status"`
+	Description string                                                                                                          `json:"description"`
+	Source      []*applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3262,29 +5349,55 @@ func (v *applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMu
 	return v.Description
 }
 
-// applyBundleSetScheduledTasksScheduledTasksPayloadScheduledTasksScheduledTask includes the requested fields of the GraphQL type ScheduledTask.
-// The GraphQL type's documentation follows.
-//
-// A scheduled task
-type applyBundleSetScheduledTasksScheduledTasksPayloadScheduledTasksScheduledTask struct {
-	// The internal entity unique identifier
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetScheduledTasksScheduledTasksPayloadScheduledTasksScheduledTask.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetScheduledTasksScheduledTasksPayloadScheduledTasksScheduledTask) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetScheduledTasksScheduledTasksPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetSchemasSchemasPayload includes the requested fields of the GraphQL type SchemasPayload.
 type applyBundleSetSchemasSchemasPayload struct {
-	Schemas        []*applyBundleSetSchemasSchemasPayloadSchemasSchema                              `json:"schemas"`
 	DetailedStatus []*applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetSchemas returns applyBundleSetSchemasSchemasPayload.Schemas, and is useful for accessing the field via an interface.
-func (v *applyBundleSetSchemasSchemasPayload) GetSchemas() []*applyBundleSetSchemasSchemasPayloadSchemasSchema {
-	return v.Schemas
 }
 
 // GetDetailedStatus returns applyBundleSetSchemasSchemasPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3294,8 +5407,16 @@ func (v *applyBundleSetSchemasSchemasPayload) GetDetailedStatus() []*applyBundle
 
 // applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                              `json:"action"`
+	Status      EntityMutationStatus                                                                              `json:"status"`
+	Description string                                                                                            `json:"description"`
+	Source      []*applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3308,27 +5429,55 @@ func (v *applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailed
 	return v.Description
 }
 
-// applyBundleSetSchemasSchemasPayloadSchemasSchema includes the requested fields of the GraphQL type Schema.
-// The GraphQL type's documentation follows.
-//
-// An XML Schema which can be referred to in policy, for example in the validate xml schema assertion
-type applyBundleSetSchemasSchemasPayloadSchemasSchema struct {
-	// Internal goid for this schema
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetSchemasSchemasPayloadSchemasSchema.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetSchemasSchemasPayloadSchemasSchema) GetGoid() string { return v.Goid }
+// GetTarget returns applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSchemasSchemasPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetSecretsSecretsPayload includes the requested fields of the GraphQL type SecretsPayload.
 type applyBundleSetSecretsSecretsPayload struct {
-	Secrets        []*applyBundleSetSecretsSecretsPayloadSecretsSecret                              `json:"secrets"`
 	DetailedStatus []*applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetSecrets returns applyBundleSetSecretsSecretsPayload.Secrets, and is useful for accessing the field via an interface.
-func (v *applyBundleSetSecretsSecretsPayload) GetSecrets() []*applyBundleSetSecretsSecretsPayloadSecretsSecret {
-	return v.Secrets
 }
 
 // GetDetailedStatus returns applyBundleSetSecretsSecretsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3338,8 +5487,16 @@ func (v *applyBundleSetSecretsSecretsPayload) GetDetailedStatus() []*applyBundle
 
 // applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                              `json:"action"`
+	Status      EntityMutationStatus                                                                              `json:"status"`
+	Description string                                                                                            `json:"description"`
+	Source      []*applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3352,31 +5509,55 @@ func (v *applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailed
 	return v.Description
 }
 
-// applyBundleSetSecretsSecretsPayloadSecretsSecret includes the requested fields of the GraphQL type Secret.
-// The GraphQL type's documentation follows.
-//
-// These secrets are used by gateway policies also for example by jdbc connection configurations
-type applyBundleSetSecretsSecretsPayloadSecretsSecret struct {
-	// Identify the password being stored. You may use letters, numbers, dashes, and underscores.
-	// Names that contain spaces or periods are valid, but the resulting stored
-	// password cannot be referenced via context variable.
-	// Names that contain @ or $ are valid, but the resulting stored password cannot be referenced via context variable.
-	Name string `json:"name"`
+// GetSource returns applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetName returns applyBundleSetSecretsSecretsPayloadSecretsSecret.Name, and is useful for accessing the field via an interface.
-func (v *applyBundleSetSecretsSecretsPayloadSecretsSecret) GetName() string { return v.Name }
+// GetTarget returns applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSecretsSecretsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
 
 // applyBundleSetServerModuleFilesServerModuleFilesPayload includes the requested fields of the GraphQL type ServerModuleFilesPayload.
 type applyBundleSetServerModuleFilesServerModuleFilesPayload struct {
-	// The created Server module files.
-	ServerModuleFiles []*applyBundleSetServerModuleFilesServerModuleFilesPayloadServerModuleFilesServerModuleFile          `json:"serverModuleFiles"`
-	DetailedStatus    []*applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetServerModuleFiles returns applyBundleSetServerModuleFilesServerModuleFilesPayload.ServerModuleFiles, and is useful for accessing the field via an interface.
-func (v *applyBundleSetServerModuleFilesServerModuleFilesPayload) GetServerModuleFiles() []*applyBundleSetServerModuleFilesServerModuleFilesPayloadServerModuleFilesServerModuleFile {
-	return v.ServerModuleFiles
+	DetailedStatus []*applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
 }
 
 // GetDetailedStatus returns applyBundleSetServerModuleFilesServerModuleFilesPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3386,8 +5567,16 @@ func (v *applyBundleSetServerModuleFilesServerModuleFilesPayload) GetDetailedSta
 
 // applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                                  `json:"action"`
+	Status      EntityMutationStatus                                                                                                  `json:"status"`
+	Description string                                                                                                                `json:"description"`
+	Source      []*applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3400,29 +5589,135 @@ func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEn
 	return v.Description
 }
 
-// applyBundleSetServerModuleFilesServerModuleFilesPayloadServerModuleFilesServerModuleFile includes the requested fields of the GraphQL type ServerModuleFile.
-// The GraphQL type's documentation follows.
-//
-// A Server module file
-type applyBundleSetServerModuleFilesServerModuleFilesPayloadServerModuleFilesServerModuleFile struct {
-	// The goid for the Server module file
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetServerModuleFilesServerModuleFilesPayloadServerModuleFilesServerModuleFile.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadServerModuleFilesServerModuleFile) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServerModuleFilesServerModuleFilesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoad includes the requested fields of the GraphQL type ServiceResolutionConfigsPayLoad.
+type applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoad struct {
+	DetailedStatus []*applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoad.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoad) GetDetailedStatus() []*applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                                                `json:"action"`
+	Status      EntityMutationStatus                                                                                                                `json:"status"`
+	Description string                                                                                                                              `json:"description"`
+	Source      []*applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetSoapServicesSoapServicesPayload includes the requested fields of the GraphQL type SoapServicesPayload.
 type applyBundleSetSoapServicesSoapServicesPayload struct {
-	SoapServices   []*applyBundleSetSoapServicesSoapServicesPayloadSoapServicesSoapService                    `json:"soapServices"`
 	DetailedStatus []*applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetSoapServices returns applyBundleSetSoapServicesSoapServicesPayload.SoapServices, and is useful for accessing the field via an interface.
-func (v *applyBundleSetSoapServicesSoapServicesPayload) GetSoapServices() []*applyBundleSetSoapServicesSoapServicesPayloadSoapServicesSoapService {
-	return v.SoapServices
 }
 
 // GetDetailedStatus returns applyBundleSetSoapServicesSoapServicesPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3432,8 +5727,16 @@ func (v *applyBundleSetSoapServicesSoapServicesPayload) GetDetailedStatus() []*a
 
 // applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                        `json:"action"`
+	Status      EntityMutationStatus                                                                                        `json:"status"`
+	Description string                                                                                                      `json:"description"`
+	Source      []*applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3446,29 +5749,55 @@ func (v *applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutati
 	return v.Description
 }
 
-// applyBundleSetSoapServicesSoapServicesPayloadSoapServicesSoapService includes the requested fields of the GraphQL type SoapService.
-// The GraphQL type's documentation follows.
-//
-// A Soap service published on the Layer7 Gateway
-type applyBundleSetSoapServicesSoapServicesPayloadSoapServicesSoapService struct {
-	// The goid for this service
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetSoapServicesSoapServicesPayloadSoapServicesSoapService.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetSoapServicesSoapServicesPayloadSoapServicesSoapService) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetSoapServicesSoapServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetTrustedCertsTrustedCertsPayload includes the requested fields of the GraphQL type TrustedCertsPayload.
 type applyBundleSetTrustedCertsTrustedCertsPayload struct {
-	TrustedCerts   []*applyBundleSetTrustedCertsTrustedCertsPayloadTrustedCertsCertificate                    `json:"trustedCerts"`
 	DetailedStatus []*applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetTrustedCerts returns applyBundleSetTrustedCertsTrustedCertsPayload.TrustedCerts, and is useful for accessing the field via an interface.
-func (v *applyBundleSetTrustedCertsTrustedCertsPayload) GetTrustedCerts() []*applyBundleSetTrustedCertsTrustedCertsPayloadTrustedCertsCertificate {
-	return v.TrustedCerts
 }
 
 // GetDetailedStatus returns applyBundleSetTrustedCertsTrustedCertsPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3478,8 +5807,16 @@ func (v *applyBundleSetTrustedCertsTrustedCertsPayload) GetDetailedStatus() []*a
 
 // applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                        `json:"action"`
+	Status      EntityMutationStatus                                                                                        `json:"status"`
+	Description string                                                                                                      `json:"description"`
+	Source      []*applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3492,29 +5829,55 @@ func (v *applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutati
 	return v.Description
 }
 
-// applyBundleSetTrustedCertsTrustedCertsPayloadTrustedCertsCertificate includes the requested fields of the GraphQL type Certificate.
-// The GraphQL type's documentation follows.
-//
-// An certificate that is trusted by the Gateway
-type applyBundleSetTrustedCertsTrustedCertsPayloadTrustedCertsCertificate struct {
-	// The goid for this certificate
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetTrustedCertsTrustedCertsPayloadTrustedCertsCertificate.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetTrustedCertsTrustedCertsPayloadTrustedCertsCertificate) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetTrustedCertsTrustedCertsPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // applyBundleSetWebApiServicesWebApiServicesPayload includes the requested fields of the GraphQL type WebApiServicesPayload.
 type applyBundleSetWebApiServicesWebApiServicesPayload struct {
-	WebApiServices []*applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiService                `json:"webApiServices"`
 	DetailedStatus []*applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
-}
-
-// GetWebApiServices returns applyBundleSetWebApiServicesWebApiServicesPayload.WebApiServices, and is useful for accessing the field via an interface.
-func (v *applyBundleSetWebApiServicesWebApiServicesPayload) GetWebApiServices() []*applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiService {
-	return v.WebApiServices
 }
 
 // GetDetailedStatus returns applyBundleSetWebApiServicesWebApiServicesPayload.DetailedStatus, and is useful for accessing the field via an interface.
@@ -3524,8 +5887,16 @@ func (v *applyBundleSetWebApiServicesWebApiServicesPayload) GetDetailedStatus() 
 
 // applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
 type applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus struct {
-	Status      EntityMutationStatus `json:"status"`
-	Description string               `json:"description"`
+	Action      EntityMutationAction                                                                                            `json:"action"`
+	Status      EntityMutationStatus                                                                                            `json:"status"`
+	Description string                                                                                                          `json:"description"`
+	Source      []*applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
 }
 
 // GetStatus returns applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
@@ -3538,18 +5909,50 @@ func (v *applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMu
 	return v.Description
 }
 
-// applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiService includes the requested fields of the GraphQL type WebApiService.
-// The GraphQL type's documentation follows.
-//
-// A Web API service published on the Layer7 Gateway
-type applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiService struct {
-	// The goid for this service
-	Goid string `json:"goid"`
+// GetSource returns applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
 }
 
-// GetGoid returns applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiService.Goid, and is useful for accessing the field via an interface.
-func (v *applyBundleSetWebApiServicesWebApiServicesPayloadWebApiServicesWebApiService) GetGoid() string {
-	return v.Goid
+// GetTarget returns applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *applyBundleSetWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
 }
 
 // deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload includes the requested fields of the GraphQL type PolicyFragmentsPayload.
@@ -4665,11 +7068,7 @@ type everythingLdapsLdap struct {
 	BindPassword        string                                          `json:"bindPassword"`
 	UserMappings        []*everythingLdapsLdapUserMappingsUserMapping   `json:"userMappings"`
 	GroupMappings       []*everythingLdapsLdapGroupMappingsGroupMapping `json:"groupMappings"`
-	// consider these advanced ldap configuration:
-	// userCertificateUseType : UserCertificateUseType!
-	// ntlm stuff, 8 settings and additional arbitrary props
-	// 6 additional user cert settings
-	Checksum string `json:"checksum"`
+	Checksum            string                                          `json:"checksum"`
 }
 
 // GetName returns everythingLdapsLdap.Name, and is useful for accessing the field via an interface.
@@ -5489,336 +7888,649 @@ type everythingWebApiServicesWebApiServicePolicy struct {
 // GetXml returns everythingWebApiServicesWebApiServicePolicy.Xml, and is useful for accessing the field via an interface.
 func (v *everythingWebApiServicesWebApiServicePolicy) GetXml() string { return v.Xml }
 
-func applyBundle(
-	ctx context.Context,
-	client graphql.Client,
-	clusterProperties []*ClusterPropertyInput,
-	webApiServices []*WebApiServiceInput,
-	encassConfigs []*EncassConfigInput,
-	trustedCerts []*TrustedCertInput,
-	dtds []*DtdInput,
-	schemas []*SchemaInput,
-	jdbcConnections []*JdbcConnectionInput,
-	soapServices []*SoapServiceInput,
-	policyFragments []*PolicyFragmentInput,
-	fips []*FipInput,
-	ldaps []*LdapInput,
-	fipGroups []*FipGroupInput,
-	internalGroups []*InternalGroupInput,
-	fipUsers []*FipUserInput,
-	internalUsers []*InternalUserInput,
-	keys []*KeyInput,
-	secrets []*SecretInput,
-	cassandraConnections []*CassandraConnectionInput,
-	jmsDestinations []*JmsDestinationInput,
-	internalWebApiServices []*WebApiServiceInput,
-	internalSoapServices []*SoapServiceInput,
-	emailListeners []*EmailListenerInput,
-	listenPorts []*ListenPortInput,
-	activeConnectors []*ActiveConnectorInput,
-	smConfigs []*SMConfigInput,
-	globalPolicies []*GlobalPolicyInput,
-	backgroundTaskPolicies []*BackgroundTaskPolicyInput,
-	scheduledTasks []*ScheduledTaskInput,
-	serverModuleFiles []*ServerModuleFileInput,
-) (*applyBundleResponse, error) {
-	req := &graphql.Request{
-		OpName: "applyBundle",
-		Query: `
-mutation applyBundle ($clusterProperties: [ClusterPropertyInput!]! = [], $webApiServices: [WebApiServiceInput!]! = [], $encassConfigs: [EncassConfigInput!]! = [], $trustedCerts: [TrustedCertInput!]! = [], $dtds: [DtdInput!]! = [], $schemas: [SchemaInput!]! = [], $jdbcConnections: [JdbcConnectionInput!]! = [], $soapServices: [SoapServiceInput!]! = [], $policyFragments: [PolicyFragmentInput!]! = [], $fips: [FipInput!]! = [], $ldaps: [LdapInput!]! = [], $fipGroups: [FipGroupInput!]! = [], $internalGroups: [InternalGroupInput!]! = [], $fipUsers: [FipUserInput!]! = [], $internalUsers: [InternalUserInput!]! = [], $keys: [KeyInput!]! = [], $secrets: [SecretInput!]! = [], $cassandraConnections: [CassandraConnectionInput!]! = [], $jmsDestinations: [JmsDestinationInput!]! = [], $internalWebApiServices: [WebApiServiceInput!]! = [], $internalSoapServices: [SoapServiceInput!]! = [], $emailListeners: [EmailListenerInput!]! = [], $listenPorts: [ListenPortInput!]! = [], $activeConnectors: [ActiveConnectorInput!]! = [], $smConfigs: [SMConfigInput!]! = [], $globalPolicies: [GlobalPolicyInput!]! = [], $backgroundTaskPolicies: [BackgroundTaskPolicyInput!]! = [], $scheduledTasks: [ScheduledTaskInput!]! = [], $serverModuleFiles: [ServerModuleFileInput!]! = []) {
+// The query or mutation executed by applyBundle.
+const applyBundle_Operation = `
+mutation applyBundle ($activeConnectors: [ActiveConnectorInput!]! = [], $administrativeUserAccountProperties: [AdministrativeUserAccountPropertyInput!]! = [], $backgroundTaskPolicies: [BackgroundTaskPolicyInput!]! = [], $cassandraConnections: [CassandraConnectionInput!]! = [], $clusterProperties: [ClusterPropertyInput!]! = [], $dtds: [DtdInput!]! = [], $emailListeners: [EmailListenerInput!]! = [], $encassConfigs: [EncassConfigInput!]! = [], $fipGroups: [FipGroupInput!]! = [], $fipUsers: [FipUserInput!]! = [], $fips: [FipInput!]! = [], $globalPolicies: [GlobalPolicyInput!]! = [], $internalGroups: [InternalGroupInput!]! = [], $internalSoapServices: [SoapServiceInput!]! = [], $internalUsers: [InternalUserInput!]! = [], $internalWebApiServices: [WebApiServiceInput!]! = [], $jdbcConnections: [JdbcConnectionInput!]! = [], $jmsDestinations: [JmsDestinationInput!]! = [], $keys: [KeyInput!]! = [], $ldaps: [LdapInput!]! = [], $listenPorts: [ListenPortInput!]! = [], $passwordPolicies: [PasswordPolicyInput!]! = [], $policyFragments: [PolicyFragmentInput!]! = [], $revocationCheckPolicies: [RevocationCheckPolicyInput!]! = [], $scheduledTasks: [ScheduledTaskInput!]! = [], $logSinks: [LogSinkInput!]! = [], $schemas: [SchemaInput!]! = [], $secrets: [SecretInput!]! = [], $httpConfigurations: [HttpConfigurationInput!]! = [], $customKeyValues: [CustomKeyValueInput!]! = [], $serverModuleFiles: [ServerModuleFileInput!]! = [], $serviceResolutionConfigs: [ServiceResolutionConfigInput!]! = [], $folders: [FolderInput!]! = [], $smConfigs: [SMConfigInput!]! = [], $soapServices: [SoapServiceInput!]! = [], $trustedCerts: [TrustedCertInput!]! = [], $webApiServices: [WebApiServiceInput!]! = []) {
 	setServerModuleFiles(input: $serverModuleFiles) {
-		serverModuleFiles {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setClusterProperties(input: $clusterProperties) {
-		clusterProperties {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
+	setServiceResolutionConfigs(input: $serviceResolutionConfigs) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
+	setPasswordPolicies(input: $passwordPolicies) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
+	setAdministrativeUserAccountProperties(input: $administrativeUserAccountProperties) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
+	setFolders(input: $folders) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
+	setRevocationCheckPolicies(input: $revocationCheckPolicies) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setTrustedCerts(input: $trustedCerts) {
-		trustedCerts {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setSecrets(input: $secrets) {
-		secrets {
-			name
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
+	setHttpConfigurations(input: $httpConfigurations) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
+	setCustomKeyValues(input: $customKeyValues) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setSchemas(input: $schemas) {
-		schemas {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setDtds(input: $dtds) {
-		dtds {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setJdbcConnections(input: $jdbcConnections) {
-		jdbcConnections {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setFips(input: $fips) {
-		fips {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setLdaps(input: $ldaps) {
-		ldaps {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setFipGroups(input: $fipGroups) {
-		fipGroups {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setInternalGroups(input: $internalGroups) {
-		internalGroups {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setFipUsers(input: $fipUsers) {
-		fipUsers {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setInternalUsers(input: $internalUsers) {
-		internalUsers {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setCassandraConnections(input: $cassandraConnections) {
-		cassandraConnections {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setJmsDestinations(input: $jmsDestinations) {
-		jmsDestinations {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setSMConfigs(input: $smConfigs) {
-		smConfigs {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setPolicyFragments(input: $policyFragments) {
-		policyFragments {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setEncassConfigs(input: $encassConfigs) {
-		encassConfigs {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setGlobalPolicies(input: $globalPolicies) {
-		globalPolicies {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setBackgroundTaskPolicies(input: $backgroundTaskPolicies) {
-		backgroundTaskPolicies {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setWebApiServices(input: $webApiServices) {
-		webApiServices {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setSoapServices(input: $soapServices) {
-		soapServices {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setInternalWebApiServices(input: $internalWebApiServices) {
-		internalWebApiServices {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setInternalSoapServices(input: $internalSoapServices) {
-		internalSoapServices {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setEmailListeners(input: $emailListeners) {
-		emailListeners {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setListenPorts(input: $listenPorts) {
-		listenPorts {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setActiveConnectors(input: $activeConnectors) {
-		activeConnectors {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setScheduledTasks(input: $scheduledTasks) {
-		scheduledTasks {
-			goid
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
+	setLogSinks(input: $logSinks) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 	setKeys(input: $keys) {
-		keys {
-			alias
-		}
 		detailedStatus {
+			action
 			status
 			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
 		}
 	}
 }
-`,
+`
+
+func applyBundle(
+	ctx context.Context,
+	client graphql.Client,
+	activeConnectors []*ActiveConnectorInput,
+	administrativeUserAccountProperties []*AdministrativeUserAccountPropertyInput,
+	backgroundTaskPolicies []*BackgroundTaskPolicyInput,
+	cassandraConnections []*CassandraConnectionInput,
+	clusterProperties []*ClusterPropertyInput,
+	dtds []*DtdInput,
+	emailListeners []*EmailListenerInput,
+	encassConfigs []*EncassConfigInput,
+	fipGroups []*FipGroupInput,
+	fipUsers []*FipUserInput,
+	fips []*FipInput,
+	globalPolicies []*GlobalPolicyInput,
+	internalGroups []*InternalGroupInput,
+	internalSoapServices []*SoapServiceInput,
+	internalUsers []*InternalUserInput,
+	internalWebApiServices []*WebApiServiceInput,
+	jdbcConnections []*JdbcConnectionInput,
+	jmsDestinations []*JmsDestinationInput,
+	keys []*KeyInput,
+	ldaps []*LdapInput,
+	listenPorts []*ListenPortInput,
+	passwordPolicies []*PasswordPolicyInput,
+	policyFragments []*PolicyFragmentInput,
+	revocationCheckPolicies []*RevocationCheckPolicyInput,
+	scheduledTasks []*ScheduledTaskInput,
+	logSinks []*LogSinkInput,
+	schemas []*SchemaInput,
+	secrets []*SecretInput,
+	httpConfigurations []*HttpConfigurationInput,
+	customKeyValues []*CustomKeyValueInput,
+	serverModuleFiles []*ServerModuleFileInput,
+	serviceResolutionConfigs []*ServiceResolutionConfigInput,
+	folders []*FolderInput,
+	smConfigs []*SMConfigInput,
+	soapServices []*SoapServiceInput,
+	trustedCerts []*TrustedCertInput,
+	webApiServices []*WebApiServiceInput,
+) (*applyBundleResponse, error) {
+	req := &graphql.Request{
+		OpName: "applyBundle",
+		Query:  applyBundle_Operation,
 		Variables: &__applyBundleInput{
-			ClusterProperties:      clusterProperties,
-			WebApiServices:         webApiServices,
-			EncassConfigs:          encassConfigs,
-			TrustedCerts:           trustedCerts,
-			Dtds:                   dtds,
-			Schemas:                schemas,
-			JdbcConnections:        jdbcConnections,
-			SoapServices:           soapServices,
-			PolicyFragments:        policyFragments,
-			Fips:                   fips,
-			Ldaps:                  ldaps,
-			FipGroups:              fipGroups,
-			InternalGroups:         internalGroups,
-			FipUsers:               fipUsers,
-			InternalUsers:          internalUsers,
-			Keys:                   keys,
-			Secrets:                secrets,
-			CassandraConnections:   cassandraConnections,
-			JmsDestinations:        jmsDestinations,
-			InternalWebApiServices: internalWebApiServices,
-			InternalSoapServices:   internalSoapServices,
-			EmailListeners:         emailListeners,
-			ListenPorts:            listenPorts,
-			ActiveConnectors:       activeConnectors,
-			SmConfigs:              smConfigs,
-			GlobalPolicies:         globalPolicies,
-			BackgroundTaskPolicies: backgroundTaskPolicies,
-			ScheduledTasks:         scheduledTasks,
-			ServerModuleFiles:      serverModuleFiles,
+			ActiveConnectors:                    activeConnectors,
+			AdministrativeUserAccountProperties: administrativeUserAccountProperties,
+			BackgroundTaskPolicies:              backgroundTaskPolicies,
+			CassandraConnections:                cassandraConnections,
+			ClusterProperties:                   clusterProperties,
+			Dtds:                                dtds,
+			EmailListeners:                      emailListeners,
+			EncassConfigs:                       encassConfigs,
+			FipGroups:                           fipGroups,
+			FipUsers:                            fipUsers,
+			Fips:                                fips,
+			GlobalPolicies:                      globalPolicies,
+			InternalGroups:                      internalGroups,
+			InternalSoapServices:                internalSoapServices,
+			InternalUsers:                       internalUsers,
+			InternalWebApiServices:              internalWebApiServices,
+			JdbcConnections:                     jdbcConnections,
+			JmsDestinations:                     jmsDestinations,
+			Keys:                                keys,
+			Ldaps:                               ldaps,
+			ListenPorts:                         listenPorts,
+			PasswordPolicies:                    passwordPolicies,
+			PolicyFragments:                     policyFragments,
+			RevocationCheckPolicies:             revocationCheckPolicies,
+			ScheduledTasks:                      scheduledTasks,
+			LogSinks:                            logSinks,
+			Schemas:                             schemas,
+			Secrets:                             secrets,
+			HttpConfigurations:                  httpConfigurations,
+			CustomKeyValues:                     customKeyValues,
+			ServerModuleFiles:                   serverModuleFiles,
+			ServiceResolutionConfigs:            serviceResolutionConfigs,
+			Folders:                             folders,
+			SmConfigs:                           smConfigs,
+			SoapServices:                        soapServices,
+			TrustedCerts:                        trustedCerts,
+			WebApiServices:                      webApiServices,
 		},
 	}
 	var err error
@@ -5835,15 +8547,8 @@ mutation applyBundle ($clusterProperties: [ClusterPropertyInput!]! = [], $webApi
 	return &data, err
 }
 
-func deleteL7PortalApi(
-	ctx context.Context,
-	client graphql.Client,
-	webApiServiceResolutionPaths []string,
-	policyFragmentNames []string,
-) (*deleteL7PortalApiResponse, error) {
-	req := &graphql.Request{
-		OpName: "deleteL7PortalApi",
-		Query: `
+// The query or mutation executed by deleteL7PortalApi.
+const deleteL7PortalApi_Operation = `
 mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!) {
 	deleteWebApiServices(resolutionPaths: $webApiServiceResolutionPaths) {
 		detailedStatus {
@@ -5858,7 +8563,17 @@ mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFr
 		}
 	}
 }
-`,
+`
+
+func deleteL7PortalApi(
+	ctx context.Context,
+	client graphql.Client,
+	webApiServiceResolutionPaths []string,
+	policyFragmentNames []string,
+) (*deleteL7PortalApiResponse, error) {
+	req := &graphql.Request{
+		OpName: "deleteL7PortalApi",
+		Query:  deleteL7PortalApi_Operation,
 		Variables: &__deleteL7PortalApiInput{
 			WebApiServiceResolutionPaths: webApiServiceResolutionPaths,
 			PolicyFragmentNames:          policyFragmentNames,
@@ -5878,13 +8593,8 @@ mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFr
 	return &data, err
 }
 
-func everything(
-	ctx context.Context,
-	client graphql.Client,
-) (*everythingResponse, error) {
-	req := &graphql.Request{
-		OpName: "everything",
-		Query: `
+// The query or mutation executed by everything.
+const everything_Operation = `
 query everything {
 	policyFragments {
 		name
@@ -6212,7 +8922,15 @@ query everything {
 		checksum
 	}
 }
-`,
+`
+
+func everything(
+	ctx context.Context,
+	client graphql.Client,
+) (*everythingResponse, error) {
+	req := &graphql.Request{
+		OpName: "everything",
+		Query:  everything_Operation,
 	}
 	var err error
 

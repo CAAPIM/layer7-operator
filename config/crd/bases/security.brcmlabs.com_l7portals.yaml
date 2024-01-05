@@ -77,6 +77,10 @@ spec:
               name:
                 description: Name Portal name
                 type: string
+              syncIntervalSeconds:
+                description: SyncIntervalSeconds how often the Portal CR is reconciled.
+                  Default is 10 seconds
+                type: integer
             type: object
           status:
             description: L7PortalStatus defines the observed state of L7Portal
@@ -84,6 +88,8 @@ spec:
               apiCount:
                 type: integer
               apiSummaryConfigMap:
+                type: string
+              checksum:
                 type: string
               enrollmentBundle:
                 description: EnrollmentBundle
@@ -93,6 +99,9 @@ spec:
                   secretName:
                     type: string
                 type: object
+              lastUpdated:
+                format: int64
+                type: integer
               proxies:
                 items:
                   description: GatewayProxy
@@ -117,8 +126,6 @@ spec:
                 type: array
               ready:
                 type: boolean
-              updated:
-                type: string
             type: object
         type: object
     served: true

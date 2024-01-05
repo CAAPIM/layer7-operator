@@ -1,0 +1,399 @@
+query everything {
+    policyFragments {
+        name
+        checksum
+        folderPath
+        policy {
+            xml
+        }
+        guid
+    }
+    webApiServices {
+        name
+        checksum
+        resolutionPath
+        folderPath
+        policy {
+            xml
+        }
+        enabled
+        methodsAllowed
+    }
+    soapServices {
+        name
+        checksum
+        folderPath
+        resolvers {
+            resolutionPath
+        }
+        wsdl
+        wssProcessingEnabled
+        enabled
+        methodsAllowed
+        policy {
+            xml
+        }
+    }
+    clusterProperties {
+        name
+        checksum
+        value
+    }
+    trustedCerts {
+        name
+        checksum
+        certBase64
+        verifyHostname
+        trustAnchor
+        trustedFor
+        revocationCheckPolicyType
+    }
+    encassConfigs {
+        name
+        checksum
+        policyName
+        guid
+        encassArgs {
+            name
+            type
+            ordinal
+            guiLabel
+            guiPrompt
+        }
+        encassResults {
+            name
+            type
+        }
+    }
+    jdbcConnections {
+        name
+        checksum
+        driverClass
+        jdbcUrl
+        enabled
+        username
+        password
+        minPoolSize
+        maxPoolSize
+        properties {
+            name
+            value
+        }
+    }
+    schemas {
+        systemId
+        checksum
+        targetNs
+        description
+        content
+    }
+    dtds {
+        systemId
+        checksum
+        publicId
+        description
+        content
+    }
+    fips {
+        name
+        checksum
+        goid
+        enableCredentialTypeX509
+        enableCredentialTypeSaml
+        certificateReferences {
+            thumbprintSha1
+        }
+    }
+    ldaps {
+        name
+        goid
+        ldapUrls
+        ldapsClientAuthEnabled
+        ldapsClientKeyAlias
+        searchBase
+        writable
+        bindDn
+        bindPassword
+        userMappings {
+            objClass
+            nameAttrName
+            loginAttrName
+            passwdAttrName
+            firstNameAttrName
+            lastNameAttrName
+            emailNameAttrName
+            kerberosAttrName
+            kerberosEnterpriseAttrName
+            userCertAttrName
+            passwdType {
+                val
+            }
+        }
+        groupMappings {
+            objClass
+            nameAttrName
+            memberAttrName
+            memberStrategy {
+                val
+            }
+        }
+        checksum
+    }
+    internalGroups {
+        name
+        checksum
+        goid
+        description
+    }
+    fipGroups {
+        name
+        providerName
+        checksum
+        goid
+        description
+    }
+    internalUsers {
+        name
+        goid
+        checksum
+        memberOf {
+            name
+        }
+        login
+        password
+        firstName
+        lastName
+        email
+        certBase64
+    }
+    fipUsers {
+        name
+        providerName
+        checksum
+        goid
+        subjectDn
+        memberOf {
+            name
+        }
+        login
+        firstName
+        lastName
+        email
+        certBase64
+    }
+    keys {
+        alias
+        checksum
+        goid
+        p12
+    }
+    secrets {
+        name
+        secretType
+        checksum
+        goid
+        variableReferencable
+        secret
+        description
+    }
+    cassandraConnections {
+        goid
+        name
+        keyspace
+        contactPoints
+        port
+        username
+        securePasswordName
+        sslEnabled
+        cipherSuites
+        properties {
+            name
+            value
+        }
+        checksum
+    }
+    jmsDestinations {
+        name
+        direction
+        providerType
+        initialContextFactoryClassname
+        connectionFactoryName
+        jndiUrl
+        jndiUsername
+        jndiPassword
+        template
+        enabled
+        jndiSslDetails {
+            sslEnabled
+            sslForAuthenticationOnly
+            sslVerifyServerCertificate
+            sslVerifyServerHostname
+            sslClientKeyAlias
+        }
+        destinationType
+        destinationName
+        destinationUsername
+        destinationPassword
+        destinationSslDetails {
+            sslEnabled
+            sslForAuthenticationOnly
+            sslVerifyServerCertificate
+            sslVerifyServerHostname
+            sslClientKeyAlias
+        }
+        template
+        enabled
+        properties {
+            name
+            value
+        }
+        checksum
+    }
+    emailListeners {
+        goid
+        name
+        enabled
+        hostname
+        port
+        username
+        password
+        serverType
+        sslEnabled
+        deleteOnReceive
+        folder
+        pollInterval
+        hardwiredServiceName
+        properties {
+            name
+            value
+        }
+        checksum
+    }
+    listenPorts {
+        name
+        goid
+        enabled
+        checksum
+        port
+        protocol
+        enabledFeatures
+        hardwiredServiceName
+        tlsSettings {
+            clientAuthentication
+            cipherSuites
+            useCipherSuitesOrder
+            tlsVersions
+            keyAlias
+        }
+        properties {
+            name
+            value
+        }
+        checksum
+    }
+    globalPolicies {
+        name
+        tag
+        folderPath
+        policy {
+            xml
+        }
+        guid
+        goid
+        checksum
+    }
+    backgroundTaskPolicies {
+        name
+        folderPath
+        guid
+        policy {
+            xml
+        }
+        checksum
+    }
+    scheduledTasks {
+        name
+        policyName
+        jobType
+        cronExpression
+        executeOnSingleNode
+        executeOnCreation
+        executionDate
+        status
+        runAsUser
+        runAsUserProviderName
+        checksum
+    }
+}
+
+mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!) {
+    deleteWebApiServices (resolutionPaths: $webApiServiceResolutionPaths) {
+        detailedStatus {status description}
+    },
+    deletePolicyFragments (names: $policyFragmentNames) {
+         detailedStatus {status description}
+    }
+}
+
+mutation applyBundle (
+    $clusterProperties: [ClusterPropertyInput!]!=[],
+    $webApiServices: [WebApiServiceInput!]!=[],
+    $encassConfigs:[EncassConfigInput!]!=[],
+    $trustedCerts:[TrustedCertInput!]!=[],
+    $dtds:[DtdInput!]!=[],
+    $schemas:[SchemaInput!]!=[],
+    $jdbcConnections:[JdbcConnectionInput!]!=[],
+    $soapServices:[SoapServiceInput!]!=[],
+    $policyFragments: [PolicyFragmentInput!]!=[],
+    $fips:[FipInput!]!=[],
+    $ldaps:[LdapInput!]!=[],
+    $fipGroups:[FipGroupInput!]!=[],
+    $internalGroups:[InternalGroupInput!]!=[],
+    $fipUsers:[FipUserInput!]!=[],
+    $internalUsers:[InternalUserInput!]!=[],
+    $keys: [KeyInput!]!=[],
+    $secrets: [SecretInput!]!=[],
+    $cassandraConnections:[CassandraConnectionInput!]!=[],
+    $jmsDestinations:[JmsDestinationInput!]!=[],
+    $internalWebApiServices: [WebApiServiceInput!]!=[],
+    $internalSoapServices:[SoapServiceInput!]!=[],
+    $emailListeners: [EmailListenerInput!]!=[],
+    $listenPorts: [ListenPortInput!]!=[],
+    $activeConnectors: [ActiveConnectorInput!]!=[],
+    $smConfigs: [SMConfigInput!]!=[],
+    $globalPolicies:[GlobalPolicyInput!]!=[],
+    $backgroundTaskPolicies:[BackgroundTaskPolicyInput!]!=[],
+    $scheduledTasks:[ScheduledTaskInput!]!=[],
+    $serverModuleFiles:[ServerModuleFileInput!]!=[]) {
+        setServerModuleFiles(input: $serverModuleFiles){serverModuleFiles{goid} detailedStatus {status description}}
+        setClusterProperties (input: $clusterProperties){clusterProperties {goid} detailedStatus {status description}}
+        setTrustedCerts (input: $trustedCerts){trustedCerts {goid} detailedStatus {status description}}
+        setSecrets (input: $secrets){secrets{name} detailedStatus {status description}}
+        setSchemas (input: $schemas){schemas {goid} detailedStatus {status description}}
+        setDtds (input: $dtds){dtds {goid} detailedStatus {status description}}
+        setJdbcConnections (input: $jdbcConnections){jdbcConnections {goid} detailedStatus {status description}}
+        setFips (input: $fips){fips{goid} detailedStatus {status description}}
+        setLdaps (input: $ldaps){ldaps{goid} detailedStatus {status description}}
+        setFipGroups (input: $fipGroups){fipGroups{goid} detailedStatus {status description}}
+        setInternalGroups (input: $internalGroups){internalGroups{goid} detailedStatus {status description}}
+        setFipUsers (input: $fipUsers){fipUsers{goid} detailedStatus {status description}}
+        setInternalUsers (input: $internalUsers){internalUsers{goid} detailedStatus {status description}}
+        setCassandraConnections (input: $cassandraConnections){cassandraConnections {goid} detailedStatus {status description}}
+        setJmsDestinations (input: $jmsDestinations){jmsDestinations {goid} detailedStatus {status description}}
+        setSMConfigs (input: $smConfigs){smConfigs {goid} detailedStatus {status description}}
+        setPolicyFragments (input: $policyFragments){policyFragments {goid} detailedStatus {status description}}
+        setEncassConfigs (input: $encassConfigs){encassConfigs {goid} detailedStatus {status description}}
+        setGlobalPolicies (input: $globalPolicies){globalPolicies {goid} detailedStatus {status description}}
+        setBackgroundTaskPolicies (input: $backgroundTaskPolicies){backgroundTaskPolicies {goid} detailedStatus {status description}}
+        setWebApiServices (input: $webApiServices){webApiServices {goid} detailedStatus {status description}}
+        setSoapServices (input: $soapServices){soapServices {goid} detailedStatus {status description}}
+        setInternalWebApiServices (input: $internalWebApiServices){internalWebApiServices {goid} detailedStatus {status description}}
+        setInternalSoapServices (input: $internalSoapServices){internalSoapServices {goid} detailedStatus {status description}}
+        setEmailListeners (input: $emailListeners){emailListeners {goid} detailedStatus {status description}}
+        setListenPorts (input: $listenPorts){listenPorts {goid} detailedStatus {status description}}
+        setActiveConnectors (input: $activeConnectors){activeConnectors {goid} detailedStatus {status description}}
+        setScheduledTasks (input: $scheduledTasks){scheduledTasks {goid} detailedStatus {status description}}
+
+        # Keys must be mutated at the end
+        setKeys (input: $keys) {keys {alias} detailedStatus {status description}}
+}

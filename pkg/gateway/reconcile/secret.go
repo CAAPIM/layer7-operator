@@ -25,6 +25,10 @@ func Secrets(ctx context.Context, params Params) error {
 		desiredSecrets = append(desiredSecrets, gateway.NewSecret(params.Instance, params.Instance.Name+"-otk-db-credentials"))
 	}
 
+	if params.Instance.Spec.App.Redis.Enabled && params.Instance.Spec.App.Redis.ExistingSecret == "" {
+		desiredSecrets = append(desiredSecrets, gateway.NewSecret(params.Instance, params.Instance.Name+"-redis-properties"))
+	}
+
 	if err := reconcileSecrets(ctx, params, desiredSecrets); err != nil {
 		return fmt.Errorf("failed to reconcile secrets: %w", err)
 	}

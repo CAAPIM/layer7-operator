@@ -38,6 +38,10 @@ pipeline {
                         export PATH=$PATH:/usr/local/go/bin
                         ./hack/install-kind.sh
                         kind --version
+                        curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64
+                        chmod +x /usr/local/bin/kubectl-kuttl
+                        export PATH=$PATH:/usr/local/bin
+                        make prepare-e2e
                         make docker-build
                         make docker-push
                     '''

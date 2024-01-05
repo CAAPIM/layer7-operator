@@ -29,7 +29,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 #IMAGE_TAG_BASE ?= docker.io/layer7api/layer7-operator
 DOCKER_HOST ?= docker.io
-IMAGE_TAG_BASE ?= $(DOCKER_HOST)/layer7api/layer7-operator
+IMAGE_TAG ?= layer7api/layer7-operator
+IMAGE_TAG_BASE ?= $(DOCKER_HOST)/$(IMAGE_TAG)
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -205,6 +206,14 @@ build: manifests generate fmt vet ## Build manager binary.
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go --zap-log-level=10
+
+.PHONY: docker-bake
+docker-bake: #test ## Build docker image with the manager.
+	$(CONTAINER_TOOL) build -t ${IMAGE_TAG}:${VERSION} .
+
+.PHONY: docker-tag
+docker-tag: #test ## Build docker image with the manager.
+	$(CONTAINER_TOOL) tag ${IMAGE_TAG}:${VERSION} ${IMG}
 
 .PHONY: docker-build
 docker-build: #test ## Build docker image with the manager.

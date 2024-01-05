@@ -12,6 +12,7 @@ pipeline {
     parameters {
     string(name: 'ARTIFACT_HOST', description: 'artifactory host')
     string(name: 'RELEASE_VERSION', description: 'release version for docker tag')
+    string(name: 'KIND_VERSION', defaultValue: '0.20.0', description: 'kind cluster version')
     }
     stages {
         stage('Build and push Operator') {
@@ -35,6 +36,7 @@ pipeline {
                            docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                         fi
                         ./hack/install-go.sh
+                        go install sigs.k8s.io/kind@v$KIND_VERSION
                         make docker-build
                         make docker-push
                     '''

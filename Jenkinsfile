@@ -38,6 +38,7 @@ pipeline {
                         ./hack/install-go.sh
                         export PATH=$PATH:/usr/local/go/bin
                         go install sigs.k8s.io/kind@v$KIND_VERSION
+                        kind --version
                         make docker-build
                         make docker-push
                     '''

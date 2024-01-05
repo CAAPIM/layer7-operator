@@ -9,7 +9,7 @@ pipeline {
         VERSION = env.BRANCH_NAME
     }
     parameters {
-    string(name: 'ARTIFACTORY_HOST', description: 'artifactory host')
+    string(name: 'ARTIFACT_HOST', description: 'artifactory host')
     }
     stages {
         stage('Build and push Operator') {
@@ -27,7 +27,7 @@ pipeline {
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
-                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
+                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                         make docker-bake docker-tag docker-push
                     '''
                 }
@@ -36,7 +36,7 @@ pipeline {
                     if ("${BRANCH_NAME}" == "main") {
                        sh '''#!/bin/bash
                              VERSION=latest
-                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
+                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                              make docker-bake docker-tag docker-push
                        '''
                     }
@@ -58,7 +58,7 @@ pipeline {
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
-                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
+                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                         make bundle-build bundle-push
                     '''
                 }
@@ -67,7 +67,7 @@ pipeline {
                     if ("${BRANCH_NAME}" == "main") {
                        sh '''#!/bin/bash
                              VERSION=latest
-                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
+                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                              make bundle-build bundle-push
                        '''
                     }

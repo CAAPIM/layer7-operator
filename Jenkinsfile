@@ -11,7 +11,7 @@ pipeline {
     }
     parameters {
     string(name: 'ARTIFACT_HOST', description: 'artifactory host')
-    string(name: 'RELEASE_VERSION', description: 'release version')
+    string(name: 'RELEASE_VERSION', description: 'release version for docker tag')
     }
     stages {
         stage('Build and push Operator') {
@@ -30,7 +30,7 @@ pipeline {
                         tag=${branch//'/'/-}
                         VERSION=${tag}
                         if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
-                           docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW
+                           docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW $ARTIFACT_HOST
                         else
                            docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                         fi
@@ -43,7 +43,7 @@ pipeline {
                        sh '''#!/bin/bash
                              VERSION=$RELEASE_VERSION
                              if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
-                                docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW
+                                docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW $ARTIFACT_HOST
                              else
                                 docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                              fi

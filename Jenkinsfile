@@ -31,7 +31,7 @@ pipeline {
                         VERSION=${tag}
                         if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
                            docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW
-                        elif
+                        else
                            docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                         fi
                         make docker-build docker-push
@@ -44,7 +44,7 @@ pipeline {
                              VERSION=$RELEASE_VERSION
                              if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
                                 docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW
-                             elif
+                             else
                                 docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                              fi
                              make docker-build docker-push

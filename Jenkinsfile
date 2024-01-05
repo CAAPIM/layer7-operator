@@ -6,6 +6,7 @@ pipeline {
     agent { label "default" }
     environment {
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
+        VERSION = env.BRANCH_NAME
     }
     parameters {
     string(name: 'ARTIFACTORY_HOST', description: 'artifactory host')
@@ -36,7 +37,7 @@ pipeline {
                        sh '''#!/bin/bash
                              VERSION=latest
                              docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
-                             make docker-build docker-push
+                             make docker-bake docker-tag docker-push
                        '''
                     }
                 }
@@ -57,7 +58,7 @@ pipeline {
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
-                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $DOCKER_HOST
+                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
                         make bundle-build bundle-push
                     '''
                 }
@@ -66,7 +67,7 @@ pipeline {
                     if ("${BRANCH_NAME}" == "main") {
                        sh '''#!/bin/bash
                              VERSION=latest
-                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $DOCKER_HOST
+                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
                              make bundle-build bundle-push
                        '''
                     }

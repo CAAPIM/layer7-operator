@@ -34,7 +34,9 @@ pipeline {
                         else
                            docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                         fi
-                        make docker-build docker-push
+                        make docker-build
+                        ./hack/install-go.sh
+                        make docker-push
                     '''
                 }
                 echo "Push docker image for main branch"

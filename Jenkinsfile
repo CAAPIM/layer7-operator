@@ -68,7 +68,11 @@ pipeline {
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
-                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
+                        if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
+                           docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW $ARTIFACT_HOST
+                        else
+                           docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
+                        fi
                         make bundle-build bundle-push
                     '''
                 }
@@ -76,8 +80,12 @@ pipeline {
                 script {
                     if ("${BRANCH_NAME}" == "main") {
                        sh '''#!/bin/bash
-                             VERSION=latest
-                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
+                             VERSION=$RELEASE_VERSION
+                             if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
+                                docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW $ARTIFACT_HOST
+                             else
+                                docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
+                             fi
                              make bundle-build bundle-push
                        '''
                     }

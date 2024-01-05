@@ -8,7 +8,7 @@ pipeline {
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
     }
     parameters {
-    string(name: 'DOCKER_HOST', description: 'docker host')
+    string(name: 'ARTIFACTORY_HOST', description: 'artifactory host')
     }
     stages {
         stage('Build and push Operator') {
@@ -26,7 +26,7 @@ pipeline {
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
-                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $DOCKER_HOST
+                        docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
                         make docker-bake docker-tag docker-push
                     '''
                 }
@@ -35,7 +35,7 @@ pipeline {
                     if ("${BRANCH_NAME}" == "main") {
                        sh '''#!/bin/bash
                              VERSION=latest
-                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $DOCKER_HOST
+                             docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACTORY_HOST
                              make docker-build docker-push
                        '''
                     }

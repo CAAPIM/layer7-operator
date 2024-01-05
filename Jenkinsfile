@@ -28,7 +28,7 @@ pipeline {
                         tag=${branch//'/'/-}
                         VERSION=${tag}
                         docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
-                        make docker-bake docker-tag docker-push
+                        make docker-build docker-push
                     '''
                 }
                 echo "Push docker image for main branch"
@@ -37,7 +37,7 @@ pipeline {
                        sh '''#!/bin/bash
                              VERSION=latest
                              docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
-                             make docker-bake docker-tag docker-push
+                             make docker-build docker-push
                        '''
                     }
                 }

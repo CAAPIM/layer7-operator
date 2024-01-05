@@ -6,10 +6,10 @@ pipeline {
     agent { label "default" }
     environment {
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
-        VERSION = env.BRANCH_NAME
     }
     parameters {
     string(name: 'ARTIFACT_HOST', description: 'artifactory host')
+    string(name: 'VERSION', description: 'image version')
     }
     stages {
         stage('Build and push Operator') {

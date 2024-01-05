@@ -207,14 +207,6 @@ build: manifests generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go --zap-log-level=10
 
-.PHONY: docker-bake
-docker-bake: #test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMAGE_TAG}:${VERSION} .
-
-.PHONY: docker-tag
-docker-tag: #test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) tag ${IMAGE_TAG}:${VERSION} ${IMG}
-
 .PHONY: docker-build
 docker-build: #test ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${IMG} .

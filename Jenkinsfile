@@ -12,6 +12,7 @@ pipeline {
     parameters {
     string(name: 'ARTIFACT_HOST', description: 'artifactory host')
     string(name: 'RELEASE_VERSION', description: 'release version for docker tag')
+    string(name: 'KUBE_VERSION', defaultValue: '1.28', description: 'kube version')
     }
     stages {
         stage('Build and push Operator') {

@@ -5,3 +5,4 @@
 [ $(uname -m) = aarch64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-arm64
 chmod +x ./kind
 mv ./kind /usr/local/bin/kind
+kind delete cluster

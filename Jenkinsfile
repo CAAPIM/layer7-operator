@@ -44,7 +44,7 @@ pipeline {
                         export PATH=$PATH:/usr/local/bin
                         make prepare-e2e
                         netstat -an | grep LISTEN
-                        cat ~/.kube/config
+                        kubectl config view
                         make docker-build
                         make docker-push
                     '''

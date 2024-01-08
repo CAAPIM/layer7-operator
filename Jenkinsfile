@@ -45,7 +45,7 @@ pipeline {
                         ./hack/install-kubectl.sh
                         export PATH=$PATH:~/.local/bin/kubectl
                         make prepare-e2e
-                        kubectl version
+                        ~/.local/bin/kubectl version
                         make docker-build
                         make docker-push
                     '''

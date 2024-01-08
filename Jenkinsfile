@@ -43,6 +43,8 @@ pipeline {
                         chmod +x /usr/local/bin/kubectl-kuttl
                         export PATH=$PATH:/usr/local/bin
                         make prepare-e2e
+                        lsof -i -P -n | grep LISTEN
+                        cat ~/.kube/config
                         make docker-build
                         make docker-push
                     '''

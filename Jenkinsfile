@@ -43,6 +43,7 @@ pipeline {
                         chmod +x /usr/local/bin/kubectl-kuttl
                         export PATH=$PATH:/usr/local/bin
                         make prepare-e2e
+                        netstat -an
                         kubectl version
                         make docker-build
                         make docker-push

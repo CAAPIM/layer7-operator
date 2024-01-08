@@ -15,6 +15,37 @@ pipeline {
     string(name: 'KUBE_VERSION', defaultValue: '1.28', description: 'kube version')
     }
     stages {
+        stage('Build and Test Operator') {
+            steps {
+                echo "Build and Run Tests"
+                withFolderProperties {
+                    sh '''#!/bin/bash
+                        branch=$BRANCH_NAME
+                        echo Branch=${branch}
+
+                        if [[ ${branch} =~ ^PR-[0-9]+$ ]]; then
+                           branch=pull-request-${branch}
+                           echo "Pull request branch=${branch}"
+                        fi
+                        # Replace the / with -
+                        tag=${branch//'/'/-}
+                        VERSION=${tag}
+                        ./hack/install-go.sh
+                        export PATH=$PATH:/usr/local/go/bin
+                        ./hack/install-kind.sh
+                        kind --version
+                        curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64
+                        chmod +x /usr/local/bin/kubectl-kuttl
+                        export PATH=$PATH:/usr/local/bin
+                        make prepare-e2e
+                        kubectl config view
+                        docker ps
+                        netstat -an
+                        kubectl version
+                    '''
+                }
+            }
+        }
         stage('Build and push Operator') {
             steps {
                 echo "Build and push Operator"
@@ -35,18 +66,6 @@ pipeline {
                         else
                            docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
                         fi
-                        ./hack/install-go.sh
-                        export PATH=$PATH:/usr/local/go/bin
-                        ./hack/install-kind.sh
-                        kind --version
-                        curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64
-                        chmod +x /usr/local/bin/kubectl-kuttl
-                        export PATH=$PATH:/usr/local/bin
-                        make prepare-e2e
-                        kubectl config view
-                        docker ps
-                        netstat -an
-                        kubectl version
                         make docker-build
                         make docker-push
                     '''

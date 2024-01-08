@@ -44,7 +44,7 @@ pipeline {
                         export PATH=$PATH:/usr/local/bin
                         make prepare-e2e
                         docker ps
-                        kubectl cluster-info --context kind-kind
+                        netstat -an
                         kubectl version
                         make docker-build
                         make docker-push

@@ -1,5 +1,8 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  apiServerAddress: "127.0.0.1"
+  apiServerPort: 8444
 nodes:
   - role: control-plane
     image: kindest/node:v1.28.0@sha256:b7a4cad12c197af3ba43202d3efe03246b3f0793f162afb40a33c923952d5b31
@@ -9,9 +12,6 @@ nodes:
         nodeRegistration:
           kubeletExtraArgs:
             node-labels: "ingress-ready=true"
-    networking:
-      apiServerAddress: "127.0.0.1"
-      apiServerPort: 8444
     extraPortMappings:
       - containerPort: 80
         hostPort: 80

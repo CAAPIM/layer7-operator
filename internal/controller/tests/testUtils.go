@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/caapim/layer7-operator/pkg/util"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/caapim/layer7-operator/pkg/util"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/go-git/go-git/v5"

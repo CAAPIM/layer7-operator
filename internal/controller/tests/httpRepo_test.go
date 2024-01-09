@@ -22,8 +22,8 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
 			gatewayName         = "ssg-repo"
-			version             = "10.1.00_CR4"
-			image               = "docker.io/caapim/gateway:10.1.00_CR4"
+			version             = "11.0.00_CR2"
+			image               = "docker.io/caapim/gateway:11.0.00_CR2"
 			repoName            = "http-repo"
 		)
 

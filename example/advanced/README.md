@@ -219,7 +219,7 @@ autoscaling:
 ```
 - Security Context
 Allows setting container and pod security contexts.
-Note: Pod and Security context options are currently limited to Gateway version 10.1.00_CR3
+Note: Pod and Security context options are currently limited to Gateway version 10.1.00_CR3,CR4 and 11.0.00_CR1,CR2
 ```
 containerSecurityContext:
   runAsNonRoot: true
@@ -275,7 +275,7 @@ status:
     ready: true
     startTime: 2023-04-03 18:57:24 +0000 UTC
   host: gateway.brcmlabs.com
-  image: caapim/gateway:10.1.00_CR3
+  image: caapim/gateway:11.0.00_CR2
   ready: 1
   replicas: 1
 repositoryStatus:
@@ -304,7 +304,7 @@ repositoryStatus:
   storageSecretName: l7-gw-mysubscriptions-repository
   type: dynamic
 state: Ready
-version: 10.1.00_CR3
+version: 11.0.00_CR2
 ```
 
 ### Test your Gateway Deployment

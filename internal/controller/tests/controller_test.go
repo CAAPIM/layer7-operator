@@ -36,8 +36,8 @@ var _ = Describe("Gateway controller", func() {
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
 			gatewayName         = "ssg"
-			version             = "10.1.00_CR3"
-			image               = "docker.io/caapim/gateway:10.1.00_CR3"
+			version             = "11.0.00_CR2"
+			image               = "docker.io/caapim/gateway:11.0.00_CR2"
 			repoName            = "l7-gw-myframework"
 			repoCheckoutPath    = "/tmp/l7GWMyFramework"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyFramework"
@@ -65,7 +65,7 @@ var _ = Describe("Gateway controller", func() {
 			})
 		})
 
-		It("Should pick up chnges in repo with gw restart", func() {
+		It("Should pick up changes in repo with gw restart", func() {
 
 			By("Creating repository CRD")
 			//Repository resource

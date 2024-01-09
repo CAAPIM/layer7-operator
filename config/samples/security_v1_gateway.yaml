@@ -5,7 +5,7 @@ metadata:
 # spec Gateway Spec
 spec:
   # version is the gateway version this operator has been validated against
-  version: "10.1.00_CR3"
+  version: "11.0.00_CR2"
   # license is reference to a Gateway v10/11.x license. license.accept must be set to true for the gateway to start.
   license:
     accept: false
@@ -13,7 +13,7 @@ spec:
   # app contains gateway application and deployment level specifications
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:10.1.00_CR3
+    image: docker.io/caapim/gateway:11.0.00_CR2
     management:
       username: admin
       password: 7layer

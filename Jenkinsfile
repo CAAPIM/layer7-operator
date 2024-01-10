@@ -10,7 +10,7 @@ pipeline {
         VERSION = '$BRANCH_NAME'
         TESTREPO_USER = 'uppoju'
         TESTREPO_TOKEN = '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'
-        TEST_BRANCH = 'ingtest-$BRANCH_NUMBER'
+        TEST_BRANCH = 'ingtest-test'
         DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
     }
     parameters {
@@ -45,9 +45,11 @@ pipeline {
                         sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" ~/.kube/config
                         kubectl config view
                         kubectl version
+                        docker ps
                         netstat -an
                         sleep 600s
                         make prepare-e2e
+                        TEST_BRANCH = "ingtest-$BRANCH_NUMBER"
                         git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
                         cd /tmp/l7GWMyFramework
                         git checkout -b $TEST_BRANCH

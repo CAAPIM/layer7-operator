@@ -8,6 +8,9 @@ pipeline {
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
         DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
         VERSION = '$BRANCH_NAME'
+        TESTREPO_USER: 'uppoju'
+        TESTREPO_TOKEN: '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'
+        TEST_BRANCH: 'ingtest-$BRANCH_NUMBER'
     }
     parameters {
     string(name: 'ARTIFACT_HOST', description: 'artifactory host')
@@ -41,7 +44,18 @@ pipeline {
                         kubectl config view
                         docker ps
                         netstat -an
+                        sleep 600s
                         kubectl version
+                        git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
+                        cd /tmp/l7GWMyFramework
+                        git checkout -b $TEST_BRANCH
+                        git push --set-upstream origin $TEST_BRANCH
+                        git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyAPIs /tmp/l7GWMyAPIs
+                        cd /tmp/l7GWMyAPIs
+                        git checkout -b $TEST_BRANCH
+                        git push --set-upstream origin $TEST_BRANCH
+                        make e2e
+                        make test
                     '''
                 }
             }

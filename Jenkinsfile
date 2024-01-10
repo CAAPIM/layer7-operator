@@ -41,8 +41,9 @@ pipeline {
                         curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64
                         chmod +x /usr/local/bin/kubectl-kuttl
                         export PATH=$PATH:/usr/local/bin
-                        sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" kind-$KUBE_VERSION.yaml
                         make prepare-e2e
+                        sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" ~/.kube/config
+                        make setup-env
                         kubectl config view
                         docker ps
                         netstat -an

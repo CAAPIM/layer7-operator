@@ -43,6 +43,7 @@ pipeline {
                         export PATH=$PATH:/usr/local/bin
                         sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" kind-$KUBE_VERSION.yaml
                         make prepare-e2e
+                        kubectl config view
                         TEST_BRANCH=ingtest-$BUILD_NUMBER
                         git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
                         cd /tmp/l7GWMyFramework

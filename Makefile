@@ -148,8 +148,7 @@ e2e:
 prepare-e2e: kuttl docker-build start-kind
 
 .PHONY: setup-env
-setup-env:
-    kubectl create namespace l7operator
+setup-env: kubectl create namespace l7operator
     kind load docker-image $(IMG)
     docker pull ${GATEWAY_IMG}
     kind load docker-image $(GATEWAY_IMG)

@@ -148,7 +148,14 @@ kubectl apply -f deploy/cw-bundle.yaml
 The Layer7 Operator <b>has not been published</b> to any Operator Catalogs, you can still deploy it using the operator-sdk cli. The only supported install mode in OpenShift is OwnNamespace.
 
 ```
-operator-sdk run bundle docker.io/layer7api/layer7-operator-bundle:v1.0.1 --install-mode OwnNamespace
+operator-sdk run bundle docker.io/layer7api/layer7-operator-bundle:v1.0.3 --install-mode OwnNamespace
+```
+
+### Install using the Helm Chart
+The Layer7 Operator Helm Charts are currently located in [charts](./charts). The Layer7 Operator Chart requires cluster privileges to install and watches all namespaces by default
+
+```
+helm install layer7-operator ./charts/layer7-operator -n layer7-operator-system --create-namespace
 ```
 
 ### Create a Simple Gateway

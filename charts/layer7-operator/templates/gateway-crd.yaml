@@ -3,9 +3,9 @@ kind: CustomResourceDefinition
 metadata:
   name: gateways.security.brcmlabs.com
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.12.0
   labels:
-  {{- include "chart.labels" . | nindent 4 }}
+  {{- include "layer7-operator.labels" . | nindent 4 }}
 spec:
   group: security.brcmlabs.com
   names:
@@ -1847,15 +1847,21 @@ spec:
                         keeping any referenced keys up-to-date. You can bring in external
                         secrets using tools like cert-manager
                       properties:
+                        alias:
+                          description: Alias overrides the key name that is stored in
+                            the Gateway This is useful for the default ssl key
+                          type: string
                         enabled:
                           description: Enabled or disabled
                           type: boolean
+                        keyUsageType:
+                          description: KeyUsageType allows keys to be marked as special
+                            purpose only one key usage type is allowed SSL | CA | AUDIT_SIGNING
+                            | AUDIT_VIEWER
+                          type: string
                         name:
                           description: Name of the kubernetes.io/tls Secret which already
                             exists in Kubernetes
-                          type: string
-                        port:
-                          description: Port is reserved for future use
                           type: string
                       type: object
                     type: array

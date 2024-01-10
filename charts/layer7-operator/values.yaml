@@ -29,6 +29,8 @@ controllerManager:
     - --zap-time-encoding=rfc3339nano
     containerSecurityContext:
       allowPrivilegeEscalation: false
+    env:
+      watchNamespace: ""
     image:
       repository: docker.io/layer7api/layer7-operator
       tag: main

@@ -408,4 +408,4 @@ helmify:
 
 
 helm: manifests kustomize helmify
-	$(KUSTOMIZE) build config/bundle | $(HELMIFY)
+	$(KUSTOMIZE) build config/cw-bundle | $(HELMIFY) charts/layer7-operator

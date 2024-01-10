@@ -42,15 +42,8 @@ pipeline {
                         chmod +x /usr/local/bin/kubectl-kuttl
                         export PATH=$PATH:/usr/local/bin
                         sed -i "s/0.0.0.0/$DOCKERHOST_IP/g" kind-$KUBE_VERSION.yaml
-                        make start-kind
-                        #sed -i "s/0.0.0.0/$DOCKERHOST_IP/g" ~/.kube/config
-                        kubectl config view
-                        kubectl version
-                        docker ps
-                        netstat -an
-                        sleep 600s
                         make prepare-e2e
-                        TEST_BRANCH=ingtest-$BRANCH_NUMBER
+                        TEST_BRANCH=ingtest-$BUILD_NUMBER
                         git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
                         cd /tmp/l7GWMyFramework
                         git checkout -b $TEST_BRANCH

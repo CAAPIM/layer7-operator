@@ -145,7 +145,7 @@ e2e:
 	kubectl delete namespace l7operator
 
 .PHONY: prepare-e2e
-prepare-e2e: kuttl docker-build
+prepare-e2e: kuttl docker-build start-kind
 	kubectl create namespace l7operator
 	kind load docker-image $(IMG)
 	docker pull ${GATEWAY_IMG}

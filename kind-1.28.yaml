@@ -3,9 +3,6 @@ apiVersion: kind.x-k8s.io/v1alpha4
 networking:
   apiServerAddress: "0.0.0.0"
   apiServerPort: 6443
-  # By default the API server listens on a random open port.
-  # You may choose a specific port but probably don't need to in most cases.
-  # Using a random port makes it easier to spin up multiple clusters.
 nodes:
   - role: control-plane
     image: kindest/node:v1.28.0@sha256:b7a4cad12c197af3ba43202d3efe03246b3f0793f162afb40a33c923952d5b31

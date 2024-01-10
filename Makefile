@@ -150,7 +150,7 @@ prepare-e2e: kuttl docker-build start-kind
 	kind load docker-image $(IMG)
 	docker pull ${GATEWAY_IMG}
 	kind load docker-image $(GATEWAY_IMG)
-	sed -i 's+layer7-operator:main+layer7-operator:$(VERSION)+g' deploy/bundle.yaml
+	sed -i 's+docker.io/layer7api/layer7-operator:main+$(IMG)+g' deploy/bundle.yaml
 	kubectl apply -f deploy/bundle.yaml --namespace l7operator
 	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
 	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator

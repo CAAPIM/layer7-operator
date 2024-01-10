@@ -43,8 +43,8 @@ pipeline {
                         export PATH=$PATH:/usr/local/bin
                         make prepare-e2e
                         sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" ~/.kube/config
-                        make setup-env
                         kubectl config view
+                        make setup-env
                         docker ps
                         netstat -an
                         sleep 600s

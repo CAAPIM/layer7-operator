@@ -11,6 +11,7 @@ pipeline {
         TESTREPO_USER = 'uppoju'
         TESTREPO_TOKEN = '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'
         TEST_BRANCH = 'ingtest-$BRANCH_NUMBER'
+        DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
     }
     parameters {
     string(name: 'ARTIFACT_HOST', description: 'artifactory host')
@@ -40,6 +41,7 @@ pipeline {
                         curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64
                         chmod +x /usr/local/bin/kubectl-kuttl
                         export PATH=$PATH:/usr/local/bin
+                        sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" kind-$KUBE_VERSION.yaml
                         make prepare-e2e
                         kubectl config view
                         docker ps

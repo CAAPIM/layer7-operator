@@ -44,6 +44,8 @@ pipeline {
                         make start-kind
                         sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" ~/.kube/config
                         kubectl config view
+                        kubectl version
+                        sleep 600s
                         make prepare-e2e
                         git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
                         cd /tmp/l7GWMyFramework

@@ -145,7 +145,19 @@ e2e:
 	kubectl delete namespace l7operator
 
 .PHONY: prepare-e2e
-prepare-e2e: kuttl docker-build start-kind
+prepare-e2e: kuttl docker-build
+	kubectl create namespace l7operator
+	kind load docker-image $(IMG)
+	docker pull ${GATEWAY_IMG}
+	kind load docker-image $(GATEWAY_IMG)
+	sed -i 's+layer7-operator:main+layer7-operator:$(VERSION)+g' deploy/bundle.yaml
+	kubectl apply -f deploy/bundle.yaml --namespace l7operator
+	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
+	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator
+	kubectl create secret generic graphman-encryption-secret --from-literal=FRAMEWORK_ENCRYPTION_PASSPHRASE=7layer -n l7operator
+	kubectl apply -f ./testdata/metallb-native.yaml
+	sleep 90s
+	kubectl apply -f ./testdata/metallb.yaml
 
 .PHONY: start-kind
 start-kind:

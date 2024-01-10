@@ -41,13 +41,10 @@ pipeline {
                         curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64
                         chmod +x /usr/local/bin/kubectl-kuttl
                         export PATH=$PATH:/usr/local/bin
-                        make prepare-e2e
+                        make start-kind
                         sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" ~/.kube/config
                         kubectl config view
-                        docker ps
-                        netstat -an
-                        sleep 600s
-                        kubectl version
+                        make prepare-e2e
                         git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
                         cd /tmp/l7GWMyFramework
                         git checkout -b $TEST_BRANCH

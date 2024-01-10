@@ -44,7 +44,6 @@ pipeline {
                         make prepare-e2e
                         sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" ~/.kube/config
                         kubectl config view
-                        make setup-env
                         docker ps
                         netstat -an
                         sleep 600s

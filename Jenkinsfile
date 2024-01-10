@@ -49,7 +49,7 @@ pipeline {
                         netstat -an
                         sleep 600s
                         make prepare-e2e
-                        TEST_BRANCH = "ingtest-$BRANCH_NUMBER"
+                        TEST_BRANCH=ingtest-$BRANCH_NUMBER
                         git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
                         cd /tmp/l7GWMyFramework
                         git checkout -b $TEST_BRANCH
@@ -58,6 +58,7 @@ pipeline {
                         cd /tmp/l7GWMyAPIs
                         git checkout -b $TEST_BRANCH
                         git push --set-upstream origin $TEST_BRANCH
+                        cd $WORKSPACE
                         make e2e
                         make test
                     '''

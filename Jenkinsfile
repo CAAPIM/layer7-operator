@@ -42,7 +42,7 @@ pipeline {
                         chmod +x /usr/local/bin/kubectl-kuttl
                         export PATH=$PATH:/usr/local/bin
                         make start-kind
-                        sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" ~/.kube/config
+                        sed -i "s/0.0.0.0/$DOCKERHOST_IP/g" ~/.kube/config
                         kubectl config view
                         kubectl version
                         docker ps

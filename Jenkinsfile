@@ -13,6 +13,7 @@ pipeline {
         TEST_BRANCH = 'ingtest-test'
         DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
         UNEASYROOSTER_LICENSE_FILE_PATH = "https://github.gwd.broadcom.net/ESD/UneasyRooster/raw/release/10.1.00_rapier/DEVLICENSE.xml"
+        USE_EXISTING_CLUSTER = true
     }
     parameters {
     string(name: 'ARTIFACT_HOST', description: 'artifactory host')
@@ -58,7 +59,7 @@ pipeline {
                         sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" kind-$KUBE_VERSION.yaml
                         make prepare-e2e
                         kubectl config view
-                        TEST_BRANCH=ingtest-$BUILD_NUMBER
+                        TEST_BRANCH=ingtest-$tag-$BUILD_NUMBER
                         git clone https://oauth2:$TESTREPO_TOKEN@github.com/$TESTREPO_USER/l7GWMyFramework /tmp/l7GWMyFramework
                         cd /tmp/l7GWMyFramework
                         git checkout -b $TEST_BRANCH
@@ -69,7 +70,9 @@ pipeline {
                         git push --set-upstream origin $TEST_BRANCH
                         cd $WORKSPACE
                         make test
-                        if [[ $? != 0 ]]; then
+                        if [[ $? == 0 ]]; then
+                           echo "successfully finished unit tests and ginkgo tests"
+                        else
                            exit 1
                         if
                         make e2e

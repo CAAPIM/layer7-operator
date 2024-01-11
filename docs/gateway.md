@@ -3686,6 +3686,13 @@ ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Op
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>alias</b></td>
+        <td>string</td>
+        <td>
+          Alias overrides the key name that is stored in the Gateway This is useful for the default ssl key<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
@@ -3693,17 +3700,17 @@ ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Op
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>keyUsageType</b></td>
+        <td>string</td>
+        <td>
+          KeyUsageType allows keys to be marked as special purpose only one key usage type is allowed SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
           Name of the kubernetes.io/tls Secret which already exists in Kubernetes<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>port</b></td>
-        <td>string</td>
-        <td>
-          Port is reserved for future use<br/>
         </td>
         <td>false</td>
       </tr></tbody>

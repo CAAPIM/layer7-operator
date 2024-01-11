@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.12.0
   name: gateways.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -1906,15 +1905,21 @@ spec:
                         keeping any referenced keys up-to-date. You can bring in external
                         secrets using tools like cert-manager
                       properties:
+                        alias:
+                          description: Alias overrides the key name that is stored
+                            in the Gateway This is useful for the default ssl key
+                          type: string
                         enabled:
                           description: Enabled or disabled
                           type: boolean
+                        keyUsageType:
+                          description: KeyUsageType allows keys to be marked as special
+                            purpose only one key usage type is allowed SSL | CA |
+                            AUDIT_SIGNING | AUDIT_VIEWER
+                          type: string
                         name:
                           description: Name of the kubernetes.io/tls Secret which
                             already exists in Kubernetes
-                          type: string
-                        port:
-                          description: Port is reserved for future use
                           type: string
                       type: object
                     type: array

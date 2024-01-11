@@ -36,10 +36,10 @@ import (
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
-	"github.com/caapim/layer7-operator/controllers/api"
-	"github.com/caapim/layer7-operator/controllers/gateway"
-	"github.com/caapim/layer7-operator/controllers/portal"
-	"github.com/caapim/layer7-operator/controllers/repository"
+	"github.com/caapim/layer7-operator/internal/controller/api"
+	"github.com/caapim/layer7-operator/internal/controller/gateway"
+	"github.com/caapim/layer7-operator/internal/controller/portal"
+	"github.com/caapim/layer7-operator/internal/controller/repository"
 	"github.com/caapim/layer7-operator/pkg/util"
 	//+kubebuilder:scaffold:imports
 )
@@ -82,6 +82,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	cOpts := cache.Options{}
+
+	if strings.Contains(namespace, ",") {
+		cOpts.Namespaces = append(cOpts.Namespaces, strings.Split(namespace, ",")...)
+	} else {
+		cOpts.Namespaces = append(cOpts.Namespaces, namespace)
+	}
+
 	options := ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      metricsAddr,
@@ -90,12 +98,8 @@ func main() {
 		LeaderElection:          enableLeaderElection,
 		LeaderElectionID:        "d464e6a2.brcmlabs.com",
 		LeaderElectionNamespace: namespace,
-		Namespace:               namespace,
-	}
-
-	if strings.Contains(namespace, ",") {
-		options.Namespace = ""
-		options.NewCache = cache.MultiNamespacedCacheBuilder(strings.Split(namespace, ","))
+		Cache:                   cOpts,
+		//Namespace:               namespace,
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)

@@ -51,7 +51,7 @@ func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
 			Labels:      ls,
 		},
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
+			APIVersion: "networking.k8s.io/v1",
 			Kind:       "Ingress",
 		},
 		Spec: networkingv1.IngressSpec{

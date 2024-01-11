@@ -665,9 +665,23 @@ type ExternalKey struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// Name of the kubernetes.io/tls Secret which already exists in Kubernetes
 	Name string `json:"name,omitempty"`
-	// Port is reserved for future use
-	Port string `json:"port,omitempty"`
+	// Alias overrides the key name that is stored in the Gateway
+	// This is useful for the default ssl key
+	Alias string `json:"alias,omitempty"`
+	// KeyUsageType allows keys to be marked as special purpose
+	// only one key usage type is allowed
+	// SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER
+	KeyUsageType KeyUsageType `json:"keyUsageType,omitempty"`
 }
+
+type KeyUsageType string
+
+const (
+	KeyUsageTypeDefaultSSL KeyUsageType = "SSL"
+	KeyUsageTypeDefaultCA  KeyUsageType = "CA"
+	KeyUsageAuditSigning   KeyUsageType = "AUDIT_SIGNING"
+	KeyUsageAuditViewer    KeyUsageType = "AUDIT_VIEWER"
+)
 
 // Bootstrap - optionally add a bootstrap script to the Gateway that migrates configuration from /opt/docker/custom to the correct Container Gateway locations for bootstrap
 type Bootstrap struct {

@@ -1,15 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "chart.fullname" . }}-controller-manager-metrics-service
+  name: {{ include "layer7-operator.fullname" . }}-controller-manager-metrics-service
   labels:
     control-plane: controller-manager
-  {{- include "chart.labels" . | nindent 4 }}
+  {{- include "layer7-operator.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.metricsService.type }}
   selector:
-    app.kubernetes.io/name: layer7-operator
     control-plane: controller-manager
-  {{- include "chart.selectorLabels" . | nindent 4 }}
+  {{- include "layer7-operator.selectorLabels" . | nindent 4 }}
   ports:
 	{{- .Values.metricsService.ports | toYaml | nindent 2 -}}

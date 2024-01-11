@@ -3,7 +3,7 @@ package tests
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -25,8 +25,8 @@ var _ = Describe("Gateway controller", func() {
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
 			gatewayName         = "dynamic"
-			version             = "10.1.00_CR4"
-			image               = "docker.io/caapim/gateway:10.1.00_CR4"
+			version             = "11.0.00_CR2"
+			image               = "docker.io/caapim/gateway:11.0.00_CR2"
 			repoName            = "l7-gw-myapis"
 			repoCheckoutPath    = "/tmp/l7GWMyAPIs"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyAPIs"
@@ -194,20 +194,24 @@ var _ = Describe("Gateway controller", func() {
 			Eventually(func() bool {
 				requestURL := fmt.Sprintf("https://%s:8443/restman/1.0/services/84449671abe2a5b143051dbdfdf7e684", currentService.Status.LoadBalancer.Ingress[0].IP)
 				req, err := http.NewRequest("GET", requestURL, nil)
-				req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
-				_, err = httpclient.Do(req)
 				if err != nil {
 					return false
 				}
-				return true
+				req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
+				_, err = httpclient.Do(req)
+
+				return err == nil
 			}).WithTimeout(time.Second * 180).Should(BeTrue())
 
 			requestURL := fmt.Sprintf("https://%s:8443/api3", currentService.Status.LoadBalancer.Ingress[0].IP)
 			req, err := http.NewRequest("GET", requestURL, nil)
+			if err != nil {
+				return
+			}
 			req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
 			resp, err := httpclient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
-			resBody, err := ioutil.ReadAll(resp.Body)
+			resBody, err := io.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			fmt.Printf("client: response body: %s\n", resBody)
 			Expect(strings.Contains(string(resBody), "hello test")).Should(BeTrue())

@@ -1,9 +1,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  name: {{ include "chart.fullname" . }}-manager-role
+  name: {{ include "layer7-operator.fullname" . }}-manager-role
   labels:
-  {{- include "chart.labels" . | nindent 4 }}
+  {{- include "layer7-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - apps
@@ -241,8 +241,6 @@ rules:
   - l7apis/status
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - security.brcmlabs.com
   resources:
@@ -275,20 +273,18 @@ rules:
   - l7portals/status
   verbs:
   - get
-  - patch
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: {{ include "chart.fullname" . }}-manager-rolebinding
+  name: {{ include "layer7-operator.fullname" . }}-manager-rolebinding
   labels:
-  {{- include "chart.labels" . | nindent 4 }}
+  {{- include "layer7-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: '{{ include "chart.fullname" . }}-manager-role'
+  kind: ClusterRole
+  name: '{{ include "layer7-operator.fullname" . }}-manager-role'
 subjects:
 - kind: ServiceAccount
-  name: '{{ include "chart.fullname" . }}-controller-manager'
+  name: '{{ include "layer7-operator.fullname" . }}-controller-manager'
   namespace: '{{ .Release.Namespace }}'

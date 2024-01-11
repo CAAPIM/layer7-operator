@@ -3,10 +3,8 @@ package util
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -18,7 +16,6 @@ import (
 	"strings"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
-	"github.com/gazza7205/go-pkcs12"
 )
 
 const fipsProviderGuid = "41e5cacd15f86758f03ff2952616d4f3"
@@ -27,17 +24,20 @@ var internalPolicies = []string{"#OTK Client Context Variables", "OTK FIP Client
 var externalPolicies = []string{"#OTK OVP Configuration", "#OTK Storage Configuration", "OTK Client DB GET", ""}
 
 type GraphmanSecret struct {
-	Name                 string `json:"name,omitempty"`
-	Secret               string `json:"secret,omitempty"`
-	Description          string `json:"description,omitempty"`
-	VariableReferencable bool   `json:"variableReferencable,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Secret      string `json:"secret,omitempty"`
+	Description string `json:"description,omitempty"`
+
+	VariableReferencable bool `json:"variableReferencable,omitempty"`
 }
 
 type GraphmanKey struct {
-	Name string `json:"name,omitempty"`
-	Crt  string `json:"crt,omitempty"`
-	Key  string `json:"key,omitempty"`
-	Port string `json:"port,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Crt       string `json:"crt,omitempty"`
+	Key       string `json:"key,omitempty"`
+	Port      string `json:"port,omitempty"`
+	Alias     string `json:"alias,omitempty"`
+	UsageType string `json:"usageType,omitempty"`
 }
 
 type GraphmanOtkConfig struct {
@@ -96,11 +96,6 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 
 		crtStrings := strings.SplitAfter(string(key.Crt), "-----END CERTIFICATE-----")
 		crtStrings = crtStrings[:len(crtStrings)-1]
-
-		// flip the chain order for pfx.
-		for i, j := 0, len(crtStrings)-1; i < j; i, j = i+1, j-1 {
-			crtStrings[i], crtStrings[j] = crtStrings[j], crtStrings[i]
-		}
 		crtsX509 := []x509.Certificate{}
 		certsChain := []string{}
 		for crt := range crtStrings {
@@ -110,48 +105,37 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 			certsChain = append(certsChain, crtStrings[crt])
 		}
 
-		block, _ := pem.Decode([]byte(key.Key))
-		parseResult, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-		if err != nil {
-			panic(err)
-		}
-		privKey := parseResult.(*rsa.PrivateKey)
-
-		if err != nil {
-			return nil, err
-		}
-
-		// Create a P12 to marshal the new p12 into
-		p12 := pkcs12.NewWithPassword("7layer")
-		certs := []pkcs12.CertEntry{}
 		certDN := ""
 		for i := range crtsX509 {
-			certs = append(certs, pkcs12.CertEntry{Cert: &crtsX509[i], FriendlyName: key.Name})
 			if i == 0 {
 				certDN = crtsX509[i].Subject.CommonName
 			}
 		}
 
-		p12.CertEntries = append(p12.CertEntries, certs...)
-		p12.KeyEntries = append(p12.KeyEntries, pkcs12.KeyEntry{Key: privKey, FriendlyName: key.Name})
-		p12Bytes, _ := pkcs12.Marshal(&p12)
-
-		if err != nil {
-			return nil, err
-		}
-
 		gmanKey := graphman.KeyInput{
 			KeystoreId: "00000000000000000000000000000002",
+			Pem:        key.Key,
 			Alias:      key.Name,
 			KeyType:    "RSA",
 			SubjectDn:  "CN=" + certDN,
-			P12:        base64.RawURLEncoding.EncodeToString(p12Bytes),
 			CertChain:  certsChain,
+		}
+
+		if key.Alias != "" {
+			gmanKey.Alias = key.Alias
+		}
+
+		switch strings.ToUpper(key.UsageType) {
+		case "SSL", "CA", "AUDIT_SIGNING", "AUDIT_VIEWER":
+			gmanKey.UsageTypes = []graphman.KeyUsageType{graphman.KeyUsageType(key.UsageType)}
 		}
 
 		bundle.Keys = append(bundle.Keys, &gmanKey)
 
 	}
+
+	bundleBytes, _ := json.Marshal(bundle)
+	return bundleBytes, nil
 
 	// bundle.ListenPorts = append(bundle.ListenPorts, &graphman.ListenPortInput{
 	// 	Name:            "Default HTTPS (8443)",
@@ -191,9 +175,6 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 	// 	},
 	// })
 
-	bundleBytes, _ := json.Marshal(bundle)
-
-	return bundleBytes, nil
 }
 
 func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) {
@@ -204,8 +185,8 @@ func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) 
 			description = secret.Description
 		}
 
-		variableReferencable := true
-		if &secret.VariableReferencable != nil {
+		variableReferencable := false
+		if secret.VariableReferencable {
 			variableReferencable = secret.VariableReferencable
 		}
 
@@ -441,3 +422,68 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 
 // 	return bytes, nil
 // }
+
+// Legacy PEM to P12 conversion
+// func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
+// 	bundle := graphman.Bundle{}
+
+// 	for _, key := range keys {
+
+// 		crtStrings := strings.SplitAfter(string(key.Crt), "-----END CERTIFICATE-----")
+// 		crtStrings = crtStrings[:len(crtStrings)-1]
+
+// 		// flip the chain order for pfx.
+// 		for i, j := 0, len(crtStrings)-1; i < j; i, j = i+1, j-1 {
+// 			crtStrings[i], crtStrings[j] = crtStrings[j], crtStrings[i]
+// 		}
+// 		crtsX509 := []x509.Certificate{}
+// 		certsChain := []string{}
+// 		for crt := range crtStrings {
+// 			b, _ := pem.Decode([]byte(crtStrings[crt]))
+// 			crtX509, _ := x509.ParseCertificate(b.Bytes)
+// 			crtsX509 = append(crtsX509, *crtX509)
+// 			certsChain = append(certsChain, crtStrings[crt])
+// 		}
+
+// 		block, _ := pem.Decode([]byte(key.Key))
+// 		parseResult, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		privKey := parseResult.(*rsa.PrivateKey)
+
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		// Create a P12 to marshal the new p12 into
+// 		p12 := pkcs12.NewWithPassword("7layer")
+// 		certs := []pkcs12.CertEntry{}
+// 		certDN := ""
+// 		for i := range crtsX509 {
+// 			certs = append(certs, pkcs12.CertEntry{Cert: &crtsX509[i], FriendlyName: key.Name})
+// 			if i == 0 {
+// 				certDN = crtsX509[i].Subject.CommonName
+// 			}
+// 		}
+
+// 		p12.CertEntries = append(p12.CertEntries, certs...)
+// 		p12.KeyEntries = append(p12.KeyEntries, pkcs12.KeyEntry{Key: privKey, FriendlyName: key.Name})
+// 		p12Bytes, _ := pkcs12.Marshal(&p12)
+
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		gmanKey := graphman.KeyInput{
+// 			KeystoreId: "00000000000000000000000000000002",
+// 			Alias:      key.Name,
+// 			KeyType:    "RSA",
+// 			SubjectDn:  "CN=" + certDN,
+// 			P12:        base64.RawURLEncoding.EncodeToString(p12Bytes),
+// 			CertChain:  certsChain,
+// 		}
+
+// 		bundle.Keys = append(bundle.Keys, &gmanKey)
+
+// 	}

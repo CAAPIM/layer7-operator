@@ -11,13 +11,13 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "10.1.00_CR3"
+  version: "11.0.00_CR2"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:10.1.00_CR3
+    image: docker.io/caapim/gateway:11.0.00_CR2
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
     updateStrategy:

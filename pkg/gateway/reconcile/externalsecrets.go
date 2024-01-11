@@ -139,12 +139,12 @@ func applyExternalSecrets(ctx context.Context, params Params, gateway *securityv
 		annotation := "security.brcmlabs.com/external-secret-" + es.Name
 
 		if !gateway.Spec.App.Management.Database.Enabled {
-			err = ReconcileEphemeralGateway(ctx, params, "external secrets", *podList, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, true, bundleBytes)
+			err = ReconcileEphemeralGateway(ctx, params, "external secrets", *podList, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, bundleBytes)
 			if err != nil {
 				return err
 			}
 		} else {
-			err = ReconcileDBGateway(ctx, params, "otk policies", gatewayDeployment, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, bundleBytes)
+			err = ReconcileDBGateway(ctx, params, "external secrets", gatewayDeployment, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, bundleBytes)
 			if err != nil {
 				return err
 			}

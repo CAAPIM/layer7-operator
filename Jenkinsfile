@@ -57,8 +57,8 @@ pipeline {
                         chmod +x /usr/local/bin/kubectl-kuttl
                         export PATH=$PATH:/usr/local/bin
                         sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" kind-$KUBE_VERSION.yaml
-                        sed -i "s/172.18.255.200/$DOCKERHOST_IP/g" testdata/metallb.yaml
-                        sed -i "s/172.18.255.250/$DOCKERHOST_IP/g" testdata/metallb.yaml
+                        sed -i "s/172.18.255.200/192.168.16.194/g" testdata/metallb.yaml
+                        sed -i "s/172.18.255.250/192.168.16.200/g" testdata/metallb.yaml
                         make prepare-e2e
                         kubectl config view
                         TEST_BRANCH=ingtest-$tag-$BUILD_NUMBER

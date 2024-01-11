@@ -70,6 +70,7 @@ pipeline {
                         git push --set-upstream origin $TEST_BRANCH
                         cd $WORKSPACE
                         make test
+                        sleep 600s
                         if [[ $? == 0 ]]; then
                            echo "successfully finished unit tests and ginkgo tests"
                         else

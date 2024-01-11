@@ -12,6 +12,7 @@ pipeline {
         TESTREPO_TOKEN = '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'
         TEST_BRANCH = 'ingtest-test'
         DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
+        UNEASYROOSTER_LICENSE_FILE_PATH = "https://github.gwd.broadcom.net/ESD/UneasyRooster/raw/release/10.1.00_rapier/DEVLICENSE.xml"
     }
     parameters {
     string(name: 'ARTIFACT_HOST', description: 'artifactory host')
@@ -19,6 +20,19 @@ pipeline {
     string(name: 'KUBE_VERSION', defaultValue: '1.28', description: 'kube version')
     }
     stages {
+        stage('Grab SSG License file from Uneasyrooster') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'GIT_USER_TOKEN', passwordVariable: 'APIKEY', usernameVariable: 'USERNAME')]) {
+                        echo "Getting License file from UneasyRooster"
+                        sh("curl -u ${USERNAME}:${APIKEY} \
+                            -H 'Accept: application/vnd.github.v3.raw' \
+                            -o testdata/license.xml \
+                            -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
+                    }
+                }
+            }
+        }
         stage('Build and Test Operator') {
             steps {
                 echo "Build and Run Tests"

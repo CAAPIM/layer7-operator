@@ -44,16 +44,16 @@ jobs:
         env:
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
           TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
-          BRANCH_NAME: ingtest-${{ github.run_id }}
+          TEST_BRANCH: ingtest-${{ github.run_id }}
         run: |
            git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework
            cd /tmp/l7GWMyFramework
-           git checkout -b ${BRANCH_NAME}
-           git push --set-upstream origin ${BRANCH_NAME}
+           git checkout -b ${TEST_BRANCH}
+           git push --set-upstream origin ${TEST_BRANCH}
            git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs
            cd /tmp/l7GWMyAPIs
-           git checkout -b ${BRANCH_NAME}
-           git push --set-upstream origin ${BRANCH_NAME}
+           git checkout -b ${TEST_BRANCH}
+           git push --set-upstream origin ${TEST_BRANCH}
       - name: "create license"
         env:
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}

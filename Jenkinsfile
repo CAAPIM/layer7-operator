@@ -54,9 +54,8 @@ pipeline {
                         git checkout -b $TEST_BRANCH
                         git push --set-upstream origin $TEST_BRANCH
                         cd $WORKSPACE
-                        make e2e
-                        kubectl create namespace l7operator
                         make test
+                        make e2e
                     '''
                 }
             }

@@ -35,7 +35,7 @@ var _ = Describe("Gateway controller", func() {
 
 		BeforeEach(func() {
 			var found bool
-			branchName, found := os.LookupEnv("BRANCH_NAME")
+			branchName, found := os.LookupEnv("TEST_BRANCH")
 			Expect(found).NotTo(BeFalse())
 			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
 			DeferCleanup(func() {

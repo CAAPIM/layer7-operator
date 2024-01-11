@@ -69,6 +69,9 @@ pipeline {
                         git push --set-upstream origin $TEST_BRANCH
                         cd $WORKSPACE
                         make test
+                        if [[ $? != 0 ]]; then
+                           exit 1
+                        if
                         make e2e
                     '''
                 }
@@ -116,7 +119,7 @@ pipeline {
         }
         stage('Build and push Operator bundle') {
             steps {
-                echo "Build and push Operator"
+                echo "Build and push Operator bundle"
                 withFolderProperties {
                     sh '''#!/bin/bash
                         branch=$BRANCH_NAME

@@ -70,8 +70,8 @@ pipeline {
 
                   echo "Create Fresh Agent WorkSpace directory in RemoteNG1Agents"
                   sshCommand remote: remoteSSH, command: "rm -rf ${AGENT_WORKSPACE_FOLDER}; mkdir -p ${AGENT_WORKSPACE_FOLDER}"
-
-                  sshCommand remote: remoteSSH, command: "cd ${AGENT_WORKSPACE_FOLDER}/; git clone --single-branch --branch ${BRANCH_NAME} https://${APIKEY}@github.com/CAAPIM/layer7-operator.git ."
+                  sshCommand remote: remoteSSH, command: "mkdir -p ${OPERATOR_WORKSPACE_FOLDER}"
+                  sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; git clone --single-branch --branch ${BRANCH_NAME} https://${APIKEY}@github.com/CAAPIM/layer7-operator.git ."
                 }
               }
                 }
@@ -81,7 +81,8 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'GIT_USER_TOKEN', passwordVariable: 'APIKEY', usernameVariable: 'USERNAME')]) {
                         echo "Getting License file from UneasyRooster"
-                        sshCommand remote: remoteSSH, command: "curl -u ${USERNAME}:${APIKEY} -H 'Accept: application/vnd.github.v3.raw' -o testdata/license.xml -L ${UNEASYROOSTER_LICENSE_FILE_PATH}"
+                        sshCommand remote: remoteSSH, command: "cd ${AGENT_WORKSPACE_FOLDER}/; curl -u ${USERNAME}:${APIKEY} -H 'Accept: application/vnd.github.v3.raw' -o testdata/license.xml -L ${UNEASYROOSTER_LICENSE_FILE_PATH}"
+                        sleep 60s
                     }
                 }
             }
@@ -93,6 +94,7 @@ pipeline {
                 withFolderProperties {
                   def script_content = """
                         export VERSION=$BRANCH_NAME
+                        cd $OPERATOR_WORKSPACE_FOLDER
                         cat ./testdata/license.xml
                         ./hack/install-go.sh
                         export PATH=$PATH:/usr/local/go/bin
@@ -113,12 +115,12 @@ pipeline {
                         git checkout -b $TEST_BRANCH
                         git push --set-upstream origin $TEST_BRANCH
                         make test
-                        sleep 600s
                         make e2e
                     """
                     prependToFile content: "${script_content}", file: 'script1.sh'
                     sshPut remote: remoteSSH, from: './dockerScript1.sh', into: "${AGENT_WORKSPACE_FOLDER}"
                     sshCommand remote: remoteSSH, command: "cd ${AGENT_WORKSPACE_FOLDER}/; chmod 777 ./script1.sh; ./script1.sh"
+                    sleep 600s
                 }
               }
             }
@@ -205,6 +207,18 @@ pipeline {
     }
 
     post {
+        always {
+            script {
+        		//delete gcp instance
+                        build job: "releng/Self-Service/destroy-gcp-instance/develop",
+                        propagate: false,
+                        wait: true,
+                        parameters: [
+                            string(name: 'INSTANCE_NAME', value: "${remoteHostInstanceName}")
+                        ]
+                        echo "${remoteHostInstanceName}* is destroyed..."
+                }
+        }
         success {
             script {
                 // 15. send commit status to repo when the build is a pull request

@@ -81,7 +81,7 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'GIT_USER_TOKEN', passwordVariable: 'APIKEY', usernameVariable: 'USERNAME')]) {
                         echo "Getting License file from UneasyRooster"
-                        sshCommand remote: remoteSSH, command: "cd ${AGENT_WORKSPACE_FOLDER}/; curl -u ${USERNAME}:${APIKEY} -H 'Accept: application/vnd.github.v3.raw' -o testdata/license.xml -L ${UNEASYROOSTER_LICENSE_FILE_PATH}"
+                        sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; curl -u ${USERNAME}:${APIKEY} -H 'Accept: application/vnd.github.v3.raw' -o testdata/license.xml -L ${UNEASYROOSTER_LICENSE_FILE_PATH}"
                         sleep 60s
                     }
                 }

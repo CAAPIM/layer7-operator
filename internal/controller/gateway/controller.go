@@ -19,10 +19,14 @@ package gateway
 import (
 	"context"
 	"sync"
+	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/gateway/reconcile"
 	"github.com/go-logr/logr"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -51,6 +55,7 @@ type GatewayReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("gateway", req.NamespacedName)
+	start := time.Now()
 
 	gw := &securityv1.Gateway{}
 	err := r.Get(ctx, req.NamespacedName, gw)
@@ -126,6 +131,20 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	var meter = otel.Meter("layer7-operator")
+	reconcileLatency, err := meter.Float64Histogram("l7_operator_gw_reconsciler_latency",
+		metric.WithDescription("Layer7 operator - Gateway CRD reconcile latency"), metric.WithUnit("ms"))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	duration := time.Since(start)
+	reconcileLatency.Record(ctx, duration.Seconds(),
+		metric.WithAttributes(attribute.String("namespace", req.NamespacedName.Namespace),
+			attribute.String("name", req.NamespacedName.Name),
+			attribute.String("image", gw.Spec.App.Image),
+			attribute.String("replicas", string(gw.Spec.App.Replicas)),
+		))
 
 	return ctrl.Result{}, nil
 }

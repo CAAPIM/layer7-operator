@@ -19,9 +19,3 @@ nodes:
       - containerPort: 443
         hostPort: 443
         protocol: TCP
-      - containerPort: 8443
-        hostPort: 8443
-        protocol: TCP
-      - containerPort: 9443
-        hostPort: 9443
-        protocol: TCP

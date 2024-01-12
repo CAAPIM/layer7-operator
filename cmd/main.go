@@ -210,12 +210,8 @@ func initProvider() (func(context.Context) error, func(context.Context) error, e
 	// probably connect directly to the service through dns.
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	// collectorURL = strings.Replace(collectorURL, "https://", "", 1)
-	// collectorURL = strings.Replace(collectorURL, "http://", "", 1)
 
-	setupLog.Info("Otel Collector url %s", collectorURL)
-
-	conn, err := grpc.DialContext(ctx, "localhost:4317",
+	conn, err := grpc.DialContext(ctx, collectorURL,
 		// Note the use of insecure transport here. TLS is recommended in production.
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),

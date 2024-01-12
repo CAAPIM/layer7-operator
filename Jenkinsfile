@@ -92,10 +92,6 @@ pipeline {
                   def script_content = """ branch=$BRANCH_NAME
                         echo Branch=${branch}
 
-                        if [[ ${branch} =~ ^PR-[0-9]+$ ]]; then
-                           branch=pull-request-${branch}
-                           echo "Pull request branch=${branch}"
-                        fi
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}

@@ -93,21 +93,17 @@ pipeline {
                 withFolderProperties {
                   def script_content = """ branch=$BRANCH_NAME
                         echo Branch=${branch}
-                        # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
                         cd ${OPERATOR_WORKSPACE_FOLDER}
                         cat ./testdata/license.xml
                         ./hack/install-go.sh
-                        export PATH=/usr/local/go/bin:$PATH
+                        export PATH=${PATH}:/usr/local/go/bin
                         ./hack/install-kind.sh
                         kind --version
                         curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64
                         chmod +x /usr/local/bin/kubectl-kuttl
-                        export PATH=$PATH:/usr/local/bin
-                        sed -i "s/127.0.0.1/$DOCKERHOST_IP/g" kind-$KUBE_VERSION.yaml
-                        #sed -i "s/172.18.255.200/$DOCKERHOST_IP/g" testdata/metallb.yaml
-                        #sed -i "s/172.18.255.250/$DOCKERHOST_IP/g" testdata/metallb.yaml
+                        export PATH=${PATH}:/usr/local/bin
                         make prepare-e2e
                         kubectl config view
                         export TEST_BRANCH=ingtest-$tag-$BUILD_NUMBER

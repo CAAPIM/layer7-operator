@@ -91,8 +91,9 @@ pipeline {
                 echo "Build and Run Tests"
               script {
                 withFolderProperties {
-                  def script_content = """branch=$BRANCH_NAME
-                        cd ${OPERATOR_WORKSPACE_FOLDER}
+                  def script_content = """
+                        export VERSION=$BRANCH_NAME
+                        cd "${OPERATOR_WORKSPACE_FOLDER}"
                         cat ./testdata/license.xml
                         ./hack/install-go.sh
                         export PATH=$PATH:/usr/local/go/bin

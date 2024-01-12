@@ -17,6 +17,7 @@ def remoteHostIP = ""
 def remoteSSH = [:]
 
 def AGENT_WORKSPACE_FOLDER = "/opt/agentWorkSpace"
+def OPERATOR_WORKSPACE_FOLDER = "${AGENT_WORKSPACE_FOLDER}/layer7-operator"
 pipeline {
 
     agent { label "default" }
@@ -88,6 +89,7 @@ pipeline {
         stage('Build and Test Operator') {
             steps {
                 echo "Build and Run Tests"
+              script {
                 withFolderProperties {
                   def script_content = """ branch=$BRANCH_NAME
                         echo Branch=${branch}
@@ -95,6 +97,7 @@ pipeline {
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
+                        cd ${OPERATOR_WORKSPACE_FOLDER}
                         cat ./testdata/license.xml
                         ./hack/install-go.sh
                         export PATH=$PATH:/usr/local/go/bin
@@ -117,7 +120,7 @@ pipeline {
                         cd /tmp/l7GWMyAPIs
                         git checkout -b $TEST_BRANCH
                         git push --set-upstream origin $TEST_BRANCH
-                        cd $WORKSPACE
+                        cd ${OPERATOR_WORKSPACE_FOLDER}
                         make test
                         sleep 600s
                         if [[ $? == 0 ]]; then
@@ -131,6 +134,7 @@ pipeline {
                     sshPut remote: remoteSSH, from: './dockerScript1.sh', into: "${AGENT_WORKSPACE_FOLDER}"
                     sshCommand remote: remoteSSH, command: "cd ${AGENT_WORKSPACE_FOLDER}/; chmod 777 ./dockerScript1.sh; ./dockerScript1.sh"
                 }
+              }
             }
         }
         stage('Build and push Operator') {

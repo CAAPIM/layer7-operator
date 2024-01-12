@@ -91,19 +91,18 @@ pipeline {
                 echo "Build and Run Tests"
               script {
                 withFolderProperties {
-                  def script_content = """ branch=$BRANCH_NAME
-                        echo Branch=${branch}
+                  def script_content = """branch=$BRANCH_NAME
                         tag=${branch//'/'/-}
                         VERSION=${tag}
                         cd ${OPERATOR_WORKSPACE_FOLDER}
                         cat ./testdata/license.xml
                         ./hack/install-go.sh
-                        export PATH=${PATH}:/usr/local/go/bin
+                        export PATH=/usr/local/go/bin
                         ./hack/install-kind.sh
                         kind --version
                         curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64
                         chmod +x /usr/local/bin/kubectl-kuttl
-                        export PATH=${PATH}:/usr/local/bin
+                        export PATH=/usr/local/bin
                         make prepare-e2e
                         kubectl config view
                         export TEST_BRANCH=ingtest-$tag-$BUILD_NUMBER
@@ -125,9 +124,9 @@ pipeline {
                         if
                         make e2e
                     """
-                    prependToFile content: "${script_content}", file: 'dockerScript1.sh'
+                    prependToFile content: "${script_content}", file: 'script1.sh'
                     sshPut remote: remoteSSH, from: './dockerScript1.sh', into: "${AGENT_WORKSPACE_FOLDER}"
-                    sshCommand remote: remoteSSH, command: "cd ${AGENT_WORKSPACE_FOLDER}/; chmod 777 ./dockerScript1.sh; ./dockerScript1.sh"
+                    sshCommand remote: remoteSSH, command: "cd ${AGENT_WORKSPACE_FOLDER}/; chmod 777 ./script1.sh; ./script1.sh"
                 }
               }
             }

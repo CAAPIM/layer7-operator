@@ -41,6 +41,11 @@ spec:
           spec:
             description: Spec - Repository Spec
             properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                description: Annotations - Custom Annotations
+                type: object
               auth:
                 description: Auth contains a reference to the credentials required
                   to connect to your Git repository
@@ -59,14 +64,14 @@ spec:
                     description: SSHKey for Git SSH Authentication
                     type: string
                   sshKeyPass:
-                    description: SSHKey Pass
+                    description: SSHKeyPass
                     type: string
                   token:
                     description: Token repository Access Token
                     type: string
                   type:
                     description: Auth Type defaults to basic, possible options are
-                      basic or ssh
+                      none, basic or ssh
                     type: string
                   username:
                     description: Username repository username
@@ -74,6 +79,8 @@ spec:
                   vendor:
                     description: Vendor i.e. Github, Gitlab, BitBucket
                     type: string
+                required:
+                - type
                 type: object
               branch:
                 description: Branch - specify which branch to clone if branch and
@@ -90,7 +97,8 @@ spec:
               labels:
                 additionalProperties:
                   type: string
-                description: Labels - Custom Labels
+                description: Name Repository name Name string `json:"name"` Labels
+                  - Custom Labels
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
@@ -102,9 +110,6 @@ spec:
                   secretName:
                     type: string
                 type: object
-              name:
-                description: Name Repository name
-                type: string
               remoteName:
                 description: Remote Name - defaults to "origin"
                 type: string
@@ -122,6 +127,8 @@ spec:
                 type: string
               type:
                 type: string
+            required:
+            - endpoint
             type: object
           status:
             description: Status - Repository Status

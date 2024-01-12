@@ -1590,6 +1590,9 @@ spec:
                             description: MinReplicas
                             format: int32
                             type: integer
+                        required:
+                        - maxReplicas
+                        - minReplicas
                         type: object
                     type: object
                   bootstrap:
@@ -1847,12 +1850,24 @@ spec:
                                 type:
                                   description: Type is secret or configmap
                                   type: string
+                              required:
+                              - item
+                              - name
+                              - type
                               type: object
                             subPath:
                               description: SubPath is the file name
                               type: string
+                          required:
+                          - mountPath
+                          - name
+                          - ref
+                          - subPath
                           type: object
                         type: array
+                    required:
+                    - enabled
+                    - mounts
                     type: object
                   customHosts:
                     properties:
@@ -1921,6 +1936,9 @@ spec:
                           description: Name of the kubernetes.io/tls Secret which
                             already exists in Kubernetes
                           type: string
+                      required:
+                      - enabled
+                      - name
                       type: object
                     type: array
                   externalKeysSyncIntervalSeconds:
@@ -1968,6 +1986,9 @@ spec:
                           description: VariableReferencable permits/restricts use
                             of the Stored Password in policy
                           type: boolean
+                      required:
+                      - enabled
+                      - name
                       type: object
                     type: array
                   externalSecretsSyncIntervalSeconds:
@@ -1983,6 +2004,9 @@ spec:
                         description: External set to true adds config for an external
                           Hazelcast instance to the Gateway
                         type: boolean
+                    required:
+                    - endpoint
+                    - external
                     type: object
                   image:
                     description: Image is the Gateway image
@@ -2208,6 +2232,8 @@ spec:
                               type: string
                           type: object
                         type: array
+                    required:
+                    - enabled
                     type: object
                   initContainers:
                     items:
@@ -4043,6 +4069,8 @@ spec:
                           password:
                             description: Password is the Gateway Cluster Passphrase
                             type: string
+                        required:
+                        - hostname
                         type: object
                       database:
                         description: Database configuration for the Gateway
@@ -4355,6 +4383,10 @@ spec:
                                   description: TargetPort on the Gateway Application
                                   format: int32
                                   type: integer
+                              required:
+                              - name
+                              - port
+                              - targetPort
                               type: object
                             type: array
                           sessionAffinity:
@@ -4381,10 +4413,15 @@ spec:
                           type:
                             description: Type ClusterIP, NodePort, LoadBalancer
                             type: string
+                        required:
+                        - enabled
+                        - type
                         type: object
                       username:
                         description: Username is the Gateway Admin username
                         type: string
+                    required:
+                    - cluster
                     type: object
                   nodeSelector:
                     additionalProperties:
@@ -5366,6 +5403,8 @@ spec:
                           type: string
                       required:
                       - enabled
+                      - name
+                      - type
                       type: object
                     type: array
                   repositorySyncIntervalSeconds:
@@ -5473,6 +5512,10 @@ spec:
                               description: TargetPort on the Gateway Application
                               format: int32
                               type: integer
+                          required:
+                          - name
+                          - port
+                          - targetPort
                           type: object
                         type: array
                       sessionAffinity:
@@ -5498,6 +5541,9 @@ spec:
                       type:
                         description: Type ClusterIP, NodePort, LoadBalancer
                         type: string
+                    required:
+                    - enabled
+                    - type
                     type: object
                   serviceAccount:
                     description: ServiceAccount to use for the Gateway Deployment
@@ -7126,12 +7172,18 @@ spec:
                     description: SecretName is the Kubernetes Secret that contains
                       the Gateway license There must be a key called license.xml
                     type: string
+                required:
+                - accept
+                - secretName
                 type: object
               version:
                 description: Version references the Gateway release that this Operator
                   is intended to be used with while all supported container gateway
                   versions will work, some functionality will not be available
                 type: string
+            required:
+            - app
+            - license
             type: object
           status:
             description: GatewayStatus defines the observed state of Gateways

@@ -53,7 +53,6 @@ var _ = Describe("Gateway controller support for http repo", func() {
 					Namespace: namespace,
 				},
 				Spec: securityv1.RepositorySpec{
-					Name:     repoName,
 					Enabled:  true,
 					Type:     "http",
 					Endpoint: "https://raw.githubusercontent.com/uppoju/l7GWMyAPIs/main/implodedbundle.zip",

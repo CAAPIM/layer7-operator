@@ -3,7 +3,6 @@ kind: Repository
 metadata:
   name: l7-gw-mysubscriptions
 spec:
-  name: l7-gw-mysubscriptions
   enabled: true
   endpoint: https://github.com/Gazza7205/l7GWMySubscriptions
   branch: main

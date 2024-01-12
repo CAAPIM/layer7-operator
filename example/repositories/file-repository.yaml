@@ -3,7 +3,6 @@ kind: Repository
 metadata:
   name: file-repository
 spec:
-  name: file-repository
   enabled: true
   endpoint: https://raw.githubusercontent.com/uppoju/l7GWMyFramework/main/implodedbundle.tar.gz
   type: http

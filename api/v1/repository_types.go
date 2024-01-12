@@ -22,14 +22,16 @@ import (
 
 // RepositorySpec defines the desired state of Repository
 type RepositorySpec struct {
+	// Name Repository name
+	//Name string `json:"name"`
 	//Labels - Custom Labels
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name Repository name
-	Name string `json:"name,omitempty"`
+	//Annotations - Custom Annotations
+	Annotations map[string]string `json:"annotations,omitempty"`
 	// Enabled - if enabled this repository will be synced
 	Enabled bool `json:"enabled,omitempty"`
 	// Endoint - Git repository endpoint
-	Endpoint string `json:"endpoint,omitempty"`
+	Endpoint string `json:"endpoint"`
 	Type     string `json:"type,omitempty"`
 	// LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
 	// This is not currently implemented
@@ -87,8 +89,8 @@ type RepositoryAuth struct {
 	// Vendor i.e. Github, Gitlab, BitBucket
 	Vendor string `json:"vendor,omitempty"`
 	// Auth Type defaults to basic, possible options are
-	// basic or ssh
-	Type RepositoryAuthType `json:"type,omitempty"`
+	// none, basic or ssh
+	Type RepositoryAuthType `json:"type"`
 	// Username repository username
 	Username string `json:"username,omitempty"`
 	// Password repository Password
@@ -98,7 +100,7 @@ type RepositoryAuth struct {
 	Token string `json:"token,omitempty"`
 	// SSHKey for Git SSH Authentication
 	SSHKey string `json:"sshKey,omitempty"`
-	// SSHKey Pass
+	// SSHKeyPass
 	SSHKeyPass string `json:"sshKeyPass,omitempty"`
 	// KnownHosts is required for SSH Auth
 	KnownHosts string `json:"knownHosts,omitempty"`

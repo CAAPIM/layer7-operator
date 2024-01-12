@@ -3,7 +3,6 @@ kind: Repository
 metadata:
   name: l7-gw-myframework
 spec:
-  name: l7-gw-myframework
   enabled: true
   endpoint: https://github.com/Gazza7205/l7GWMyFramework
   branch: main

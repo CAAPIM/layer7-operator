@@ -3,17 +3,18 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes/scheme"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"testing"
 )
 
 var (
@@ -73,8 +74,8 @@ func newParams() Params {
 				UID:       instanceUID,
 			},
 			Spec: securityv1.RepositorySpec{
-				Enabled:  true,
-				Name:     "test",
+				Enabled: true,
+				// Name:     "test",
 				Branch:   "testbranch",
 				Endpoint: "testing.com",
 				Auth: securityv1.RepositoryAuth{

@@ -28,8 +28,8 @@ import (
 
 // GatewaySpec defines the desired state of Gateway
 type GatewaySpec struct {
-	License License `json:"license,omitempty"`
-	App     App     `json:"app,omitempty"`
+	License License `json:"license"`
+	App     App     `json:"app"`
 	// Version references the Gateway release that this Operator is intended to be used with
 	// while all supported container gateway versions will work, some functionality will not be available
 	Version string `json:"version,omitempty"`
@@ -127,10 +127,10 @@ type PortalSyncStatus struct {
 // License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license.
 // license.accept must be set to true or the Gateway will not start.
 type License struct {
-	Accept bool `json:"accept,omitempty"`
+	Accept bool `json:"accept"`
 	// SecretName is the Kubernetes Secret that contains the Gateway license
 	// There must be a key called license.xml
-	SecretName string `json:"secretName,omitempty"`
+	SecretName string `json:"secretName"`
 }
 
 // App contains Gateway specific deployment and application level configuration
@@ -451,7 +451,7 @@ type Management struct {
 	Username string `json:"username,omitempty"`
 	// Password is the Gateway Admin password
 	Password string   `json:"password,omitempty"`
-	Cluster  Cluster  `json:"cluster,omitempty"`
+	Cluster  Cluster  `json:"cluster"`
 	Database Database `json:"database,omitempty"`
 	Restman  Restman  `json:"restman,omitempty"`
 	Graphman Graphman `json:"graphman,omitempty"`
@@ -470,7 +470,7 @@ type Cluster struct {
 	// Password is the Gateway Cluster Passphrase
 	Password string `json:"password,omitempty"`
 	// Hostname is the Gateway Cluster Hostname
-	Hostname string `json:"hostname,omitempty"`
+	Hostname string `json:"hostname"`
 }
 
 // Database configuration for the Gateway
@@ -509,11 +509,11 @@ type Graphman struct {
 // Service
 type Service struct {
 	// Enabled or disabled
-	Enabled bool ` json:"enabled,omitempty"`
+	Enabled bool ` json:"enabled"`
 	// Annotations for the service
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Type ClusterIP, NodePort, LoadBalancer
-	Type corev1.ServiceType `json:"type,omitempty"`
+	Type corev1.ServiceType `json:"type"`
 	// Ports exposed by the Service
 	// These are appended to the Gateway deployment containerPorts
 	Ports                         []Ports                             `json:"ports,omitempty"`
@@ -537,11 +537,11 @@ type Service struct {
 // Ports
 type Ports struct {
 	// Name of the Port
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Port number
-	Port int32 `json:"port,omitempty"`
+	Port int32 `json:"port"`
 	// TargetPort on the Gateway Application
-	TargetPort int32 `json:"targetPort,omitempty"`
+	TargetPort int32 `json:"targetPort"`
 	// Protocol
 	Protocol string `json:"protocol,omitempty"`
 }
@@ -602,28 +602,28 @@ type PreStopScript struct {
 // CustomConfig Certain folders on the Container Gateway are not writeable by design. This configuration allows you to mount existing configMap/Secret keys to specific paths on the Gateway without the need for a root user or a custom/derived image.
 type CustomConfig struct {
 	// Enabled or disabled
-	Enabled bool                `json:"enabled,omitempty"`
-	Mounts  []CustomConfigMount `json:"mounts,omitempty"`
+	Enabled bool                `json:"enabled"`
+	Mounts  []CustomConfigMount `json:"mounts"`
 }
 
 // CustomConfigMount
 type CustomConfigMount struct {
 	// Name is the mount name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// MountPath is the location on the container gateway this should go
-	MountPath string `json:"mountPath,omitempty"`
+	MountPath string `json:"mountPath"`
 	// SubPath is the file name
-	SubPath   string    `json:"subPath,omitempty"`
-	ConfigRef ConfigRef `json:"ref,omitempty"`
+	SubPath   string    `json:"subPath"`
+	ConfigRef ConfigRef `json:"ref"`
 }
 
 // ConfigRef configures the secret or configmap for a CustomConfigMount
 type ConfigRef struct {
 	// Name of the Secret or Configmap which already exists in Kubernetes
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Type is secret or configmap
-	Type string        `json:"type,omitempty"`
-	Item ConfigRefItem `json:"item,omitempty"`
+	Type string        `json:"type"`
+	Item ConfigRefItem `json:"item"`
 }
 
 // ConfigRefItem is the key in the secret or configmap to mount, path is where it should be created.
@@ -646,10 +646,10 @@ type Property struct {
 // You can bring in external secrets using tools like the external secrets operator (external-secrets.io)
 type ExternalSecret struct {
 	// Enabled or disabled
-	Enabled    bool             `json:"enabled,omitempty"`
+	Enabled    bool             `json:"enabled"`
 	Encryption BundleEncryption `json:"encryption,omitempty"`
 	// Name of the Opaque/Generic Secret which already exists in Kubernetes
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Description given the Stored Password in the Gateway
 	Description string `json:"description,omitempty"`
 	// VariableReferencable permits/restricts use of the Stored Password in policy
@@ -662,9 +662,9 @@ type ExternalSecret struct {
 // You can bring in external secrets using tools like cert-manager
 type ExternalKey struct {
 	// Enabled or disabled
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 	// Name of the kubernetes.io/tls Secret which already exists in Kubernetes
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Alias overrides the key name that is stored in the Gateway
 	// This is useful for the default ssl key
 	Alias string `json:"alias,omitempty"`
@@ -806,10 +806,10 @@ type Tls struct {
 
 type Hazelcast struct {
 	// External set to true adds config for an external Hazelcast instance to the Gateway
-	External bool `json:"external,omitempty"`
+	External bool `json:"external"`
 	// Endpoint is the hazelcast server and port
 	// my.hazelcast:5701
-	Endpoint string `json:"endpoint,omitempty"`
+	Endpoint string `json:"endpoint"`
 }
 
 // UpdateStrategy for the Gateway Deployment
@@ -827,9 +827,9 @@ type Autoscaling struct {
 
 type HPA struct {
 	// MinReplicas
-	MinReplicas *int32 `json:"minReplicas,omitempty"`
+	MinReplicas *int32 `json:"minReplicas"`
 	// MaxReplicas
-	MaxReplicas int32                                         `json:"maxReplicas,omitempty"`
+	MaxReplicas int32                                         `json:"maxReplicas"`
 	Behavior    autoscalingv2.HorizontalPodAutoscalerBehavior `json:"behavior,omitempty"`
 	Metrics     []autoscalingv2.MetricSpec                    `json:"metrics,omitempty"`
 }
@@ -845,7 +845,7 @@ type RepositoryReference struct {
 	// Enabled or disabled
 	Enabled bool `json:"enabled"`
 	// Name of the existing repository
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Directories from the remote repository to sync with the Gateway
 	// Limited to dynamic type
 	Directories []string `json:"directories,omitempty"`
@@ -854,7 +854,7 @@ type RepositoryReference struct {
 	// it is recommended that these stay under 1mb in size when compressed
 	// for larger static repositories it is recommended that you use a dedicated initContainer
 	// dynamic repositories are applied directly to the gateway whenever the commit of a repository changes
-	Type         string           `json:"type,omitempty"`
+	Type         string           `json:"type"`
 	Encryption   BundleEncryption `json:"encryption,omitempty"`
 	Notification Notification     `json:"notification,omitempty"`
 }
@@ -910,7 +910,7 @@ type PodResources struct {
 
 type Ingress struct {
 	// Enabled or disabled
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 	// Annotations for the ingress resource
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// IngressClassName

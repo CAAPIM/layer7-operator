@@ -114,7 +114,6 @@ func createRepository(repo Repo) {
 			Namespace: repo.Namespace,
 		},
 		Spec: securityv1.RepositorySpec{
-			Name:     repo.Name,
 			Enabled:  true,
 			Endpoint: repo.Url,
 			Branch:   repo.Branch,

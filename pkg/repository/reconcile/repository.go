@@ -25,7 +25,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	var sshKey []byte
 	var sshKeyPass string
 	var knownHosts []byte
-	//authType := "none"
+
 	authType := params.Instance.Spec.Auth.Type
 	if err != nil {
 		params.Log.Info("repository unavailable", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
@@ -41,7 +41,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		return nil
 	}
 
-	if repository.Spec.Auth != (securityv1.RepositoryAuth{}) {
+	if repository.Spec.Auth != (securityv1.RepositoryAuth{}) && repository.Spec.Auth.Type != securityv1.RepositoryAuthTypeNone {
 
 		repositorySecret, err = getSecret(ctx, repository, params)
 
@@ -101,9 +101,8 @@ func syncRepository(ctx context.Context, params Params) error {
 		forceUpdate := false
 		if repository.Status.Summary != repository.Spec.Endpoint {
 			forceUpdate = true
-
 		}
-		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Spec.Name, forceUpdate)
+		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Name, forceUpdate)
 		if err != nil {
 			if err == util.ErrInvalidFileFormatError || err == util.ErrInvalidTarArchive || err == util.ErrInvalidZipArchive {
 				params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
@@ -137,8 +136,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 		storageSecretName = repository.Name + "-repository-" + folderName
 	case "git":
-	default:
-		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Spec.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts)
+		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			return nil
@@ -154,6 +152,8 @@ func syncRepository(ctx context.Context, params Params) error {
 			}
 			return nil
 		}
+	default:
+		return nil
 	}
 
 	err = StorageSecret(ctx, params)

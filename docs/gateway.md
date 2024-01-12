@@ -89,14 +89,14 @@ GatewaySpec defines the desired state of Gateway
         <td>
           App contains Gateway specific deployment and application level configuration<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspeclicense">license</a></b></td>
         <td>object</td>
         <td>
           License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license. license.accept must be set to true or the Gateway will not start.<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>version</b></td>
         <td>string</td>
@@ -1831,13 +1831,6 @@ Autoscaling configuration for the Gateway
         </tr>
     </thead>
     <tbody><tr>
-        <td><b><a href="#gatewayspecappautoscalinghpabehavior">behavior</a></b></td>
-        <td>object</td>
-        <td>
-          HorizontalPodAutoscalerBehavior configures the scaling behavior of the target in both Up and Down directions (scaleUp and scaleDown fields respectively).<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>maxReplicas</b></td>
         <td>integer</td>
         <td>
@@ -1845,14 +1838,7 @@ Autoscaling configuration for the Gateway
           <br/>
             <i>Format</i>: int32<br/>
         </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b><a href="#gatewayspecappautoscalinghpametricsindex">metrics</a></b></td>
-        <td>[]object</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>minReplicas</b></td>
         <td>integer</td>
@@ -1860,6 +1846,20 @@ Autoscaling configuration for the Gateway
           MinReplicas<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappautoscalinghpabehavior">behavior</a></b></td>
+        <td>object</td>
+        <td>
+          HorizontalPodAutoscalerBehavior configures the scaling behavior of the target in both Up and Down directions (scaleUp and scaleDown fields respectively).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappautoscalinghpametricsindex">metrics</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3398,14 +3398,14 @@ CustomConfig Certain folders on the Container Gateway are not writeable by desig
         <td>
           Enabled or disabled<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappcustomconfigmountsindex">mounts</a></b></td>
         <td>[]object</td>
         <td>
           <br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -3432,28 +3432,28 @@ CustomConfigMount
         <td>
           MountPath is the location on the container gateway this should go<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
           Name is the mount name<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappcustomconfigmountsindexref">ref</a></b></td>
         <td>object</td>
         <td>
           ConfigRef configures the secret or configmap for a CustomConfigMount<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>subPath</b></td>
         <td>string</td>
         <td>
           SubPath is the file name<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -3480,21 +3480,21 @@ ConfigRef configures the secret or configmap for a CustomConfigMount
         <td>
           ConfigRefItem is the key in the secret or configmap to mount, path is where it should be created.<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
           Name of the Secret or Configmap which already exists in Kubernetes<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>type</b></td>
         <td>string</td>
         <td>
           Type is secret or configmap<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -3686,6 +3686,20 @@ ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Op
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the kubernetes.io/tls Secret which already exists in Kubernetes<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
         <td><b>alias</b></td>
         <td>string</td>
         <td>
@@ -3693,24 +3707,10 @@ ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Op
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>enabled</b></td>
-        <td>boolean</td>
-        <td>
-          Enabled or disabled<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>keyUsageType</b></td>
         <td>string</td>
         <td>
           KeyUsageType allows keys to be marked as special purpose only one key usage type is allowed SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name of the kubernetes.io/tls Secret which already exists in Kubernetes<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3734,6 +3734,20 @@ ExternalSecret is a reference to an existing secret in Kubernetes The Layer7 Ope
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the Opaque/Generic Secret which already exists in Kubernetes<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
         <td><b>description</b></td>
         <td>string</td>
         <td>
@@ -3741,24 +3755,10 @@ ExternalSecret is a reference to an existing secret in Kubernetes The Layer7 Ope
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>enabled</b></td>
-        <td>boolean</td>
-        <td>
-          Enabled or disabled<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b><a href="#gatewayspecappexternalsecretsindexencryption">encryption</a></b></td>
         <td>object</td>
         <td>
           BundleEncryption allows setting an encryption passphrase per repository or external secret/key reference<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name of the Opaque/Generic Secret which already exists in Kubernetes<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3835,14 +3835,14 @@ BundleEncryption allows setting an encryption passphrase per repository or exter
         <td>
           Endpoint is the hazelcast server and port my.hazelcast:5701<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>external</b></td>
         <td>boolean</td>
         <td>
           External set to true adds config for an external Hazelcast instance to the Gateway<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -3891,17 +3891,17 @@ LocalObjectReference contains enough information to let you locate the reference
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>annotations</b></td>
-        <td>map[string]string</td>
-        <td>
-          Annotations for the ingress resource<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
           Enabled or disabled<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>annotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          Annotations for the ingress resource<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7636,7 +7636,7 @@ Management defines configuration for Gateway Managment.
         <td>
           Cluster is gateway cluster configuration<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappmanagementdatabase">database</a></b></td>
         <td>object</td>
@@ -7712,7 +7712,7 @@ Cluster is gateway cluster configuration
         <td>
           Hostname is the Gateway Cluster Hostname<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>password</b></td>
         <td>string</td>
@@ -8137,6 +8137,20 @@ Service is the Gateway Management Service
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type ClusterIP, NodePort, LoadBalancer<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
         <td><b>allocateLoadBalancerNodePorts</b></td>
         <td>boolean</td>
         <td>
@@ -8162,13 +8176,6 @@ Service is the Gateway Management Service
         <td>[]string</td>
         <td>
           <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>enabled</b></td>
-        <td>boolean</td>
-        <td>
-          Enabled or disabled<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8264,13 +8271,6 @@ Service is the Gateway Management Service
           SessionAffinityConfig represents the configurations of session affinity.<br/>
         </td>
         <td>false</td>
-      </tr><tr>
-        <td><b>type</b></td>
-        <td>string</td>
-        <td>
-          Type ClusterIP, NodePort, LoadBalancer<br/>
-        </td>
-        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -8297,7 +8297,7 @@ Ports
         <td>
           Name of the Port<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>port</b></td>
         <td>integer</td>
@@ -8306,14 +8306,7 @@ Ports
           <br/>
             <i>Format</i>: int32<br/>
         </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>protocol</b></td>
-        <td>string</td>
-        <td>
-          Protocol<br/>
-        </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>targetPort</b></td>
         <td>integer</td>
@@ -8321,6 +8314,13 @@ Ports
           TargetPort on the Gateway Application<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>protocol</b></td>
+        <td>string</td>
+        <td>
+          Protocol<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10210,6 +10210,20 @@ RepositoryReference is reference to a Git repository or HTTP endpoint that conta
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the existing repository<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type static or dynamic static repositories are bootstrapped to the container gateway using an initContainer it is recommended that these stay under 1mb in size when compressed for larger static repositories it is recommended that you use a dedicated initContainer dynamic repositories are applied directly to the gateway whenever the commit of a repository changes<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
         <td><b>directories</b></td>
         <td>[]string</td>
         <td>
@@ -10224,24 +10238,10 @@ RepositoryReference is reference to a Git repository or HTTP endpoint that conta
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name of the existing repository<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b><a href="#gatewayspecapprepositoryreferencesindexnotification">notification</a></b></td>
         <td>object</td>
         <td>
           This is currently configured for Slack<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>type</b></td>
-        <td>string</td>
-        <td>
-          Type static or dynamic static repositories are bootstrapped to the container gateway using an initContainer it is recommended that these stay under 1mb in size when compressed for larger static repositories it is recommended that you use a dedicated initContainer dynamic repositories are applied directly to the gateway whenever the commit of a repository changes<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10504,6 +10504,20 @@ Service
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type ClusterIP, NodePort, LoadBalancer<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
         <td><b>allocateLoadBalancerNodePorts</b></td>
         <td>boolean</td>
         <td>
@@ -10529,13 +10543,6 @@ Service
         <td>[]string</td>
         <td>
           <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>enabled</b></td>
-        <td>boolean</td>
-        <td>
-          Enabled or disabled<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10631,13 +10638,6 @@ Service
           SessionAffinityConfig represents the configurations of session affinity.<br/>
         </td>
         <td>false</td>
-      </tr><tr>
-        <td><b>type</b></td>
-        <td>string</td>
-        <td>
-          Type ClusterIP, NodePort, LoadBalancer<br/>
-        </td>
-        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -10664,7 +10664,7 @@ Ports
         <td>
           Name of the Port<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>port</b></td>
         <td>integer</td>
@@ -10673,14 +10673,7 @@ Ports
           <br/>
             <i>Format</i>: int32<br/>
         </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>protocol</b></td>
-        <td>string</td>
-        <td>
-          Protocol<br/>
-        </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>targetPort</b></td>
         <td>integer</td>
@@ -10688,6 +10681,13 @@ Ports
           TargetPort on the Gateway Application<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>protocol</b></td>
+        <td>string</td>
+        <td>
+          Protocol<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13471,14 +13471,14 @@ License is reference to a Kubernetes Secret Containing a Gateway v10/11.x licens
         <td>
           <br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>secretName</b></td>
         <td>string</td>
         <td>
           SecretName is the Kubernetes Secret that contains the Gateway license There must be a key called license.xml<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr></tbody>
 </table>
 

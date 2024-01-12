@@ -9,6 +9,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
     controller-gen.kubebuilder.io/version: v0.12.0
   name: gateways.security.brcmlabs.com
 spec:
@@ -1596,6 +1597,9 @@ spec:
                             description: MinReplicas
                             format: int32
                             type: integer
+                        required:
+                        - maxReplicas
+                        - minReplicas
                         type: object
                     type: object
                   bootstrap:
@@ -1853,12 +1857,24 @@ spec:
                                 type:
                                   description: Type is secret or configmap
                                   type: string
+                              required:
+                              - item
+                              - name
+                              - type
                               type: object
                             subPath:
                               description: SubPath is the file name
                               type: string
+                          required:
+                          - mountPath
+                          - name
+                          - ref
+                          - subPath
                           type: object
                         type: array
+                    required:
+                    - enabled
+                    - mounts
                     type: object
                   customHosts:
                     properties:
@@ -1927,6 +1943,9 @@ spec:
                           description: Name of the kubernetes.io/tls Secret which
                             already exists in Kubernetes
                           type: string
+                      required:
+                      - enabled
+                      - name
                       type: object
                     type: array
                   externalKeysSyncIntervalSeconds:
@@ -1974,6 +1993,9 @@ spec:
                           description: VariableReferencable permits/restricts use
                             of the Stored Password in policy
                           type: boolean
+                      required:
+                      - enabled
+                      - name
                       type: object
                     type: array
                   externalSecretsSyncIntervalSeconds:
@@ -1989,6 +2011,9 @@ spec:
                         description: External set to true adds config for an external
                           Hazelcast instance to the Gateway
                         type: boolean
+                    required:
+                    - endpoint
+                    - external
                     type: object
                   image:
                     description: Image is the Gateway image
@@ -2214,6 +2239,8 @@ spec:
                               type: string
                           type: object
                         type: array
+                    required:
+                    - enabled
                     type: object
                   initContainers:
                     items:
@@ -4049,6 +4076,8 @@ spec:
                           password:
                             description: Password is the Gateway Cluster Passphrase
                             type: string
+                        required:
+                        - hostname
                         type: object
                       database:
                         description: Database configuration for the Gateway
@@ -4361,6 +4390,10 @@ spec:
                                   description: TargetPort on the Gateway Application
                                   format: int32
                                   type: integer
+                              required:
+                              - name
+                              - port
+                              - targetPort
                               type: object
                             type: array
                           sessionAffinity:
@@ -4387,10 +4420,15 @@ spec:
                           type:
                             description: Type ClusterIP, NodePort, LoadBalancer
                             type: string
+                        required:
+                        - enabled
+                        - type
                         type: object
                       username:
                         description: Username is the Gateway Admin username
                         type: string
+                    required:
+                    - cluster
                     type: object
                   nodeSelector:
                     additionalProperties:
@@ -5372,6 +5410,8 @@ spec:
                           type: string
                       required:
                       - enabled
+                      - name
+                      - type
                       type: object
                     type: array
                   repositorySyncIntervalSeconds:
@@ -5479,6 +5519,10 @@ spec:
                               description: TargetPort on the Gateway Application
                               format: int32
                               type: integer
+                          required:
+                          - name
+                          - port
+                          - targetPort
                           type: object
                         type: array
                       sessionAffinity:
@@ -5504,6 +5548,9 @@ spec:
                       type:
                         description: Type ClusterIP, NodePort, LoadBalancer
                         type: string
+                    required:
+                    - enabled
+                    - type
                     type: object
                   serviceAccount:
                     description: ServiceAccount to use for the Gateway Deployment
@@ -7132,12 +7179,18 @@ spec:
                     description: SecretName is the Kubernetes Secret that contains
                       the Gateway license There must be a key called license.xml
                     type: string
+                required:
+                - accept
+                - secretName
                 type: object
               version:
                 description: Version references the Gateway release that this Operator
                   is intended to be used with while all supported container gateway
                   versions will work, some functionality will not be available
                 type: string
+            required:
+            - app
+            - license
             type: object
           status:
             description: GatewayStatus defines the observed state of Gateways
@@ -7289,6 +7342,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
     controller-gen.kubebuilder.io/version: v0.12.0
   name: l7apis.security.brcmlabs.com
 spec:
@@ -7368,6 +7422,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
     controller-gen.kubebuilder.io/version: v0.12.0
   name: l7portals.security.brcmlabs.com
 spec:
@@ -7501,6 +7556,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
     controller-gen.kubebuilder.io/version: v0.12.0
   name: repositories.security.brcmlabs.com
 spec:
@@ -7539,6 +7595,11 @@ spec:
           spec:
             description: Spec - Repository Spec
             properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                description: Annotations - Custom Annotations
+                type: object
               auth:
                 description: Auth contains a reference to the credentials required
                   to connect to your Git repository
@@ -7557,14 +7618,14 @@ spec:
                     description: SSHKey for Git SSH Authentication
                     type: string
                   sshKeyPass:
-                    description: SSHKey Pass
+                    description: SSHKeyPass
                     type: string
                   token:
                     description: Token repository Access Token
                     type: string
                   type:
                     description: Auth Type defaults to basic, possible options are
-                      basic or ssh
+                      none, basic or ssh
                     type: string
                   username:
                     description: Username repository username
@@ -7572,6 +7633,8 @@ spec:
                   vendor:
                     description: Vendor i.e. Github, Gitlab, BitBucket
                     type: string
+                required:
+                - type
                 type: object
               branch:
                 description: Branch - specify which branch to clone if branch and
@@ -7588,7 +7651,8 @@ spec:
               labels:
                 additionalProperties:
                   type: string
-                description: Labels - Custom Labels
+                description: Name Repository name Name string `json:"name"` Labels
+                  - Custom Labels
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
@@ -7600,9 +7664,6 @@ spec:
                   secretName:
                     type: string
                 type: object
-              name:
-                description: Name Repository name
-                type: string
               remoteName:
                 description: Remote Name - defaults to "origin"
                 type: string
@@ -7620,6 +7681,8 @@ spec:
                 type: string
               type:
                 type: string
+            required:
+            - endpoint
             type: object
           status:
             description: Status - Repository Status
@@ -8068,6 +8131,26 @@ spec:
   selector:
     control-plane: controller-manager
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: layer7-operator
+    app.kubernetes.io/instance: webhook-service
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: service
+    app.kubernetes.io/part-of: layer7-operator
+  name: layer7-operator-webhook-service
+  namespace: layer7-operator-system
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    control-plane: controller-manager
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8086,6 +8169,49 @@ spec:
         control-plane: controller-manager
     spec:
       containers:
+      - args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        - --zap-log-level=info
+        - --zap-time-encoding=rfc3339nano
+        command:
+        - /manager
+        env:
+        - name: WATCH_NAMESPACE
+          value: ""
+        image: docker.io/layer7api/layer7-operator:main
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
       - args:
         - --secure-listen-address=0.0.0.0:8443
         - --upstream=http://127.0.0.1:8080/
@@ -8108,42 +8234,158 @@ spec:
           capabilities:
             drop:
             - ALL
-      - args:
-        - --health-probe-bind-address=:8081
-        - --metrics-bind-address=127.0.0.1:8080
-        - --leader-elect
-        - --zap-log-level=info
-        - --zap-time-encoding=rfc3339nano
-        command:
-        - /manager
-        env:
-        - name: WATCH_NAMESPACE
-          value: ""
-        image: docker.io/layer7api/layer7-operator:main
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        name: manager
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        resources:
-          limits:
-            cpu: 500m
-            memory: 100Mi
-          requests:
-            cpu: 100m
-            memory: 20Mi
-        securityContext:
-          allowPrivilegeEscalation: false
       securityContext:
         runAsNonRoot: true
       serviceAccountName: layer7-operator-controller-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: layer7-manager-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/created-by: layer7-operator
+    app.kubernetes.io/instance: serving-cert
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: certificate
+    app.kubernetes.io/part-of: layer7-operator
+  name: layer7-operator-serving-cert
+  namespace: layer7-operator-system
+spec:
+  dnsNames:
+  - layer7-operator-webhook-service.layer7-operator-system.svc
+  - layer7-operator-webhook-service.layer7-operator-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: layer7-operator-selfsigned-issuer
+  secretName: layer7-manager-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/created-by: layer7-operator
+    app.kubernetes.io/instance: serving-cert
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: certificate
+    app.kubernetes.io/part-of: layer7-operator
+  name: layer7-operator-selfsigned-issuer
+  namespace: layer7-operator-system
+spec:
+  selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: memcached-operator
+    app.kubernetes.io/instance: mutating-webhook-configuration
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: mutatingwebhookconfiguration
+    app.kubernetes.io/part-of: memcached-operator
+  name: layer7-operator-mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: layer7-operator-webhook-service
+      namespace: layer7-operator-system
+      path: /mutate-security-brcmlabs-com-v1-gateway
+  failurePolicy: Fail
+  name: mgateway.kb.io
+  rules:
+  - apiGroups:
+    - security.brcmlabs.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - gateways
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: layer7-operator-webhook-service
+      namespace: layer7-operator-system
+      path: /mutate-security-brcmlabs-com-v1-repository
+  failurePolicy: Fail
+  name: mrepository.kb.io
+  rules:
+  - apiGroups:
+    - security.brcmlabs.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - repositories
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: memcached-operator
+    app.kubernetes.io/instance: validating-webhook-configuration
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: validatingwebhookconfiguration
+    app.kubernetes.io/part-of: memcached-operator
+  name: layer7-operator-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: layer7-operator-webhook-service
+      namespace: layer7-operator-system
+      path: /validate-security-brcmlabs-com-v1-gateway
+  failurePolicy: Fail
+  name: vgateway.kb.io
+  rules:
+  - apiGroups:
+    - security.brcmlabs.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - gateways
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: layer7-operator-webhook-service
+      namespace: layer7-operator-system
+      path: /validate-security-brcmlabs-com-v1-repository
+  failurePolicy: Fail
+  name: vrepository.kb.io
+  rules:
+  - apiGroups:
+    - security.brcmlabs.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - repositories
+  sideEffects: None

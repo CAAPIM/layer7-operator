@@ -93,14 +93,13 @@ pipeline {
                 withFolderProperties {
                   def script_content = """ branch=$BRANCH_NAME
                         echo Branch=${branch}
-
                         # Replace the / with -
                         tag=${branch//'/'/-}
                         VERSION=${tag}
                         cd ${OPERATOR_WORKSPACE_FOLDER}
                         cat ./testdata/license.xml
                         ./hack/install-go.sh
-                        export PATH=$PATH:/usr/local/go/bin
+                        export PATH=/usr/local/go/bin:$PATH
                         ./hack/install-kind.sh
                         kind --version
                         curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64

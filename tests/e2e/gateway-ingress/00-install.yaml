@@ -20,6 +20,9 @@ spec:
     resources:
       requests: {}
       limits: {}
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
     autoscaling:
       enabled: false
     listenPorts:

@@ -131,6 +131,9 @@ var _ = Describe("Gateway controller", func() {
 							Restman: securityv1.Restman{
 								Enabled: true,
 							},
+							Cluster: securityv1.Cluster{
+								Hostname: "gateway.brcmlabs.com",
+							},
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
 								InitContainerImage: "docker.io/layer7api/graphman-static-init:1.0.1",

@@ -124,6 +124,9 @@ var _ = Describe("Gateway controller support for http repo", func() {
 								Enabled:            true,
 								InitContainerImage: "docker.io/layer7api/graphman-static-init:1.0.1",
 							},
+							Cluster: securityv1.Cluster{
+								Hostname: "gateway.brcmlabs.com",
+							},
 							Username: "admin",
 							Password: "7layer",
 						},

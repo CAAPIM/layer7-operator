@@ -13,6 +13,8 @@ spec:
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
     management:
+      cluster:
+        hostname: gateway.brcmlabs.com
       restman:
         enabled: true
       graphman:

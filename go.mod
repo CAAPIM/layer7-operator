@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/Khan/genqlient v0.6.0
-	github.com/gazza7205/go-pkcs12 v0.0.2
 	github.com/go-co-op/gocron v1.30.1
 	github.com/go-git/go-git/v5 v5.10.0
 	github.com/go-logr/logr v1.3.0
@@ -16,6 +15,7 @@ require (
 	go.opentelemetry.io/otel v1.21.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.19.0
+	go.opentelemetry.io/otel/metric v1.21.0
 	go.opentelemetry.io/otel/sdk v1.21.0
 	go.opentelemetry.io/otel/sdk/metric v1.21.0
 	google.golang.org/grpc v1.59.0
@@ -81,7 +81,6 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.19.0 // indirect
-	go.opentelemetry.io/otel/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect

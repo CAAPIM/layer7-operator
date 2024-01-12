@@ -30,6 +30,7 @@ var _ = Describe("Gateway controller", func() {
 			repoName            = "l7-gw-myapis"
 			repoCheckoutPath    = "/tmp/l7GWMyAPIs"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyAPIs"
+			repoType            = "git"
 			repo                Repo
 		)
 
@@ -37,7 +38,7 @@ var _ = Describe("Gateway controller", func() {
 			var found bool
 			branchName, found := os.LookupEnv("BRANCH_NAME")
 			Expect(found).NotTo(BeFalse())
-			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
+			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace, repoType}
 			DeferCleanup(func() {
 				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{

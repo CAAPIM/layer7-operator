@@ -38,6 +38,7 @@ type Repo struct {
 	SecretName   string
 	CheckoutPath string
 	Namespace    string
+	Type         string
 }
 
 func createGatewayLicenseSecret(secret Secret) {
@@ -117,6 +118,7 @@ func createRepository(repo Repo) {
 			Enabled:  true,
 			Endpoint: repo.Url,
 			Branch:   repo.Branch,
+			Type:     repo.Type,
 			Auth: securityv1.RepositoryAuth{
 				Vendor:             "Github",
 				ExistingSecretName: repo.SecretName,

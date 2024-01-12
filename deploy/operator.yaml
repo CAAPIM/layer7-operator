@@ -45,6 +45,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: ENABLE_WEBHOOK
+          value: "false"
         image: docker.io/layer7api/layer7-operator:main
         imagePullPolicy: IfNotPresent
         livenessProbe:

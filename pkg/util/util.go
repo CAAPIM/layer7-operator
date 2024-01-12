@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -33,6 +34,7 @@ func Contains(arr []string, str string) bool {
 }
 
 const WatchNamespaceEnvVar = "WATCH_NAMESPACE"
+const EnableWebHookEnvVar = "ENABLE_WEBHOOK"
 
 // GetWatchNamespace returns the namespace the operator should be watching for changes
 func GetWatchNamespace() (string, error) {
@@ -50,4 +52,18 @@ func GetOperatorNamespace() (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(nsBytes)), nil
+}
+
+func GetWebhookEnabled() (bool, error) {
+	wh, found := os.LookupEnv(EnableWebHookEnvVar)
+	if !found {
+		return false, nil
+	}
+	enabled, err := strconv.ParseBool(wh)
+
+	if err != nil {
+		return false, err
+	}
+
+	return enabled, nil
 }

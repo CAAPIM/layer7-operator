@@ -6,6 +6,7 @@ spec:
   enabled: true
   endpoint: https://[yourgitserver.com]/[username]/[reponame]
   branch: main
+  type: git
   auth:
     type: basic
     username: username

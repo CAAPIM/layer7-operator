@@ -90,7 +90,7 @@ type RepositoryAuth struct {
 	Vendor string `json:"vendor,omitempty"`
 	// Auth Type defaults to basic, possible options are
 	// none, basic or ssh
-	Type RepositoryAuthType `json:"type"`
+	Type RepositoryAuthType `json:"type,omitempty"`
 	// Username repository username
 	Username string `json:"username,omitempty"`
 	// Password repository Password

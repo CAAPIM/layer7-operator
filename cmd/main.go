@@ -82,6 +82,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	webhookenabled, err := util.GetWebhookEnabled()
+
+	if err != nil {
+		setupLog.Error(err, "failed to determine if webhook should be enabled")
+	}
+
 	cOpts := cache.Options{}
 
 	if strings.Contains(namespace, ",") {
@@ -142,13 +148,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&securityv1.Gateway{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Gateway")
-		os.Exit(1)
-	}
-	if err = (&securityv1.Repository{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Repository")
-		os.Exit(1)
+	if webhookenabled {
+		if err = (&securityv1.Gateway{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Gateway")
+			os.Exit(1)
+		}
+		if err = (&securityv1.Repository{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Repository")
+			os.Exit(1)
+		}
 	}
 
 	//+kubebuilder:scaffold:builder

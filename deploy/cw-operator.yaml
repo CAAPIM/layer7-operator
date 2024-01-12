@@ -53,6 +53,8 @@ spec:
         env:
         - name: WATCH_NAMESPACE
           value: ""
+        - name: ENABLE_WEBHOOK
+          value: "true"
         image: docker.io/layer7api/layer7-operator:main
         imagePullPolicy: IfNotPresent
         livenessProbe:

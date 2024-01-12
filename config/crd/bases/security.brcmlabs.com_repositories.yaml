@@ -79,8 +79,6 @@ spec:
                   vendor:
                     description: Vendor i.e. Github, Gitlab, BitBucket
                     type: string
-                required:
-                - type
                 type: object
               branch:
                 description: Branch - specify which branch to clone if branch and

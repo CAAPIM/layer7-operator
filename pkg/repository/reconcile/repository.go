@@ -153,6 +153,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			return nil
 		}
 	default:
+		params.Log.Info("repository type not set", "name", repository.Name, "namespace", repository.Namespace)
 		return nil
 	}
 

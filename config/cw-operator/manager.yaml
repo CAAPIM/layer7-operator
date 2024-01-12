@@ -36,6 +36,8 @@ spec:
         env:
           - name: WATCH_NAMESPACE
             value: ""
+          - name: ENABLE_WEBHOOK
+            value: "true"
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager

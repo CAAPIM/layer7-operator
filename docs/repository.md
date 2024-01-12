@@ -181,13 +181,6 @@ Auth contains a reference to the credentials required to connect to your Git rep
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>type</b></td>
-        <td>string</td>
-        <td>
-          Auth Type defaults to basic, possible options are none, basic or ssh<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>existingSecretName</b></td>
         <td>string</td>
         <td>
@@ -227,6 +220,13 @@ Auth contains a reference to the credentials required to connect to your Git rep
         <td>string</td>
         <td>
           Token repository Access Token<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Auth Type defaults to basic, possible options are none, basic or ssh<br/>
         </td>
         <td>false</td>
       </tr><tr>

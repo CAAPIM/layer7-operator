@@ -114,11 +114,6 @@ pipeline {
                         git push --set-upstream origin $TEST_BRANCH
                         make test
                         sleep 600s
-                        if [[ $? == 0 ]]; then
-                           echo "successfully finished unit tests and ginkgo tests"
-                        else
-                           exit 1
-                        if
                         make e2e
                     """
                     prependToFile content: "${script_content}", file: 'script1.sh'

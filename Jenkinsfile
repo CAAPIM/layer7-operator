@@ -116,7 +116,7 @@ pipeline {
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; export KUBE_VERSION=${KUBE_VERSION}; make prepare-e2e; kubectl config view"
                     sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework; cd /tmp/l7GWMyFramework; git checkout -b ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git push --set-upstream origin ingtest-${BRANCH_NAME}-${BUILD_NUMBER}"
                     sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs; cd /tmp/l7GWMyAPIs; git checkout -b ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git push --set-upstream origin ingtest-${BRANCH_NAME}-${BUILD_NUMBER}"
-                    sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export TEST_BRANCH=ingtest-${tag}-${BUILD_NUMBER}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make test; make e2e"
+                    sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make test; make e2e"
                     sleep 600s
                 }
               }

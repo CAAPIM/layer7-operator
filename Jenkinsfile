@@ -54,7 +54,7 @@ pipeline {
                     copyArtifacts(projectName: 'releng/Self-Service/deploy-gcp-instance/develop', selector: specific("${built.number}"));
                     remoteHostIP = sh(script: "ls -af|grep 10.|tr -d '\n'",returnStdout: true).trim()
                     print ("${remoteHostIP}")
-            sh "sleep 600s"
+            sh "sleep 900s"
                 }
             }
         }

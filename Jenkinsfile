@@ -106,8 +106,8 @@ pipeline {
                     remoteSSH.password = "7layer"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; ./hack/install-go.sh; export PATH=${PATH}:/usr/local/go/bin; ./hack/install-kind.sh; kind --version; ./hack/install-kuttl.sh"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin; export VERSION=${BRANCH_NAME}; make prepare-e2e; kubectl config view"
-                    sshCommand remote: remoteSSH, command: "branch=${BRANCH_NAME}; tag=${branch//'/'/-}; export TEST_BRANCH=ingtest-${tag}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework; cd /tmp/l7GWMyFramework; git checkout -b ${TEST_BRANCH}; git push --set-upstream origin ${TEST_BRANCH}"
-                    sshCommand remote: remoteSSH, command: "branch=${BRANCH_NAME}; tag=${branch//'/'/-}; export TEST_BRANCH=ingtest-${tag}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs; cd /tmp/l7GWMyAPIs; git checkout -b ${TEST_BRANCH}; git push --set-upstream origin ${TEST_BRANCH}"
+                    sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework; cd /tmp/l7GWMyFramework; git checkout -b ${TEST_BRANCH}; git push --set-upstream origin ${TEST_BRANCH}"
+                    sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${tag}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs; cd /tmp/l7GWMyAPIs; git checkout -b ${TEST_BRANCH}; git push --set-upstream origin ${TEST_BRANCH}"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; make test; make e2e"
                     sleep 600s
                 }

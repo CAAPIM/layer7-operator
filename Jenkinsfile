@@ -70,6 +70,7 @@ pipeline {
                   remoteSSH.password = "7layer"
 
                   echo "Create Fresh Agent WorkSpace directory in RemoteNG1Agents"
+                  sshCommand remote: remoteSSH, command: "yum -y install git"
                   sshCommand remote: remoteSSH, command: "rm -rf ${AGENT_WORKSPACE_FOLDER}; mkdir -p ${AGENT_WORKSPACE_FOLDER}"
                   sshCommand remote: remoteSSH, command: "mkdir -p ${OPERATOR_WORKSPACE_FOLDER}"
                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; git clone --single-branch --branch ${BRANCH_NAME} https://${APIKEY}@github.com/CAAPIM/layer7-operator.git ."

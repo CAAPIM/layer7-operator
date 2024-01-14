@@ -118,7 +118,6 @@ pipeline {
                     sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs; cd /tmp/l7GWMyAPIs; git checkout -b ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git push --set-upstream origin ingtest-${BRANCH_NAME}-${BUILD_NUMBER}"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; export ARTIFACT_HOST=${ARTIFACT_HOST}; export USE_EXISTING_CLUSTER=true; export TESTREPO_TOKEN=${TESTREPO_TOKEN}; export TESTREPO_USER=${TESTREPO_USER}; make test"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; export ARTIFACT_HOST=${ARTIFACT_HOST}; export USE_EXISTING_CLUSTER=true; export TESTREPO_TOKEN=${TESTREPO_TOKEN}; export TESTREPO_USER=${TESTREPO_USER}; make e2e"
-                    sleep 600s
                 }
               }
             }

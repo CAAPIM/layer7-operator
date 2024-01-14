@@ -142,7 +142,6 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 .PHONY: e2e
 e2e:
 	$(KUTTL) test
-	kubectl delete namespace l7operator
 
 .PHONY: prepare-e2e
 prepare-e2e: kuttl docker-build start-kind

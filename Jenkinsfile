@@ -70,7 +70,7 @@ pipeline {
                   remoteSSH.password = "7layer"
 
                   echo "Create Fresh Agent WorkSpace directory in RemoteNG1Agents"
-                  sshCommand remote: remoteSSH, command: "dnf remove subscription-manager"
+                  sshCommand remote: remoteSSH, command: "dnf remove subscription-manager -y"
                   sshCommand remote: remoteSSH, command: "yum -y install http://mirror.centos.org/centos/8-stream/AppStream/x86_64/os/Packages/container-selinux-2.224.0-1.module_el8+712+4cd1bd69.noarch.rpm"
                   sshCommand remote: remoteSSH, command: "yum -y install https://repo.almalinux.org/almalinux/8/BaseOS/x86_64/os/Packages/libcgroup-0.41-19.el8.x86_64.rpm"
                   sshCommand remote: remoteSSH, command: "dnf install docker-ce --nobest -y"

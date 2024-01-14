@@ -49,7 +49,7 @@ pipeline {
                         string(name: 'INSTANCE_NAME', value: "${remoteHostInstanceName}"),
                         string(name: 'CPU', value: '4'),
                         string(name: 'MEM', value: '16384'),
-                        string(name: 'SOURCE_IMAGE', value: 'perfauto-template')
+                        string(name: 'SOURCE_IMAGE', value: 'apim-rhel8-template')
                     ]
                     copyArtifacts(projectName: 'releng/Self-Service/deploy-gcp-instance/develop', selector: specific("${built.number}"));
                     remoteHostIP = sh(script: "ls -af|grep 10.|tr -d '\n'",returnStdout: true).trim()
@@ -104,12 +104,13 @@ pipeline {
                     remoteSSH.allowAnyHosts = true
                     remoteSSH.user = "root"
                     remoteSSH.password = "7layer"
+                    sshCommand remote: remoteSSH, command: "yum -y install make"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; ./hack/install-go.sh; export PATH=${PATH}:/usr/local/go/bin; ./hack/install-kind.sh; kind --version; ./hack/install-kuttl.sh"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64; chmod +x /usr/local/bin/kubectl-kuttl"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; make prepare-e2e; kubectl config view"
                     sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework; cd /tmp/l7GWMyFramework; git checkout -b ${TEST_BRANCH}; git push --set-upstream origin ${TEST_BRANCH}"
                     sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${tag}-${BUILD_NUMBER}; git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs; cd /tmp/l7GWMyAPIs; git checkout -b ${TEST_BRANCH}; git push --set-upstream origin ${TEST_BRANCH}"
-                    sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; make test; make e2e"
+                    sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export TEST_BRANCH=ingtest-${tag}-${BUILD_NUMBER}; make test; make e2e"
                     sleep 600s
                 }
               }

@@ -82,10 +82,14 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'GIT_USER_TOKEN', passwordVariable: 'APIKEY', usernameVariable: 'USERNAME')]) {
                         echo "Getting License file from UneasyRooster"
+                        remoteSSH.name = "ng1Agent"
+                        remoteSSH.host = "${remoteHostIP}"
+                        remoteSSH.allowAnyHosts = true
+                        remoteSSH.user = "root"
+                        remoteSSH.password = "7layer"
                         sshCommand remote: remoteSSH, command: "mkdir -p ${UNEASYROOSTER_WORKSPACE_FOLDER}"
                         sshCommand remote: remoteSSH, command: "cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; git clone --single-branch --branch release/10.1.00_rapier https://${APIKEY}@github.gwd.broadcom.net/ESD/UneasyRooster.git ."
-                        sshCommand remote: remoteSSH, command:"cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml; cp DEVLICENSE.xml  ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml"
-                        sleep 100s
+                        sshCommand remote: remoteSSH, command:"cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml; cp DEVLICENSE.xml  ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
                     }
                 }
             }

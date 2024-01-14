@@ -70,7 +70,6 @@ pipeline {
                   remoteSSH.password = "7layer"
 
                   echo "Create Fresh Agent WorkSpace directory in RemoteNG1Agents"
-                  sshCommand remote: remoteSSH, command: "yum -y install git"
                   sshCommand remote: remoteSSH, command: "rm -rf ${AGENT_WORKSPACE_FOLDER}; mkdir -p ${AGENT_WORKSPACE_FOLDER}"
                   sshCommand remote: remoteSSH, command: "mkdir -p ${OPERATOR_WORKSPACE_FOLDER}"
                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; git clone --single-branch --branch ${BRANCH_NAME} https://${APIKEY}@github.com/CAAPIM/layer7-operator.git ."
@@ -105,7 +104,7 @@ pipeline {
                     remoteSSH.allowAnyHosts = true
                     remoteSSH.user = "root"
                     remoteSSH.password = "7layer"
-                    sshCommand remote: remoteSSH, command: "yum -y install make"
+                    
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; ./hack/install-go.sh; export PATH=${PATH}:/usr/local/go/bin; ./hack/install-kind.sh; kind --version; ./hack/install-kuttl.sh"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64; chmod +x /usr/local/bin/kubectl-kuttl"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; make prepare-e2e; kubectl config view"

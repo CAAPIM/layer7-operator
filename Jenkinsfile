@@ -84,7 +84,7 @@ pipeline {
                         echo "Getting License file from UneasyRooster"
                         sshCommand remote: remoteSSH, command: "mkdir -p ${UNEASYROOSTER_WORKSPACE_FOLDER}"
                         sshCommand remote: remoteSSH, command: "cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; git clone --single-branch --branch release/10.1.00_rapier https://${APIKEY}@github.gwd.broadcom.net/ESD/UneasyRooster.git ."
-                        sshCommand remote: remoteSSH, command:"cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; cp DEVLICENSE.xml  ${OPERATOR_WORKSPACE_FOLDER}/testdata/"
+                        sshCommand remote: remoteSSH, command:"cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml; cp DEVLICENSE.xml  ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml"
                         sleep 60s
                     }
                 }

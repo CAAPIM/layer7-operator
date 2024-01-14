@@ -54,7 +54,7 @@ pipeline {
                     copyArtifacts(projectName: 'releng/Self-Service/deploy-gcp-instance/develop', selector: specific("${built.number}"));
                     remoteHostIP = sh(script: "ls -af|grep 10.|tr -d '\n'",returnStdout: true).trim()
                     print ("${remoteHostIP}")
-            sh "sleep 9000s"
+            sh "sleep 60s"
                 }
             }
         }
@@ -70,6 +70,11 @@ pipeline {
                   remoteSSH.password = "7layer"
 
                   echo "Create Fresh Agent WorkSpace directory in RemoteNG1Agents"
+                  sshCommand remote: remoteSSH, command: "dnf remove subscription-manager"
+                  sshCommand remote: remoteSSH, command: "yum -y install http://mirror.centos.org/centos/8-stream/AppStream/x86_64/os/Packages/container-selinux-2.224.0-1.module_el8+712+4cd1bd69.noarch.rpm"
+                  sshCommand remote: remoteSSH, command: "yum -y install https://repo.almalinux.org/almalinux/8/BaseOS/x86_64/os/Packages/libcgroup-0.41-19.el8.x86_64.rpm"
+                  sshCommand remote: remoteSSH, command: "dnf install docker-ce --nobest -y"
+                  sshCommand remote: remoteSSH, command: "systemctl start docker"
                   sshCommand remote: remoteSSH, command: "rm -rf ${AGENT_WORKSPACE_FOLDER}; mkdir -p ${AGENT_WORKSPACE_FOLDER}"
                   sshCommand remote: remoteSSH, command: "mkdir -p ${OPERATOR_WORKSPACE_FOLDER}"
                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; git clone --single-branch --branch ${BRANCH_NAME} https://${APIKEY}@github.com/CAAPIM/layer7-operator.git ."

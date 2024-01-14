@@ -49,7 +49,7 @@ pipeline {
                         string(name: 'INSTANCE_NAME', value: "${remoteHostInstanceName}"),
                         string(name: 'CPU', value: '4'),
                         string(name: 'MEM', value: '16384'),
-                        string(name: 'SOURCE_IMAGE', value: 'portal-int-template')
+                        string(name: 'SOURCE_IMAGE', value: 'apim-rhel9-template')
                     ]
                     copyArtifacts(projectName: 'releng/Self-Service/deploy-gcp-instance/develop', selector: specific("${built.number}"));
                     remoteHostIP = sh(script: "ls -af|grep 10.|tr -d '\n'",returnStdout: true).trim()

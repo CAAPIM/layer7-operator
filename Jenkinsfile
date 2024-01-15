@@ -125,6 +125,7 @@ pipeline {
         stage('Build and push Operator') {
             steps {
                 echo "Push Operator docker image"
+              script {
                 withFolderProperties {
                    remoteSSH.name = "ng1Agent"
                    remoteSSH.host = "${remoteHostIP}"
@@ -136,6 +137,7 @@ pipeline {
                    sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make docker-build docker-push"
 
                 }
+              }
                 echo "Push docker image for main branch"
                 script {
                     if ("${BRANCH_NAME}" == "main") {
@@ -155,6 +157,7 @@ pipeline {
         stage('Build and push Operator bundle') {
             steps {
                 echo "Build and push Operator bundle"
+              script {
                 withFolderProperties {
                    remoteSSH.name = "ng1Agent"
                    remoteSSH.host = "${remoteHostIP}"
@@ -166,6 +169,7 @@ pipeline {
                    sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make build-bundle bundle-push"
 
                 }
+              }
                 echo "Push docker image for main branch"
                 script {
                     if ("${BRANCH_NAME}" == "main") {

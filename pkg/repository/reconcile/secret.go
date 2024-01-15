@@ -71,8 +71,11 @@ func StorageSecret(ctx context.Context, params Params) error {
 		storageSecretName = params.Instance.Name + "-repository-" + folderName
 		ext = folderName
 	case "git":
-	default:
 		storageSecretName = params.Instance.Name + "-repository-" + ext
+	default:
+		params.Log.Info("repository type not set", "name", params.Instance.Name, "namespace", params.Instance.Name)
+		return nil
+
 	}
 
 	bundleGzip, err := util.CompressGraphmanBundle("/tmp/" + params.Instance.Name + "-" + ext)

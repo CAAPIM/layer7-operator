@@ -124,40 +124,30 @@ pipeline {
         }
         stage('Build and push Operator') {
             steps {
-                echo "Build and push Operator"
+                echo "Push Operator docker image"
                 withFolderProperties {
-                    sh '''#!/bin/bash
-                        branch=$BRANCH_NAME
-                        echo Branch=${branch}
+                   remoteSSH.name = "ng1Agent"
+                   remoteSSH.host = "${remoteHostIP}"
+                   remoteSSH.allowAnyHosts = true
+                   remoteSSH.user = "root"
+                   remoteSSH.password = "7layer"
+                   sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
+                   sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
+                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make docker-build docker-push"
 
-                        if [[ ${branch} =~ ^PR-[0-9]+$ ]]; then
-                           branch=pull-request-${branch}
-                           echo "Pull request branch=${branch}"
-                        fi
-                        # Replace the / with -
-                        tag=${branch//'/'/-}
-                        VERSION=${tag}
-                        if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
-                           docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW $ARTIFACT_HOST
-                        else
-                           docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
-                        fi
-                        make docker-build
-                        make docker-push
-                    '''
                 }
                 echo "Push docker image for main branch"
                 script {
                     if ("${BRANCH_NAME}" == "main") {
-                       sh '''#!/bin/bash
-                             VERSION=$RELEASE_VERSION
-                             if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
-                                docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW $ARTIFACT_HOST
-                             else
-                                docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
-                             fi
-                             make docker-build docker-push
-                       '''
+                          remoteSSH.name = "ng1Agent"
+                          remoteSSH.host = "${remoteHostIP}"
+                          remoteSSH.allowAnyHosts = true
+                          remoteSSH.user = "root"
+                          remoteSSH.password = "7layer"
+                          sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
+                          sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
+                          sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export VERSION=${RELEASE_VERSION}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make docker-build docker-push"
+
                     }
                 }
             }
@@ -166,37 +156,28 @@ pipeline {
             steps {
                 echo "Build and push Operator bundle"
                 withFolderProperties {
-                    sh '''#!/bin/bash
-                        branch=$BRANCH_NAME
-                        echo Branch=${branch}
+                   remoteSSH.name = "ng1Agent"
+                   remoteSSH.host = "${remoteHostIP}"
+                   remoteSSH.allowAnyHosts = true
+                   remoteSSH.user = "root"
+                   remoteSSH.password = "7layer"
+                   sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
+                   sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
+                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make build-bundle bundle-push"
 
-                        if [[ ${branch} =~ ^PR-[0-9]+$ ]]; then
-                           branch=pull-request-${branch}
-                           echo "Pull request branch=${branch}"
-                        fi
-                        # Replace the / with -
-                        tag=${branch//'/'/-}
-                        VERSION=${tag}
-                        if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
-                           docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW $ARTIFACT_HOST
-                        else
-                           docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
-                        fi
-                        make bundle-build bundle-push
-                    '''
                 }
                 echo "Push docker image for main branch"
                 script {
                     if ("${BRANCH_NAME}" == "main") {
-                       sh '''#!/bin/bash
-                             VERSION=$RELEASE_VERSION
-                             if [[ ${ARTIFACT_HOST} == "docker.io" ]]; then
-                                docker login -u $DOCKER_HUB_CREDS_USR -p $DOCKER_HUB_CREDS_PSW $ARTIFACT_HOST
-                             else
-                                docker login --username=$ARTIFACTORY_CREDS_USR --password="$ARTIFACTORY_CREDS_PSW" $ARTIFACT_HOST
-                             fi
-                             make bundle-build bundle-push
-                       '''
+                         remoteSSH.name = "ng1Agent"
+                         remoteSSH.host = "${remoteHostIP}"
+                         remoteSSH.allowAnyHosts = true
+                         remoteSSH.user = "root"
+                         remoteSSH.password = "7layer"
+                         sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
+                         sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
+                         sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export VERSION=${RELEASE_VERSION}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make build-bundle bundle-push"
+
                     }
                 }
             }

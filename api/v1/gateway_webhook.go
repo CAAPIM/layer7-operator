@@ -78,7 +78,7 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 
 	warnings := admission.Warnings{}
 
-	if r.Spec.License.Accept {
+	if !r.Spec.License.Accept {
 		return warnings, fmt.Errorf("please accept the gateway license")
 	}
 

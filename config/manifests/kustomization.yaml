@@ -2,7 +2,7 @@
 # used to generate the 'manifests/' directory in a bundle.
 resources:
 - bases/layer7-operator.clusterserviceversion.yaml
-- ../bundle
+- ../cw-bundle
 - ../samples
 - ../scorecard
 

@@ -91,6 +91,7 @@ pipeline {
                                                     -H 'Accept: application/vnd.github.v3.raw' \
                                                     -o LICENSE.xml \
                                                     -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
+                    }
                         sh 'ls'
                         sh 'cat LICENSE.xml'
                         remoteSSH.name = "ng1Agent"
@@ -100,7 +101,7 @@ pipeline {
                         remoteSSH.password = "7layer"
                         sshCommand remote: remoteSSH, command:"rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml;"
                         sshPut remote: remoteSSH, from: 'LICENSE.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
-                    }
+
                 }
             }
         }

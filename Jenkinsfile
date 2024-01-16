@@ -89,18 +89,18 @@ pipeline {
                         echo "Getting License file from UneasyRooster"
                         sh("curl -u ${USERNAME}:${APIKEY} \
                                                     -H 'Accept: application/vnd.github.v3.raw' \
-                                                    -o LICENSE.xml \
+                                                    -o license.xml \
                                                     -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
                     }
                         sh 'ls'
-                        sh 'cat LICENSE.xml'
+                        sh 'cat license.xml'
                         remoteSSH.name = "ng1Agent"
                         remoteSSH.host = "${remoteHostIP}"
                         remoteSSH.allowAnyHosts = true
                         remoteSSH.user = "root"
                         remoteSSH.password = "7layer"
                         sshCommand remote: remoteSSH, command:"rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml;"
-                        sshPut remote: remoteSSH, from: 'LICENSE.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
+                        sshPut remote: remoteSSH, from: 'license.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
 
                 }
             }

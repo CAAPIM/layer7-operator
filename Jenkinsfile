@@ -89,7 +89,7 @@ pipeline {
                         echo "Getting License file from UneasyRooster"
                         sh("curl -u ${USERNAME}:${APIKEY} \
                                                     -H 'Accept: application/vnd.github.v3.raw' \
-                                                    -o /tmp/LICENSE.xml \
+                                                    -o LICENSE.xml \
                                                     -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
                         remoteSSH.name = "ng1Agent"
                         remoteSSH.host = "${remoteHostIP}"
@@ -97,7 +97,7 @@ pipeline {
                         remoteSSH.user = "root"
                         remoteSSH.password = "7layer"
                         sshCommand remote: remoteSSH, command:"rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml;"
-                        sshPut remote: remoteSSH, from: '/tmp/LICENSE.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/"
+                        sshPut remote: remoteSSH, from: 'LICENSE.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/"
                     }
                 }
             }

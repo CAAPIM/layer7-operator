@@ -77,9 +77,9 @@ jobs:
           TEST_BRANCH: ingtest-${{ github.run_id }}
         run: |
            cd /tmp/l7GWMyFramework
-           git push origin --delete ${BRANCH_NAME}
+           git push origin --delete ${TEST_BRANCH}
            cd /tmp/l7GWMyAPIs
-           git push origin --delete ${BRANCH_NAME}
+           git push origin --delete ${TEST_BRANCH}
   integration-tests-check:
     runs-on: ubuntu-22.04
     if: always()

@@ -18,7 +18,6 @@ def remoteSSH = [:]
 
 def AGENT_WORKSPACE_FOLDER = "/opt/agentWorkSpace"
 def OPERATOR_WORKSPACE_FOLDER = "${AGENT_WORKSPACE_FOLDER}/layer7-operator"
-def UNEASYROOSTER_WORKSPACE_FOLDER = "${AGENT_WORKSPACE_FOLDER}/UneasyRooster"
 pipeline {
 
     agent { label "default" }
@@ -97,10 +96,8 @@ pipeline {
                         remoteSSH.allowAnyHosts = true
                         remoteSSH.user = "root"
                         remoteSSH.password = "7layer"
-                        sh "sleep 600s"
-                        sshCommand remote: remoteSSH, command: "mkdir -p ${UNEASYROOSTER_WORKSPACE_FOLDER}"
-                        sshCommand remote: remoteSSH, command: "cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; git clone --single-branch --branch release/11.0.00_saber https://${APIKEY}@github.gwd.broadcom.net/ESD/UneasyRooster.git ."
-                        sshCommand remote: remoteSSH, command:"cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml; cp DEVLICENSE.xml  ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
+                        sshCommand remote: remoteSSH, command:"rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml;"
+                        sshPut remote: remoteSSH, from: '/tmp/LICENSE.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/"
                     }
                 }
             }

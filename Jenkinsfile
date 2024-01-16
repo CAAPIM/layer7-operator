@@ -90,15 +90,14 @@ pipeline {
                         echo "Getting License file from UneasyRooster"
                         sh("curl -u ${USERNAME}:${APIKEY} \
                                                     -H 'Accept: application/vnd.github.v3.raw' \
-                                                    -o src/functional/docker/LICENSE.xml \
+                                                    -o /tmp/LICENSE.xml \
                                                     -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
                         remoteSSH.name = "ng1Agent"
                         remoteSSH.host = "${remoteHostIP}"
                         remoteSSH.allowAnyHosts = true
                         remoteSSH.user = "root"
                         remoteSSH.password = "7layer"
-                        sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/;curl -u ${USERNAME}:${APIKEY} -H 'Accept: application/vnd.github.v3.raw' -o testdata/LICENSE.xml -L ${UNEASYROOSTER_LICENSE_FILE_PATH}"
-                        sh "sleep 100s"
+                        sh "sleep 600s"
                         sshCommand remote: remoteSSH, command: "mkdir -p ${UNEASYROOSTER_WORKSPACE_FOLDER}"
                         sshCommand remote: remoteSSH, command: "cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; git clone --single-branch --branch release/11.0.00_saber https://${APIKEY}@github.gwd.broadcom.net/ESD/UneasyRooster.git ."
                         sshCommand remote: remoteSSH, command:"cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml; cp DEVLICENSE.xml  ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"

@@ -94,7 +94,7 @@ pipeline {
                         remoteSSH.user = "root"
                         remoteSSH.password = "7layer"
                         sshCommand remote: remoteSSH, command: "mkdir -p ${UNEASYROOSTER_WORKSPACE_FOLDER}"
-                        sshCommand remote: remoteSSH, command: "cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; git clone --single-branch --branch release/10.1.00_rapier https://${APIKEY}@github.gwd.broadcom.net/ESD/UneasyRooster.git ."
+                        sshCommand remote: remoteSSH, command: "cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; git clone --single-branch --branch release/11.0.00_saber https://${APIKEY}@github.gwd.broadcom.net/ESD/UneasyRooster.git ."
                         sshCommand remote: remoteSSH, command:"cd ${UNEASYROOSTER_WORKSPACE_FOLDER}/; rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml; cp DEVLICENSE.xml  ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
                     }
                 }

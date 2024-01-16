@@ -96,7 +96,7 @@ pipeline {
                         remoteSSH.allowAnyHosts = true
                         remoteSSH.user = "root"
                         remoteSSH.password = "7layer"
-                        sshCommand remote: remoteSSH, command:"rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/licence.xml;"
+                        sshCommand remote: remoteSSH, command:"rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml;"
                         sshPut remote: remoteSSH, from: 'LICENSE.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
                     }
                 }

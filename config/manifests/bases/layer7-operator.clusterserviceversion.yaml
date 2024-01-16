@@ -5,7 +5,8 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     certified: "false"
-    operatorframework.io/suggested-namespace: layer7
+    features.operators.openshift.io/proxy-aware: "true"
+    operatorframework.io/suggested-namespace: layer7-operator-system
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community
   name: layer7-operator.v1.0.1
@@ -48,13 +49,13 @@ spec:
       deployments: []
     strategy: deployment
   installModes:
-  - supported: true
+  - supported: false
     type: OwnNamespace
-  - supported: false
+  - supported: true
     type: SingleNamespace
-  - supported: false
+  - supported: true
     type: MultiNamespace
-  - supported: false
+  - supported: true
     type: AllNamespaces
   keywords:
   - layer7-operator
@@ -64,7 +65,7 @@ spec:
   maintainers:
   - email: gary.vermeulen@broadcom.com
     name: Gary Vermeulen
-  maturity: alpha
+  maturity: beta
   provider:
     name: Broadcom Software
     url: https://www.broadcom.com/

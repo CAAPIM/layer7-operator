@@ -3,13 +3,13 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "11.0.00_CR1"
+  version: "11.0.00_CR2"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.0.00_CR1
+    image: docker.io/caapim/gateway:11.0.00_CR2
     # imagePullSecrets:
     # - name: my-reg-cred
     imagePullPolicy: IfNotPresent
@@ -79,6 +79,11 @@ spec:
         encryption:
           existingSecret: graphman-encryption-secret
           key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+    # externalKeys:
+    #   - name: brcmlabs
+    #     alias: test
+    #     keyUsageType: SSL
+    #     enabled: true
     bootstrap:
       script:
         enabled: true
@@ -132,11 +137,12 @@ spec:
       ingressClassName: nginx
       annotations:
         nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        cert-manager.io/cluster-issuer: "brcmlabs-issuer"
         # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
       tls:
       - hosts: 
         - gateway.brcmlabs.com
-        secretName: default
+        secretName: brcmlabs
       rules:
       - host: gateway.brcmlabs.com
     java:
@@ -262,7 +268,7 @@ spec:
             com.l7tech.server.policy.variable.ServerVariables.level = SEVERE
             com.l7tech.external.assertions.odata.server.producer.jdbc.GenerateSqlQuery.level = SEVERE
             com.l7tech.server.policy.assertion.ServerSetVariableAssertion.level = SEVERE
-            com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion = SEVERE
+            com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion.level = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
     system:

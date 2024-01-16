@@ -15,7 +15,7 @@ spec:
                 name: ssg
             - secretRef:
                 name: ssg
-          image: docker.io/caapim/gateway:10.1.00_CR3
+          image: docker.io/caapim/gateway:11.0.00_CR2
           imagePullPolicy: IfNotPresent
           lifecycle: { }
           livenessProbe:

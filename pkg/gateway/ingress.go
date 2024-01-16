@@ -13,13 +13,8 @@ func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
 	ingressClassName := gw.Spec.App.Ingress.IngressClassName
 	annotations := gw.Spec.App.Ingress.Annotations
 
-	var portName string
+	const portName = "https"
 	pathTypePrefix := networkingv1.PathTypePrefix
-	for _, s := range gw.Spec.App.Service.Ports {
-		if s.Port == 8443 {
-			portName = s.Name
-		}
-	}
 
 	for _, r := range gw.Spec.App.Ingress.Rules {
 		rule := networkingv1.IngressRule{
@@ -56,7 +51,7 @@ func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
 			Labels:      ls,
 		},
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
+			APIVersion: "networking.k8s.io/v1",
 			Kind:       "Ingress",
 		},
 		Spec: networkingv1.IngressSpec{

@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
@@ -39,10 +40,54 @@ func NewSecret(gw *securityv1.Gateway, name string) *corev1.Secret {
 			data["OTK_RO_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Username)
 			data["OTK_RO_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Password)
 		}
+	case gw.Name + "-redis-properties":
+		redisConfig := ""
 
-	case gw.Name + "-otk-dmz-certificates":
+		redisGroupName := "l7GW"
 
-	case gw.Name + "-otk-internal-certificates":
+		if gw.Spec.App.Redis.GroupName != "" {
+			redisGroupName = gw.Spec.App.Redis.GroupName
+		}
+
+		switch strings.ToLower(string(gw.Spec.App.Redis.Type)) {
+
+		case string(securityv1.RedisTypeStandalone):
+			redisConfig = fmt.Sprintf("redis.type=%s\nredis.standalone.hostname=%s\nredis.standalone.port=%d\nredis.key.prefix.grpname=%s", gw.Spec.App.Redis.Type, gw.Spec.App.Redis.Standalone.Hostname, gw.Spec.App.Redis.Standalone.Port, redisGroupName)
+		case string(securityv1.RedisTypeSentinel):
+			nodes := strings.Join(gw.Spec.App.Redis.Sentinel.Nodes, ",")
+			auth := ""
+			tlsConfig := ""
+			publicCrt := ""
+			if gw.Spec.App.Redis.Tls.Enabled {
+				tlsConfig = fmt.Sprintf("redis.ssl.cert=redis.crt\nredis.ssl.verifypeer=%v", gw.Spec.App.Redis.Tls.VerifyPeer)
+				if gw.Spec.App.Redis.Tls.Crt != "" {
+					publicCrt = gw.Spec.App.Redis.Tls.Crt
+					data["redis.crt"] = []byte(publicCrt)
+				}
+			}
+
+			if gw.Spec.App.Redis.Auth.Enabled {
+				username := ""
+				password := ""
+
+				if gw.Spec.App.Redis.Auth.Username != "" {
+					username = "redis.sentinel.username=" + gw.Spec.App.Redis.Auth.Username + "\n"
+				}
+
+				if gw.Spec.App.Redis.Auth.PasswordPlainText != "" {
+					password = "redis.sentinel.password=" + gw.Spec.App.Redis.Auth.PasswordPlainText
+				}
+
+				if gw.Spec.App.Redis.Auth.PasswordEncoded != "" {
+					password = "redis.sentinel.encodedPassword=" + gw.Spec.App.Redis.Auth.PasswordEncoded
+				}
+
+				auth = fmt.Sprintf("%s%s", username, password)
+			}
+
+			redisConfig = fmt.Sprintf("redis.type=%s\nredis.sentinel.master=%s\nredis.sentinel.nodes=%s\nredis.ssl=%v\n%s\n%s", gw.Spec.App.Redis.Type, gw.Spec.App.Redis.Sentinel.MasterSet, nodes, gw.Spec.App.Redis.Tls.Enabled, tlsConfig, auth)
+		}
+		data["redis.properties"] = []byte(redisConfig)
 	}
 
 	if dataCheckSum == "" {

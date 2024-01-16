@@ -139,6 +139,13 @@ L7PortalSpec defines the desired state of L7Portal
           Name Portal name<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>syncIntervalSeconds</b></td>
+        <td>integer</td>
+        <td>
+          SyncIntervalSeconds how often the Portal CR is reconciled. Default is 10 seconds<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -222,10 +229,26 @@ L7PortalStatus defines the observed state of L7Portal
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>checksum</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#l7portalstatusenrollmentbundle">enrollmentBundle</a></b></td>
         <td>object</td>
         <td>
           EnrollmentBundle<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastUpdated</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -238,13 +261,6 @@ L7PortalStatus defines the observed state of L7Portal
       </tr><tr>
         <td><b>ready</b></td>
         <td>boolean</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>updated</b></td>
-        <td>string</td>
         <td>
           <br/>
         </td>

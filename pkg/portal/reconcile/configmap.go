@@ -12,20 +12,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func ConfigMap(ctx context.Context, params Params, apiSummary []byte) (bool, error) {
+func ConfigMap(ctx context.Context, params Params, apiSummary []byte) error {
 	desiredConfigMap := portal.NewConfigMap(params.Instance, apiSummary)
 
-	updated, err := reconcileConfigMap(ctx, params, desiredConfigMap)
+	err := reconcileConfigMap(ctx, params, desiredConfigMap)
 	if err != nil {
-		return updated, fmt.Errorf("failed to reconcile configMaps: %w", err)
+		return fmt.Errorf("failed to reconcile configMaps: %w", err)
 	}
 
-	return updated, nil
+	return nil
 }
 
-func reconcileConfigMap(ctx context.Context, params Params, desiredConfigMap *corev1.ConfigMap) (bool, error) {
+func reconcileConfigMap(ctx context.Context, params Params, desiredConfigMap *corev1.ConfigMap) error {
 	if err := controllerutil.SetControllerReference(params.Instance, desiredConfigMap, params.Scheme); err != nil {
-		return false, fmt.Errorf("failed to set controller reference: %w", err)
+		return fmt.Errorf("failed to set controller reference: %w", err)
 	}
 
 	currentConfigMap := corev1.ConfigMap{}
@@ -33,23 +33,23 @@ func reconcileConfigMap(ctx context.Context, params Params, desiredConfigMap *co
 	err := params.Client.Get(ctx, types.NamespacedName{Name: desiredConfigMap.Name, Namespace: params.Instance.Namespace}, &currentConfigMap)
 	if err != nil && k8serrors.IsNotFound(err) {
 		if err = params.Client.Create(ctx, desiredConfigMap); err != nil {
-			return false, err
+			return err
 		}
 		params.Log.Info("created configMap", "name", desiredConfigMap.Name, "namespace", params.Instance.Namespace)
-		return true, nil
+		return nil
 	}
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if desiredConfigMap.ObjectMeta.Annotations["checksum/data"] != currentConfigMap.ObjectMeta.Annotations["checksum/data"] {
 		patch := client.MergeFrom(&currentConfigMap)
 		if err := params.Client.Patch(ctx, desiredConfigMap, patch); err != nil {
-			return false, err
+			return err
 		}
 		params.Log.Info("configMap updated", "name", desiredConfigMap.Name, "namespace", desiredConfigMap.Namespace)
-		return true, nil
+		return nil
 	}
 
-	return false, nil
+	return nil
 }

@@ -40,16 +40,19 @@ type L7PortalSpec struct {
 	DeploymentTags []string `json:"deploymentTags,omitempty"`
 	// Auth - Portal credentials
 	Auth PortalAuth `json:"auth,omitempty"`
+	// SyncIntervalSeconds how often the Portal CR is reconciled. Default is 10 seconds
+	SyncIntervalSeconds int `json:"syncIntervalSeconds,omitempty"`
 }
 
 // L7PortalStatus defines the observed state of L7Portal
 type L7PortalStatus struct {
 	Ready               bool             `json:"ready,omitempty"`
 	GatewayProxies      []GatewayProxy   `json:"proxies,omitempty"`
-	Updated             string           `json:"updated,omitempty"`
+	LastUpdated         int64            `json:"lastUpdated,omitempty"`
 	EnrollmentBundle    EnrollmentBundle `json:"enrollmentBundle,omitempty"`
 	ApiSummaryConfigMap string           `json:"apiSummaryConfigMap,omitempty"`
 	ApiCount            int              `json:"apiCount,omitempty"`
+	Checksum            string           `json:"checksum,omitempty"`
 }
 
 //+kubebuilder:object:root=true

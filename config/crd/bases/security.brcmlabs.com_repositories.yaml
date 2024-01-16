@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.12.0
   name: repositories.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -46,9 +45,6 @@ spec:
                 description: Auth contains a reference to the credentials required
                   to connect to your Git repository
                 properties:
-                  autoTrustSshHost:
-                    description: AutoTrust SSH Host
-                    type: boolean
                   existingSecretName:
                     description: ExistingSecretName reference an existing secret
                     type: string

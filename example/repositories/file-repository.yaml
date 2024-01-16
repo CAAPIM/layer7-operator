@@ -5,6 +5,6 @@ metadata:
 spec:
   name: file-repository
   enabled: true
-  endpoint: https://myfileserver/implodedbundle.tar.gz 
+  endpoint: https://raw.githubusercontent.com/uppoju/l7GWMyFramework/main/implodedbundle.tar.gz
   type: http
   auth: {}

@@ -135,12 +135,15 @@ type License struct {
 
 // App contains Gateway specific deployment and application level configuration
 type App struct {
-	// Annotations for the Gateway Deployment
+	// Annotations for Operator managed resources
+	// do not apply to services
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// PodAnnotations for Gateway Pods
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
-	// Labels for the Gateway Deployment
-	Labels            map[string]string `json:"labels,omitempty"`
+	// Labels for Operator managed resources
+	Labels map[string]string `json:"labels,omitempty"`
+	// PodLabels for the Gateway Deployment
+	PodLabels         map[string]string `json:"podLabels,omitempty"`
 	ClusterProperties ClusterProperties `json:"cwp,omitempty"`
 	Java              Java              `json:"java,omitempty"`
 	Management        Management        `json:"management,omitempty"`
@@ -162,8 +165,7 @@ type App struct {
 	// this enables scheduled tasks that are set to execute on a single node and jms destinations that are outbound
 	// to be applied to one ephemeral gateway only.
 	// This works inconjunction with repository references and only supports dynamic repository references.
-	SingletonExtraction bool            `json:"singletonExtraction,omitempty"`
-	PortalReference     PortalReference `json:"portalReference,omitempty"`
+	SingletonExtraction bool `json:"singletonExtraction,omitempty"`
 	// RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.
 	RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
 	// ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.
@@ -179,6 +181,7 @@ type App struct {
 	// ServiceAccount to use for the Gateway Deployment
 	ServiceAccount            ServiceAccount                    `json:"serviceAccount,omitempty"`
 	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
+	Redis                     Redis                             `json:"redis,omitempty"`
 	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
 	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
 	PodSecurityContext        corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
@@ -272,6 +275,68 @@ type OtkOverrides struct {
 	// - #OTK  Client Context Variables
 	// - OTK FIP Client Authentication Extension
 	ManagePostInstallPolicies bool `json:"managePostInstallPolicies,omitempty"`
+}
+
+type RedisType string
+
+const (
+	RedisTypeStandalone RedisType = "standalone"
+	RedisTypeSentinel   RedisType = "sentinel"
+)
+
+type Redis struct {
+	// Enable or disable a Redis integration
+	Enabled bool `json:"enabled,omitempty"`
+	// ExistingSecret mounts an existing secret containing redis configuration
+	// to the container gateway.
+	// The secret should contain a key called redis.properties and redis.crt if tls is enabled
+	ExistingSecret string `json:"existingSecret,omitempty"`
+	// Type of sentinel deployment
+	// valid options are standalone or sentinel
+	// standalone does not support auth or tls and should only be used in non-critical environments for development purposes
+	Type RedisType `json:"type,omitempty"`
+	// GroupName that should be used when connecting to Redis
+	GroupName string `json:"groupName,omitempty"`
+	// Sentinel configuration
+	Sentinel RedisSentinel `json:"sentinel,omitempty"`
+	// Standalone configuration
+	Standalone RedisStandalone `json:"standalone,omitempty"`
+	// Auth if using sentinel
+	Auth RedisAuth `json:"auth,omitempty"`
+	// TLS configuration
+	Tls RedisTls `json:"tls,omitempty"`
+}
+
+type RedisSentinel struct {
+	MasterSet string   `json:"masterSet,omitempty"`
+	Nodes     []string `json:"nodes,omitempty"`
+}
+
+type RedisStandalone struct {
+	Hostname string `json:"hostname,omitempty"`
+	Port     int    `json:"port,omitempty"`
+}
+
+type RedisAuth struct {
+	// Enable or disable Redis auth
+	// Authentication is only available for Redis Sentinel
+	Enabled           bool   `json:"enabled,omitempty"`
+	Username          string `json:"username,omitempty"`
+	PasswordEncoded   string `json:"passwordEncoded,omitempty"`
+	PasswordPlainText string `json:"passwordPlaintext,omitempty"`
+}
+
+type RedisTls struct {
+	// If TLS is enabled on the Redis server set this to true
+	Enabled bool `json:"enabled,omitempty"`
+	// Reference an existing secret that contains a key called redis.crt with the redis public cert
+	ExistingSecret string `json:"existingSecret,omitempty"`
+	// Change if using a different key. Defaults to redis.crt
+	ExistingSecretKey string `json:"key,omitempty"`
+	// Crt in plaintext
+	Crt string `json:"crt,omitempty"`
+	// VerifyPeer
+	VerifyPeer bool `json:"verifyPeer,omitempty"`
 }
 
 type OtkDatabase struct {
@@ -600,9 +665,23 @@ type ExternalKey struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// Name of the kubernetes.io/tls Secret which already exists in Kubernetes
 	Name string `json:"name,omitempty"`
-	// Port is reserved for future use
-	Port string `json:"port,omitempty"`
+	// Alias overrides the key name that is stored in the Gateway
+	// This is useful for the default ssl key
+	Alias string `json:"alias,omitempty"`
+	// KeyUsageType allows keys to be marked as special purpose
+	// only one key usage type is allowed
+	// SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER
+	KeyUsageType KeyUsageType `json:"keyUsageType,omitempty"`
 }
+
+type KeyUsageType string
+
+const (
+	KeyUsageTypeDefaultSSL KeyUsageType = "SSL"
+	KeyUsageTypeDefaultCA  KeyUsageType = "CA"
+	KeyUsageAuditSigning   KeyUsageType = "AUDIT_SIGNING"
+	KeyUsageAuditViewer    KeyUsageType = "AUDIT_VIEWER"
+)
 
 // Bootstrap - optionally add a bootstrap script to the Gateway that migrates configuration from /opt/docker/custom to the correct Container Gateway locations for bootstrap
 type Bootstrap struct {
@@ -778,12 +857,6 @@ type RepositoryReference struct {
 	Type         string           `json:"type,omitempty"`
 	Encryption   BundleEncryption `json:"encryption,omitempty"`
 	Notification Notification     `json:"notification,omitempty"`
-}
-
-// PortalReference
-type PortalReference struct {
-	Name    string `json:"name,omitempty"`
-	Enabled bool   `json:"enabled"`
 }
 
 // BundleEncryption allows setting an encryption passphrase per repository or external secret/key reference

@@ -59,13 +59,11 @@ func Ingress(ctx context.Context, params Params) error {
 		updatedIngress.ObjectMeta.Labels[k] = v
 	}
 
-	if !reflect.DeepEqual(updatedIngress.Spec, desiredIngress.Spec) {
-		patch := client.MergeFrom(&currentIngress)
-		if err := params.Client.Patch(ctx, desiredIngress, patch); err != nil {
-			return err
-		}
-		params.Log.V(2).Info("ingress updated", "name", desiredIngress.Name, "namespace", desiredIngress.Namespace)
+	patch := client.MergeFrom(&currentIngress)
+	if err := params.Client.Patch(ctx, desiredIngress, patch); err != nil {
+		return err
 	}
+	params.Log.Info("ingress updated", "name", desiredIngress.Name, "namespace", desiredIngress.Namespace)
 
 	return nil
 }

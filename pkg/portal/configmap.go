@@ -17,7 +17,7 @@ func NewConfigMap(portal *securityv1alpha1.L7Portal, apiSummary []byte) *corev1.
 	data := make(map[string]string)
 	dataCheckSum := ""
 
-	data["apiSummary"] = base64.StdEncoding.EncodeToString(apiSummary)
+	data["apis"] = base64.StdEncoding.EncodeToString(apiSummary)
 
 	dataBytes, _ := json.Marshal(data)
 	h := sha1.New()

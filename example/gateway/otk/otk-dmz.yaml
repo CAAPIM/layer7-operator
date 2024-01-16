@@ -140,7 +140,7 @@ spec:
             com.l7tech.server.policy.variable.ServerVariables.level = SEVERE
             com.l7tech.external.assertions.odata.server.producer.jdbc.GenerateSqlQuery.level = SEVERE
             com.l7tech.server.policy.assertion.ServerSetVariableAssertion.level = SEVERE
-            com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion = SEVERE
+            com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion.level = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
     system:

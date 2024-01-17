@@ -91,12 +91,11 @@ pipeline {
                                                     -H 'Accept: application/vnd.github.v3.raw' \
                                                     -o license.xml \
                                                     -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
-                    }
                         def script_content = """curl -u ${USERNAME}:${APIKEY} \
-                                                                                                    -H 'Accept: application/vnd.github.v3.raw' \
-                                                                                                    -o license.xml \
-                                                                                                    -L ${UNEASYROOSTER_LICENSE_FILE_PATH}
-                        """
+                                                                                                                            -H 'Accept: application/vnd.github.v3.raw' \
+                                                                                                                            -o license.xml \
+                                                                                                                            -L ${UNEASYROOSTER_LICENSE_FILE_PATH}
+                                                """
                         remoteSSH.name = "ng1Agent"
                         remoteSSH.host = "${remoteHostIP}"
                         remoteSSH.allowAnyHosts = true
@@ -108,6 +107,10 @@ pipeline {
                         sleep 600s
                         sshCommand remote: remoteSSH, command:"rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml;"
                         sshPut remote: remoteSSH, from: 'license.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
+
+                    }
+
+
 
                 }
             }

@@ -30,6 +30,7 @@ var _ = Describe("Gateway controller", func() {
 			repoName            = "l7-gw-myapis"
 			repoCheckoutPath    = "/tmp/l7GWMyAPIs"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyAPIs"
+			repoType            = "git"
 			repo                Repo
 		)
 
@@ -37,7 +38,7 @@ var _ = Describe("Gateway controller", func() {
 			var found bool
 			branchName, found := os.LookupEnv("TEST_BRANCH")
 			Expect(found).NotTo(BeFalse())
-			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
+			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace, repoType}
 			DeferCleanup(func() {
 				k8sClient.Delete(ctx, &securityv1.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
@@ -123,6 +124,9 @@ var _ = Describe("Gateway controller", func() {
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
 								InitContainerImage: "docker.io/layer7api/graphman-static-init:1.0.1",
+							},
+							Cluster: securityv1.Cluster{
+								Hostname: "gateway.brcmlabs.com",
 							},
 							Username: "admin",
 							Password: "7layer",

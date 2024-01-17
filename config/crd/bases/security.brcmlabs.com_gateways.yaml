@@ -4043,6 +4043,8 @@ spec:
                           password:
                             description: Password is the Gateway Cluster Passphrase
                             type: string
+                        required:
+                        - hostname
                         type: object
                       database:
                         description: Database configuration for the Gateway
@@ -4385,6 +4387,8 @@ spec:
                       username:
                         description: Username is the Gateway Admin username
                         type: string
+                    required:
+                    - cluster
                     type: object
                   nodeSelector:
                     additionalProperties:
@@ -7126,12 +7130,18 @@ spec:
                     description: SecretName is the Kubernetes Secret that contains
                       the Gateway license There must be a key called license.xml
                     type: string
+                required:
+                - accept
+                - secretName
                 type: object
               version:
                 description: Version references the Gateway release that this Operator
                   is intended to be used with while all supported container gateway
                   versions will work, some functionality will not be available
                 type: string
+            required:
+            - app
+            - license
             type: object
           status:
             description: GatewayStatus defines the observed state of Gateways

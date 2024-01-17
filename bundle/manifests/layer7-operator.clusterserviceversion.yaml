@@ -65,27 +65,85 @@ metadata:
             "endpoint": "https://github.com/\u003cusername\u003e/\u003crepository\u003e",
             "name": "my-repository"
           }
+        },
+        {
+          "apiVersion": "security.brcmlabs.com/v1alpha1",
+          "kind": "L7Api",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/created-by": "layer7-operator",
+              "app.kubernetes.io/instance": "l7api-sample",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "l7api",
+              "app.kubernetes.io/part-of": "layer7-operator"
+            },
+            "name": "l7api-sample"
+          },
+          "spec": null
+        },
+        {
+          "apiVersion": "security.brcmlabs.com/v1alpha1",
+          "kind": "L7Portal",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/created-by": "layer7-operator",
+              "app.kubernetes.io/instance": "l7portal-sample",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "l7portal",
+              "app.kubernetes.io/part-of": "layer7-operator"
+            },
+            "name": "dev-portal"
+          },
+          "spec": {
+            "auth": {
+              "clientId": "3d8f8967b8e54909b5e9a86e09063406",
+              "clientSecret": "b40a829f046a451db15aa8be503ea7b3",
+              "endpoint": "dev-ssg.brcmlabs.com"
+            },
+            "deploymentTags": [
+              "ssg"
+            ],
+            "enabled": true,
+            "endpoint": "dev-ssg.brcmlabs.com",
+            "enrollmentBundle": "",
+            "mode": "auto",
+            "name": "portal"
+          }
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-04-19T09:21:50Z"
-    operatorframework.io/suggested-namespace: layer7
-    operators.operatorframework.io/builder: operator-sdk-v1.28.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: layer7-operator.v1.0.1
-  namespace: default
+    certified: "false"
+    createdAt: "2024-01-16T18:05:48Z"
+    features.operators.openshift.io/proxy-aware: "true"
+    operatorframework.io/suggested-namespace: layer7-operator-system
+    operators.operatorframework.io/builder: operator-sdk-v1.33.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    repository: github.com/caapim/layer7-operator
+    support: Broadcom Community
+  name: layer7-operator.v1.0.6
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: Gateway is the Schema for the Gateways API
+    - description: Gateway is the Schema for the Gateway Custom Resource
       displayName: Gateway
       kind: Gateway
       name: gateways.security.brcmlabs.com
       statusDescriptors:
-      - displayName: Host
+      - description: Host is the Gateway Cluster Hostname
+        displayName: Host
         path: host
       version: v1
+    - description: L7Api is the Schema for the l7apis API
+      displayName: L7 Api
+      kind: L7Api
+      name: l7apis.security.brcmlabs.com
+      version: v1alpha1
+    - description: L7Portal is the Schema for the l7portals API
+      displayName: L7 Portal
+      kind: L7Portal
+      name: l7portals.security.brcmlabs.com
+      version: v1alpha1
     - description: Repository is the Schema for the repositories API
       displayName: Repository
       kind: Repository
@@ -99,108 +157,8 @@ spec:
     mediatype: image/png
   install:
     spec:
-      deployments:
-      - label:
-          app.kubernetes.io/name: layer7-operator
-          control-plane: controller-manager
-        name: layer7-operator-controller-manager
-        spec:
-          replicas: 1
-          selector:
-            matchLabels:
-              app.kubernetes.io/name: layer7-operator
-              control-plane: controller-manager
-          strategy: {}
-          template:
-            metadata:
-              labels:
-                app.kubernetes.io/name: layer7-operator
-                control-plane: controller-manager
-            spec:
-              containers:
-              - args:
-                - --secure-listen-address=0.0.0.0:8443
-                - --upstream=http://127.0.0.1:8080/
-                - --logtostderr=true
-                - --v=10
-                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
-                name: kube-rbac-proxy
-                ports:
-                - containerPort: 8443
-                  name: https
-                resources: {}
-              - args:
-                - --health-probe-bind-address=:8081
-                - --metrics-bind-address=127.0.0.1:8080
-                - --leader-elect
-                command:
-                - /manager
-                env:
-                - name: WATCH_NAMESPACE
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['olm.targetNamespaces']
-                image: docker.io/layer7api/layer7-operator:v1.0.1
-                imagePullPolicy: IfNotPresent
-                livenessProbe:
-                  httpGet:
-                    path: /healthz
-                    port: 8081
-                  initialDelaySeconds: 15
-                  periodSeconds: 20
-                name: manager
-                readinessProbe:
-                  httpGet:
-                    path: /readyz
-                    port: 8081
-                  initialDelaySeconds: 5
-                  periodSeconds: 10
-                resources:
-                  limits:
-                    cpu: 500m
-                    memory: 100Mi
-                  requests:
-                    cpu: 100m
-                    memory: 20Mi
-                securityContext:
-                  allowPrivilegeEscalation: false
-              securityContext:
-                runAsNonRoot: true
-              serviceAccountName: layer7-operator-controller-manager
-              terminationGracePeriodSeconds: 10
-      permissions:
+      clusterPermissions:
       - rules:
-        - apiGroups:
-          - ""
-          resources:
-          - configmaps
-          verbs:
-          - get
-          - list
-          - watch
-          - create
-          - update
-          - patch
-          - delete
-        - apiGroups:
-          - coordination.k8s.io
-          resources:
-          - leases
-          verbs:
-          - get
-          - list
-          - watch
-          - create
-          - update
-          - patch
-          - delete
-        - apiGroups:
-          - ""
-          resources:
-          - events
-          verbs:
-          - create
-          - patch
         - apiGroups:
           - apps
           resources:
@@ -277,6 +235,18 @@ spec:
           - ""
           resources:
           - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
           verbs:
           - create
           - delete
@@ -394,6 +364,70 @@ spec:
           - update
           - watch
         - apiGroups:
+          - security.brcmlabs.com
+          resources:
+          - l7apis
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.brcmlabs.com
+          resources:
+          - l7apis/status
+          verbs:
+          - get
+        - apiGroups:
+          - security.brcmlabs.com
+          resources:
+          - l7apis
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - security.brcmlabs.com
+          resources:
+          - l7apis/status
+          verbs:
+          - get
+        - apiGroups:
+          - security.brcmlabs.com
+          resources:
+          - l7portals
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.brcmlabs.com
+          resources:
+          - l7portals/status
+          verbs:
+          - get
+        - apiGroups:
+          - security.brcmlabs.com
+          resources:
+          - l7portals
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - security.brcmlabs.com
+          resources:
+          - l7portals/status
+          verbs:
+          - get
+        - apiGroups:
           - authentication.k8s.io
           resources:
           - tokenreviews
@@ -406,15 +440,143 @@ spec:
           verbs:
           - create
         serviceAccountName: layer7-operator-controller-manager
+      deployments:
+      - label:
+          control-plane: controller-manager
+        name: layer7-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --zap-log-level=info
+                - --zap-time-encoding=rfc3339nano
+                command:
+                - /manager
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: ENABLE_WEBHOOK
+                  value: "true"
+                image: docker.io/layer7api/layer7-operator:main
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 100Mi
+                  requests:
+                    cpu: 100m
+                    memory: 20Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: cert
+                  readOnly: true
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: layer7-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - name: cert
+                secret:
+                  defaultMode: 420
+                  secretName: layer7-manager-cert
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: layer7-operator-controller-manager
     strategy: deployment
   installModes:
-  - supported: true
+  - supported: false
     type: OwnNamespace
-  - supported: false
+  - supported: true
     type: SingleNamespace
-  - supported: false
+  - supported: true
     type: MultiNamespace
-  - supported: false
+  - supported: true
     type: AllNamespaces
   keywords:
   - layer7-operator
@@ -424,8 +586,89 @@ spec:
   maintainers:
   - email: gary.vermeulen@broadcom.com
     name: Gary Vermeulen
-  maturity: alpha
+  maturity: beta
   provider:
     name: Broadcom Software
     url: https://www.broadcom.com/
-  version: 1.0.1
+  version: 1.0.6
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: layer7-operator-controller-manager
+    failurePolicy: Fail
+    generateName: mgateway.kb.io
+    rules:
+    - apiGroups:
+      - security.brcmlabs.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - gateways
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-security-brcmlabs-com-v1-gateway
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: layer7-operator-controller-manager
+    failurePolicy: Fail
+    generateName: mrepository.kb.io
+    rules:
+    - apiGroups:
+      - security.brcmlabs.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - repositories
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-security-brcmlabs-com-v1-repository
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: layer7-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vgateway.kb.io
+    rules:
+    - apiGroups:
+      - security.brcmlabs.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - gateways
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-security-brcmlabs-com-v1-gateway
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: layer7-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vrepository.kb.io
+    rules:
+    - apiGroups:
+      - security.brcmlabs.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - repositories
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-security-brcmlabs-com-v1-repository

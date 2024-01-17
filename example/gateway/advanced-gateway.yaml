@@ -159,6 +159,7 @@ spec:
       - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
       - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true 
       - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
+    # - -Dcom.l7tech.server.log.console.extraCats=AUDIT,LOG,TRAFFIC
     listenPorts:
       harden: false
       custom:
@@ -286,6 +287,12 @@ spec:
         javax.net.ssl.trustStoreType=jks
         com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
         # Additional properties go here
+    log:
+      override: true
+      properties: |-
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.formatter = com.l7tech.util.JsonLogFormatter
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.level = CONFIG
+
     autoscaling:
       enabled: true
       hpa:

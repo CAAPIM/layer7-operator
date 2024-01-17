@@ -38,6 +38,7 @@ type Repo struct {
 	SecretName   string
 	CheckoutPath string
 	Namespace    string
+	Type         string
 }
 
 func createGatewayLicenseSecret(secret Secret) {
@@ -114,10 +115,10 @@ func createRepository(repo Repo) {
 			Namespace: repo.Namespace,
 		},
 		Spec: securityv1.RepositorySpec{
-			Name:     repo.Name,
 			Enabled:  true,
 			Endpoint: repo.Url,
 			Branch:   repo.Branch,
+			Type:     repo.Type,
 			Auth: securityv1.RepositoryAuth{
 				Vendor:             "Github",
 				ExistingSecretName: repo.SecretName,
@@ -194,9 +195,9 @@ func commitAndPushUpdatedFile(repo Repo) string {
 	Expect(err).NotTo(HaveOccurred())
 
 	filename := filepath.Join("/tmp/l7GWMyAPIs/tree/myApis/", "Rest Api 3-+api3.webapi.json")
-	err = os.Remove(filename)
-	err = os.WriteFile(filename, []byte("{\n  \"goid\": \"84449671abe2a5b143051dbdfdf7e684\",\n  \"name\": \"Rest Api 3\",\n  \"resolutionPath\": \"/api3\",\n  \"checksum\": \"ad069ae7b081636f7334ff76b99d09b75dd78b81\",\n  \"enabled\": true,\n  \"folderPath\": \"/myApis\",\n  \"methodsAllowed\": [\n    \"GET\",\n    \"POST\",\n    \"PUT\",\n    \"DELETE\"\n  ],\n  \"tracingEnabled\": false,\n  \"wssProcessingEnabled\": false,\n  \"policy\": {\n    \"xml\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<wsp:Policy xmlns:L7p=\\\"http://www.layer7tech.com/ws/policy\\\" xmlns:wsp=\\\"http://schemas.xmlsoap.org/ws/2002/12/policy\\\">\\n    <wsp:All wsp:Usage=\\\"Required\\\">\\n        <L7p:HardcodedResponse><L7p:Base64ResponseBody stringValue=\\\"aGVsbG8gdGVzdA==\\\"/>    </L7p:HardcodedResponse>    </wsp:All>\\n</wsp:Policy>\\n\"\n  }\n}"), 0644)
-	_, err = w.Add("tree/myApis/Rest Api 3-+api3.webapi.json")
+	os.Remove(filename)
+	os.WriteFile(filename, []byte("{\n  \"goid\": \"84449671abe2a5b143051dbdfdf7e684\",\n  \"name\": \"Rest Api 3\",\n  \"resolutionPath\": \"/api3\",\n  \"checksum\": \"ad069ae7b081636f7334ff76b99d09b75dd78b81\",\n  \"enabled\": true,\n  \"folderPath\": \"/myApis\",\n  \"methodsAllowed\": [\n    \"GET\",\n    \"POST\",\n    \"PUT\",\n    \"DELETE\"\n  ],\n  \"tracingEnabled\": false,\n  \"wssProcessingEnabled\": false,\n  \"policy\": {\n    \"xml\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<wsp:Policy xmlns:L7p=\\\"http://www.layer7tech.com/ws/policy\\\" xmlns:wsp=\\\"http://schemas.xmlsoap.org/ws/2002/12/policy\\\">\\n    <wsp:All wsp:Usage=\\\"Required\\\">\\n        <L7p:HardcodedResponse><L7p:Base64ResponseBody stringValue=\\\"aGVsbG8gdGVzdA==\\\"/>    </L7p:HardcodedResponse>    </wsp:All>\\n</wsp:Policy>\\n\"\n  }\n}"), 0644)
+	w.Add("tree/myApis/Rest Api 3-+api3.webapi.json")
 
 	// We can verify the current status of the worktree using the method Status.
 	status, err := w.Status()
@@ -225,6 +226,7 @@ func commitAndPushUpdatedFile(repo Repo) string {
 	err = r.Push(&git.PushOptions{
 		Auth: auth,
 	})
+	Expect(err).NotTo(HaveOccurred())
 	return commitHash.String()
 }
 

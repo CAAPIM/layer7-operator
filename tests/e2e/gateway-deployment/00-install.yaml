@@ -35,6 +35,8 @@ spec:
         exec:
           command: [ "/bin/sh", "-c", "echo Hello" ]
     management:
+      cluster:
+        hostname: gateway.brcmlabs.com
       restman:
         enabled: true
       graphman:

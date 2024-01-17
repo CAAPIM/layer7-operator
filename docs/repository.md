@@ -84,6 +84,20 @@ Spec - Repository Spec
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>endpoint</b></td>
+        <td>string</td>
+        <td>
+          Endoint - Git repository endpoint<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>annotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          Annotations - Custom Annotations<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#repositoryspecauth">auth</a></b></td>
         <td>object</td>
         <td>
@@ -105,17 +119,10 @@ Spec - Repository Spec
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>endpoint</b></td>
-        <td>string</td>
-        <td>
-          Endoint - Git repository endpoint<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
-          Labels - Custom Labels<br/>
+          Name Repository name Name string `json:"name"` Labels - Custom Labels<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -123,13 +130,6 @@ Spec - Repository Spec
         <td>object</td>
         <td>
           LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source This is not currently implemented<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name Repository name<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -212,7 +212,7 @@ Auth contains a reference to the credentials required to connect to your Git rep
         <td><b>sshKeyPass</b></td>
         <td>string</td>
         <td>
-          SSHKey Pass<br/>
+          SSHKeyPass<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -226,7 +226,7 @@ Auth contains a reference to the credentials required to connect to your Git rep
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          Auth Type defaults to basic, possible options are basic or ssh<br/>
+          Auth Type defaults to basic, possible options are none, basic or ssh<br/>
         </td>
         <td>false</td>
       </tr><tr>

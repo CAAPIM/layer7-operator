@@ -28,8 +28,8 @@ import (
 
 // GatewaySpec defines the desired state of Gateway
 type GatewaySpec struct {
-	License License `json:"license,omitempty"`
-	App     App     `json:"app,omitempty"`
+	License License `json:"license"`
+	App     App     `json:"app"`
 	// Version references the Gateway release that this Operator is intended to be used with
 	// while all supported container gateway versions will work, some functionality will not be available
 	Version string `json:"version,omitempty"`
@@ -127,10 +127,10 @@ type PortalSyncStatus struct {
 // License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license.
 // license.accept must be set to true or the Gateway will not start.
 type License struct {
-	Accept bool `json:"accept,omitempty"`
+	Accept bool `json:"accept"`
 	// SecretName is the Kubernetes Secret that contains the Gateway license
 	// There must be a key called license.xml
-	SecretName string `json:"secretName,omitempty"`
+	SecretName string `json:"secretName"`
 }
 
 // App contains Gateway specific deployment and application level configuration
@@ -451,7 +451,7 @@ type Management struct {
 	Username string `json:"username,omitempty"`
 	// Password is the Gateway Admin password
 	Password string   `json:"password,omitempty"`
-	Cluster  Cluster  `json:"cluster,omitempty"`
+	Cluster  Cluster  `json:"cluster"`
 	Database Database `json:"database,omitempty"`
 	Restman  Restman  `json:"restman,omitempty"`
 	Graphman Graphman `json:"graphman,omitempty"`
@@ -470,7 +470,7 @@ type Cluster struct {
 	// Password is the Gateway Cluster Passphrase
 	Password string `json:"password,omitempty"`
 	// Hostname is the Gateway Cluster Hostname
-	Hostname string `json:"hostname,omitempty"`
+	Hostname string `json:"hostname"`
 }
 
 // Database configuration for the Gateway

@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/Khan/genqlient v0.6.0
-	github.com/gazza7205/go-pkcs12 v0.0.2
 	github.com/go-co-op/gocron v1.30.1
 	github.com/go-git/go-git/v5 v5.10.0
 	github.com/go-logr/logr v1.2.4

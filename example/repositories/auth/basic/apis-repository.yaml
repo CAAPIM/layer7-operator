@@ -3,10 +3,10 @@ kind: Repository
 metadata:
   name: l7-gw-myapis
 spec:
-  name: l7-gw-myapis
   enabled: true
   endpoint: https://[yourgitserver.com]/[username]/[reponame]
   branch: main
+  type: git
   auth:
     type: basic
     existingSecretName: myapis-basic-auth

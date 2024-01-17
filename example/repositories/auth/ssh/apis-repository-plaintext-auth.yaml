@@ -3,11 +3,11 @@ kind: Repository
 metadata:
   name: l7-gw-myapis
 spec:
-  name: l7-gw-myapis
   enabled: true
   endpoint: ssh://git@[yourgitserver.com]/[username]/[reponame]
   #endpoint: ssh://git@[yourgitserver.com]:[port]/[username]/[reponame]
   branch: main
+  type: git
   auth:
     type: ssh
     sshKey: |+

@@ -22,6 +22,9 @@ spec:
       limits: {}
     autoscaling:
       enabled: false
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
     java:
       jvmHeap:
         calculate: true

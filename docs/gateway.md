@@ -89,14 +89,14 @@ GatewaySpec defines the desired state of Gateway
         <td>
           App contains Gateway specific deployment and application level configuration<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspeclicense">license</a></b></td>
         <td>object</td>
         <td>
           License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license. license.accept must be set to true or the Gateway will not start.<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>version</b></td>
         <td>string</td>
@@ -7636,7 +7636,7 @@ Management defines configuration for Gateway Managment.
         <td>
           Cluster is gateway cluster configuration<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappmanagementdatabase">database</a></b></td>
         <td>object</td>
@@ -7712,7 +7712,7 @@ Cluster is gateway cluster configuration
         <td>
           Hostname is the Gateway Cluster Hostname<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>password</b></td>
         <td>string</td>
@@ -13471,14 +13471,14 @@ License is reference to a Kubernetes Secret Containing a Gateway v10/11.x licens
         <td>
           <br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr><tr>
         <td><b>secretName</b></td>
         <td>string</td>
         <td>
           SecretName is the Kubernetes Secret that contains the Gateway license There must be a key called license.xml<br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr></tbody>
 </table>
 

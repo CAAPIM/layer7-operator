@@ -2,7 +2,8 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
+    controller-gen.kubebuilder.io/version: v0.12.0
   creationTimestamp: null
   name: repositories.security.brcmlabs.com
 spec:
@@ -11,6 +12,13 @@ spec:
     kind: Repository
     listKind: RepositoryList
     plural: repositories
+    shortNames:
+    - repo
+    - repos
+    - l7repo
+    - l7repos
+    - l7repository
+    - l7repositories
     singular: repository
   scope: Namespaced
   versions:
@@ -34,6 +42,11 @@ spec:
           spec:
             description: Spec - Repository Spec
             properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                description: Annotations - Custom Annotations
+                type: object
               auth:
                 description: Auth contains a reference to the credentials required
                   to connect to your Git repository
@@ -41,12 +54,25 @@ spec:
                   existingSecretName:
                     description: ExistingSecretName reference an existing secret
                     type: string
+                  knownHosts:
+                    description: KnownHosts is required for SSH Auth
+                    type: string
                   password:
                     description: Password repository Password password or token are
                       acceptable
                     type: string
+                  sshKey:
+                    description: SSHKey for Git SSH Authentication
+                    type: string
+                  sshKeyPass:
+                    description: SSHKeyPass
+                    type: string
                   token:
                     description: Token repository Access Token
+                    type: string
+                  type:
+                    description: Auth Type defaults to basic, possible options are
+                      none, basic or ssh
                     type: string
                   username:
                     description: Username repository username
@@ -56,7 +82,10 @@ spec:
                     type: string
                 type: object
               branch:
-                description: Branch - specify which branch to check out
+                description: Branch - specify which branch to clone if branch and
+                  tag are both specified branch will take precedence and tag will
+                  be ignored if branch and tag are both missing the entire repository
+                  will be cloned
                 type: string
               enabled:
                 description: Enabled - if enabled this repository will be synced
@@ -67,7 +96,8 @@ spec:
               labels:
                 additionalProperties:
                   type: string
-                description: Labels - Custom Labels
+                description: Name Repository name Name string `json:"name"` Labels
+                  - Custom Labels
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
@@ -79,8 +109,8 @@ spec:
                   secretName:
                     type: string
                 type: object
-              name:
-                description: Name Repository name
+              remoteName:
+                description: Remote Name - defaults to "origin"
                 type: string
               sync:
                 description: RepositorySyncConfig
@@ -88,17 +118,28 @@ spec:
                   interval:
                     description: Configure how frequently the remote is checked for
                       new commits
-                    format: int64
                     type: integer
                 type: object
+              tag:
+                description: Tag - clone a specific tag. tags do not change, once
+                  cloned this will not be checked for updates
+                type: string
+              type:
+                type: string
+            required:
+            - endpoint
             type: object
           status:
             description: Status - Repository Status
             properties:
               commit:
                 type: string
+              lastAppliedSummary:
+                type: string
               name:
                 type: string
+              ready:
+                type: boolean
               storageSecretName:
                 type: string
               summary:

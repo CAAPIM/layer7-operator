@@ -4042,6 +4042,8 @@ spec:
                           password:
                             description: Password is the Gateway Cluster Passphrase
                             type: string
+                        required:
+                        - hostname
                         type: object
                       database:
                         description: Database configuration for the Gateway
@@ -4384,6 +4386,8 @@ spec:
                       username:
                         description: Username is the Gateway Admin username
                         type: string
+                    required:
+                    - cluster
                     type: object
                   nodeSelector:
                     additionalProperties:
@@ -7125,12 +7129,18 @@ spec:
                     description: SecretName is the Kubernetes Secret that contains
                       the Gateway license There must be a key called license.xml
                     type: string
+                required:
+                - accept
+                - secretName
                 type: object
               version:
                 description: Version references the Gateway release that this Operator
                   is intended to be used with while all supported container gateway
                   versions will work, some functionality will not be available
                 type: string
+            required:
+            - app
+            - license
             type: object
           status:
             description: GatewayStatus defines the observed state of Gateways
@@ -7532,6 +7542,11 @@ spec:
           spec:
             description: Spec - Repository Spec
             properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                description: Annotations - Custom Annotations
+                type: object
               auth:
                 description: Auth contains a reference to the credentials required
                   to connect to your Git repository
@@ -7550,14 +7565,14 @@ spec:
                     description: SSHKey for Git SSH Authentication
                     type: string
                   sshKeyPass:
-                    description: SSHKey Pass
+                    description: SSHKeyPass
                     type: string
                   token:
                     description: Token repository Access Token
                     type: string
                   type:
                     description: Auth Type defaults to basic, possible options are
-                      basic or ssh
+                      none, basic or ssh
                     type: string
                   username:
                     description: Username repository username
@@ -7581,7 +7596,8 @@ spec:
               labels:
                 additionalProperties:
                   type: string
-                description: Labels - Custom Labels
+                description: Name Repository name Name string `json:"name"` Labels
+                  - Custom Labels
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
@@ -7593,9 +7609,6 @@ spec:
                   secretName:
                     type: string
                 type: object
-              name:
-                description: Name Repository name
-                type: string
               remoteName:
                 description: Remote Name - defaults to "origin"
                 type: string
@@ -7613,6 +7626,8 @@ spec:
                 type: string
               type:
                 type: string
+            required:
+            - endpoint
             type: object
           status:
             description: Status - Repository Status
@@ -8104,6 +8119,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: ENABLE_WEBHOOK
+          value: "false"
         image: docker.io/layer7api/layer7-operator:main
         imagePullPolicy: IfNotPresent
         livenessProbe:

@@ -54,6 +54,9 @@ spec:
     #serviceAccountName: ssg-serviceaccount
     autoscaling:
       enabled: false
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
     bundle:
       - type: restman
         source: configmap

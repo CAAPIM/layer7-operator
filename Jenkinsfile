@@ -30,7 +30,7 @@ pipeline {
         TESTREPO_TOKEN = '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'
         TEST_BRANCH = 'ingtest-test'
         DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
-        UNEASYROOSTER_LICENSE_FILE_PATH = "https://github.gwd.broadcom.net/ESD/UneasyRooster/raw/release/11.0.00_saber/DEVLICENSE.xml"
+        UNEASYROOSTER_LICENSE_FILE_PATH = "https://github.gwd.broadcom.net/raw/ESD/UneasyRooster/release/11.0.00_saber/DEVLICENSE.xml"
         USE_EXISTING_CLUSTER = true
     }
     parameters {
@@ -91,26 +91,16 @@ pipeline {
                                                     -H 'Accept: application/vnd.github.v3.raw' \
                                                     -o license.xml \
                                                     -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
-                        def script_content = """curl -u ${USERNAME}:${APIKEY} \
-                                                                                                                            -H 'Accept: application/vnd.github.v3.raw' \
-                                                                                                                            -o license.xml \
-                                                                                                                            -L ${UNEASYROOSTER_LICENSE_FILE_PATH}
-                                                """
+                    }
+                        sh 'cat license.xml'
+
                         remoteSSH.name = "ng1Agent"
                         remoteSSH.host = "${remoteHostIP}"
                         remoteSSH.allowAnyHosts = true
                         remoteSSH.user = "root"
                         remoteSSH.password = "7layer"
-                        prependToFile content: "${script_content}", file: 'dockerScript1.sh'
-                        sshPut remote: remoteSSH, from: './dockerScript1.sh', into: "${AGENT_WORKSPACE_FOLDER}"
-                        sshCommand remote: remoteSSH, command: "cd ${AGENT_WORKSPACE_FOLDER}/; chmod 777 ./dockerScript1.sh; ./dockerScript1.sh"
-                        sleep 600s
                         sshCommand remote: remoteSSH, command:"rm -rf ${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml;"
                         sshPut remote: remoteSSH, from: 'license.xml', into: "${OPERATOR_WORKSPACE_FOLDER}/testdata/license.xml"
-
-                    }
-
-
 
                 }
             }

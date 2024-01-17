@@ -35,7 +35,7 @@ var _ = Describe("Gateway controller", func() {
 
 		BeforeEach(func() {
 			var found bool
-			branchName, found := os.LookupEnv("BRANCH_NAME")
+			branchName, found := os.LookupEnv("TEST_BRANCH")
 			Expect(found).NotTo(BeFalse())
 			repo = Repo{k8sClient, ctx, repoName, repoGitUrl, branchName, repoSecretName, repoCheckoutPath, namespace}
 			DeferCleanup(func() {
@@ -191,6 +191,7 @@ var _ = Describe("Gateway controller", func() {
 				Transport:     tr,
 			}
 
+            fmt.Printf("load balancer ip: %s\n", currentService.Status.LoadBalancer.Ingress[0].IP)
 			Eventually(func() bool {
 				requestURL := fmt.Sprintf("https://%s:8443/restman/1.0/services/84449671abe2a5b143051dbdfdf7e684", currentService.Status.LoadBalancer.Ingress[0].IP)
 				req, err := http.NewRequest("GET", requestURL, nil)

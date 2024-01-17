@@ -44,16 +44,16 @@ jobs:
         env:
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
           TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
-          BRANCH_NAME: ingtest-${{ github.run_id }}
+          TEST_BRANCH: ingtest-${{ github.run_id }}
         run: |
            git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework
            cd /tmp/l7GWMyFramework
-           git checkout -b ${BRANCH_NAME}
-           git push --set-upstream origin ${BRANCH_NAME}
+           git checkout -b ${TEST_BRANCH}
+           git push --set-upstream origin ${TEST_BRANCH}
            git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs
            cd /tmp/l7GWMyAPIs
-           git checkout -b ${BRANCH_NAME}
-           git push --set-upstream origin ${BRANCH_NAME}
+           git checkout -b ${TEST_BRANCH}
+           git push --set-upstream origin ${TEST_BRANCH}
       - name: "create license"
         env:
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
@@ -65,7 +65,7 @@ jobs:
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
           TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
-          BRANCH_NAME: ingtest-${{ github.run_id }}
+          TEST_BRANCH: ingtest-${{ github.run_id }}
           USE_EXISTING_CLUSTER: true
         run: |
           make prepare-e2e test KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
@@ -74,12 +74,12 @@ jobs:
         env:
           TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
           TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
-          BRANCH_NAME: ingtest-${{ github.run_id }}
+          TEST_BRANCH: ingtest-${{ github.run_id }}
         run: |
            cd /tmp/l7GWMyFramework
-           git push origin --delete ${BRANCH_NAME}
+           git push origin --delete ${TEST_BRANCH}
            cd /tmp/l7GWMyAPIs
-           git push origin --delete ${BRANCH_NAME}
+           git push origin --delete ${TEST_BRANCH}
   integration-tests-check:
     runs-on: ubuntu-22.04
     if: always()

@@ -28,7 +28,9 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 #IMAGE_TAG_BASE ?= docker.io/layer7api/layer7-operator
-IMAGE_TAG_BASE ?= docker.io/layer7api/layer7-operator
+ARTIFACT_HOST ?= docker.io
+IMAGE_TAG ?= layer7api/layer7-operator
+IMAGE_TAG_BASE ?= $(ARTIFACT_HOST)/$(IMAGE_TAG)
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -143,7 +145,6 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 .PHONY: e2e
 e2e:
 	$(KUTTL) test
-	kubectl delete namespace l7operator
 
 .PHONY: prepare-e2e
 prepare-e2e: kuttl docker-build start-kind
@@ -151,7 +152,7 @@ prepare-e2e: kuttl docker-build start-kind
 	kind load docker-image $(IMG)
 	docker pull ${GATEWAY_IMG}
 	kind load docker-image $(GATEWAY_IMG)
-	sed -i 's+layer7-operator:main+layer7-operator:$(VERSION)+g' deploy/bundle.yaml
+	sed -i 's+docker.io/layer7api/layer7-operator:main+$(IMG)+g' deploy/bundle.yaml
 	kubectl apply -f deploy/bundle.yaml --namespace l7operator
 	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
 	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator

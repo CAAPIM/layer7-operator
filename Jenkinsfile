@@ -92,7 +92,6 @@ pipeline {
                                                     -o license.xml \
                                                     -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
                     }
-                        sh 'cat license.xml'
 
                         remoteSSH.name = "ng1Agent"
                         remoteSSH.host = "${remoteHostIP}"

@@ -89,11 +89,12 @@ pipeline {
                         echo "Getting License file from UneasyRooster"
                         sh("curl -u ${USERNAME}:${APIKEY} \
                                                     -H 'Accept: application/vnd.github.v3.raw' \
-                                                    -o license.xml \
+                                                    -o /root/license.xml \
                                                     -L ${UNEASYROOSTER_LICENSE_FILE_PATH}")
                     }
-                        sh 'ls'
-                        sh 'cat license.xml'
+                        sh 'pwd'
+                        sh 'cat /root/license.xml'
+                        sleep 600s
                         remoteSSH.name = "ng1Agent"
                         remoteSSH.host = "${remoteHostIP}"
                         remoteSSH.allowAnyHosts = true

@@ -664,6 +664,7 @@ func (in *Ingress) DeepCopyInto(out *Ingress) {
 			(*out)[key] = val
 		}
 	}
+	in.Route.DeepCopyInto(&out.Route)
 	if in.TLS != nil {
 		in, out := &in.TLS, &out.TLS
 		*out = make([]networkingv1.IngressTLS, len(*in))

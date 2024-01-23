@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/caapim/layer7-operator/pkg/gateway"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -16,7 +17,7 @@ import (
 func Ingress(ctx context.Context, params Params) error {
 
 	//Potentially delete the ingress if it exists.
-	if !params.Instance.Spec.App.Ingress.Enabled {
+	if !params.Instance.Spec.App.Ingress.Enabled || strings.ToLower(params.Instance.Spec.App.Ingress.Type) == "route" {
 		return nil
 	}
 
@@ -60,7 +61,7 @@ func Ingress(ctx context.Context, params Params) error {
 	}
 
 	patch := client.MergeFrom(&currentIngress)
-	if err := params.Client.Patch(ctx, desiredIngress, patch); err != nil {
+	if err := params.Client.Patch(ctx, updatedIngress, patch); err != nil {
 		return err
 	}
 	params.Log.Info("ingress updated", "name", desiredIngress.Name, "namespace", desiredIngress.Namespace)

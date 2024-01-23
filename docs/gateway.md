@@ -135,7 +135,7 @@ App contains Gateway specific deployment and application level configuration
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
-          Annotations for Operator managed resources do not apply to services<br/>
+          Annotations for Operator managed resources, these do not apply to services or ingress<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3912,6 +3912,13 @@ LocalObjectReference contains enough information to let you locate the reference
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappingressroute">route</a></b></td>
+        <td>object</td>
+        <td>
+          Route for Openshift This acts as an override<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappingressrulesindex">rules</a></b></td>
         <td>[]object</td>
         <td>
@@ -3923,6 +3930,258 @@ LocalObjectReference contains enough information to let you locate the reference
         <td>[]object</td>
         <td>
           TLS<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type ingress or route<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.route
+<sup><sup>[↩ Parent](#gatewayspecappingress)</sup></sup>
+
+
+
+Route for Openshift This acts as an override
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          host is an alias/DNS that points to the service. Optional. If not specified a route name will typically be automatically chosen. Must follow DNS952 subdomain conventions.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressrouteto">to</a></b></td>
+        <td>object</td>
+        <td>
+          to is an object the route should use as the primary backend. Only the Service kind is allowed, and it will be defaulted to Service. If the weight field (0-256 default 1) is set to zero, no traffic will be sent to this backend.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressroutealternatebackendsindex">alternateBackends</a></b></td>
+        <td>[]object</td>
+        <td>
+          alternateBackends allows up to 3 additional backends to be assigned to the route. Only the Service kind is allowed, and it will be defaulted to Service. Use the weight field in RouteTargetReference object to specify relative preference.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path that the router watches for, to route traffic for to the service. Optional<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressrouteport">port</a></b></td>
+        <td>object</td>
+        <td>
+          If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressroutetls">tls</a></b></td>
+        <td>object</td>
+        <td>
+          The tls field provides the ability to configure certificates and termination for the route.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>wildcardPolicy</b></td>
+        <td>string</td>
+        <td>
+          Wildcard policy if any for the route. Currently only 'Subdomain' or 'None' is allowed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.route.to
+<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+
+
+
+to is an object the route should use as the primary backend. Only the Service kind is allowed, and it will be defaulted to Service. If the weight field (0-256 default 1) is set to zero, no traffic will be sent to this backend.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>string</td>
+        <td>
+          The kind of target that the route is referring to. Currently, only 'Service' is allowed<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          name of the service/target that is being referred to. e.g. name of the service<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>weight</b></td>
+        <td>integer</td>
+        <td>
+          weight as an integer between 0 and 256, default 1, that specifies the target's relative weight against other target reference objects. 0 suppresses requests to this backend.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.route.alternateBackends[index]
+<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+
+
+
+RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service' kind is allowed. Use 'weight' field to emphasize one over others.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>string</td>
+        <td>
+          The kind of target that the route is referring to. Currently, only 'Service' is allowed<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          name of the service/target that is being referred to. e.g. name of the service<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>weight</b></td>
+        <td>integer</td>
+        <td>
+          weight as an integer between 0 and 256, default 1, that specifies the target's relative weight against other target reference objects. 0 suppresses requests to this backend.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.route.port
+<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+
+
+
+If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>targetPort</b></td>
+        <td>int or string</td>
+        <td>
+          The target port on pods selected by the service this route points to. If this is a string, it will be looked up as a named port in the target endpoints port list. Required<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.route.tls
+<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+
+
+
+The tls field provides the ability to configure certificates and termination for the route.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>termination</b></td>
+        <td>string</td>
+        <td>
+          termination indicates termination type.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>caCertificate</b></td>
+        <td>string</td>
+        <td>
+          caCertificate provides the cert authority certificate contents<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>certificate</b></td>
+        <td>string</td>
+        <td>
+          certificate provides certificate contents<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>destinationCACertificate</b></td>
+        <td>string</td>
+        <td>
+          destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt termination this file should be provided in order to have routers use it for health checks on the secure connection. If this field is not specified, the router may provide its own destination CA and perform hostname validation using the short service name (service.namespace.svc), which allows infrastructure generated certificates to automatically verify.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>insecureEdgeTerminationPolicy</b></td>
+        <td>string</td>
+        <td>
+          insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While each router may make its own decisions on which ports to expose, this is normally port 80. 
+ * Allow - traffic is sent to the server on the insecure port (default) * Disable - no traffic is allowed on the insecure port. * Redirect - clients are redirected to the secure port.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key provides key file contents<br/>
         </td>
         <td>false</td>
       </tr></tbody>

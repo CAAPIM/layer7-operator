@@ -74,8 +74,6 @@ The L7Portal controller is responsible for synchronizing Portal Managed APIs, th
 
 This integration handles CRUD on an individual API basis, the relationship between APIs and Gateways is deploymentTag.
 
-Update operator image in deploy/bundle.yaml to harbor.sutraone.com/operator/layer7-operator:portal_integration and set imagePullPolicy to always.
-
 There is a pre-configured example with an existing Portal Tenant containing 3 Portal APIs. To create your own update the [l7Portal CR]((./config/samples/security_v1alpha1_l7portal.yaml))
 1. Create the Portal Enrolment bundle
   - kubectl create secret generic graphman-portal-bootstrap-bundle --from-file=./example/base/resources/secrets/bundles/portal-integration.json 

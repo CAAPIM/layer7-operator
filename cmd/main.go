@@ -24,11 +24,11 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
+	routev1 "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -40,6 +40,7 @@ import (
 	"github.com/caapim/layer7-operator/internal/controller/gateway"
 	"github.com/caapim/layer7-operator/internal/controller/portal"
 	"github.com/caapim/layer7-operator/internal/controller/repository"
+	"github.com/caapim/layer7-operator/internal/platform"
 	"github.com/caapim/layer7-operator/pkg/util"
 	//+kubebuilder:scaffold:imports
 )
@@ -52,6 +53,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
+	utilruntime.Must(routev1.AddToScheme(scheme))
 	utilruntime.Must(securityv1.AddToScheme(scheme))
 	// utilruntime.Must(monitoring.AddToScheme(scheme))
 	// utilruntime.Must(otelv1alpha1.AddToScheme(scheme))
@@ -105,19 +107,29 @@ func main() {
 		LeaderElectionID:        "d464e6a2.brcmlabs.com",
 		LeaderElectionNamespace: namespace,
 		Cache:                   cOpts,
-		//Namespace:               namespace,
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+	restConfig := ctrl.GetConfigOrDie()
+
+	platform, err := platform.Detect(*restConfig)
+	if err != nil {
+		setupLog.Error(err, "unable to determine platform")
+		os.Exit(1)
+	}
+
+	setupLog.Info("platform detected", "type", platform)
+
+	mgr, err := ctrl.NewManager(restConfig, options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
 	if err = (&gateway.GatewayReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Gateway"),
-		Scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("Gateway"),
+		Scheme:   mgr.GetScheme(),
+		Platform: string(platform),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Gateway")
 		os.Exit(1)

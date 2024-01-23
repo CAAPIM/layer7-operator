@@ -195,7 +195,7 @@ var _ = Describe("Gateway controller", func() {
 				Transport:     tr,
 			}
 
-            fmt.Printf("load balancer ip: %s\n", currentService.Status.LoadBalancer.Ingress[0].IP)
+			fmt.Printf("load balancer ip: %s\n", currentService.Status.LoadBalancer.Ingress[0].IP)
 			Eventually(func() bool {
 				requestURL := fmt.Sprintf("https://%s:8443/restman/1.0/services/84449671abe2a5b143051dbdfdf7e684", currentService.Status.LoadBalancer.Ingress[0].IP)
 				req, err := http.NewRequest("GET", requestURL, nil)

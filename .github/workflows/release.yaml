@@ -35,6 +35,7 @@ jobs:
         with:
           files: |
             deploy/bundle.yaml
+            deploy/cw-bundle.yaml
   build-and-push-images:
     name: Build and Push Images
     runs-on: ubuntu-latest

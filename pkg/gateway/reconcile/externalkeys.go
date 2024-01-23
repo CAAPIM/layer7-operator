@@ -42,7 +42,8 @@ func syncExternalKeys(ctx context.Context, params Params) error {
 
 func reconcileExternalKeys(ctx context.Context, params Params, gateway *securityv1.Gateway) error {
 	keySecretMap := []util.GraphmanKey{}
-	bundleBytes := []byte{}
+	//bundleBytes := []byte{}
+	var bundleBytes []byte
 
 	name := gateway.Name
 	if gateway.Spec.App.Management.SecretName != "" {
@@ -100,7 +101,6 @@ func reconcileExternalKeys(ctx context.Context, params Params, gateway *security
 			bundleBytes, err = util.ConvertX509ToGraphmanBundle(keySecretMap)
 			if err != nil {
 				return err
-				//params.Log.Info("can't convert secrets to graphman bundle", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
 			}
 		} else {
 			return nil
@@ -119,8 +119,6 @@ func reconcileExternalKeys(ctx context.Context, params Params, gateway *security
 		h.Write(keySecretMapBytes)
 		sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 
-		//patch := fmt.Sprintf("{\"metadata\": {\"labels\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/external-keys", sha1Sum)
-
 		annotation := "security.brcmlabs.com/external-key-" + externalKey.Name
 
 		if !gateway.Spec.App.Management.Database.Enabled {
@@ -137,43 +135,5 @@ func reconcileExternalKeys(ctx context.Context, params Params, gateway *security
 
 	}
 
-	// name := params.Instance.Name
-	// if params.Instance.Spec.App.Management.SecretName != "" {
-	// 	name = params.Instance.Spec.App.Management.SecretName
-	// }
-	// gwSecret, err := getGatewaySecret(ctx, params, name)
-
-	// if err != nil {
-	// 	return err
-	// }
-
-	// for i, pod := range podList.Items {
-	// 	ready := false
-
-	// 	for _, containerStatus := range pod.Status.ContainerStatuses {
-	// 		if containerStatus.Name == "gateway" {
-	// 			ready = containerStatus.Ready
-	// 		}
-	// 	}
-
-	// 	if ready && pod.Labels["security.brcmlabs.com/external-keys"] != sha1Sum {
-	// 		endpoint := pod.Status.PodIP + ":9443/graphman"
-
-	// 		params.Log.V(2).Info("applying latest key bundle", "sha1Sum", sha1Sum, "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-
-	// 		err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "7layer", bundleBytes)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		params.Log.Info("applied latest key bundle", "sha1Sum", sha1Sum, "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-
-	// 		if err := params.Client.Patch(context.Background(), &podList.Items[i],
-	// 			client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-	// 			params.Log.Error(err, "Failed to update pod label", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
-	// 			return err
-	// 		}
-	// 	}
-	// }
 	return nil
 }

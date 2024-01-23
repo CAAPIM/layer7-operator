@@ -1,14 +1,10 @@
 package reconcile
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha1"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -236,16 +232,15 @@ func retrieveCertificate(host string, port string) ([]byte, error) {
 	return cert, nil
 }
 
-func getSha1Thumbprint(rawCert []byte) (string, error) {
-	fingerprint := sha1.Sum(rawCert)
-	var buf bytes.Buffer
-	for _, f := range fingerprint {
-		fmt.Fprintf(&buf, "%02X", f)
-	}
-	hexDump, err := hex.DecodeString(buf.String())
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(hexDump), nil
-
-}
+// func getSha1Thumbprint(rawCert []byte) (string, error) {
+// 	fingerprint := sha1.Sum(rawCert)
+// 	var buf bytes.Buffer
+// 	for _, f := range fingerprint {
+// 		fmt.Fprintf(&buf, "%02X", f)
+// 	}
+// 	hexDump, err := hex.DecodeString(buf.String())
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return base64.StdEncoding.EncodeToString(hexDump), nil
+// }

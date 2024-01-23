@@ -915,8 +915,8 @@ spec:
                   annotations:
                     additionalProperties:
                       type: string
-                    description: Annotations for Operator managed resources do not
-                      apply to services
+                    description: Annotations for Operator managed resources, these
+                      do not apply to services or ingress
                     type: object
                   autoMountServiceAccountToken:
                     description: AutoMountServiceAccountToken optionally adds the
@@ -2015,6 +2015,147 @@ spec:
                       ingressClassName:
                         description: IngressClassName
                         type: string
+                      route:
+                        description: Route for Openshift This acts as an override
+                        properties:
+                          alternateBackends:
+                            description: alternateBackends allows up to 3 additional
+                              backends to be assigned to the route. Only the Service
+                              kind is allowed, and it will be defaulted to Service.
+                              Use the weight field in RouteTargetReference object
+                              to specify relative preference.
+                            items:
+                              description: RouteTargetReference specifies the target
+                                that resolve into endpoints. Only the 'Service' kind
+                                is allowed. Use 'weight' field to emphasize one over
+                                others.
+                              properties:
+                                kind:
+                                  description: The kind of target that the route is
+                                    referring to. Currently, only 'Service' is allowed
+                                  type: string
+                                name:
+                                  description: name of the service/target that is
+                                    being referred to. e.g. name of the service
+                                  type: string
+                                weight:
+                                  description: weight as an integer between 0 and
+                                    256, default 1, that specifies the target's relative
+                                    weight against other target reference objects.
+                                    0 suppresses requests to this backend.
+                                  format: int32
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              - weight
+                              type: object
+                            type: array
+                          host:
+                            description: host is an alias/DNS that points to the service.
+                              Optional. If not specified a route name will typically
+                              be automatically chosen. Must follow DNS952 subdomain
+                              conventions.
+                            type: string
+                          path:
+                            description: Path that the router watches for, to route
+                              traffic for to the service. Optional
+                            type: string
+                          port:
+                            description: If specified, the port to be used by the
+                              router. Most routers will use all endpoints exposed
+                              by the service by default - set this value to instruct
+                              routers which port to use.
+                            properties:
+                              targetPort:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: The target port on pods selected by the
+                                  service this route points to. If this is a string,
+                                  it will be looked up as a named port in the target
+                                  endpoints port list. Required
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - targetPort
+                            type: object
+                          tls:
+                            description: The tls field provides the ability to configure
+                              certificates and termination for the route.
+                            properties:
+                              caCertificate:
+                                description: caCertificate provides the cert authority
+                                  certificate contents
+                                type: string
+                              certificate:
+                                description: certificate provides certificate contents
+                                type: string
+                              destinationCACertificate:
+                                description: destinationCACertificate provides the
+                                  contents of the ca certificate of the final destination.  When
+                                  using reencrypt termination this file should be
+                                  provided in order to have routers use it for health
+                                  checks on the secure connection. If this field is
+                                  not specified, the router may provide its own destination
+                                  CA and perform hostname validation using the short
+                                  service name (service.namespace.svc), which allows
+                                  infrastructure generated certificates to automatically
+                                  verify.
+                                type: string
+                              insecureEdgeTerminationPolicy:
+                                description: "insecureEdgeTerminationPolicy indicates
+                                  the desired behavior for insecure connections to
+                                  a route. While each router may make its own decisions
+                                  on which ports to expose, this is normally port
+                                  80. \n * Allow - traffic is sent to the server on
+                                  the insecure port (default) * Disable - no traffic
+                                  is allowed on the insecure port. * Redirect - clients
+                                  are redirected to the secure port."
+                                type: string
+                              key:
+                                description: key provides key file contents
+                                type: string
+                              termination:
+                                description: termination indicates termination type.
+                                type: string
+                            required:
+                            - termination
+                            type: object
+                          to:
+                            description: to is an object the route should use as the
+                              primary backend. Only the Service kind is allowed, and
+                              it will be defaulted to Service. If the weight field
+                              (0-256 default 1) is set to zero, no traffic will be
+                              sent to this backend.
+                            properties:
+                              kind:
+                                description: The kind of target that the route is
+                                  referring to. Currently, only 'Service' is allowed
+                                type: string
+                              name:
+                                description: name of the service/target that is being
+                                  referred to. e.g. name of the service
+                                type: string
+                              weight:
+                                description: weight as an integer between 0 and 256,
+                                  default 1, that specifies the target's relative
+                                  weight against other target reference objects. 0
+                                  suppresses requests to this backend.
+                                format: int32
+                                type: integer
+                            required:
+                            - kind
+                            - name
+                            - weight
+                            type: object
+                          wildcardPolicy:
+                            description: Wildcard policy if any for the route. Currently
+                              only 'Subdomain' or 'None' is allowed.
+                            type: string
+                        required:
+                        - host
+                        - to
+                        type: object
                       rules:
                         description: Rules
                         items:
@@ -2207,6 +2348,9 @@ spec:
                               type: string
                           type: object
                         type: array
+                      type:
+                        description: Type ingress or route
+                        type: string
                     type: object
                   initContainers:
                     items:
@@ -8121,6 +8265,12 @@ spec:
               fieldPath: metadata.namespace
         - name: ENABLE_WEBHOOK
           value: "false"
+        - name: HTTP_PROXY
+          value: ""
+        - name: HTTPS_PROXY
+          value: ""
+        - name: NO_PROXY
+          value: ""
         image: docker.io/layer7api/layer7-operator:main
         imagePullPolicy: IfNotPresent
         livenessProbe:

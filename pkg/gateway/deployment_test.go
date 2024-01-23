@@ -36,8 +36,9 @@ func TestDeploymentWithPorts(t *testing.T) {
 	managementPorts.TargetPort = 9443
 	managementPorts.Protocol = "http"
 	gateway.Spec.App.Management.Service.Ports = []securityv1.Ports{managementPorts}
+	platform := "kubernetes"
 
-	dep := NewDeployment(&gateway)
+	dep := NewDeployment(&gateway, platform)
 
 	if dep.ObjectMeta.Namespace != "testNamespace" {
 		t.Errorf("expected %s, actual %s", "testNamespace", dep.ObjectMeta.Namespace)

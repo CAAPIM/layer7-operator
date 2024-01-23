@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -135,8 +136,7 @@ type License struct {
 
 // App contains Gateway specific deployment and application level configuration
 type App struct {
-	// Annotations for Operator managed resources
-	// do not apply to services
+	// Annotations for Operator managed resources, these do not apply to services or ingress
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// PodAnnotations for Gateway Pods
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
@@ -911,8 +911,13 @@ type PodResources struct {
 type Ingress struct {
 	// Enabled or disabled
 	Enabled bool `json:"enabled,omitempty"`
+	// Type ingress or route
+	Type string `json:"type,omitempty"`
 	// Annotations for the ingress resource
 	Annotations map[string]string `json:"annotations,omitempty"`
+	// Route for Openshift
+	// This acts as an override
+	Route routev1.RouteSpec `json:"route,omitempty"`
 	// IngressClassName
 	IngressClassName string `json:"ingressClassName,omitempty"`
 	// TLS

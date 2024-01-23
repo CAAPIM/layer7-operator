@@ -5,7 +5,6 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     certified: "false"
-    features.operators.openshift.io/proxy-aware: "true"
     operatorframework.io/suggested-namespace: layer7-operator-system
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community

@@ -42,14 +42,6 @@ func NewRoute(gw *securityv1.Gateway) routev1.Route {
 		routeSpec.Path = routeOverrides.Path
 	}
 
-	if routeOverrides.To != (routev1.RouteTargetReference{}) {
-		routeSpec.To = routeOverrides.To
-	}
-
-	if routeOverrides.AlternateBackends != nil {
-		routeSpec.AlternateBackends = routeOverrides.AlternateBackends
-	}
-
 	if routeOverrides.Port != nil {
 		routeSpec.Port = routeOverrides.Port
 	}

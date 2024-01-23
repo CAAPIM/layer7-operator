@@ -2026,54 +2026,13 @@ spec:
                       route:
                         description: Route for Openshift This acts as an override
                         properties:
-                          alternateBackends:
-                            description: alternateBackends allows up to 3 additional
-                              backends to be assigned to the route. Only the Service
-                              kind is allowed, and it will be defaulted to Service.
-                              Use the weight field in RouteTargetReference object
-                              to specify relative preference.
-                            items:
-                              description: RouteTargetReference specifies the target
-                                that resolve into endpoints. Only the 'Service' kind
-                                is allowed. Use 'weight' field to emphasize one over
-                                others.
-                              properties:
-                                kind:
-                                  description: The kind of target that the route is
-                                    referring to. Currently, only 'Service' is allowed
-                                  type: string
-                                name:
-                                  description: name of the service/target that is
-                                    being referred to. e.g. name of the service
-                                  type: string
-                                weight:
-                                  description: weight as an integer between 0 and
-                                    256, default 1, that specifies the target's relative
-                                    weight against other target reference objects.
-                                    0 suppresses requests to this backend.
-                                  format: int32
-                                  type: integer
-                              required:
-                              - kind
-                              - name
-                              - weight
-                              type: object
-                            type: array
                           host:
-                            description: host is an alias/DNS that points to the service.
-                              Optional. If not specified a route name will typically
-                              be automatically chosen. Must follow DNS952 subdomain
-                              conventions.
                             type: string
                           path:
-                            description: Path that the router watches for, to route
-                              traffic for to the service. Optional
                             type: string
                           port:
-                            description: If specified, the port to be used by the
-                              router. Most routers will use all endpoints exposed
-                              by the service by default - set this value to instruct
-                              routers which port to use.
+                            description: RoutePort defines a port mapping from a router
+                              to an endpoint in the service endpoints.
                             properties:
                               targetPort:
                                 anyOf:
@@ -2088,8 +2047,8 @@ spec:
                             - targetPort
                             type: object
                           tls:
-                            description: The tls field provides the ability to configure
-                              certificates and termination for the route.
+                            description: TLSConfig defines config used to secure a
+                              route and provide termination
                             properties:
                               caCertificate:
                                 description: caCertificate provides the cert authority
@@ -2129,40 +2088,10 @@ spec:
                             required:
                             - termination
                             type: object
-                          to:
-                            description: to is an object the route should use as the
-                              primary backend. Only the Service kind is allowed, and
-                              it will be defaulted to Service. If the weight field
-                              (0-256 default 1) is set to zero, no traffic will be
-                              sent to this backend.
-                            properties:
-                              kind:
-                                description: The kind of target that the route is
-                                  referring to. Currently, only 'Service' is allowed
-                                type: string
-                              name:
-                                description: name of the service/target that is being
-                                  referred to. e.g. name of the service
-                                type: string
-                              weight:
-                                description: weight as an integer between 0 and 256,
-                                  default 1, that specifies the target's relative
-                                  weight against other target reference objects. 0
-                                  suppresses requests to this backend.
-                                format: int32
-                                type: integer
-                            required:
-                            - kind
-                            - name
-                            - weight
-                            type: object
                           wildcardPolicy:
-                            description: Wildcard policy if any for the route. Currently
-                              only 'Subdomain' or 'None' is allowed.
+                            description: WildcardPolicyType indicates the type of
+                              wildcard support needed by routes.
                             type: string
-                        required:
-                        - host
-                        - to
                         type: object
                       rules:
                         description: Rules
@@ -8128,6 +8057,18 @@ rules:
   - l7portals/status
   verbs:
   - get
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

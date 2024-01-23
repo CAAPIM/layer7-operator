@@ -3963,137 +3963,37 @@ Route for Openshift This acts as an override
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          host is an alias/DNS that points to the service. Optional. If not specified a route name will typically be automatically chosen. Must follow DNS952 subdomain conventions.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b><a href="#gatewayspecappingressrouteto">to</a></b></td>
-        <td>object</td>
-        <td>
-          to is an object the route should use as the primary backend. Only the Service kind is allowed, and it will be defaulted to Service. If the weight field (0-256 default 1) is set to zero, no traffic will be sent to this backend.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b><a href="#gatewayspecappingressroutealternatebackendsindex">alternateBackends</a></b></td>
-        <td>[]object</td>
-        <td>
-          alternateBackends allows up to 3 additional backends to be assigned to the route. Only the Service kind is allowed, and it will be defaulted to Service. Use the weight field in RouteTargetReference object to specify relative preference.<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>path</b></td>
         <td>string</td>
         <td>
-          Path that the router watches for, to route traffic for to the service. Optional<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappingressrouteport">port</a></b></td>
         <td>object</td>
         <td>
-          If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.<br/>
+          RoutePort defines a port mapping from a router to an endpoint in the service endpoints.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappingressroutetls">tls</a></b></td>
         <td>object</td>
         <td>
-          The tls field provides the ability to configure certificates and termination for the route.<br/>
+          TLSConfig defines config used to secure a route and provide termination<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>wildcardPolicy</b></td>
         <td>string</td>
         <td>
-          Wildcard policy if any for the route. Currently only 'Subdomain' or 'None' is allowed.<br/>
+          WildcardPolicyType indicates the type of wildcard support needed by routes.<br/>
         </td>
         <td>false</td>
-      </tr></tbody>
-</table>
-
-
-### Gateway.spec.app.ingress.route.to
-<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
-
-
-
-to is an object the route should use as the primary backend. Only the Service kind is allowed, and it will be defaulted to Service. If the weight field (0-256 default 1) is set to zero, no traffic will be sent to this backend.
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody><tr>
-        <td><b>kind</b></td>
-        <td>string</td>
-        <td>
-          The kind of target that the route is referring to. Currently, only 'Service' is allowed<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          name of the service/target that is being referred to. e.g. name of the service<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b>weight</b></td>
-        <td>integer</td>
-        <td>
-          weight as an integer between 0 and 256, default 1, that specifies the target's relative weight against other target reference objects. 0 suppresses requests to this backend.<br/>
-          <br/>
-            <i>Format</i>: int32<br/>
-        </td>
-        <td>true</td>
-      </tr></tbody>
-</table>
-
-
-### Gateway.spec.app.ingress.route.alternateBackends[index]
-<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
-
-
-
-RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service' kind is allowed. Use 'weight' field to emphasize one over others.
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody><tr>
-        <td><b>kind</b></td>
-        <td>string</td>
-        <td>
-          The kind of target that the route is referring to. Currently, only 'Service' is allowed<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          name of the service/target that is being referred to. e.g. name of the service<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b>weight</b></td>
-        <td>integer</td>
-        <td>
-          weight as an integer between 0 and 256, default 1, that specifies the target's relative weight against other target reference objects. 0 suppresses requests to this backend.<br/>
-          <br/>
-            <i>Format</i>: int32<br/>
-        </td>
-        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -4103,7 +4003,7 @@ RouteTargetReference specifies the target that resolve into endpoints. Only the 
 
 
 
-If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.
+RoutePort defines a port mapping from a router to an endpoint in the service endpoints.
 
 <table>
     <thead>
@@ -4130,7 +4030,7 @@ If specified, the port to be used by the router. Most routers will use all endpo
 
 
 
-The tls field provides the ability to configure certificates and termination for the route.
+TLSConfig defines config used to secure a route and provide termination
 
 <table>
     <thead>

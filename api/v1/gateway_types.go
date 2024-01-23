@@ -917,13 +917,23 @@ type Ingress struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Route for Openshift
 	// This acts as an override
-	Route routev1.RouteSpec `json:"route,omitempty"`
+	Route RouteSpec `json:"route,omitempty"`
 	// IngressClassName
 	IngressClassName string `json:"ingressClassName,omitempty"`
 	// TLS
 	TLS []networkingv1.IngressTLS `json:"tls,omitempty"`
 	// Rules
 	Rules []networkingv1.IngressRule `json:"rules,omitempty"`
+}
+
+// RouteSpec from https://pkg.go.dev/github.com/openshift/api/route/v1#RouteSpec
+// The Operator determines where to route to
+type RouteSpec struct {
+	Host           string                     `json:"host,omitempty"`
+	Path           string                     `json:"path,omitempty"`
+	Port           *routev1.RoutePort         `json:"port,omitempty"`
+	TLS            *routev1.TLSConfig         `json:"tls,omitempty"`
+	WildcardPolicy routev1.WildcardPolicyType `json:"wildcardPolicy,omitempty"`
 }
 
 // Java configuration for the Gateway

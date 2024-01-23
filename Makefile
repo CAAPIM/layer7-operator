@@ -158,7 +158,10 @@ prepare-e2e: kuttl docker-build start-kind
 	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator
 	kubectl create secret generic graphman-encryption-secret --from-literal=FRAMEWORK_ENCRYPTION_PASSPHRASE=7layer -n l7operator
 	kubectl apply -f ./testdata/metallb-native.yaml
-	sleep 90s
+	sleep 15s
+	kubectl wait --for=condition=ready --timeout=600s pod -l component=controller -n metallb-system
+	kubectl wait --for=condition=ready --timeout=600s pod -l component=speaker -n metallb-system
+	
 	kubectl apply -f ./testdata/metallb.yaml
 
 .PHONY: start-kind

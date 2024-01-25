@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	v1 "github.com/caapim/layer7-operator/api/v1"
 
 	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -565,6 +564,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	for _, ic := range gw.Spec.App.InitContainers {
 		ic.TerminationMessagePath = corev1.TerminationMessagePathDefault
 		ic.TerminationMessagePolicy = corev1.TerminationMessageReadFile
+		if platform == "openshift" && ic.SecurityContext == nil {
+			ic.SecurityContext = &ocContainerSecurityContext
+			if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+				ic.SecurityContext = &gw.Spec.App.ContainerSecurityContext
+			}
+		}
 		initContainers = append(initContainers, ic)
 	}
 
@@ -663,6 +668,10 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			graphmanInitContainerSecurityContext = ocContainerSecurityContext
 		}
 
+		if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+			graphmanInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
+		}
+
 		if gw.Spec.App.Management.Graphman.InitContainerSecurityContext != (corev1.SecurityContext{}) {
 			graphmanInitContainerSecurityContext = gw.Spec.App.Management.Graphman.InitContainerSecurityContext
 		}
@@ -708,6 +717,10 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		otkInitContainerSecurityContext = ocContainerSecurityContext
 	}
 
+	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+		otkInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
+	}
+
 	if gw.Spec.App.Otk.InitContainerSecurityContext != (corev1.SecurityContext{}) {
 		otkInitContainerSecurityContext = gw.Spec.App.Otk.InitContainerSecurityContext
 	}
@@ -732,7 +745,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		})
-		if gw.Spec.App.Otk.Database.Type == v1.OtkDatabaseTypeMySQL || gw.Spec.App.Otk.Database.Type == v1.OtkDatabaseTypeOracle {
+		if gw.Spec.App.Otk.Database.Type == securityv1.OtkDatabaseTypeMySQL || gw.Spec.App.Otk.Database.Type == securityv1.OtkDatabaseTypeOracle {
 			if gw.Spec.App.Otk.Database.Create {
 				otkDbInitContainer = true
 			}
@@ -858,8 +871,20 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		Lifecycle:      &lifecycleHooks,
 	}
 
+	sidecars := []corev1.Container{}
+
+	for _, sc := range gw.Spec.App.Sidecars {
+		if platform == "openshift" && sc.SecurityContext == nil {
+			sc.SecurityContext = &ocContainerSecurityContext
+			if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+				sc.SecurityContext = &gw.Spec.App.ContainerSecurityContext
+			}
+		}
+		sidecars = append(sidecars, sc)
+	}
+
 	containers = append(containers, gateway)
-	containers = append(containers, gw.Spec.App.Sidecars...)
+	containers = append(containers, sidecars...)
 
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
 	revisionHistoryLimit := int32(10)

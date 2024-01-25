@@ -94,6 +94,7 @@ spec:
       volumeMounts:
       - name: config-directory
         mountPath: /opt/docker/custom
+    sidecars: []
     hazelcast:
       external: false
       endpoint: hazelcast.example.com:5701
@@ -115,6 +116,13 @@ spec:
       graphman:
         enabled: true
         initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
+        # initContainerSecurityContext:
+        #   runAsNonRoot: true
+        #   runAsUser: 1000670001
+        #   runAsGroup: 1000670001
+        #   capabilities:
+        #     drop:
+        #     - ALL
       cluster:
         hostname: gateway.brcmlabs.com
       database:
@@ -133,9 +141,9 @@ spec:
         targetPort: 9443
         protocol: TCP
     ingress:
-      enabled: true
+      enabled: false
       ingressClassName: nginx
-      type: ingress
+      type: route
       annotations:
        # nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
         cert-manager.io/cluster-issuer: "brcmlabs-issuer"
@@ -322,6 +330,7 @@ spec:
     containerSecurityContext:
       runAsNonRoot: true
       runAsUser: 1000670001
+      runAsGroup: 1000670001
       capabilities:
         drop:
         - ALL

@@ -1,9 +1,19 @@
+{{ if .Values.rbac.create }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "layer7-operator.fullname" . }}-manager-role
   labels:
-  {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- range $key, $val := .Values.commonLabels }}
+    {{ $key }}: "{{ $val }}"
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- end }}
 rules:
 - apiGroups:
   - apps
@@ -273,6 +283,18 @@ rules:
   - l7portals/status
   verbs:
   - get
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -288,3 +310,4 @@ subjects:
 - kind: ServiceAccount
   name: '{{ include "layer7-operator.fullname" . }}-controller-manager'
   namespace: '{{ .Release.Namespace }}'
+{{ end }}

@@ -1,0 +1,51 @@
+{{ if .Values.webhook.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ include "layer7-operator.fullname" . }}-mutating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "layer7-operator.fullname" . }}-serving-cert
+  labels:
+  {{- include "layer7-operator.labels" . | nindent 4 }}
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "layer7-operator.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-security-brcmlabs-com-v1-gateway
+  failurePolicy: Fail
+  name: mgateway.kb.io
+  rules:
+  - apiGroups:
+    - security.brcmlabs.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - gateways
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "layer7-operator.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-security-brcmlabs-com-v1-repository
+  failurePolicy: Fail
+  name: mrepository.kb.io
+  rules:
+  - apiGroups:
+    - security.brcmlabs.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - repositories
+  sideEffects: None
+{{ end }}

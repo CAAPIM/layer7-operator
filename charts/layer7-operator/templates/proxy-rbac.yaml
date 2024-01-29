@@ -1,9 +1,19 @@
+{{ if .Values.rbac.create }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "layer7-operator.fullname" . }}-proxy-role
   labels:
-  {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- range $key, $val := .Values.commonLabels }}
+    {{ $key }}: "{{ $val }}"
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- end }}
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -32,3 +42,4 @@ subjects:
 - kind: ServiceAccount
   name: '{{ include "layer7-operator.fullname" . }}-controller-manager'
   namespace: '{{ .Release.Namespace }}'
+{{ end }}

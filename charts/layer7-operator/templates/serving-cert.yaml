@@ -1,0 +1,27 @@
+{{ if and (.Values.webhook.enabled) (.Values.webhook.tls.certmanager.enabled) }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "layer7-operator.fullname" . }}-serving-cert
+  labels:
+  {{- include "layer7-operator.labels" . | nindent 4 }}
+  {{- range $key, $val := .Values.commonLabels }}
+  {{ $key }}: "{{ $val }}"
+  {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- end }}
+spec:
+  dnsNames:
+  - '{{ include "layer7-operator.fullname" . }}-webhook-service.{{ .Release.Namespace
+    }}.svc'
+  - '{{ include "layer7-operator.fullname" . }}-webhook-service.{{ .Release.Namespace
+    }}.svc.{{ .Values.kubernetesClusterDomain }}'
+  issuerRef:
+    kind: Issuer
+    name: '{{ include "layer7-operator.fullname" . }}-selfsigned-issuer'
+  secretName: {{ include "layer7-operator.fullname" . }}-serving-cert
+{{ end }}

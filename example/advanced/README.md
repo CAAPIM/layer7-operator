@@ -3,9 +3,12 @@ By the end of this example you should have a better understanding of the Layer7 
 
 ### Getting started
 1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
-2. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
+2. Accept the Gateway License
+  - license.accept defaults to false in [Gateway examples](../gateway/advanced-gateway.yaml)
+  - update license.accept to true before proceeding
+3. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
-3. You will need an ingress controller like nginx
+4. You will need an ingress controller like nginx
     - if you do not have one installed already you can use the makefile in the example directory to deploy one
         - ```cd example```
         - Generic Kubernetes

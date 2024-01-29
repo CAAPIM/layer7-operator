@@ -5,7 +5,7 @@ metadata:
 spec:
   version: "11.0.00_CR1"
   license:
-    accept: true
+    accept: false
     secretName: gateway-license
   app:
     replicas: 2

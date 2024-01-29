@@ -75,7 +75,7 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 
 	if r.Spec.Enabled {
 
-		if r.Spec.Branch == "" && r.Spec.Tag == "" {
+		if r.Spec.Branch == "" && r.Spec.Tag == "" && r.Spec.Type == "git" {
 			return warnings, fmt.Errorf("please set a repository branch or tag. name: %s ", r.Name)
 		}
 

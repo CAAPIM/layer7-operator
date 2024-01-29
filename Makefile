@@ -412,4 +412,4 @@ helmify:
 
 
 helm: manifests kustomize helmify
-	$(KUSTOMIZE) build config/cw-bundle | $(HELMIFY) charts/layer7-operator
+	$(KUSTOMIZE) build config/cw-bundle | $(HELMIFY) -crd-dir charts/layer7-operator

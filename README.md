@@ -1,7 +1,7 @@
 # Layer7 Gateway Operator
 The Layer7 Gateway Operator, built using the [Operator SDK](https://github.com/operator-framework/operator-sdk) covers all aspects of deploying, maintaining and upgrading API Gateways in Kubernetes.
 
-##### Note: The Operator examples currently use ***Gateway 11.0.00_CR1*** as a base. The OTel examples use a custom 11.0.00_CR1 image.
+##### Note: The Operator examples currently use ***Gateway 11.0.00_CR2*** as a base. The OTel examples use a custom 11.0.00_CR1 image.
 
 ## About
 The Operator is currently in an Alpha state and therefore does not currently carry a support/maintenance statement. Please check out the [Gateway Helm Chart](https://github.com/CAAPIM/apim-charts/tree/stable/charts/gateway) for supported container Gateway Deployment options
@@ -15,6 +15,15 @@ The Layer7 Operator is restricted to manage the namespace it's deployed in by de
 - [API (Custom Resource) Docs](./docs/readme.md)
 - [Wiki](https://github.com/CAAPIM/layer7-operator/wiki)
 - Techdocs (coming soon)
+
+## Compatibility Matrix
+The Layer7 Operator graphman client is strongly typed, meaning changes to the Graphman Schema can cause breaking changes between versions of the Operator/Gateways.
+
+| Operator Version    | Gateway Versions
+| ------------------- | ---------------------------------------------
+| `v1.0.4`            | `10.1.00_CR3, 11.0.00_CR1`
+| `v1.0.5`            | `10.1.00_CR4, 11.0.00_CR2`
+
 
 ### Deployment Types
 

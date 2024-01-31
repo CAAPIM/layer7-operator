@@ -91,8 +91,8 @@ containerSecurityContext: {}
 ##
 image:
   registry: docker.io
-  repository: layer7api/layer7-operator
-  tag: 1.0.5
+  repository: caapim/layer7-operator
+  tag: v1.0.5
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images

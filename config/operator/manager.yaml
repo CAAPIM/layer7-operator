@@ -63,5 +63,11 @@ spec:
                 fieldPath: metadata.namespace
           - name: ENABLE_WEBHOOK
             value: "false"
+          - name: HTTP_PROXY
+            value: ""
+          - name: HTTPS_PROXY
+            value: ""
+          - name: NO_PROXY
+            value: ""
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

@@ -135,7 +135,7 @@ App contains Gateway specific deployment and application level configuration
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
-          Annotations for Operator managed resources do not apply to services<br/>
+          Annotations for Operator managed resources, these do not apply to services or ingress<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3912,6 +3912,13 @@ LocalObjectReference contains enough information to let you locate the reference
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappingressroute">route</a></b></td>
+        <td>object</td>
+        <td>
+          Route for Openshift This acts as an override<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappingressrulesindex">rules</a></b></td>
         <td>[]object</td>
         <td>
@@ -3923,6 +3930,158 @@ LocalObjectReference contains enough information to let you locate the reference
         <td>[]object</td>
         <td>
           TLS<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type ingress or route<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.route
+<sup><sup>[↩ Parent](#gatewayspecappingress)</sup></sup>
+
+
+
+Route for Openshift This acts as an override
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressrouteport">port</a></b></td>
+        <td>object</td>
+        <td>
+          RoutePort defines a port mapping from a router to an endpoint in the service endpoints.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressroutetls">tls</a></b></td>
+        <td>object</td>
+        <td>
+          TLSConfig defines config used to secure a route and provide termination<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>wildcardPolicy</b></td>
+        <td>string</td>
+        <td>
+          WildcardPolicyType indicates the type of wildcard support needed by routes.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.route.port
+<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+
+
+
+RoutePort defines a port mapping from a router to an endpoint in the service endpoints.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>targetPort</b></td>
+        <td>int or string</td>
+        <td>
+          The target port on pods selected by the service this route points to. If this is a string, it will be looked up as a named port in the target endpoints port list. Required<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.route.tls
+<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+
+
+
+TLSConfig defines config used to secure a route and provide termination
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>termination</b></td>
+        <td>string</td>
+        <td>
+          termination indicates termination type.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>caCertificate</b></td>
+        <td>string</td>
+        <td>
+          caCertificate provides the cert authority certificate contents<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>certificate</b></td>
+        <td>string</td>
+        <td>
+          certificate provides certificate contents<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>destinationCACertificate</b></td>
+        <td>string</td>
+        <td>
+          destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt termination this file should be provided in order to have routers use it for health checks on the secure connection. If this field is not specified, the router may provide its own destination CA and perform hostname validation using the short service name (service.namespace.svc), which allows infrastructure generated certificates to automatically verify.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>insecureEdgeTerminationPolicy</b></td>
+        <td>string</td>
+        <td>
+          insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While each router may make its own decisions on which ports to expose, this is normally port 80. 
+ * Allow - traffic is sent to the server on the insecure port (default) * Disable - no traffic is allowed on the insecure port. * Redirect - clients are redirected to the secure port.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key provides key file contents<br/>
         </td>
         <td>false</td>
       </tr></tbody>

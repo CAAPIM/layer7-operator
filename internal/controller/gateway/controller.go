@@ -23,6 +23,7 @@ import (
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/gateway/reconcile"
 	"github.com/go-logr/logr"
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +43,7 @@ type GatewayReconciler struct {
 	Log      logr.Logger
 	Scheme   *runtime.Scheme
 	muTasks  sync.Mutex
+	Platform string
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -67,6 +69,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Scheme:   r.Scheme,
 		Log:      log,
 		Instance: gw,
+		Platform: r.Platform,
 	}
 
 	err = reconcile.GatewayLicense(ctx, params)
@@ -93,6 +96,11 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	err = reconcile.Ingress(ctx, params)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = reconcile.Route(ctx, params)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -141,5 +149,10 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{})
+
+	if r.Platform == "openshift" {
+		builder.Owns(&routev1.Route{})
+	}
+
 	return builder.Complete(r)
 }

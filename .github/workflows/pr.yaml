@@ -30,6 +30,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Prepare Bases
+        run: make version
       - name: Build and push Operator
         run: make docker-build docker-push
       - name: Build and push Operator Bundle

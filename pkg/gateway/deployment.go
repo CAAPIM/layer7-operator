@@ -3,11 +3,11 @@ package gateway
 import (
 	"crypto/sha1"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	v1 "github.com/caapim/layer7-operator/api/v1"
 
 	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,11 +16,26 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
+func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	var image string = gw.Spec.App.Image
 	defaultMode := int32(0755)
 	optional := false
 	ports := []corev1.ContainerPort{}
+
+	defaultUser := int64(1001)
+	defaultGroup := int64(1001)
+	runAsNonRoot := true
+
+	ocPodSecurityContext := corev1.PodSecurityContext{
+		RunAsUser:    &defaultUser,
+		RunAsGroup:   &defaultGroup,
+		RunAsNonRoot: &runAsNonRoot,
+	}
+	ocContainerSecurityContext := corev1.SecurityContext{
+		RunAsUser:    &defaultUser,
+		RunAsNonRoot: &runAsNonRoot,
+		Capabilities: &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
+	}
 
 	for p := range gw.Spec.App.Service.Ports {
 		ports = append(ports, corev1.ContainerPort{
@@ -549,6 +564,12 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 	for _, ic := range gw.Spec.App.InitContainers {
 		ic.TerminationMessagePath = corev1.TerminationMessagePathDefault
 		ic.TerminationMessagePolicy = corev1.TerminationMessageReadFile
+		if platform == "openshift" && ic.SecurityContext == nil {
+			ic.SecurityContext = &ocContainerSecurityContext
+			if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+				ic.SecurityContext = &gw.Spec.App.ContainerSecurityContext
+			}
+		}
 		initContainers = append(initContainers, ic)
 	}
 
@@ -643,6 +664,14 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 			graphmanInitContainerImagePullPolicy = gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy
 		}
 
+		if platform == "openshift" {
+			graphmanInitContainerSecurityContext = ocContainerSecurityContext
+		}
+
+		if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+			graphmanInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
+		}
+
 		if gw.Spec.App.Management.Graphman.InitContainerSecurityContext != (corev1.SecurityContext{}) {
 			graphmanInitContainerSecurityContext = gw.Spec.App.Management.Graphman.InitContainerSecurityContext
 		}
@@ -684,6 +713,14 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		otkInitContainerImagePullPolicy = gw.Spec.App.Otk.InitContainerImagePullPolicy
 	}
 
+	if platform == "openshift" {
+		otkInitContainerSecurityContext = ocContainerSecurityContext
+	}
+
+	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+		otkInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
+	}
+
 	if gw.Spec.App.Otk.InitContainerSecurityContext != (corev1.SecurityContext{}) {
 		otkInitContainerSecurityContext = gw.Spec.App.Otk.InitContainerSecurityContext
 	}
@@ -708,7 +745,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		})
-		if gw.Spec.App.Otk.Database.Type == v1.OtkDatabaseTypeMySQL || gw.Spec.App.Otk.Database.Type == v1.OtkDatabaseTypeOracle {
+		if gw.Spec.App.Otk.Database.Type == securityv1.OtkDatabaseTypeMySQL || gw.Spec.App.Otk.Database.Type == securityv1.OtkDatabaseTypeOracle {
 			if gw.Spec.App.Otk.Database.Create {
 				otkDbInitContainer = true
 			}
@@ -792,12 +829,28 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		imagePullPolicy = gw.Spec.App.ImagePullPolicy
 	}
 
+	gatewayContainerSecurityContext := corev1.SecurityContext{}
+	podSecurityContext := corev1.PodSecurityContext{}
+
+	if platform == "openshift" {
+		gatewayContainerSecurityContext = ocContainerSecurityContext
+		podSecurityContext = ocPodSecurityContext
+	}
+
+	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+		gatewayContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
+	}
+
+	if !reflect.DeepEqual(gw.Spec.App.PodSecurityContext, corev1.PodSecurityContext{}) {
+		podSecurityContext = gw.Spec.App.PodSecurityContext
+	}
+
 	gateway := corev1.Container{
 		Image:                    image,
 		ImagePullPolicy:          imagePullPolicy,
 		TerminationMessagePath:   "/dev/termination-log",
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-		SecurityContext:          &gw.Spec.App.ContainerSecurityContext,
+		SecurityContext:          &gatewayContainerSecurityContext,
 		Name:                     "gateway",
 		EnvFrom: []corev1.EnvFromSource{
 			{
@@ -818,8 +871,20 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 		Lifecycle:      &lifecycleHooks,
 	}
 
+	sidecars := []corev1.Container{}
+
+	for _, sc := range gw.Spec.App.Sidecars {
+		if platform == "openshift" && sc.SecurityContext == nil {
+			sc.SecurityContext = &ocContainerSecurityContext
+			if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+				sc.SecurityContext = &gw.Spec.App.ContainerSecurityContext
+			}
+		}
+		sidecars = append(sidecars, sc)
+	}
+
 	containers = append(containers, gateway)
-	containers = append(containers, gw.Spec.App.Sidecars...)
+	containers = append(containers, sidecars...)
 
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
 	revisionHistoryLimit := int32(10)
@@ -860,7 +925,7 @@ func NewDeployment(gw *securityv1.Gateway) *appsv1.Deployment {
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            serviceAccountName,
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
-					SecurityContext:               &gw.Spec.App.PodSecurityContext,
+					SecurityContext:               &podSecurityContext,
 					TopologySpreadConstraints:     gw.Spec.App.TopologySpreadConstraints,
 					Tolerations:                   gw.Spec.App.Tolerations,
 					DNSPolicy:                     corev1.DNSClusterFirst,

@@ -3,10 +3,19 @@ kind: Deployment
 metadata:
   name: {{ include "layer7-operator.fullname" . }}-controller-manager
   labels:
+    {{- include "layer7-operator.labels" . | nindent 4 }}
     control-plane: controller-manager
-  {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- range $key, $val := .Values.commonLabels }}
+    {{ $key }}: "{{ $val }}"
+    {{- end }}
+  {{- if  .Values.commonAnnotations }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+    {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- end }}
 spec:
-  replicas: {{ .Values.controllerManager.replicas }}
+  replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
       control-plane: controller-manager
@@ -15,52 +24,81 @@ spec:
     metadata:
       labels:
         control-plane: controller-manager
+    {{- if  .Values.podLabels }}
+        {{- toYaml .Values.podLabels | nindent 8 }}
+    {{- end }}
       {{- include "layer7-operator.selectorLabels" . | nindent 8 }}
+    {{- if  .Values.podAnnotations }}
+      annotations: {{- toYaml .Values.podAnnotations | nindent 8 }}
+    {{- end }}
     spec:
       containers:
-      - args: {{- toYaml .Values.controllerManager.kubeRbacProxy.args | nindent 8 }}
-        env:
-        - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.kubernetesClusterDomain }}
-        image: {{ .Values.controllerManager.kubeRbacProxy.image.repository }}:{{ .Values.controllerManager.kubeRbacProxy.image.tag
-          | default .Chart.AppVersion }}
-        name: kube-rbac-proxy
-        ports:
-        - containerPort: 8443
-          name: https
-        resources: {{- toYaml .Values.controllerManager.kubeRbacProxy.resources | nindent
-          10 }}
-        securityContext: {{- toYaml .Values.controllerManager.kubeRbacProxy.containerSecurityContext
-          | nindent 10 }}
-      - args: {{- toYaml .Values.controllerManager.manager.args | nindent 8 }}
+      - name: manager
+        image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args: {{- toYaml .Values.args | nindent 8 }}
         command:
         - /manager
-        env:
-        - name: WATCH_NAMESPACE
-          value: {{ quote .Values.controllerManager.manager.env.watchNamespace }}
-        - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.kubernetesClusterDomain }}
-        image: {{ .Values.controllerManager.manager.image.repository }}:{{ .Values.controllerManager.manager.image.tag
-          | default .Chart.AppVersion }}
-        imagePullPolicy: {{ .Values.controllerManager.manager.imagePullPolicy }}
+        envFrom:
+        - configMapRef:
+            name: {{ include "layer7-operator.fullname" . }}-controller-manager
         livenessProbe:
           httpGet:
             path: /healthz
             port: 8081
           initialDelaySeconds: 15
           periodSeconds: 20
-        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
         readinessProbe:
           httpGet:
             path: /readyz
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
-        resources: {{- toYaml .Values.controllerManager.manager.resources | nindent 10
-          }}
-        securityContext: {{- toYaml .Values.controllerManager.manager.containerSecurityContext
-          | nindent 10 }}
-      securityContext:
-        runAsNonRoot: true
+        resources: {{- toYaml .Values.resources | nindent 10 }}
+        securityContext: {{- toYaml .Values.containerSecurityContext | nindent 10 }}
+        volumeMounts:
+        {{- if .Values.webhook.enabled }}
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+        {{- end }}
+        {{- if .Values.proxy.caBundle.enabled }}
+        - name: trusted-ca-bundle
+          mountPath: /etc/ssl/certs/ca-certificates.crt
+          subPath: ca-certificates.crt
+          readOnly: true
+        {{- end }}
+      - name: kube-rbac-proxy
+        image: {{ .Values.rbacProxy.image.registry }}/{{ .Values.rbacProxy.image.repository }}:{{ .Values.rbacProxy.image.tag }}
+        imagePullPolicy: {{ .Values.rbacProxy.image.pullPolicy }}
+        args: {{- toYaml .Values.rbacProxy.args | nindent 8 }}
+        env:
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.clusterDomain }}
+        ports:
+        - containerPort: 8443
+          name: https
+        resources: {{- toYaml .Values.rbacProxy.resources | nindent 10 }}
+        securityContext: {{- toYaml .Values.rbacProxy.containerSecurityContext | nindent 10 }}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 10 }}
       serviceAccountName: {{ include "layer7-operator.fullname" . }}-controller-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+      {{- if .Values.webhook.enabled }}
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: {{ include "layer7-operator.webhook-secret" . }}
+      {{- end }}
+      {{- if .Values.proxy.caBundle.enabled }}
+      - name: trusted-ca-bundle
+        configMap:
+          name: {{ include "layer7-operator.trusted-ca" . }}
+          items:
+          - key: {{ include "layer7-operator.trusted-ca-key" . }}
+            path: ca-certificates.crt
+      {{- end }}

@@ -5,11 +5,10 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     certified: "false"
-    features.operators.openshift.io/proxy-aware: "true"
     operatorframework.io/suggested-namespace: layer7-operator-system
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community
-  name: layer7-operator.v1.0.1
+  name: layer7-operator.v0.0.0
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -49,7 +48,7 @@ spec:
       deployments: []
     strategy: deployment
   installModes:
-  - supported: false
+  - supported: true
     type: OwnNamespace
   - supported: true
     type: SingleNamespace
@@ -65,8 +64,9 @@ spec:
   maintainers:
   - email: gary.vermeulen@broadcom.com
     name: Gary Vermeulen
-  maturity: beta
+  maturity: alpha
+  minKubeVersion: 1.25.0
   provider:
     name: Broadcom Software
     url: https://www.broadcom.com/
-  version: 1.0.1
+  version: 0.0.0

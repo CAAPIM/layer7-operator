@@ -38,6 +38,12 @@ spec:
             value: ""
           - name: ENABLE_WEBHOOK
             value: "true"
+          - name: HTTP_PROXY
+            value: ""
+          - name: HTTPS_PROXY
+            value: ""
+          - name: NO_PROXY
+            value: ""
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager

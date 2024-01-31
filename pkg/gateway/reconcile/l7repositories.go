@@ -76,8 +76,6 @@ func reconcileDynamicRepository(ctx context.Context, params Params, gateway *sec
 				return err
 			}
 		}
-		//case "static":
-
 	}
 
 	for _, sRepo := range gateway.Status.RepositoryStatus {

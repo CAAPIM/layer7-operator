@@ -3,12 +3,22 @@ kind: Service
 metadata:
   name: {{ include "layer7-operator.fullname" . }}-controller-manager-metrics-service
   labels:
-    control-plane: controller-manager
-  {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- range $key, $val := .Values.commonLabels }}
+    {{ $key }}: "{{ $val }}"
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- end }}
 spec:
-  type: {{ .Values.metricsService.type }}
+  type: ClusterIP
   selector:
     control-plane: controller-manager
   {{- include "layer7-operator.selectorLabels" . | nindent 4 }}
   ports:
-	{{- .Values.metricsService.ports | toYaml | nindent 2 -}}
+  - name: https
+    port: 8443
+    targetPort: https

@@ -1,0 +1,26 @@
+{{ if .Values.proxy.caBundle.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "layer7-operator.trusted-ca" . }}
+  labels:
+    {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- range $key, $val := .Values.commonLabels }}
+    {{ $key }}: "{{ $val }}"
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- end }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- range $key, $val := .Values.proxy.caBundle.annotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+data:
+  ca-bundle.crt: {{ toYaml .Values.proxy.caBundle.pem | indent 2 }}
+{{ end }}

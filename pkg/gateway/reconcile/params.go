@@ -15,4 +15,5 @@ type Params struct {
 	Scheme   *runtime.Scheme
 	Log      logr.Logger
 	Instance *securityv1.Gateway
+	Platform string
 }

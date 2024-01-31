@@ -1,0 +1,29 @@
+{{ if .Values.webhook.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "layer7-operator.fullname" . }}-webhook-service
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: layer7-operator
+    app.kubernetes.io/part-of: layer7-operator
+    {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- range $key, $val := .Values.commonLabels }}
+    {{ $key }}: "{{ $val }}"
+  {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- end }}
+spec:
+  type: ClusterIP
+  selector:
+    control-plane: controller-manager
+  {{- include "layer7-operator.selectorLabels" . | nindent 4 }}
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+{{ end }}

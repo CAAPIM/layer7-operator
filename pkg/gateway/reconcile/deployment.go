@@ -13,7 +13,7 @@ import (
 )
 
 func Deployment(ctx context.Context, params Params) error {
-	desiredDeployment := gateway.NewDeployment(params.Instance)
+	desiredDeployment := gateway.NewDeployment(params.Instance, params.Platform)
 	currentDeployment := &appsv1.Deployment{}
 
 	if err := controllerutil.SetControllerReference(params.Instance, desiredDeployment, params.Scheme); err != nil {

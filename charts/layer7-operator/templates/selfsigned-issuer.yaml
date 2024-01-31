@@ -1,0 +1,19 @@
+{{ if and (.Values.webhook.enabled) (.Values.webhook.tls.certmanager.enabled) }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "layer7-operator.fullname" . }}-selfsigned-issuer
+  labels:
+  {{- include "layer7-operator.labels" . | nindent 4 }}
+    {{- range $key, $val := .Values.commonLabels }}
+    {{ $key }}: "{{ $val }}"
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+{{- range $key, $val := .Values.commonAnnotations }}
+   {{ $key }}: "{{ $val }}"
+{{- end }}
+{{- end }}
+spec:
+  selfSigned: {}
+{{ end }}

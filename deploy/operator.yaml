@@ -47,6 +47,12 @@ spec:
               fieldPath: metadata.namespace
         - name: ENABLE_WEBHOOK
           value: "false"
+        - name: HTTP_PROXY
+          value: ""
+        - name: HTTPS_PROXY
+          value: ""
+        - name: NO_PROXY
+          value: ""
         image: docker.io/layer7api/layer7-operator:main
         imagePullPolicy: IfNotPresent
         livenessProbe:

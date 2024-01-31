@@ -152,13 +152,16 @@ prepare-e2e: kuttl docker-build start-kind
 	kind load docker-image $(IMG)
 	docker pull ${GATEWAY_IMG}
 	kind load docker-image $(GATEWAY_IMG)
-	sed -i 's+docker.io/layer7api/layer7-operator:main+$(IMG)+g' deploy/bundle.yaml
+	sed -i 's+docker.io/caapim/layer7-operator:main+$(IMG)+g' deploy/bundle.yaml
 	kubectl apply -f deploy/bundle.yaml --namespace l7operator
 	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
 	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator
 	kubectl create secret generic graphman-encryption-secret --from-literal=FRAMEWORK_ENCRYPTION_PASSPHRASE=7layer -n l7operator
 	kubectl apply -f ./testdata/metallb-native.yaml
-	sleep 90s
+	sleep 15s
+	kubectl wait --for=condition=ready --timeout=600s pod -l component=controller -n metallb-system
+	kubectl wait --for=condition=ready --timeout=600s pod -l component=speaker -n metallb-system
+	
 	kubectl apply -f ./testdata/metallb.yaml
 
 .PHONY: start-kind
@@ -409,4 +412,4 @@ helmify:
 
 
 helm: manifests kustomize helmify
-	$(KUSTOMIZE) build config/cw-bundle | $(HELMIFY) charts/layer7-operator
+	$(KUSTOMIZE) build config/cw-bundle | $(HELMIFY) -crd-dir charts/layer7-operator

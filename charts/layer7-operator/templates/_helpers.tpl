@@ -60,3 +60,51 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Managed Namespaces.
+*/}}
+{{- define "layer7-operator.managedNamespaces" -}}
+{{- $managedNamespaces := len .Values.managedNamespaces }}
+{{- if gt $managedNamespaces 0 }}
+  {{- join "," .Values.managedNamespaces }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Trusted CA Configmap name.
+*/}}
+{{- define "layer7-operator.trusted-ca" -}}
+{{- if .Values.proxy.caBundle.enabled }}
+{{- if and (not .Values.proxy.caBundle.create) (.Values.proxy.caBundle.existingConfigmap) }}
+  {{- print .Values.proxy.caBundle.existingConfigmap }}
+{{- else }}
+  {{- default (include "layer7-operator.fullname" .) }}-trusted-ca
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Trusted CA Configmap key.
+*/}}
+{{- define "layer7-operator.trusted-ca-key" -}}
+{{- if  and (.Values.proxy.caBundle.enabled) (.Values.proxy.caBundle.key)  }}
+  {{- print .Values.proxy.caBundle.existingConfigmap }}
+{{- else }}
+  {{- default "ca-bundle.crt" }}
+{{- end -}}
+{{- end -}}
+
+
+{{/*
+Webhook TLS secret.
+*/}}
+{{- define "layer7-operator.webhook-secret" -}}
+{{- if  and (.Values.webhook.enabled) (.Values.webhook.tls.certmanager.enabled)  }}
+  {{- default (include "layer7-operator.fullname" .) }}-serving-cert
+{{- else }}
+  {{- default .Values.webhook.tls.existingTlsSecret }}
+{{- end -}}
+{{- end -}}
+
+{{ include "layer7-operator.fullname" . }}-serving-cert

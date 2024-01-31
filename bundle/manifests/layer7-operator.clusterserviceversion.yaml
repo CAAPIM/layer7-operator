@@ -113,8 +113,7 @@ metadata:
       ]
     capabilities: Basic Install
     certified: "false"
-    createdAt: "2024-01-16T18:05:48Z"
-    features.operators.openshift.io/proxy-aware: "true"
+    createdAt: "2024-01-29T17:02:32Z"
     operatorframework.io/suggested-namespace: layer7-operator-system
     operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
@@ -428,6 +427,18 @@ spec:
           verbs:
           - get
         - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - authentication.k8s.io
           resources:
           - tokenreviews
@@ -471,7 +482,10 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: ENABLE_WEBHOOK
                   value: "true"
-                image: docker.io/layer7api/layer7-operator:main
+                - name: HTTP_PROXY
+                - name: HTTPS_PROXY
+                - name: NO_PROXY
+                image: docker.io/layer7api/layer7-operator:1.0.5
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -570,7 +584,7 @@ spec:
         serviceAccountName: layer7-operator-controller-manager
     strategy: deployment
   installModes:
-  - supported: false
+  - supported: true
     type: OwnNamespace
   - supported: true
     type: SingleNamespace
@@ -586,7 +600,7 @@ spec:
   maintainers:
   - email: gary.vermeulen@broadcom.com
     name: Gary Vermeulen
-  maturity: beta
+  maturity: alpha
   provider:
     name: Broadcom Software
     url: https://www.broadcom.com/

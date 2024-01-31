@@ -73,11 +73,11 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			data["EXTRA_JAVA_ARGS"] = javaArgs + " -Dcom.l7tech.server.extension.sharedCounterProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedKeyValueStoreProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedClusterInfoProvider=externalhazelcast"
 		}
 	case gw.Name + "-cwp-bundle":
-		bundle := []byte{}
+		var bundle []byte
 		bundle, dataCheckSum, _ = util.BuildCWPBundle(gw.Spec.App.ClusterProperties.Properties)
 		data["cwp.bundle"] = string(bundle)
 	case gw.Name + "-listen-port-bundle":
-		bundle := []byte{}
+		var bundle []byte
 
 		if !gw.Spec.App.ListenPorts.Custom.Enabled {
 			bundle, dataCheckSum, _ = util.BuildDefaultListenPortBundle()

@@ -43,7 +43,7 @@ func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
 	}
 
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
-	service := &networkingv1.Ingress{
+	ingress := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        gw.Name,
 			Namespace:   gw.Namespace,
@@ -60,5 +60,5 @@ func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
 			Rules:            rules,
 		},
 	}
-	return service
+	return ingress
 }

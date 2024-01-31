@@ -5,6 +5,9 @@ These examples cover a broader set of the features that the Layer7 Operator prov
 - Kubernetes v1.25+
 - Gateway v10/11.x License
 - Ingress Controller (You can also expose Gateway Services as L4 LoadBalancers)
+- Accept the Gateway License
+  - license.accept defaults to false in all of the [Gateway examples](./gateway/)
+  - update license.accept to true before proceeding
 
 The basic and advanced examples can be run in a single namespace, The OTel Examples require multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc..
 

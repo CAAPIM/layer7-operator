@@ -67,7 +67,7 @@ webhook:
   tls:
   ## @param webhook.tls.certmanager.enabled This creates a self-signed issuer and cert-manager certificate, cert-manager is required if this is true
   ## @param webhook.tls.existingTlsSecret This allows you use an existing secret of type kubernetes.io/tls
-  ## 
+  ##
     certmanager:
       enabled: true
     existingTlsSecret: webhook-cert-secret
@@ -220,4 +220,3 @@ proxy:
     #   -----BEGIN CERTIFICATE-----
     #   ...
     #   -----END CERTIFICATE-----
-

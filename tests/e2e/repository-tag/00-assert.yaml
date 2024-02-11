@@ -1,7 +1,0 @@
-apiVersion: security.brcmlabs.com/v1
-kind: Repository
-metadata:
-  name: l7-gw-myframework-tag
-status:
-  ready: true
-  commit: 481143cbb3ecafe7fc515fe55709778374516c29

@@ -1,1 +1,0 @@
-Place your certificate (tls.crt) and private key (tls.key) in this directory

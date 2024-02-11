@@ -1,9 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - ./apis-repository.yaml
-generatorOptions:
- disableNameSuffixHash: true
-secretGenerator:
-- name: myapis-basic-auth
-  env: ./repository-secret.env

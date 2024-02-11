@@ -1,1 +1,0 @@
-Place your .dockerconfigjson file here

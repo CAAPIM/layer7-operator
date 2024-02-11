@@ -1,9 +1,0 @@
-apiVersion: security.brcmlabs.com/v1
-kind: Repository
-metadata:
-  name: file-repository
-spec:
-  enabled: true
-  endpoint: https://raw.githubusercontent.com/uppoju/l7GWMyFramework/main/implodedbundle.tar.gz
-  type: http
-  auth: {}

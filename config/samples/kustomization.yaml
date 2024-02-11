@@ -1,7 +1,0 @@
-## Append samples you want in your CSV to this file as resources ##
-resources:
-- security_v1_gateway.yaml
-- security_v1_repository.yaml
-- security_v1alpha1_l7portal.yaml
-- security_v1alpha1_l7api.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples

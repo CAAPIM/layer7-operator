@@ -1,0 +1,19 @@
+apiVersion: v1
+entries:
+  layer7-operator:
+  - apiVersion: v2
+    appVersion: 1.0.5
+    created: "2024-02-11T23:59:25.378230452Z"
+    description: The Layer7 Operator Helm Chart
+    digest: b510d4e5607ef76e4a0723c4c370f6fd96976bc8d671c92619cf6e3bf969b278
+    home: https://github.com/CAAPIM/layer7-operator
+    maintainers:
+    - name: Gazza7205
+    name: layer7-operator
+    sources:
+    - https://github.com/CAAPIM/layer7-operator
+    type: application
+    urls:
+    - https://github.com/CAAPIM/layer7-operator/releases/download/layer7-operator-0.1.1/layer7-operator-0.1.1.tgz
+    version: 0.1.1
+generated: "2024-02-11T23:59:25.37823966Z"

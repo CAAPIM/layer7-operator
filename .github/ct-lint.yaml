@@ -1,0 +1,5 @@
+debug: true
+charts:
+  - charts/layer7-operator
+chart-repos:
+  - layer7=https://caapim.github.io/apim-charts/

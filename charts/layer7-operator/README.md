@@ -6,7 +6,15 @@ This Helm Chart installs the Layer7 Operator
 - [Certmanager](https://cert-manager.io/docs/installation/kubectl/)
 - Helm >= 3.7
 
-## Quickstart
+## Deploy Cert-Manager
+This chart depends on cert-manager. If you do not already have cert-manager deployed, run the following command
+
+Please check [Certmanager](https://cert-manager.io/docs/installation/kubectl/) for any updated installation instructions
+```
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+```
+
+## Getting Started
 Add the layer7-operator repository
 ```
 helm repo add layer7-operator https://caapim.github.io/layer7-operator/

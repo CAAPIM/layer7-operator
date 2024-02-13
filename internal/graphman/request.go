@@ -17,7 +17,7 @@ type CustomTransport struct {
 
 func (ct *CustomTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	r.SetBasicAuth(ct.username, ct.password)
-	r.Header.Set("encpass", ct.encpass)
+	r.Header.Set("l7-passphrase", ct.encpass)
 	return ct.r.RoundTrip(r)
 }
 

@@ -21,7 +21,12 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	kubectl apply -f ../deploy/bundle.yaml
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
+	@$(MAKE) --silent t=10 wait
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
+
+install-cr1:
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
@@ -35,7 +40,7 @@ advanced:
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
 
-otel-prometheus-example-kind: install cert-manager prometheus open-telemetry jaeger nginx-kind
+otel-prometheus-example-kind: install-cr1 cert-manager prometheus open-telemetry jaeger nginx-kind
 	kubectl apply -f ./otel-prometheus/servicemonitor.yaml
 	kubectl apply -f ./otel-prometheus/collector.yaml
 	kubectl apply -f ./otel-prometheus/instrumentation.yaml
@@ -45,7 +50,7 @@ otel-prometheus-example-kind: install cert-manager prometheus open-telemetry jae
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 
-otel-prometheus-example: install cert-manager prometheus open-telemetry jaeger
+otel-prometheus-example: install-cr1 cert-manager prometheus open-telemetry jaeger
 	kubectl apply -f ./otel-prometheus/servicemonitor.yaml
 	kubectl apply -f ./otel-prometheus/collector.yaml
 	kubectl apply -f ./otel-prometheus/instrumentation.yaml
@@ -55,7 +60,7 @@ otel-prometheus-example: install cert-manager prometheus open-telemetry jaeger
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 
-otel-elastic-example-kind: install cert-manager open-telemetry elastic nginx-kind
+otel-elastic-example-kind: install-cr1 cert-manager open-telemetry elastic nginx-kind
 	@$(MAKE) --silent t=$(shell kubectl get secret/apm-server-quickstart-apm-token -o go-template='{{index .data "secret-token" | base64decode}}') create-collector
 	kubectl apply -f ./otel-elastic/instrumentation.yaml
 	@$(MAKE) --silent t=10 wait
@@ -72,7 +77,7 @@ randomtest:
 	elasticPass=$(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')
 	@echo "${elasticPass}"
 
-otel-elastic-example: install cert-manager open-telemetry elastic
+otel-elastic-example: install-cr1 cert-manager open-telemetry elastic
 	@$(MAKE) --silent t=$(shell kubectl get secret/apm-server-quickstart-apm-token -o go-template='{{index .data "secret-token" | base64decode}}') create-collector
 	kubectl apply -f ./otel-elastic/instrumentation.yaml
 	@$(MAKE) --silent t=10 wait
@@ -86,7 +91,7 @@ otel-elastic-example: install cert-manager open-telemetry elastic
 	@echo "#####################################################\n"
 
 cert-manager:
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=cert-manager -n cert-manager
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=cainjector -n cert-manager

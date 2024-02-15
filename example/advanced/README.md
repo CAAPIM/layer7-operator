@@ -6,6 +6,11 @@ By the end of this example you should have a better understanding of the Layer7 
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/advanced-gateway.yaml)
   - update license.accept to true before proceeding
+  ```
+  license:
+    accept: true
+    secretName: gateway-license
+  ```
 3. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
 4. You will need an ingress controller like nginx
@@ -15,11 +20,13 @@ By the end of this example you should have a better understanding of the Layer7 
             - ```make nginx```
         - Kind (Kubernetes in Docker)
             - follow the steps in Quickstart
+            or
+            - ```make nginx-kind```
     - return to the previous folder
         - ```cd ..```
 
 ### Quickstart
-The example folder includes a makefile that covers the first 3 sections of the guide meaning you can move directly onto testing your Gateway Deployment.
+The example folder includes a makefile that covers the first 3 sections of the guide ***meaning you can move directly onto testing your Gateway Deployment.***
 
 To avoid impacting an existing cluster you can optionally use [Kind](https://kind.sigs.k8s.io/)(Kubernetes in Docker). The default configuration will work if your docker engine is running locally, if you have a remote docker engine open [kind-config.yaml](../kind-config.yaml), uncomment lines 3-5 and set the apiServerAddress on line 4 to the IP Address of your remote docker engine.
 
@@ -31,15 +38,30 @@ cd example
 ```
 make kind-cluster
 ```
-3. Deploy Nginx
+3. Deploy Nginx (based on your environment)
 ```
+make nginx
+or
 make nginx-kind
 ```
 4. Deploy the example
 ```
 make install advanced
 ```
-5. [Test Gateway Deployment](#test-your-gateway-deployment)
+5. Wait for all components to be ready
+```
+watch kubectl get pods
+```
+output
+```
+NAME                                                  READY   STATUS    RESTARTS   AGE
+layer7-operator-controller-manager-8654fdb66c-ssjfd   2/2     Running   0          107s
+ssg-7b7694d995-clwkk                                  1/1     Running   0          61s
+ssg-7b7694d995-qptbj                                  1/1     Running   0          76s
+```
+
+## If you used the Makefile proceed to [Test your Gateway Deployment](#test-your-gateway-deployment)
+
 
 ### Guide
 - [Deploy the Operator](#deploy-the-layer7-operator)
@@ -50,12 +72,11 @@ make install advanced
 - [Remove Custom Resources](#remove-custom-resources)
 - [Uninstall the Operator CRs](#uninstall-the-operator)
 
-
 ### Deploy the Layer7 Operator
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f ./deploy/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
@@ -314,8 +335,8 @@ version: 11.0.00_CR2
 ```
 kubectl get ingress
 
-NAME   CLASS   HOSTS                  ADDRESS        PORTS     AGE
-ssg    nginx   gateway.brcmlabs.com   34.89.126.80   80, 443   54m
+NAME   CLASS   HOSTS                  ADDRESS              PORTS     AGE
+ssg    nginx   gateway.brcmlabs.com   <YOUR-EXTERNAL-IP> or localhost   80, 443   54m
 ```
 
 Add the following to your hosts file for DNS resolution
@@ -324,7 +345,7 @@ Format
 $ADDRESS $HOST
 
 example
-34.89.126.80 gateway.brcmlabs.com
+<YOUR-EXTERNAL-IP> or 127.0.0.1 gateway.brcmlabs.com
 ```
 Curl
 ```
@@ -386,5 +407,5 @@ kubectl delete -k ./example/repositories/
 
 ### Uninstall the Operator
 ```
-kubectl delete -f ./deploy/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
 ```

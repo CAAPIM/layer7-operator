@@ -12,7 +12,31 @@ By the end of this example you should have a better understanding of the how to 
 ## Prerequisites
 - Kubernetes v1.25+
 - Gateway v10/11.x License
-- Ingress Controller (You can also expose Gateway Services as L4 LoadBalancers)
+- Ingress Controller (important for grafana and jaeger)
+
+### Getting started
+1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+2. Accept the Gateway License
+  - license.accept defaults to false in [Gateway examples](../gateway/otel-prometheus-gateway.yaml)
+  - update license.accept to true before proceeding
+  ```
+  license:
+    accept: true
+    secretName: gateway-license
+  ```
+3. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
+    - these will be referenced later on.
+4. You will need an ingress controller like nginx
+    - if you do not have one installed already you can use the makefile in the example directory to deploy one
+        - ```cd example```
+        - Generic Kubernetes
+            - ```make nginx```
+        - Kind (Kubernetes in Docker)
+            - follow the steps in Quickstart
+            or
+            - ```make nginx-kind```
+    - return to the previous folder
+        - ```cd ..```
 
 The OTel Example requires multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc.
 
@@ -76,7 +100,9 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
         - Generic Kubernetes
             - ```make nginx```
         - Kind (Kubernetes in Docker)
-            - follow the steps in Quickstart Kind
+            - follow the steps in Quickstart
+            or
+            - ```make nginx-kind```
     - return to the previous folder
         - ```cd ..```
 
@@ -312,6 +338,18 @@ You will also need to add the following entries to your hosts file
 127.0.0.1 gateway.brcmlabs.com jaeger.brcmlabs.com grafana.brcmlabs.com
 ```
 
+- wait for all components to be ready
+```
+watch kubectl get pods
+```
+output
+```
+NAME                                                  READY   STATUS    RESTARTS   AGE
+layer7-operator-controller-manager-69dc945d66-prshk   2/2     Running   0          6m49s
+simple-allinone-7d76ff5b7c-5nqnf                      1/1     Running   0          4m40s
+ssg-84cd5d6c86-r7vm2                                  2/2     Running   0          3m13s
+```
+
 You can now move on to test your gateway deployment!
 - [Test Gateway Deployment](#test-your-gateway-deployment)
 
@@ -358,6 +396,18 @@ EXTERNAL-IP gateway.brcmlabs.com jaeger.brcmlabs.com grafana.brcmlabs.com
 
 example
 192.168.1.190 gateway.brcmlabs.com jaeger.brcmlabs.com grafana.brcmlabs.com
+```
+
+- wait for all components to be ready
+```
+watch kubectl get pods
+```
+output
+```
+NAME                                                  READY   STATUS    RESTARTS   AGE
+layer7-operator-controller-manager-69dc945d66-prshk   2/2     Running   0          6m49s
+simple-allinone-7d76ff5b7c-5nqnf                      1/1     Running   0          4m40s
+ssg-84cd5d6c86-r7vm2                                  2/2     Running   0          3m13s
 ```
 
 You can now move on to test your gateway deployment!
@@ -516,7 +566,7 @@ https://github.com/kubernetes/ingress-nginx/tree/main/deploy/static/provider
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f deploy/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
 ```
 
 #### Verify the Operator is up and running
@@ -801,5 +851,5 @@ kubectl delete ns observability
 
 ### Uninstall the Operator
 ```
-kubectl delete -f deploy/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
 ```

@@ -87,14 +87,14 @@ GatewaySpec defines the desired state of Gateway
         <td><b><a href="#gatewayspecapp">app</a></b></td>
         <td>object</td>
         <td>
-          App contains Gateway specific deployment and application level configuration<br/>
+          App contains application specific configuration for the Gateway and its deployment<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspeclicense">license</a></b></td>
         <td>object</td>
         <td>
-          License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license. license.accept must be set to true or the Gateway will not start.<br/>
+          License for the Major version of Gateway<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -113,7 +113,7 @@ GatewaySpec defines the desired state of Gateway
 
 
 
-App contains Gateway specific deployment and application level configuration
+App contains application specific configuration for the Gateway and its deployment
 
 <table>
     <thead>
@@ -13613,7 +13613,7 @@ Spec to control the desired behavior of rolling update.
 
 
 
-License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license. license.accept must be set to true or the Gateway will not start.
+License for the Major version of Gateway
 
 <table>
     <thead>
@@ -13669,7 +13669,7 @@ GatewayStatus defines the observed state of Gateways
         <td><b><a href="#gatewaystatusconditionsindex">conditions</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          Conditions store the status conditions of Gateway instances<br/>
         </td>
         <td>false</td>
       </tr><tr>

@@ -122,7 +122,7 @@ Spec - Repository Spec
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
-          Name Repository name Name string `json:"name"` Labels - Custom Labels<br/>
+          Labels - Custom Labels<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -143,7 +143,7 @@ Spec - Repository Spec
         <td><b><a href="#repositoryspecsync">sync</a></b></td>
         <td>object</td>
         <td>
-          RepositorySyncConfig<br/>
+          RepositorySyncConfig defines how often this repository is synced<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -157,7 +157,7 @@ Spec - Repository Spec
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Type of Repository - Git or HTTP<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -286,7 +286,7 @@ LocalReference lets the Repository controller use a local Kubernetes Configmap/S
 
 
 
-RepositorySyncConfig
+RepositorySyncConfig defines how often this repository is synced
 
 <table>
     <thead>
@@ -328,7 +328,7 @@ Status - Repository Status
         <td><b>commit</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Commit is either current git commit that has been synced or a sha1sum of the http repository contents<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -342,21 +342,21 @@ Status - Repository Status
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name of the Repository<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>ready</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          Ready to apply to Gateway Deployments<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>storageSecretName</b></td>
         <td>string</td>
         <td>
-          <br/>
+          StorageSecretName is the Kubernetes Secret that this repository is stored in<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -370,7 +370,7 @@ Status - Repository Status
         <td><b>updated</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Updated the last time this repository was successfully updated<br/>
         </td>
         <td>false</td>
       </tr><tr>

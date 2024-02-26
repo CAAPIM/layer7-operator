@@ -22,25 +22,34 @@ import (
 
 // L7PortalSpec defines the desired state of L7Portal
 type L7PortalSpec struct {
+	// Name of the Portal
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name"
+	Name string `json:"name,omitempty"`
 	//Labels - Custom Labels
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Labels"
 	Labels map[string]string `json:"labels,omitempty"`
 	// Name Portal name
-	Name string `json:"name,omitempty"`
-	// Enabled - if enabled this Portal and its APIs will be synced
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enabled"
 	Enabled bool `json:"enabled,omitempty"`
 	// Endoint - Portal endpoint
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Endpoint"
 	Endpoint string `json:"endpoint,omitempty"`
 	// Mode determines how or if the Portal is contacted
 	// defaults to auto, options are auto, local. Local requires
 	// enrollmentBundle to be set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Mode"
 	Mode string `json:"mode,omitempty"`
 	// EnrollmentBundle - allows a custom enrollment bundle to be set in the Portal CR
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="EnrollmentBundle"
 	EnrollmentBundle string `json:"enrollmentBundle,omitempty"`
 	// Deployment Tags - determines which Gateway deployments these APIs will be applied to
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DeploymentTags"
 	DeploymentTags []string `json:"deploymentTags,omitempty"`
 	// Auth - Portal credentials
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Auth"
 	Auth PortalAuth `json:"auth,omitempty"`
 	// SyncIntervalSeconds how often the Portal CR is reconciled. Default is 10 seconds
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="SyncIntervalSeconds"
 	SyncIntervalSeconds int `json:"syncIntervalSeconds,omitempty"`
 }
 
@@ -56,6 +65,7 @@ type L7PortalStatus struct {
 }
 
 //+kubebuilder:object:root=true
+// +operator-sdk:csv:customresourcedefinitions:resources={{ConfigMaps,v1}}
 //+kubebuilder:subresource:status
 
 // L7Portal is the Schema for the l7portals API

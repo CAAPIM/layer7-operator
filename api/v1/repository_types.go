@@ -22,35 +22,47 @@ import (
 
 // RepositorySpec defines the desired state of Repository
 type RepositorySpec struct {
-	// Name Repository name
-	//Name string `json:"name"`
 	//Labels - Custom Labels
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Labels"
 	Labels map[string]string `json:"labels,omitempty"`
 	//Annotations - Custom Annotations
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Annotations"
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Enabled - if enabled this repository will be synced
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enabled"
 	Enabled bool `json:"enabled,omitempty"`
 	// Endoint - Git repository endpoint
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Endpoint"
 	Endpoint string `json:"endpoint"`
-	Type     string `json:"type,omitempty"`
+	// Type of Repository - Git or HTTP
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Type"
+	Type string `json:"type,omitempty"`
 	// LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
 	// This is not currently implemented
-	LocalReference       LocalReference       `json:"localReference,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="LocalReference"
+	LocalReference LocalReference `json:"localReference,omitempty"`
+	// RepositorySyncConfig defines how often this repository is synced
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="RepositorySyncConfig"
 	RepositorySyncConfig RepositorySyncConfig `json:"sync,omitempty"`
 	// Remote Name - defaults to "origin"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="RemoteName"
 	RemoteName string `json:"remoteName,omitempty"`
 	// Branch - specify which branch to clone
 	// if branch and tag are both specified branch will take precedence and tag will be ignored
 	// if branch and tag are both missing the entire repository will be cloned
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Branch"
 	Branch string `json:"branch,omitempty"`
 	// Tag - clone a specific tag.
 	// tags do not change, once cloned this will not be checked for updates
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Tag"
 	Tag string `json:"tag,omitempty"`
 	// Auth contains a reference to the credentials required to connect to your Git repository
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Auth"
 	Auth RepositoryAuth `json:"auth,omitempty"`
 }
 
 //+kubebuilder:object:root=true
+// +operator-sdk:csv:customresourcedefinitions:resources={{ConfigMaps,v1},{Secrets,v1}}
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=repo;repos;l7repo;l7repos;l7repository;l7repositories
 
@@ -118,14 +130,27 @@ const (
 
 // RepositoryStatus defines the observed state of Repository
 type RepositoryStatus struct {
-	Name               string `json:"name,omitempty"`
-	Ready              bool   `json:"ready,omitempty"`
-	Commit             string `json:"commit,omitempty"`
+	// Name of the Repository
+	Name string `json:"name,omitempty"`
+	// Ready to apply to Gateway Deployments
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Ready"
+	Ready bool `json:"ready,omitempty"`
+	// Commit is either current git commit that has been synced or a sha1sum of the http repository contents
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Commit"
+	Commit string `json:"commit,omitempty"`
+	// Updated the last time this repository was successfully updated
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Updated"
 	Updated            string `json:"updated,omitempty"`
 	Summary            string `json:"summary,omitempty"`
 	LastAppliedSummary string `json:"lastAppliedSummary,omitempty"`
 	Vendor             string `json:"vendor,omitempty"`
-	StorageSecretName  string `json:"storageSecretName,omitempty"`
+	// StorageSecretName is the Kubernetes Secret that this repository is stored in
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="StorageSecretName"
+	StorageSecretName string `json:"storageSecretName,omitempty"`
 }
 
 func init() {

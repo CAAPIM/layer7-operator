@@ -34,14 +34,11 @@ kind: Repository
 metadata:
   name: my-repository
 spec:
-  auth:
-    token: token
-    username: username
-    vendor: Github
+  auth: {}
   branch: main
   enabled: true
   endpoint: https://github.com/<username>/<repository>
-  name: my-repository
+  type: git
 ---
 apiVersion: security.brcmlabs.com/v1alpha1
 kind: L7Api
@@ -53,7 +50,14 @@ metadata:
     app.kubernetes.io/name: l7api
     app.kubernetes.io/part-of: layer7-operator
   name: l7api-sample
-spec: null
+spec:
+  deploymentTags:
+  - ssg
+  - ssg1
+  graphmanBundle: jsongz
+  name: l7api
+  portalPublished: false
+  serviceUrl: /v1/api
 ---
 apiVersion: security.brcmlabs.com/v1alpha1
 kind: L7Portal

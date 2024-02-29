@@ -13,7 +13,7 @@ By the end of this example you should have a better understanding of the how to 
 - Nginx (Ingress Controller)
 
 ### Elastic Stack Note
-This example creates a single [Elastic Search](./components/es.yaml) node with a 20GB volume. This is not production ready implementation, please refer to the [Official Elastic Documentation](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html) for sizing guidelines and additional configuration options.
+This example creates a single [Elastic Search](./components/es.yaml) node with a 100GB volume. This is not production ready implementation, please refer to the [Official Elastic Documentation](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html) for sizing guidelines and additional configuration options.
 
 ### OpenTelemetry and Elastic APM
 In this example we use an OTel collector to send telemetry data to Elastic APM.
@@ -26,7 +26,7 @@ We make use of Filebeat for container log files (the Gateway + everything else) 
 ## Prerequisites
 - Kubernetes v1.25+
 - Gateway v10/11.x License
-- Ingress Controller (You can also expose Gateway Services as L4 LoadBalancers)
+- Ingress Controller (for kibana)
 
 This OTel Elastic Example requires multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc.
 
@@ -98,6 +98,11 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/otel-elastic-gateway.yaml)
   - update license.accept to true before proceeding
+  ```
+  license:
+    accept: true
+    secretName: gateway-license
+  ```
 3. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
 4. You will need an ingress controller like nginx
@@ -106,7 +111,9 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
         - Generic Kubernetes
             - ```make nginx```
         - Kind (Kubernetes in Docker)
-            - follow the steps in Quickstart Kind
+            - follow the steps in Quickstart
+            or
+            - ```make nginx-kind```
     - return to the previous folder
         - ```cd ..```
 
@@ -119,6 +126,9 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
 ### Guide
 - [Quickstart Kind](#quickstart-kind)
 - [Quickstart Existing Kubernetes Cluster](#quickstart-existing-cluster)
+
+## Note:
+If you use Quickstart you do not need to install/deploy any additional resources
 
 ### Monitoring/Observability Components
 - [Install Cert Manager](#install-cert-manager)
@@ -292,6 +302,24 @@ cd example
 make kind-cluster otel-elastic-example-kind
 ```
 
+- wait for all components to be ready
+```
+watch kubectl get pods
+```
+output
+```
+NAME                                                  READY   STATUS    RESTARTS        AGE
+apm-server-quickstart-apm-server-7f4bd7d5d-z5gll      1/1     Running   0               6m20s
+elastic-agent-agent-zc9wr                             1/1     Running   0               6m23s
+filebeat-beat-filebeat-zxxkv                          1/1     Running   3 (5m11s ago)   6m20s
+layer7-operator-controller-manager-69dc945d66-b75lw   2/2     Running   0               7m29s
+metricbeat-beat-metricbeat-5xrkh                      1/1     Running   3 (5m18s ago)   6m20s
+quickstart-es-default-0                               1/1     Running   0               6m23s
+quickstart-kb-786fc5c8d9-5c7bh                        1/1     Running   0               6m21s
+ssg-c698b5fcd-6k7fh                                   2/2     Running   0               3m51s
+ssg-c698b5fcd-6wc6m                                   2/2     Running   0               4m5s
+```
+
 There are some additional setup steps for Elastic
 - [Install APM Components](#install-apm-components)
 
@@ -355,6 +383,24 @@ export elasticPass=$(kubectl get secret quickstart-es-elastic-user -o go-templat
 Create Dashboard
 ```
 curl -XPOST https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false -H "kbn-xsrf: true" -k -uelastic:$elasticPass -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
+```
+
+- wait for all components to be ready
+```
+watch kubectl get pods
+```
+output
+```
+NAME                                                  READY   STATUS    RESTARTS        AGE
+apm-server-quickstart-apm-server-7f4bd7d5d-z5gll      1/1     Running   0               6m20s
+elastic-agent-agent-zc9wr                             1/1     Running   0               6m23s
+filebeat-beat-filebeat-zxxkv                          1/1     Running   3 (5m11s ago)   6m20s
+layer7-operator-controller-manager-69dc945d66-b75lw   2/2     Running   0               7m29s
+metricbeat-beat-metricbeat-5xrkh                      1/1     Running   3 (5m18s ago)   6m20s
+quickstart-es-default-0                               1/1     Running   0               6m23s
+quickstart-kb-786fc5c8d9-5c7bh                        1/1     Running   0               6m21s
+ssg-c698b5fcd-6k7fh                                   2/2     Running   0               3m51s
+ssg-c698b5fcd-6wc6m                                   2/2     Running   0               4m5s
 ```
 
 There are some additional setup steps for Elastic
@@ -516,7 +562,7 @@ There are additional APM Components that need to be installed via Kibana in a br
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f ./deploy/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
 ```
 
 #### Verify the Operator is up and running
@@ -810,5 +856,5 @@ kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/mai
 
 ### Uninstall the Operator
 ```
-kubectl delete -f deploy/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
 ```

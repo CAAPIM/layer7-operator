@@ -6,12 +6,17 @@ By the end of this example you should have a better understanding of the Layer7 
 1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/basic-gateway.yaml)
-  - update license.accept to true before proceeding 
+  - update license.accept to true before proceeding
+  ```
+  license:
+    accept: true
+    secretName: gateway-license
+  ```
 3. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
 
 ### Quickstart
-The example folder includes a makefile that covers the first 3 sections of the guide meaning you can move directly onto testing your Gateway Deployment.
+The example folder includes a makefile that covers the first 3 sections of the guide ***meaning you can move directly onto testing your Gateway Deployment.***
 
 To avoid impacting an existing cluster you can optionally use [Kind](https://kind.sigs.k8s.io/)(Kubernetes in Docker). The default configuration will work if your docker engine is running locally, if you have a remote docker engine open [kind-config.yaml](../kind-config.yaml), uncomment lines 3-5 and set the apiServerAddress on line 4 to the IP Address of your remote docker engine.
 
@@ -27,7 +32,18 @@ make kind-cluster
 ```
 make install basic
 ```
-4. [Test Gateway Deployment](#test-your-gateway-deployment)
+4. Wait for all components to be ready
+```
+watch kubectl get pods
+```
+output
+```
+NAME                                                  READY   STATUS    RESTARTS   AGE
+layer7-operator-controller-manager-8654fdb66c-zdswp   2/2     Running   0          5m59s
+ssg-64ccd9dd48-bqstf                                  1/1     Running   0          61s
+```
+
+## If you used the Makefile proceed to [Test your Gateway Deployment](#test-your-gateway-deployment)
 
 
 ### Guide
@@ -43,7 +59,7 @@ make install basic
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f ./deploy/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
@@ -54,7 +70,7 @@ NAME                                                  READY   STATUS    RESTARTS
 layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0          27s
 ```
 
-#### Create Repositories
+### Create Repositories
 This example ships with 3 pre-configured Graphman repositories. The repository controller is responsible for synchronising these with the Operator and should always be created before Gateway resources that reference them to avoid race conditions. ***race conditions will be resolved automatically.***
 
 - [l7-gw-myframework](https://github.com/Gazza7205/l7GWMyFramework)
@@ -216,8 +232,8 @@ version: 11.0.00_CR2
 ```
 kubectl get svc
 
-NAME  TYPE           CLUSTER-IP     EXTERNAL-IP         PORT(S)                         AGE
-ssg   LoadBalancer   10.68.4.161    ***34.89.84.69***   8443:31747/TCP,9443:30778/TCP   41m
+NAME  TYPE           CLUSTER-IP     EXTERNAL-IP                PORT(S)                         AGE
+ssg   LoadBalancer   10.68.4.161    ***<YOUR-EXTERNAL-IP>***   8443:31747/TCP,9443:30778/TCP   41m
 
 if your output looks like this that means you don't have an External IP Provisioner in your Kubernetes Cluster. You can still access your Gateway using port-forward.
 
@@ -226,12 +242,13 @@ ssg   LoadBalancer   10.68.4.126   <PENDING>       8443:31384/TCP,9443:31359/TCP
 ```
 
 If EXTERNAL-IP is stuck in \<PENDING> state
+- open a second terminal and run the following
 ```
 kubectl port-forward svc/ssg 9443:9443
 ```
 
 ```
-curl https://34.89.84.69:8443/api1 -H "client-id: D63FA04C8447" -k
+curl https://<YOUR-EXTERNAL-IP>:8443/api1 -H "client-id: D63FA04C8447" -k
 
 or if you used port-forward
 
@@ -261,7 +278,7 @@ This configuration removes port 2124, disables 8080 (HTTP) and hardens 8443 and 
 ```
 username: admin
 password: 7layer
-gateway: 35.189.116.20:9443
+gateway: <YOUR-EXTERNAL-IP>:9443
 ```
 or if you used port-forward
 ```
@@ -274,10 +291,14 @@ gateway: localhost:9443
 If you used the Quickstart option and deployed Kind, all you will need to do is remove the Kind Cluster.
 
 Make sure that you're in the example folder
-```pwd```
+```
+pwd
+```
 
 output
-```/path/to/layer7-operator/example```
+```
+/path/to/layer7-operator/example
+```
 
 Remove the Kind Cluster
 ```
@@ -292,5 +313,5 @@ kubectl delete -k ./example/repositories/
 
 ### Uninstall the Operator
 ```
-kubectl delete -f deploy/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
 ```

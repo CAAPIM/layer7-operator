@@ -29,16 +29,22 @@ import (
 
 // GatewaySpec defines the desired state of Gateway
 type GatewaySpec struct {
+	// License for the Major version of Gateway
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="License"
 	License License `json:"license"`
-	App     App     `json:"app"`
+	// App contains application specific configuration for the Gateway and its deployment
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="App"
+	App App `json:"app"`
 	// Version references the Gateway release that this Operator is intended to be used with
 	// while all supported container gateway versions will work, some functionality will not be available
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Version"
 	Version string `json:"version,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=gws;gw;l7gw;l7gws;l7gateway;l7gateways
+// +kubebuilder:object:root=true
+// +operator-sdk:csv:customresourcedefinitions:resources={{Deployment,apps/v1},{PodDisruptionBudget,policy/v1},{Ingress,networking/v1},{HorizontalPodAutoscaler,autoscaling/v2},{Secrets,v1},{ConfigMaps,v1},{Service,v1},{ServiceAccount,v1}}
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=gws;gw;l7gw;l7gws;l7gateway;l7gateways
 
 // Gateway is the Schema for the Gateway Custom Resource
 type Gateway struct {
@@ -49,7 +55,7 @@ type Gateway struct {
 	Status GatewayStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // GatewayList contains a list of Gateways
 type GatewayList struct {
@@ -60,25 +66,47 @@ type GatewayList struct {
 
 // GatewayStatus defines the observed state of Gateways
 type GatewayStatus struct {
-	//+operator-sdk:csv:customresourcedefinitions:type=status
 	// Host is the Gateway Cluster Hostname
-	Host       string                       `json:"host,omitempty"`
+	Host string `json:"host,omitempty"`
+	// Conditions store the status conditions of Gateway instances
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Conditions"
 	Conditions []appsv1.DeploymentCondition `json:"conditions,omitempty"`
-	Phase      corev1.PodPhase              `json:"phase,omitempty"`
-	Gateway    []GatewayState               `json:"gateway,omitempty"`
-	Ready      int32                        `json:"ready,omitempty"`
-	State      corev1.PodConditionType      `json:"state,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Phase"
+	Phase corev1.PodPhase `json:"phase,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Gateway"
+	Gateway []GatewayState `json:"gateway,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Ready"
+	Ready int32 `json:"ready,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="State"
+	State corev1.PodConditionType `json:"state,omitempty"`
 	// Replicas is the number of Gateway Pods
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Replicas"
 	Replicas int32 `json:"replicas,omitempty"`
 	// Version of the Gateway
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Version"
 	Version string `json:"version,omitempty"`
 	// Image of the Gateway
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Image"
 	Image string `json:"image,omitempty"`
 	// Management Pod is a Gateway with a special annotation is used as a selector for the
 	// management service and applying singleton resources
-	ManagementPod    string                    `json:"managementPod,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="ManagementPod"
+	ManagementPod string `json:"managementPod,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="RepositoryStatus"
 	RepositoryStatus []GatewayRepositoryStatus `json:"repositoryStatus,omitempty"`
-	PortalSyncStatus PortalSyncStatus          `json:"PortalSyncStatus,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="PortalSyncStatus"
+	PortalSyncStatus PortalSyncStatus `json:"PortalSyncStatus,omitempty"`
 }
 
 // GatewayState tracks the status of Gateway Resources

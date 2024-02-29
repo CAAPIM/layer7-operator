@@ -87,42 +87,42 @@ L7ApiSpec defines the desired state of L7Api
         <td><b>deploymentTags</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          DeploymentTags target Gateway deployments that this API should be published to<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>graphmanBundle</b></td>
         <td>string</td>
         <td>
-          <br/>
+          GraphmanBundle associated with this API currently limited to Service and Fragments<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>l7Portal</b></td>
         <td>string</td>
         <td>
-          <br/>
+          L7Portal is the L7Portal that this API is associated with when Portal Published<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name of the API<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>portalPublished</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          PortalPublished<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>serviceUrl</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ServiceUrl on the API Gateway<br/>
         </td>
         <td>false</td>
       </tr></tbody>

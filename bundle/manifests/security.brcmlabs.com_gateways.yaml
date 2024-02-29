@@ -43,8 +43,8 @@ spec:
             description: GatewaySpec defines the desired state of Gateway
             properties:
               app:
-                description: App contains Gateway specific deployment and application
-                  level configuration
+                description: App contains application specific configuration for the
+                  Gateway and its deployment
                 properties:
                   affinity:
                     description: Affinity is a group of affinity scheduling rules.
@@ -7194,9 +7194,7 @@ spec:
                     type: object
                 type: object
               license:
-                description: License is reference to a Kubernetes Secret Containing
-                  a Gateway v10/11.x license. license.accept must be set to true or
-                  the Gateway will not start.
+                description: License for the Major version of Gateway
                 properties:
                   accept:
                     type: boolean
@@ -7236,6 +7234,7 @@ spec:
                     type: string
                 type: object
               conditions:
+                description: Conditions store the status conditions of Gateway instances
                 items:
                   description: DeploymentCondition describes the state of a deployment
                     at a certain point.

@@ -74,7 +74,7 @@ spec:
                   to be set.
                 type: string
               name:
-                description: Name Portal name
+                description: Name of the Portal
                 type: string
               syncIntervalSeconds:
                 description: SyncIntervalSeconds how often the Portal CR is reconciled.

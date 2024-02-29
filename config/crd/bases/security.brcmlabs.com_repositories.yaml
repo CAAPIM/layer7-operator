@@ -95,8 +95,7 @@ spec:
               labels:
                 additionalProperties:
                   type: string
-                description: Name Repository name Name string `json:"name"` Labels
-                  - Custom Labels
+                description: Labels - Custom Labels
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
@@ -112,7 +111,8 @@ spec:
                 description: Remote Name - defaults to "origin"
                 type: string
               sync:
-                description: RepositorySyncConfig
+                description: RepositorySyncConfig defines how often this repository
+                  is synced
                 properties:
                   interval:
                     description: Configure how frequently the remote is checked for
@@ -124,6 +124,7 @@ spec:
                   cloned this will not be checked for updates
                 type: string
               type:
+                description: Type of Repository - Git or HTTP
                 type: string
             required:
             - endpoint
@@ -132,18 +133,26 @@ spec:
             description: Status - Repository Status
             properties:
               commit:
+                description: Commit is either current git commit that has been synced
+                  or a sha1sum of the http repository contents
                 type: string
               lastAppliedSummary:
                 type: string
               name:
+                description: Name of the Repository
                 type: string
               ready:
+                description: Ready to apply to Gateway Deployments
                 type: boolean
               storageSecretName:
+                description: StorageSecretName is the Kubernetes Secret that this
+                  repository is stored in
                 type: string
               summary:
                 type: string
               updated:
+                description: Updated the last time this repository was successfully
+                  updated
                 type: string
               vendor:
                 type: string

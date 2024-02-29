@@ -9,4 +9,11 @@ metadata:
     app.kubernetes.io/created-by: layer7-operator
   name: l7api-sample
 spec:
-  # TODO(user): Add fields here
+  name: l7api
+  portalPublished: false
+  graphmanBundle: jsongz
+  serviceUrl: /v1/api
+  deploymentTags:
+  - ssg
+  - ssg1
+

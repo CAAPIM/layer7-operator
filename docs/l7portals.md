@@ -136,7 +136,7 @@ L7PortalSpec defines the desired state of L7Portal
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name Portal name<br/>
+          Name of the Portal<br/>
         </td>
         <td>false</td>
       </tr><tr>

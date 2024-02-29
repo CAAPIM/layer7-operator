@@ -21,20 +21,31 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // L7ApiSpec defines the desired state of L7Api
 type L7ApiSpec struct {
-	Name            string   `json:"name,omitempty"`
-	ServiceUrl      string   `json:"serviceUrl,omitempty"`
-	PortalPublished bool     `json:"portalPublished,omitempty"`
-	GraphmanBundle  string   `json:"graphmanBundle,omitempty"`
-	DeploymentTags  []string `json:"deploymentTags,omitempty"`
-	L7Portal        string   `json:"l7Portal,omitempty"`
+	// Name of the API
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name"
+	Name string `json:"name,omitempty"`
+	// ServiceUrl on the API Gateway
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ServiceUrl"
+	ServiceUrl string `json:"serviceUrl,omitempty"`
+	// PortalPublished
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="PortalPublished"
+	PortalPublished bool `json:"portalPublished,omitempty"`
+	// GraphmanBundle associated with this API
+	// currently limited to Service and Fragments
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GraphmanBundle"
+	GraphmanBundle string `json:"graphmanBundle,omitempty"`
+	// DeploymentTags target Gateway deployments that this API should be published to
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DeploymentTags"
+	DeploymentTags []string `json:"deploymentTags,omitempty"`
+	// L7Portal is the L7Portal that this API is associated with when Portal Published
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="L7Portal"
+	L7Portal string `json:"l7Portal,omitempty"`
 }
 
 //+kubebuilder:object:root=true
+// +operator-sdk:csv:customresourcedefinitions:resources={{ConfigMaps,v1},{Secrets,v1}}
 //+kubebuilder:subresource:status
 
 // L7Api is the Schema for the l7apis API

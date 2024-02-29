@@ -35,18 +35,27 @@ spec:
             description: L7ApiSpec defines the desired state of L7Api
             properties:
               deploymentTags:
+                description: DeploymentTags target Gateway deployments that this API
+                  should be published to
                 items:
                   type: string
                 type: array
               graphmanBundle:
+                description: GraphmanBundle associated with this API currently limited
+                  to Service and Fragments
                 type: string
               l7Portal:
+                description: L7Portal is the L7Portal that this API is associated
+                  with when Portal Published
                 type: string
               name:
+                description: Name of the API
                 type: string
               portalPublished:
+                description: PortalPublished
                 type: boolean
               serviceUrl:
+                description: ServiceUrl on the API Gateway
                 type: string
             type: object
           status:

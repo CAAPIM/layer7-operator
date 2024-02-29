@@ -3,12 +3,8 @@ kind: Repository
 metadata:
   name: my-repository
 spec:
-  name: my-repository
   enabled: true
   endpoint: https://github.com/<username>/<repository>
   branch: main
-  auth:
-    vendor: Github
-    username: username
-    token: token
-    #existingSecretName: graphman-repository-secret
+  type: git
+  auth: {}

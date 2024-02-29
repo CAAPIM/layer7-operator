@@ -53,7 +53,8 @@ spec:
                   type: string
                 type: array
               enabled:
-                description: Name Portal name
+                description: Enabled - if enabled this Portal and its APIs will be
+                  synced
                 type: boolean
               endpoint:
                 description: Endoint - Portal endpoint

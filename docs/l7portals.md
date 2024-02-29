@@ -101,7 +101,7 @@ L7PortalSpec defines the desired state of L7Portal
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          Name Portal name<br/>
+          Enabled - if enabled this Portal and its APIs will be synced<br/>
         </td>
         <td>false</td>
       </tr><tr>

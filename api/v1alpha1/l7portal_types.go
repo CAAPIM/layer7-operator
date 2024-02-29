@@ -28,7 +28,7 @@ type L7PortalSpec struct {
 	//Labels - Custom Labels
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Labels"
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name Portal name
+	// Enabled - if enabled this Portal and its APIs will be synced
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enabled"
 	Enabled bool `json:"enabled,omitempty"`
 	// Endoint - Portal endpoint

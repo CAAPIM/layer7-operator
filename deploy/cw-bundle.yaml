@@ -49,8 +49,8 @@ spec:
             description: GatewaySpec defines the desired state of Gateway
             properties:
               app:
-                description: App contains Gateway specific deployment and application
-                  level configuration
+                description: App contains application specific configuration for the
+                  Gateway and its deployment
                 properties:
                   affinity:
                     description: Affinity is a group of affinity scheduling rules.
@@ -7200,9 +7200,7 @@ spec:
                     type: object
                 type: object
               license:
-                description: License is reference to a Kubernetes Secret Containing
-                  a Gateway v10/11.x license. license.accept must be set to true or
-                  the Gateway will not start.
+                description: License for the Major version of Gateway
                 properties:
                   accept:
                     type: boolean
@@ -7242,6 +7240,7 @@ spec:
                     type: string
                 type: object
               conditions:
+                description: Conditions store the status conditions of Gateway instances
                 items:
                   description: DeploymentCondition describes the state of a deployment
                     at a certain point.
@@ -7406,18 +7405,27 @@ spec:
             description: L7ApiSpec defines the desired state of L7Api
             properties:
               deploymentTags:
+                description: DeploymentTags target Gateway deployments that this API
+                  should be published to
                 items:
                   type: string
                 type: array
               graphmanBundle:
+                description: GraphmanBundle associated with this API currently limited
+                  to Service and Fragments
                 type: string
               l7Portal:
+                description: L7Portal is the L7Portal that this API is associated
+                  with when Portal Published
                 type: string
               name:
+                description: Name of the API
                 type: string
               portalPublished:
+                description: PortalPublished
                 type: boolean
               serviceUrl:
+                description: ServiceUrl on the API Gateway
                 type: string
             type: object
           status:
@@ -7525,7 +7533,7 @@ spec:
                   to be set.
                 type: string
               name:
-                description: Name Portal name
+                description: Name of the Portal
                 type: string
               syncIntervalSeconds:
                 description: SyncIntervalSeconds how often the Portal CR is reconciled.
@@ -7680,8 +7688,7 @@ spec:
               labels:
                 additionalProperties:
                   type: string
-                description: Name Repository name Name string `json:"name"` Labels
-                  - Custom Labels
+                description: Labels - Custom Labels
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
@@ -7697,7 +7704,8 @@ spec:
                 description: Remote Name - defaults to "origin"
                 type: string
               sync:
-                description: RepositorySyncConfig
+                description: RepositorySyncConfig defines how often this repository
+                  is synced
                 properties:
                   interval:
                     description: Configure how frequently the remote is checked for
@@ -7709,6 +7717,7 @@ spec:
                   cloned this will not be checked for updates
                 type: string
               type:
+                description: Type of Repository - Git or HTTP
                 type: string
             required:
             - endpoint
@@ -7717,18 +7726,26 @@ spec:
             description: Status - Repository Status
             properties:
               commit:
+                description: Commit is either current git commit that has been synced
+                  or a sha1sum of the http repository contents
                 type: string
               lastAppliedSummary:
                 type: string
               name:
+                description: Name of the Repository
                 type: string
               ready:
+                description: Ready to apply to Gateway Deployments
                 type: boolean
               storageSecretName:
+                description: StorageSecretName is the Kubernetes Secret that this
+                  repository is stored in
                 type: string
               summary:
                 type: string
               updated:
+                description: Updated the last time this repository was successfully
+                  updated
                 type: string
               vendor:
                 type: string
@@ -7969,30 +7986,6 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - opentelemetry.io
-  resources:
-  - opentelemetrycollectors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - security.brcmlabs.com
   resources:

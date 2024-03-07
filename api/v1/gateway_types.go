@@ -225,10 +225,26 @@ type App struct {
 	CustomConfig              CustomConfig                      `json:"customConfig,omitempty"`
 	// TerminationGracePeriodSeconds is the time kubernetes will wait for the Gateway to shutdown before forceably removing it
 	TerminationGracePeriodSeconds int64            `json:"terminationGracePeriodSeconds,omitempty"`
+	PortalReference               PortalReference  `json:"portalReference,omitempty"`
 	LifecycleHooks                corev1.Lifecycle `json:"lifecycleHooks,omitempty"`
 	PreStopScript                 PreStopScript    `json:"preStopScript,omitempty"`
 	CustomHosts                   CustomHosts      `json:"customHosts,omitempty"`
 	Otk                           Otk              `json:"otk,omitempty"`
+}
+
+// PortalReference is for bulk syncing of Portal APIs via initContainer (bootstrap)
+// the Portal API lifecycle is managed by the API Controller. Disabling a portalReference will only remove the initContainer
+type PortalReference struct {
+	// Enable or disable the Portal reference
+	Enabled bool `json:"enabled,omitempty"`
+	// PortalName of the existing L7Portal
+	PortalName string `json:"portalName,omitempty"`
+	// InitContainerImage for the initContainer
+	InitContainerImage string `json:"initContainerImage,omitempty"`
+	// InitContainerImagePullPolicy
+	InitContainerImagePullPolicy corev1.PullPolicy `json:"initContainerImagePullPolicy,omitempty"`
+	// InitContainerSecurityContext
+	InitContainerSecurityContext corev1.SecurityContext `json:"initContainerSecurityContext,omitempty"`
 }
 
 type Otk struct {

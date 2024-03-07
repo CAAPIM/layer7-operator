@@ -64,7 +64,7 @@ func (r *L7PortalReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Instance: portal,
 	}
 
-	err = reconcile.ScheduledJobs(ctx, params)
+	err = reconcile.Jobs(ctx, params)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

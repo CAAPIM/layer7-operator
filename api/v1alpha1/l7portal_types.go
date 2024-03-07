@@ -17,14 +17,15 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // L7PortalSpec defines the desired state of L7Portal
 type L7PortalSpec struct {
-	// Name of the Portal
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name"
-	Name string `json:"name,omitempty"`
+	// PortalTenant is the tenantId of the API Developer Portal
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="PortalTenant"
+	PortalTenant string `json:"portalTenant,omitempty"`
 	//Labels - Custom Labels
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Labels"
 	Labels map[string]string `json:"labels,omitempty"`
@@ -51,6 +52,12 @@ type L7PortalSpec struct {
 	// SyncIntervalSeconds how often the Portal CR is reconciled. Default is 10 seconds
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="SyncIntervalSeconds"
 	SyncIntervalSeconds int `json:"syncIntervalSeconds,omitempty"`
+	// PortalManaged if PortalManaged is true the portal controller will not manage APIs and will be only be responsible for maintaining a list of L7Api Portal published Metadata.
+	PortalManaged bool `json:"portalManaged,omitempty"`
+	// Bootstrap configures an initContainer that is injected into the Gateway Deployment. It contains Portal specific L7Apis that are bulk loaded via bootstrap.
+	// this does not currently include the Portal enrollment bundle which is currently loaded via a different initContainer
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Bootstrap"
+	Bootstrap Bootstrap `json:"bootstrap,omitempty"`
 }
 
 // L7PortalStatus defines the observed state of L7Portal
@@ -112,6 +119,15 @@ type ProxyGateway struct {
 type EnrollmentBundle struct {
 	SecretName  string `json:"secretName,omitempty"`
 	LastUpdated string `json:"lastUpdated,omitempty"`
+}
+
+type Bootstrap struct {
+	// InitContainerImage for the initContainer
+	InitContainerImage string `json:"initContainerImage,omitempty"`
+	// InitContainerImagePullPolicy
+	InitContainerImagePullPolicy corev1.PullPolicy `json:"initContainerImagePullPolicy,omitempty"`
+	// InitContainerSecurityContext
+	InitContainerSecurityContext corev1.SecurityContext `json:"initContainerSecurityContext,omitempty"`
 }
 
 func init() {

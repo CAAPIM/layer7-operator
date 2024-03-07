@@ -1,4 +1,4 @@
-package portal
+package api
 
 import (
 	"encoding/xml"
@@ -124,12 +124,6 @@ type ServiceResourceSet struct {
 type ServiceResource struct {
 	Text string `xml:",chardata"`
 	Type string `xml:"type,attr"`
-}
-
-type ClusterProperty struct {
-	ID    string `xml:"id,attr"`
-	Name  string `xml:"Name"`
-	Value string `xml:"Value"`
 }
 
 type Mappings struct {

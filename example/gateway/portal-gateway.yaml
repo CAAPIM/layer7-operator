@@ -10,7 +10,7 @@ spec:
   app:
     replicas: 1
     image: caapim/gateway:11.0.00_CR2
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     # serviceAccount:
     #   create: true
     #   name: ssg-serviceaccount
@@ -97,6 +97,10 @@ spec:
       #   encryption:
       #     existingSecret: graphman-encryption-secret
       #     key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+    portalReference:
+      enabled: true
+      portalName: dev-portal
+      initContainerImagePullPolicy: Always
     bootstrap:
       script:
         enabled: true

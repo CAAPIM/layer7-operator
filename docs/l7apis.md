@@ -53,7 +53,7 @@ L7Api is the Schema for the l7apis API
         <td><b><a href="#l7apispec">spec</a></b></td>
         <td>object</td>
         <td>
-          L7ApiSpec defines the desired state of L7Api<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -72,7 +72,7 @@ L7Api is the Schema for the l7apis API
 
 
 
-L7ApiSpec defines the desired state of L7Api
+
 
 <table>
     <thead>
@@ -94,21 +94,21 @@ L7ApiSpec defines the desired state of L7Api
         <td><b>graphmanBundle</b></td>
         <td>string</td>
         <td>
-          GraphmanBundle associated with this API currently limited to Service and Fragments<br/>
+          GraphmanBundle associated with this API currently limited to Service and Fragments auto generated when PortalMeta is set and PortalPublished is true<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>l7Portal</b></td>
         <td>string</td>
         <td>
-          L7Portal is the L7Portal that this API is associated with when Portal Published<br/>
+          L7Portal is the L7Portal that this API is associated with when Portal Published is true<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
+        <td><b><a href="#l7apispecportalmeta">portalMeta</a></b></td>
+        <td>object</td>
         <td>
-          Name of the API<br/>
+          PortalMeta is reserved for the API Developer Portal<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -125,6 +125,233 @@ L7ApiSpec defines the desired state of L7Api
           ServiceUrl on the API Gateway<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### L7Api.spec.portalMeta
+<sup><sup>[↩ Parent](#l7apispec)</sup></sup>
+
+
+
+PortalMeta is reserved for the API Developer Portal
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>apiId</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>apiUuid</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>checksum</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>createTs</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#l7apispecportalmetacustomfieldvaluesindex">customFieldValues</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>locationUrl</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>modifyTs</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#l7apispecportalmetapolicyentitiesindex">policyEntities</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>publishedTs</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>serviceId</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ssgServiceType</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ssgUrl</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ssgUrlEncoded</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### L7Api.spec.portalMeta.customFieldValues[index]
+<sup><sup>[↩ Parent](#l7apispecportalmeta)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### L7Api.spec.portalMeta.policyEntities[index]
+<sup><sup>[↩ Parent](#l7apispecportalmeta)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>policyEntityUuid</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#l7apispecportalmetapolicyentitiesindexpolicytemplateargumentsindex">policyTemplateArguments</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### L7Api.spec.portalMeta.policyEntities[index].policyTemplateArguments[index]
+<sup><sup>[↩ Parent](#l7apispecportalmetapolicyentitiesindex)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -146,8 +373,22 @@ L7ApiStatus defines the observed state of L7Api
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>checksum</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#l7apistatusgatewaysindex">gateways</a></b></td>
         <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ready</b></td>
+        <td>boolean</td>
         <td>
           <br/>
         </td>
@@ -183,33 +424,19 @@ L7ApiStatus defines the observed state of L7Api
         <td><b>deployment</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Phase       corev1.PodPhase `json:"phase,omitempty"` Reason: Success/Failed to sync because of x<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>lastUpdated</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Ready       bool            `json:"ready,omitempty"`<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>phase</b></td>
-        <td>string</td>
-        <td>
-          PodPhase is a label for the condition of a pod at the current time.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ready</b></td>
-        <td>boolean</td>
         <td>
           <br/>
         </td>

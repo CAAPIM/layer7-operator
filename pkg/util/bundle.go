@@ -19,6 +19,12 @@ type Bundle struct {
 	References References `xml:"l7:References"`
 	Mappings   Mappings   `xml:"l7:Mappings"`
 }
+type PortalBundle struct {
+	XMLName    xml.Name   `xml:"Bundle"`
+	XMLNS      string     `xml:"xmlns:l7,attr"`
+	References References `xml:"l7:References"`
+	Mappings   Mappings   `xml:"l7:Mappings"`
+}
 
 type References struct {
 	Item []Item `xml:"l7:Item"`
@@ -133,6 +139,7 @@ type ServiceResourceSet struct {
 }
 
 type ServiceResource struct {
+	Text string `xml:",chardata"`
 	Type string `xml:"type,attr"`
 }
 

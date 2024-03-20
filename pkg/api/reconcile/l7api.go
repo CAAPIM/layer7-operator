@@ -3,11 +3,17 @@ package reconcile
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"os"
 	"reflect"
 	"strconv"
+	"strings"
 
 	v1 "github.com/caapim/layer7-operator/api/v1"
 	v1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
+	"github.com/caapim/layer7-operator/internal/templategen"
+	"github.com/caapim/layer7-operator/pkg/api"
 	"github.com/caapim/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,6 +23,7 @@ import (
 )
 
 const apiFinalizer = "security.brcmlabs.com/finalizer"
+const portalTempDirectory = "/tmp/portalapis/"
 
 func Gateway(ctx context.Context, params Params) error {
 	graphmanPort := 9443
@@ -25,6 +32,11 @@ func Gateway(ctx context.Context, params Params) error {
 	isMarkedToBeDeleted := params.Instance.DeletionTimestamp != nil
 	// going to need a mechanism to throw an error if sync doesn't fully complete without interrupting other updates.
 	updatedStatus := v1alpha1.L7ApiStatus{}
+
+	if !params.Instance.Status.Ready {
+		return fmt.Errorf("api %s not ready in namespace %s", params.Instance.Name, params.Instance.Namespace)
+	}
+
 	for _, tag := range params.Instance.Spec.DeploymentTags {
 		gateway := &v1.Gateway{}
 		err := params.Client.Get(ctx, types.NamespacedName{Name: tag, Namespace: params.Instance.Namespace}, gateway)
@@ -45,6 +57,35 @@ func Gateway(ctx context.Context, params Params) error {
 				continue
 			}
 
+			var graphmanBundleBytes []byte
+
+			if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
+				portalMeta := templategen.PortalAPI{}
+				portalMetaBytes, err := json.Marshal(params.Instance.Spec.PortalMeta)
+				if err != nil {
+					return err
+				}
+				err = json.Unmarshal(portalMetaBytes, &portalMeta)
+				if err != nil {
+					return err
+				}
+
+				portalMeta.LocationUrl = base64.StdEncoding.EncodeToString([]byte(portalMeta.LocationUrl))
+				portalMeta.SsgUrlBase64 = base64.StdEncoding.EncodeToString([]byte(portalMeta.SsgUrl))
+
+				policyXml := templategen.BuildTemplate(portalMeta)
+				graphmanBundleBytes, _, err = api.ConvertPortalPolicyXmlToGraphman(policyXml)
+				if err != nil {
+					return err
+				}
+
+			} else {
+				graphmanBundleBytes, err = base64.StdEncoding.DecodeString(params.Instance.Spec.GraphmanBundle)
+				if err != nil {
+					return err
+				}
+			}
+
 			for _, pod := range podList.Items {
 
 				for _, ds := range params.Instance.Status.Gateways {
@@ -63,6 +104,10 @@ func Gateway(ctx context.Context, params Params) error {
 							continue
 						}
 					}
+				}
+
+				if isMarkedToBeDeleted {
+					tryRequest = true
 				}
 
 				for _, containerStatus := range pod.Status.ContainerStatuses {
@@ -86,10 +131,7 @@ func Gateway(ctx context.Context, params Params) error {
 					}
 
 					if !isMarkedToBeDeleted {
-						graphmanBundleBytes, err := base64.StdEncoding.DecodeString(params.Instance.Spec.GraphmanBundle)
-						if err != nil {
-							return err
-						}
+
 						params.Log.V(2).Info("applying api", "api", params.Instance.Name, "pod", pod.Name, "namespace", params.Instance.Namespace)
 						err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "", graphmanBundleBytes)
 						if err != nil {
@@ -105,14 +147,14 @@ func Gateway(ctx context.Context, params Params) error {
 									if ds.Name == us.Name && ds.Deployment == us.Deployment {
 										statusExists = true
 										updatedStatus.Gateways[i].Checksum = checksum
-										updatedStatus.Gateways[i].Phase = pod.Status.Phase
+										//updatedStatus.Gateways[i].Phase = pod.Status.Phase
 									}
 								}
 							}
 						}
 
 						if !statusExists {
-							updatedStatus.Gateways = append(updatedStatus.Gateways, v1alpha1.LinkedGatewayStatus{Checksum: checksum, Deployment: tag, Name: pod.Name, Phase: pod.Status.Phase, Ready: true})
+							updatedStatus.Gateways = append(updatedStatus.Gateways, v1alpha1.LinkedGatewayStatus{Checksum: checksum, Deployment: tag, Name: pod.Name}) // Phase: pod.Status.Phase, Ready: true})
 						}
 
 						if !reflect.DeepEqual(updatedStatus, params.Instance.Status) && !isMarkedToBeDeleted {
@@ -124,16 +166,14 @@ func Gateway(ctx context.Context, params Params) error {
 						}
 
 					} else {
-						if isMarkedToBeDeleted {
+						if isMarkedToBeDeleted { // need to handle removal failure, currently logging only
 							params.Log.V(2).Info("removing api", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-							err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.ServiceUrl+"*", params.Instance.Spec.Name+"-fragment")
+							err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.ServiceUrl+"*", params.Instance.Name+"-fragment")
 							if err != nil {
 								params.Log.Info("failed to remove api", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
 							}
-							params.Log.Info("removed api", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 						}
 					}
-
 				}
 			}
 		}
@@ -143,11 +183,59 @@ func Gateway(ctx context.Context, params Params) error {
 		if controllerutil.ContainsFinalizer(params.Instance, apiFinalizer) {
 			params.Instance.ObjectMeta.Annotations["security.brcmlabs.com/l7api-removed"] = "true"
 			_ = params.Client.Update(ctx, params.Instance)
+			RemoveTempStorage(ctx, params)
+			params.Log.V(2).Info("removed api from temp storage", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		}
 	}
 
 	_ = finalizeL7Api(ctx, params)
 
+	return nil
+}
+
+// TempStorage writes API Metadata to /tmp/portalapis/<l7PortalName>/apiname.json
+// This does not track the deployment tag which will be resolved in a future update
+// if l7api and l7portal should have the same deployment tags, l7portal deployment tags are
+// primarily used for bootstrapping portal apis to target container gateway deployments.
+// this mechanism will be updated in the future.
+func WriteTempStorage(ctx context.Context, params Params) error {
+	apiPath := portalTempDirectory + params.Instance.Spec.L7Portal + "/"
+	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
+		portalMeta := templategen.PortalAPI{}
+		portalMetaBytes, err := json.Marshal(params.Instance.Spec.PortalMeta)
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(portalMetaBytes, &portalMeta)
+		if err != nil {
+			return err
+		}
+
+		if _, err := os.Stat(apiPath); os.IsNotExist(err) {
+			err = os.MkdirAll(apiPath, 0760)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = os.WriteFile(apiPath+strings.ReplaceAll(params.Instance.Name, " ", "-")+".json", portalMetaBytes, 0660)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func RemoveTempStorage(ctx context.Context, params Params) error {
+	apiPath := portalTempDirectory + params.Instance.Spec.L7Portal + "/"
+	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
+		err := os.Remove(apiPath + strings.ReplaceAll(params.Instance.Name, " ", "-") + ".json")
+		if err != nil {
+			return err
+		}
+
+	}
 	return nil
 }
 

@@ -19,7 +19,6 @@ package api
 import (
 	"context"
 	"sync"
-	"time"
 
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	"github.com/caapim/layer7-operator/pkg/api/reconcile"
@@ -29,8 +28,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+const apiFinalizer = "security.brcmlabs.com/finalizer"
 
 // L7ApiReconciler reconciles a L7Api object
 type L7ApiReconciler struct {
@@ -63,20 +65,34 @@ func (r *L7ApiReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Instance: l7Api,
 	}
 
-	err = reconcile.Gateway(ctx, params)
+	// Add a finalizer for the L7Api
+	if !controllerutil.ContainsFinalizer(l7Api, apiFinalizer) {
+		controllerutil.AddFinalizer(l7Api, apiFinalizer)
+		err = r.Update(ctx, l7Api)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	err = reconcile.Status(ctx, params)
 	if err != nil {
-		r.Log.Info("gateway error", "error", err.Error())
+		r.Log.Info("error reconciling status", "error", err.Error())
 		return ctrl.Result{}, err
 	}
 
-	// This is a resource intensive approach for 100s or 1000s of APIs
-	// Ideally when a new Gateway is available this reconcile loop runs
-	// This breaks convention so an alternative is required.
-	// a custom watch will need to be implemented
+	err = reconcile.WriteTempStorage(ctx, params)
+	if err != nil {
+		r.Log.Info("error reconciling temp storage", "error", err.Error())
+		return ctrl.Result{}, err
+	}
 
-	// if this request is not requeued then new gateways will not receive api updates.
+	err = reconcile.Gateway(ctx, params)
+	if err != nil {
+		r.Log.Info("error reconciling gateway", "error", err.Error())
+		return ctrl.Result{}, err
+	}
 
-	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

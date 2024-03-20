@@ -1,15 +1,9 @@
 apiVersion: security.brcmlabs.com/v1alpha1
 kind: L7Portal
 metadata:
-  labels:
-    app.kubernetes.io/name: l7portal
-    app.kubernetes.io/instance: l7portal-sample
-    app.kubernetes.io/part-of: layer7-operator
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: layer7-operator
   name: dev-portal
 spec:
-  name: portal
+  portalTenant: portal
   enabled: true
   endpoint: dev-ssg.brcmlabs.com
   mode: auto

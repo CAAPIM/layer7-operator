@@ -43,31 +43,18 @@ spec:
 apiVersion: security.brcmlabs.com/v1alpha1
 kind: L7Api
 metadata:
-  labels:
-    app.kubernetes.io/created-by: layer7-operator
-    app.kubernetes.io/instance: l7api-sample
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: l7api
-    app.kubernetes.io/part-of: layer7-operator
   name: l7api-sample
 spec:
   deploymentTags:
   - ssg
   - ssg1
   graphmanBundle: jsongz
-  name: l7api
   portalPublished: false
   serviceUrl: /v1/api
 ---
 apiVersion: security.brcmlabs.com/v1alpha1
 kind: L7Portal
 metadata:
-  labels:
-    app.kubernetes.io/created-by: layer7-operator
-    app.kubernetes.io/instance: l7portal-sample
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: l7portal
-    app.kubernetes.io/part-of: layer7-operator
   name: dev-portal
 spec:
   auth:
@@ -80,4 +67,4 @@ spec:
   endpoint: dev-ssg.brcmlabs.com
   enrollmentBundle: ""
   mode: auto
-  name: portal
+  portalTenant: portal

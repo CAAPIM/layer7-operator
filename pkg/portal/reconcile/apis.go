@@ -23,12 +23,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const apiFinalizer = "security.brcmlabs.com/finalizer"
-
 func syncPortalApis(ctx context.Context, params Params) {
+
+	l7Portal := &v1alpha1.L7Portal{}
+	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, l7Portal)
+	if err != nil && k8serrors.IsNotFound(err) {
+		params.Log.Error(err, "portal not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		_ = removeJob(params.Instance.Name + "-sync-portal-apis")
+		return
+	}
+
+	if l7Portal.Spec.PortalManaged {
+		return
+	}
 	portalApiSummaryConfigMap := corev1.ConfigMap{}
 
-	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name + "-api-summary", Namespace: params.Instance.Namespace}, &portalApiSummaryConfigMap)
+	err = params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name + "-api-summary", Namespace: params.Instance.Namespace}, &portalApiSummaryConfigMap)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			if err != nil {
@@ -151,7 +161,6 @@ func syncPortalApis(ctx context.Context, params Params) {
 				Kind:       "L7Api",
 			},
 			Spec: v1alpha1.L7ApiSpec{
-				Name:            api.Name,
 				ServiceUrl:      api.SsgUrl,
 				PortalPublished: true,
 				GraphmanBundle:  base64.StdEncoding.EncodeToString(graphmanBundleBytes),
@@ -162,11 +171,7 @@ func syncPortalApis(ctx context.Context, params Params) {
 
 		if err := controllerutil.SetControllerReference(params.Instance, desiredL7API, params.Scheme); err != nil {
 			params.Log.Info("failed to set controller reference", "name", desiredL7API.Name, "namespace", params.Instance.Namespace, "error", err.Error())
-			return // fmt.Errorf("failed to set controller reference: %w", err)
-		}
-
-		if !controllerutil.ContainsFinalizer(desiredL7API, apiFinalizer) {
-			controllerutil.AddFinalizer(desiredL7API, apiFinalizer)
+			return
 		}
 
 		currentL7API := &v1alpha1.L7Api{}
@@ -175,7 +180,7 @@ func syncPortalApis(ctx context.Context, params Params) {
 		if err != nil && k8serrors.IsNotFound(err) {
 			if err = params.Client.Create(ctx, desiredL7API); err != nil {
 				params.Log.V(2).Info("failed to create l7api", "name", desiredL7API.Name, "namespace", params.Instance.Namespace, "error", err.Error())
-				return //err
+				return
 			}
 			params.Log.Info("created l7Api", "name", desiredL7API.Name, "namespace", params.Instance.Namespace)
 			continue

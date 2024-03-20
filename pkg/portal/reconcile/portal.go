@@ -92,15 +92,25 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 
 	//modifyTs := time.UnixMilli(params.Instance.Status.LastUpdated)
 
-	apiEndpoint := "https://" + l7Portal.Spec.Endpoint + ":443/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
+	var apiEndpoint string
+	if strings.Contains(l7Portal.Spec.Endpoint, ":") {
+		apiEndpoint = "https://" + l7Portal.Spec.Endpoint + "/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
+	} else {
+		apiEndpoint = "https://" + l7Portal.Spec.Endpoint + ":443/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
+	}
+
+	// @Todo - Use modifyTs query param in above query so we only get the changes since the last reconciliation attempt.
+	// 		   This will allow us to skip the costly step of iterating over the full set of APIs in order to compare checksums.
+	//
 
 	// Get summary
 	resp, err := util.RestCall("GET", apiEndpoint, true, map[string]string{"Authorization": "Bearer " + token}, "application/json;charset=utf-8", []byte{}, "", "")
 	if err != nil {
-		params.Log.V(2).Info("failed to retrieve portal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace)
+		params.Log.Error("Failed to retrieve portal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace, "endpoint", apiEndpoint)
 		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(30*time.Second).Unix())
 		return
 	}
+	params.Log.V(2).Info("Successfully retrieved portal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace, "endpoint", apiEndpoint)
 
 	var portalAPISummary []templategen.PortalAPI
 
@@ -121,6 +131,7 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 		dataCheckSum := sha1Sum
 
 		portalAPIList = append(portalAPIList, templategen.PortalAPI{
+			TenantId:        api.TenantId,
 			Name:            api.Name,
 			Uuid:            api.Uuid,
 			SsgUrlBase64:    api.SsgUrlBase64,
@@ -137,6 +148,12 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 	}
 	var currentPortalAPIList []templategen.PortalAPI
 	/// look up configmap and check if an API has been removed.. then schedule deletion
+
+	params.Log.Info("Creating config map")
+	// DMUN : ConfigMap lookup was failing as it did not exist,  creating at
+	portalAPISummaryBytes, _ := json.Marshal(portalAPIList)
+	err = ConfigMap(ctx, params, portalAPISummaryBytes)
+
 	currentSummary, err := getConfigmap(ctx, params, l7Portal.Name+"-api-summary")
 
 	if err == nil {
@@ -173,8 +190,9 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 		}
 	}
 
-	portalAPISummaryBytes, _ := json.Marshal(portalAPIList)
-	err = ConfigMap(ctx, params, portalAPISummaryBytes)
+	// DMUn config map
+	//portalAPISummaryBytes, _ := json.Marshal(portalAPIList)
+	//err = ConfigMap(ctx, params, portalAPISummaryBytes)
 
 	if err != nil {
 		params.Log.V(2).Info("failed to reconcile configmap", "name", l7Portal.Name, "namespace", l7Portal.Namespace)

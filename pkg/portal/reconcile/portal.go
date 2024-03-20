@@ -92,7 +92,7 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 
 	//modifyTs := time.UnixMilli(params.Instance.Status.LastUpdated)
 
-	apiEndpoint := "https://" + l7Portal.Spec.Endpoint + ":443/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
+	apiEndpoint := "https://" + l7Portal.Spec.Endpoint + "/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
 
 	// Get summary
 	resp, err := util.RestCall("GET", apiEndpoint, true, map[string]string{"Authorization": "Bearer " + token}, "application/json;charset=utf-8", []byte{}, "", "")

@@ -106,7 +106,7 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 	// Get summary
 	resp, err := util.RestCall("GET", apiEndpoint, true, map[string]string{"Authorization": "Bearer " + token}, "application/json;charset=utf-8", []byte{}, "", "")
 	if err != nil {
-		params.Log.Error("Failed to retrieve portal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace, "endpoint", apiEndpoint)
+		params.Log.Info("Failed to retrieve portal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace, "endpoint", apiEndpoint)
 		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(30*time.Second).Unix())
 		return
 	}

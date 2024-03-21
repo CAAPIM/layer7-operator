@@ -1,7 +1,6 @@
 package templategen
 
 type PortalAPI struct {
-	TenantId     string `json:"tenantId"`
 	Uuid         string `json:"apiUuid"`
 	UuidStripped string `json:"apiId"`     // templates have cases where uuid is stripped of -
 	ServiceId    string `json:"serviceId"` // Portal calculates this as UUID.nameUUIDFromBytes(api.getUuid().toString().getBytes());

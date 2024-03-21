@@ -1,16 +1,16 @@
 apiVersion: security.brcmlabs.com/v1alpha1
 kind: L7Portal
 metadata:
-  name: dev-portal
+  name: l7portal-k8
 spec:
-  portalTenant: portal
+  portalTenant: tenant0-poratl-kv664763
   enabled: true
-  endpoint: dev-ssg.brcmlabs.com
+  endpoint: poratl-kv664763-ssg.gke-us-west-1-cluster-01.apim.broadcom.net
   mode: auto
   enrollmentBundle: ""
   deploymentTags:
   - ssg
   auth:
-    endpoint: dev-ssg.brcmlabs.com
-    clientId: 3d8f8967b8e54909b5e9a86e09063406
-    clientSecret: b40a829f046a451db15aa8be503ea7b3
+    endpoint: poratl-kv664763-ssg.gke-us-west-1-cluster-01.apim.broadcom.net
+    clientId: 23fa23e8d7d441cb9769f44a96d7577d
+    clientSecret: 5b7a6b8c0db44a0ab198472d6818afe2

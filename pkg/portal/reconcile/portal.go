@@ -121,8 +121,10 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 		dataCheckSum := sha1Sum
 
 		portalAPIList = append(portalAPIList, templategen.PortalAPI{
+			TenantId:        l7Portal.Spec.PortalTenant,
 			Name:            api.Name,
 			Uuid:            api.Uuid,
+			UuidStripped:    api.UuidStripped,
 			SsgUrlBase64:    api.SsgUrlBase64,
 			SsgUrl:          api.SsgUrl,
 			ServiceId:       api.ServiceId,

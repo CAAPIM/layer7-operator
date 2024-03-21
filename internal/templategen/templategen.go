@@ -4,6 +4,7 @@ type PortalAPI struct {
 	Uuid         string `json:"apiUuid"`
 	UuidStripped string `json:"apiId"`     // templates have cases where uuid is stripped of -
 	ServiceId    string `json:"serviceId"` // Portal calculates this as UUID.nameUUIDFromBytes(api.getUuid().toString().getBytes());
+	TenantId     string `json:"tenantId"`
 	Name         string `json:"name"`
 	//Description       string           `json:"description"`
 	//Type              string           `json:"type"`

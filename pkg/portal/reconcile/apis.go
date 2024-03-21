@@ -165,7 +165,21 @@ func syncPortalApis(ctx context.Context, params Params) {
 				PortalPublished: true,
 				GraphmanBundle:  base64.StdEncoding.EncodeToString(graphmanBundleBytes),
 				DeploymentTags:  params.Instance.Spec.DeploymentTags,
-				L7Portal:        params.Instance.Name,
+				PortalMeta: v1alpha1.PortalMeta{
+					TenantId:       api.TenantId,
+					Name:           api.Name,
+					Uuid:           api.Uuid,
+					UuidStripped:   api.UuidStripped,
+					SsgUrlBase64:   api.SsgUrlBase64,
+					SsgUrl:         api.SsgUrl,
+					ServiceId:      api.ServiceId,
+					ApiEnabled:     api.ApiEnabled,
+					LocationUrl:    base64.StdEncoding.EncodeToString([]byte(api.LocationUrl)),
+					Checksum:       dataCheckSum,
+					SsgServiceType: api.SsgServiceType,
+					ModifyTs:       api.ModifyTs,
+				},
+				L7Portal: params.Instance.Name,
 			},
 		}
 

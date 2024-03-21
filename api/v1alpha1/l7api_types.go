@@ -81,6 +81,7 @@ type PortalMeta struct {
 	UuidStripped    string           `json:"apiId,omitempty"`
 	ServiceId       string           `json:"serviceId,omitempty"`
 	Name            string           `json:"name,omitempty"`
+	TenantId        string           `json:"tenantId,omitempty"`
 	ApiEnabled      bool             `json:"enabled,omitempty"`
 	SsgUrl          string           `json:"ssgUrl,omitempty"`
 	SsgUrlBase64    string           `json:"ssgUrlEncoded,omitempty"`

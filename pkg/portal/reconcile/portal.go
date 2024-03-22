@@ -92,7 +92,7 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 
 	//modifyTs := time.UnixMilli(params.Instance.Status.LastUpdated)
 
- var apiEndpoint string
+	var apiEndpoint string
 	if strings.Contains(l7Portal.Spec.Endpoint, ":") {
 		apiEndpoint = "https://" + l7Portal.Spec.Endpoint + "/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
 	} else {
@@ -134,6 +134,7 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 			TenantId:        api.TenantId,
 			Name:            api.Name,
 			Uuid:            api.Uuid,
+			UuidStripped:    api.UuidStripped,
 			SsgUrlBase64:    api.SsgUrlBase64,
 			SsgUrl:          api.SsgUrl,
 			ServiceId:       api.ServiceId,

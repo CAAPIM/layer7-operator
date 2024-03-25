@@ -62,6 +62,8 @@ func syncPortalApis(ctx context.Context, params Params) {
 	}
 
 	for _, api := range portalApiSummary {
+		// @TODO - Make this V(2) logger, once I figure out how to enable it
+		params.Log.Info("syncPortalApis : Syncing API: " + api.Name)
 		policyXml := templategen.BuildTemplate(api)
 		restmanBundle := portal.Bundle{}
 		graphmanBundle := graphman.Bundle{}
@@ -215,7 +217,7 @@ func syncPortalApis(ctx context.Context, params Params) {
 			updatedL7API.ObjectMeta.Labels[k] = v
 		}
 
-		if desiredL7API.ObjectMeta.Annotations["checksum/bundle"] != currentL7API.ObjectMeta.Annotations["checksum/bundle"] || !reflect.DeepEqual(desiredL7API.Spec.DeploymentTags, currentL7API.Spec.DeploymentTags) {
+		if requiresUpdate(currentL7API, desiredL7API) {
 			patch := client.MergeFrom(currentL7API)
 			if err := params.Client.Patch(ctx, updatedL7API, patch); err != nil {
 				params.Log.Info("failed to update l7Api", "name", desiredL7API.Name, "namespace", params.Instance.Namespace, "error", err.Error())
@@ -224,4 +226,10 @@ func syncPortalApis(ctx context.Context, params Params) {
 			params.Log.Info("l7Api updated", "name", desiredL7API.Name, "namespace", desiredL7API.Namespace)
 		}
 	}
+}
+
+func requiresUpdate(currentL7API *v1alpha1.L7Api, desiredL7API *v1alpha1.L7Api) bool {
+	return desiredL7API.ObjectMeta.Annotations["checksum/bundle"] != currentL7API.ObjectMeta.Annotations["checksum/bundle"] ||
+		!reflect.DeepEqual(desiredL7API.Spec.DeploymentTags, currentL7API.Spec.DeploymentTags) ||
+		!reflect.DeepEqual(desiredL7API.Spec.PortalMeta, currentL7API.Spec.PortalMeta)
 }

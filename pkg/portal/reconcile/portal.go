@@ -149,12 +149,6 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 	}
 	var currentPortalAPIList []templategen.PortalAPI
 	/// look up configmap and check if an API has been removed.. then schedule deletion
-
-	params.Log.Info("Creating config map")
-	// DMUN : ConfigMap lookup was failing as it did not exist,  creating at
-	portalAPISummaryBytes, _ := json.Marshal(portalAPIList)
-	err = ConfigMap(ctx, params, portalAPISummaryBytes)
-
 	currentSummary, err := getConfigmap(ctx, params, l7Portal.Name+"-api-summary")
 
 	if err == nil {
@@ -191,9 +185,8 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 		}
 	}
 
-	// DMUn config map
-	//portalAPISummaryBytes, _ := json.Marshal(portalAPIList)
-	//err = ConfigMap(ctx, params, portalAPISummaryBytes)
+	portalAPISummaryBytes, _ := json.Marshal(portalAPIList)
+	err = ConfigMap(ctx, params, portalAPISummaryBytes)
 
 	if err != nil {
 		params.Log.V(2).Info("failed to reconcile configmap", "name", l7Portal.Name, "namespace", l7Portal.Namespace)

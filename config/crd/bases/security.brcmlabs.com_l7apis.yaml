@@ -51,6 +51,8 @@ spec:
               portalMeta:
                 description: PortalMeta is reserved for the API Developer Portal
                 properties:
+                  tenantId:
+                    type: string
                   apiId:
                     type: string
                   apiUuid:

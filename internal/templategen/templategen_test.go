@@ -17,6 +17,7 @@ func TestBuildTemplate(t *testing.T) {
 	b64SsgUrl := b64.StdEncoding.EncodeToString([]byte("bookings"))
 
 	portalApi := PortalAPI{
+		TenantId:        "T1",
 		Name:            "Booking",
 		Uuid:            "17b0fb67-03d3-4340-ae68-b489e1835075",
 		UuidStripped:    "17b0fb6703d34340ae68b489e1835075", // calculated

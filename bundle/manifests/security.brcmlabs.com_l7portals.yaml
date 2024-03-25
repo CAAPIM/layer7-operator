@@ -73,7 +73,7 @@ spec:
                   to auto, options are auto, local. Local requires enrollmentBundle
                   to be set.
                 type: string
-              name:
+              portalTenant:
                 description: Name of the Portal
                 type: string
               syncIntervalSeconds:

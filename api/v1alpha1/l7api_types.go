@@ -77,6 +77,7 @@ type L7ApiStatus struct {
 
 // PortalMeta contains layer7 portal API Specific Metadata
 type PortalMeta struct {
+	TenantId        string           `json:"tenantId,omitempty"`
 	Uuid            string           `json:"apiUuid,omitempty"`
 	UuidStripped    string           `json:"apiId,omitempty"`
 	ServiceId       string           `json:"serviceId,omitempty"`

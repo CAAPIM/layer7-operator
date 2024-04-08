@@ -92,15 +92,25 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 
 	//modifyTs := time.UnixMilli(params.Instance.Status.LastUpdated)
 
-	apiEndpoint := "https://" + l7Portal.Spec.Endpoint + "/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
+	var apiEndpoint string
+	if strings.Contains(l7Portal.Spec.Endpoint, ":") {
+		apiEndpoint = "https://" + l7Portal.Spec.Endpoint + "/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
+	} else {
+		apiEndpoint = "https://" + l7Portal.Spec.Endpoint + ":443/" + l7Portal.Spec.PortalTenant + "/api-management/layer7-operator/0.1/apis?size=2000"
+	}
+
+	// @Todo - Use modifyTs query param in above query so we only get the changes since the last reconciliation attempt.
+	// 		   This will allow us to skip the costly step of iterating over the full set of APIs in order to compare checksums.
+	//
 
 	// Get summary
 	resp, err := util.RestCall("GET", apiEndpoint, true, map[string]string{"Authorization": "Bearer " + token}, "application/json;charset=utf-8", []byte{}, "", "")
 	if err != nil {
-		params.Log.V(2).Info("failed to retrieve portal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace)
+		params.Log.Info("Failed to retrieve portal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace, "endpoint", apiEndpoint)
 		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(30*time.Second).Unix())
 		return
 	}
+	params.Log.V(2).Info("Successfully retrieved portal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace, "endpoint", apiEndpoint)
 
 	var portalAPISummary []templategen.PortalAPI
 
@@ -121,8 +131,10 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 		dataCheckSum := sha1Sum
 
 		portalAPIList = append(portalAPIList, templategen.PortalAPI{
+			TenantId:        api.TenantId,
 			Name:            api.Name,
 			Uuid:            api.Uuid,
+			UuidStripped:    api.UuidStripped,
 			SsgUrlBase64:    api.SsgUrlBase64,
 			SsgUrl:          api.SsgUrl,
 			ServiceId:       api.ServiceId,

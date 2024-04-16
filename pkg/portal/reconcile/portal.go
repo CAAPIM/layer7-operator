@@ -139,7 +139,7 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 			SsgUrl:          api.SsgUrl,
 			ServiceId:       api.ServiceId,
 			ApiEnabled:      api.ApiEnabled,
-			LocationUrl:     api.LocationUrl,
+			LocationUrl:     base64.StdEncoding.EncodeToString([]byte(api.LocationUrl)),
 			PolicyTemplates: api.PolicyTemplates,
 			CustomFields:    api.CustomFields,
 			Checksum:        dataCheckSum,

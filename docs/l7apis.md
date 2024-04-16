@@ -250,6 +250,13 @@ PortalMeta is reserved for the API Developer Portal
           <br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>tenantId</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

@@ -63,7 +63,9 @@ func syncPortalApis(ctx context.Context, params Params) {
 
 	for _, api := range portalApiSummary {
 		// @TODO - Make this V(2) logger, once I figure out how to enable it
-		params.Log.Info("syncPortalApis : Syncing API: " + api.Name)
+		// params.Log.Info("syncPortalApis : Syncing API: " + api.Name)
+		params.Log.V(2).Info("syncing portal apis", "name", api.Name, "namespace", params.Instance.Namespace)
+
 		policyXml := templategen.BuildTemplate(api)
 		restmanBundle := portal.Bundle{}
 		graphmanBundle := graphman.Bundle{}
@@ -164,7 +166,7 @@ func syncPortalApis(ctx context.Context, params Params) {
 			},
 			Spec: v1alpha1.L7ApiSpec{
 				ServiceUrl:      api.SsgUrl,
-				PortalPublished: true,
+				PortalPublished: false,
 				GraphmanBundle:  base64.StdEncoding.EncodeToString(graphmanBundleBytes),
 				DeploymentTags:  params.Instance.Spec.DeploymentTags,
 				PortalMeta: v1alpha1.PortalMeta{
@@ -176,7 +178,7 @@ func syncPortalApis(ctx context.Context, params Params) {
 					SsgUrl:         api.SsgUrl,
 					ServiceId:      api.ServiceId,
 					ApiEnabled:     api.ApiEnabled,
-					LocationUrl:    base64.StdEncoding.EncodeToString([]byte(api.LocationUrl)),
+					LocationUrl:    api.LocationUrl,
 					Checksum:       dataCheckSum,
 					SsgServiceType: api.SsgServiceType,
 					ModifyTs:       api.ModifyTs,

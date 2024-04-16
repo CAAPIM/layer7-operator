@@ -36,5 +36,5 @@ dev
 license.xml
 .DS_Store
 testdata
-.l7api.yaml
-.l7portal.yaml
+l7api.yaml
+l7portal.yaml

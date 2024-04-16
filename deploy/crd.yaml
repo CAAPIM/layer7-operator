@@ -7602,8 +7602,6 @@ spec:
               portalMeta:
                 description: PortalMeta is reserved for the API Developer Portal
                 properties:
-                  tenantId:
-                    type: string
                   apiId:
                     type: string
                   apiUuid:
@@ -7663,6 +7661,8 @@ spec:
                   ssgUrl:
                     type: string
                   ssgUrlEncoded:
+                    type: string
+                  tenantId:
                     type: string
                 type: object
               portalPublished:

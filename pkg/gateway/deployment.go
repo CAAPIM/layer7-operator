@@ -570,6 +570,9 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				ic.SecurityContext = &gw.Spec.App.ContainerSecurityContext
 			}
 		}
+		if ic.ImagePullPolicy == "" {
+			ic.ImagePullPolicy = corev1.PullIfNotPresent
+		}
 		initContainers = append(initContainers, ic)
 	}
 

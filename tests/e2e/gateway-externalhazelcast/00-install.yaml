@@ -19,6 +19,7 @@ spec:
       enabled: false
     hazelcast:
       external: true
+      url: my.hazelcast:5701
     listenPorts:
       harden: true
       custom:

@@ -1,6 +1,6 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 400
+timeout: 250
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -13,143 +13,154 @@ spec:
       maxUnavailable: 0
     type: RollingUpdate
   template:
-    metadata:
-      annotations:
-        testAnnotation: test1
     spec:
-      containers:
-        - securityContext:
-            runAsUser: 1000
-            runAsGroup: 3000
-          envFrom:
-            - configMapRef:
-                name: ssg
-            - secretRef:
-                name: ssg
-          livenessProbe:
-            exec:
-              command:
-                - /opt/docker/rc.d/diagnostic/health_check.sh
-            failureThreshold: 25
-            initialDelaySeconds: 40
-            periodSeconds: 15
-            successThreshold: 1
-            timeoutSeconds: 1
-          readinessProbe:
-            exec:
-              command:
-                - /opt/docker/rc.d/diagnostic/health_check.sh
-            initialDelaySeconds: 40
-            timeoutSeconds: 1
-            periodSeconds: 15
-            successThreshold: 1
-            failureThreshold: 25
-          lifecycle:
-            postStart:
-              exec:
-                command: [ "/bin/sh", "-c", "echo Hello" ]
-            preStop:
-              exec:
-                command: [ "/bin/sh","-c","echo Hello" ]
-          volumeMounts:
-            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
-              name: gateway-license
-              subPath: license.xml
-            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-listen-port-bundle
-              name: ssg-listen-port-bundle
-            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/restman
-              name: restman
-            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/graphman
-              name: graphman
-            - mountPath: /opt/docker/rc.d/003-parse-custom-files.sh
-              name: ssg-parse-custom-files-script
-              subPath: 003-parse-custom-files.sh
-            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/conf/sample.properties
-              name: config-override-secret
-              subPath: sample.properties
-            - mountPath: /opt/docker/test.properties
-              name: test-system-override
-              subPath: test.properties
-            - mountPath: /graphman/config.json
-              name: ssg-repository-init-config
-              subPath: config.json
-            - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
-              name: ssg-repository-bundle-dest
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 3000
-        fsGroup: 2000
-      hostAliases:
-        - hostnames:
-            - dev.ca.com
-            - dev1.ca.com
-          ip: 0.0.0.0
-        - hostnames:
-            - example.ca.com
-          ip: 127.0.0.1
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-            - preference:
-                matchExpressions:
-                  - key: disktype
-                    operator: In
-                    values:
-                      - ssd
-              weight: 1
-      topologySpreadConstraints:
-        - labelSelector:
-            matchLabels:
-              app.kubernetes.io/name: ssg
-          maxSkew: 2
-          topologyKey: testTopology
-          whenUnsatisfiable: ScheduleAnyway
-      tolerations:
-        - key: "key1"
-          operator: "Equal"
-          value: "value1"
-          effect: "NoSchedule"
-      volumes:
-        - name: gateway-license
-          secret:
-            defaultMode: 493
-            items:
-            - key: license.xml
-              path: license.xml
-            optional: false
-            secretName: gateway-license
-        - configMap:
-            defaultMode: 493
-            name: ssg-listen-port-bundle
-            optional: false
-          name: ssg-listen-port-bundle
-        - emptyDir: { }
-          name: restman
-        - emptyDir: { }
-          name: graphman
-        - configMap:
-            defaultMode: 493
-            items:
-              - key: 003-parse-custom-files
-                path: 003-parse-custom-files.sh
+          - preference:
+              matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                - ssd
+            weight: 1
+      containers:
+      - envFrom:
+        - configMapRef:
             name: ssg
+        - secretRef:
+            name: ssg
+        image: docker.io/caapim/gateway:11.0.00_CR2
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - echo Hello
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - echo Hello
+        livenessProbe:
+          exec:
+            command:
+            - /opt/docker/rc.d/diagnostic/health_check.sh
+          failureThreshold: 25
+          initialDelaySeconds: 40
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: gateway
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        - containerPort: 9443
+          name: management
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /opt/docker/rc.d/diagnostic/health_check.sh
+          failureThreshold: 25
+          initialDelaySeconds: 40
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext:
+          runAsGroup: 3000
+          runAsUser: 1000
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
+          name: gateway-license
+          subPath: license.xml
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-listen-port-bundle
+          name: ssg-listen-port-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/restman
+          name: restman
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/graphman
+          name: graphman
+        - mountPath: /opt/docker/rc.d/003-parse-custom-files.sh
           name: ssg-parse-custom-files-script
-        - name: config-override-secret
-          secret:
-            defaultMode: 444
-            secretName: config-override-secret
-        - configMap:
-            defaultMode: 444
-            name: test-system-override
-            optional: false
+          subPath: 003-parse-custom-files.sh
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/conf/sample.properties
+          name: config-override-secret
+          subPath: sample.properties
+        - mountPath: /opt/docker/test.properties
           name: test-system-override
-        - configMap:
-            defaultMode: 493
-            name: ssg-repository-init-config
-            optional: false
-          name: ssg-repository-init-config
-        - emptyDir: {}
-          name: ssg-repository-bundle-dest
+          subPath: test.properties
+      dnsPolicy: ClusterFirst
+      hostAliases:
+      - hostnames:
+        - dev.ca.com
+        - dev1.ca.com
+        ip: 0.0.0.0
+      - hostnames:
+        - example.ca.com
+        ip: 127.0.0.1
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 2000
+        runAsGroup: 3000
+        runAsUser: 1000
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 0
+      tolerations:
+      - effect: NoSchedule
+        key: key1
+        operator: Equal
+        value: value1
+      topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: ssg
+        maxSkew: 2
+        topologyKey: testTopology
+        whenUnsatisfiable: ScheduleAnyway
+      volumes:
+      - name: gateway-license
+        secret:
+          defaultMode: 493
+          items:
+          - key: license.xml
+            path: license.xml
+          optional: false
+          secretName: gateway-license
+      - configMap:
+          defaultMode: 493
+          name: ssg-listen-port-bundle
+          optional: false
+        name: ssg-listen-port-bundle
+      - emptyDir: {}
+        name: restman
+      - emptyDir: {}
+        name: graphman
+      - configMap:
+          defaultMode: 493
+          items:
+          - key: 003-parse-custom-files
+            path: 003-parse-custom-files.sh
+          name: ssg
+          optional: false
+        name: ssg-parse-custom-files-script
+      - name: config-override-secret
+        secret:
+          defaultMode: 444
+          secretName: config-override-secret
+      - configMap:
+          defaultMode: 444
+          name: test-system-override
+          optional: false
+        name: test-system-override
 status:
   replicas: 1
   readyReplicas: 1

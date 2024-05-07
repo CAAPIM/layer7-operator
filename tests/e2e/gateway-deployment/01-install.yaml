@@ -12,19 +12,113 @@ spec:
     image: docker.io/caapim/gateway:11.0.00_CR2
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
+    lifecycleHooks:
+      postStart:
+        exec:
+          command: [ "/bin/sh", "-c", "echo Hello" ]
+      preStop:
+        exec:
+          command: [ "/bin/sh", "-c", "echo Hello" ]
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
+      restman:
+        enabled: true
+      graphman:
+        enabled: true
+    podAnnotations:
+      testAnnotation: test1
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 2
+    topologySpreadConstraints:
+      - maxSkew: 2
+        topologyKey: testTopology
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: ssg
+    tolerations:
+      - key: "key1"
+        operator: "Equal"
+        value: "value1"
+        effect: "NoSchedule"
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+                - key: disktype
+                  operator: In
+                  values:
+                    - ssd
+    podSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 2000
+    containerSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+    bootstrap:
+      script:
+        enabled: true
+    customHosts:
+      enabled: true
+      hostAliases:
+       - hostnames:
+         - "dev.ca.com"
+         - "dev1.ca.com"
+         ip: "0.0.0.0"
+       - hostnames:
+         - "example.ca.com"
+         ip: "127.0.0.1"
     resources:
       requests: {}
       limits: {}
+    livenessProbe:
+      exec:
+        command:
+          - /opt/docker/rc.d/diagnostic/health_check.sh
+      initialDelaySeconds: 40
+      timeoutSeconds: 1
+      periodSeconds: 15
+      successThreshold: 1
+      failureThreshold: 25
+    readinessProbe:
+      exec:
+        command:
+          - /opt/docker/rc.d/diagnostic/health_check.sh
+      initialDelaySeconds: 40
+      timeoutSeconds: 1
+      periodSeconds: 15
+      successThreshold: 1
+      failureThreshold: 25
     autoscaling:
       enabled: false
-    management:
-      cluster:
-        hostname: gateway.brcmlabs.com
+    customConfig:
+      enabled: true
+      mounts:
+       - name: sample-override
+         mountPath: /opt/SecureSpan/Gateway/node/default/etc/conf/sample.properties
+         subPath: sample.properties
+         ref:
+           type: secret
+           name: config-override-secret
+           item:
+             key: sample.properties
+             path: sample.properties
+       - name: system-override
+         mountPath: /opt/docker/test.properties
+         subPath: test.properties
+         ref:
+           type: configmap
+           name: test-system-override
+           item:
+             key: test.properties
+             path: test.properties
     java:
       jvmHeap:
         calculate: true

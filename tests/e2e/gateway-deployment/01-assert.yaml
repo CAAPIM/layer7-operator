@@ -9,3 +9,4 @@ metadata:
 status:
   replicas: 2
   readyReplicas: 2
+

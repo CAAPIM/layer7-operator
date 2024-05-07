@@ -1,45 +1,102 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 400
+timeout: 200
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ssg
 spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
   template:
     spec:
-      initContainers:
-        - name: simple-init
-          image: docker.io/layer7api/simple-init:1.0.1
-          imagePullPolicy: Always
-          volumeMounts:
-            - name: config-directory
-              mountPath: /opt/docker/custom
-      volumes:
-        - name: gateway-license
-          secret:
-            defaultMode: 493
-            items:
-              - key: license.xml
-                path: license.xml
-            optional: false
-            secretName: gateway-license
-        - configMap:
-            defaultMode: 493
-            name: ssg-listen-port-bundle
-            optional: false
+      affinity: {}
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: ssg
+        - secretRef:
+            name: ssg
+        image: docker.io/caapim/gateway:11.0.00_CR2
+        imagePullPolicy: IfNotPresent
+        lifecycle: {}
+        livenessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - /opt/docker/rc.d/diagnostic/health_check.sh
+          failureThreshold: 25
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: gateway
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        - containerPort: 9443
+          name: management
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - /opt/docker/rc.d/diagnostic/health_check.sh
+          failureThreshold: 25
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
+          name: gateway-license
+          subPath: license.xml
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-listen-port-bundle
           name: ssg-listen-port-bundle
-        - emptyDir: {}
+        - mountPath: /opt/docker/custom
           name: config-directory
-        - configMap:
-            defaultMode: 493
-            name: ssg-repository-init-config
-            optional: false
-          name: ssg-repository-init-config
-        - emptyDir: {}
-          name: ssg-repository-bundle-dest
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - image: docker.io/layer7api/simple-init:1.0.1
+        imagePullPolicy: Always
+        name: simple-init
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/docker/custom
+          name: config-directory
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: gateway-license
+        secret:
+          defaultMode: 493
+          items:
+          - key: license.xml
+            path: license.xml
+          optional: false
+          secretName: gateway-license
+      - configMap:
+          defaultMode: 493
+          name: ssg-listen-port-bundle
+          optional: false
+        name: ssg-listen-port-bundle
+      - emptyDir: {}
+        name: config-directory
 status:
   replicas: 1
   readyReplicas: 1
-

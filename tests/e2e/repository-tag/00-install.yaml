@@ -8,6 +8,7 @@ spec:
   endpoint: https://github.com/uppoju/l7GWMyFramework
   tag: test1
   type: git
-  auth:
-    vendor: Github
-    existingSecretName: test-repository-secret
+  auth: {}
+  # auth:
+  #   vendor: Github
+  #   existingSecretName: test-repository-secret

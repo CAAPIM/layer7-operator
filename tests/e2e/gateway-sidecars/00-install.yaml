@@ -31,7 +31,7 @@ spec:
       harden: true
       custom:
         enabled: false
-      ports: [ ]
+      ports: []
     service:
       # annotations:
       type: LoadBalancer

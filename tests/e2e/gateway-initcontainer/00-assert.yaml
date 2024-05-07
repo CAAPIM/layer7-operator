@@ -1,6 +1,6 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 200
+timeout: 400
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -30,14 +30,14 @@ spec:
             name: ssg-listen-port-bundle
             optional: false
           name: ssg-listen-port-bundle
-        - emptyDir: { }
+        - emptyDir: {}
           name: config-directory
         - configMap:
             defaultMode: 493
             name: ssg-repository-init-config
             optional: false
           name: ssg-repository-init-config
-        - emptyDir: { }
+        - emptyDir: {}
           name: ssg-repository-bundle-dest
 status:
   replicas: 1

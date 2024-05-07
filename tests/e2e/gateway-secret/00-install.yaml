@@ -26,7 +26,7 @@ spec:
       harden: true
       custom:
         enabled: false
-      ports: [ ]
+      ports: []
     management:
       username: admin
       password: 7layer

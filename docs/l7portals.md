@@ -133,10 +133,17 @@ L7PortalSpec defines the desired state of L7Portal
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>name</b></td>
+        <td><b>portalManaged</b></td>
+        <td>boolean</td>
+        <td>
+          PortalManaged if PortalManaged is true the portal controller will not manage APIs and will be only be responsible for maintaining a list of L7Api Portal published Metadata.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>portalTenant</b></td>
         <td>string</td>
         <td>
-          Name of the Portal<br/>
+          PortalTenant is the tenantId of the API Developer Portal<br/>
         </td>
         <td>false</td>
       </tr><tr>

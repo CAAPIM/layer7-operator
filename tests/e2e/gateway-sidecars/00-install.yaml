@@ -11,27 +11,23 @@ spec:
     replicas: 1
     image: docker.io/caapim/gateway:11.0.00_CR2
     imagePullPolicy: IfNotPresent
-    #serviceAccountName: ssg-serviceaccount
     management:
       cluster:
         hostname: gateway.brcmlabs.com
     autoscaling:
       enabled: false
     sidecars:
-     - name: simple-init
-       image: docker.io/layer7api/simple-init:1.0.1
-       imagePullPolicy: Always
-       ports:
-        - name: https
-          containerPort: 7443
-       volumeMounts:
-       - name: config-directory
-         mountPath: /opt/docker/custom
+    - name: simple-sidecar
+      image: alpine:latest
+      command: ['sh', '-c', 'while true; do echo "logging" >> /tmp/logs.txt; sleep 1; done']
+      volumeMounts:
+      - name: simple-sidecar
+        mountPath: /tmp
     listenPorts:
       harden: true
       custom:
         enabled: false
-      ports: [ ]
+      ports: []
     service:
       # annotations:
       type: LoadBalancer

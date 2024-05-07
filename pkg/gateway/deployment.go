@@ -415,7 +415,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			},
 		})
 	}
-	i := 1
+	i := 2
 	for v := range gw.Spec.App.Bundle {
 		defaultMode := int32(444)
 		optional := false
@@ -570,6 +570,9 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				ic.SecurityContext = &gw.Spec.App.ContainerSecurityContext
 			}
 		}
+		if ic.ImagePullPolicy == "" {
+			ic.ImagePullPolicy = corev1.PullIfNotPresent
+		}
 		initContainers = append(initContainers, ic)
 	}
 
@@ -615,39 +618,40 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			}
 		}
 	}
-	// Config Mount
-	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-		Name:      gw.Name + "-repository-init-config",
-		MountPath: "/graphman/config.json",
-		SubPath:   "config.json",
-	})
-
-	volumes = append(volumes, corev1.Volume{
-		Name: gw.Name + "-repository-init-config",
-		VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: gw.Name + "-repository-init-config",
-			},
-			DefaultMode: &defaultMode,
-			Optional:    &optional,
-		}},
-	})
-
-	// Target Bootstrap Mount
-	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-		Name:      gw.Name + "-repository-bundle-dest",
-		MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
-	})
-	volumes = append(volumes, corev1.Volume{
-		Name: gw.Name + "-repository-bundle-dest",
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		},
-	})
-
-	volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
 
 	if graphmanInitContainer {
+		// Config Mount
+		gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+			Name:      gw.Name + "-repository-init-config",
+			MountPath: "/graphman/config.json",
+			SubPath:   "config.json",
+		})
+
+		volumes = append(volumes, corev1.Volume{
+			Name: gw.Name + "-repository-init-config",
+			VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: gw.Name + "-repository-init-config",
+				},
+				DefaultMode: &defaultMode,
+				Optional:    &optional,
+			}},
+		})
+
+		// Target Bootstrap Mount
+		gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+			Name:      gw.Name + "-repository-bundle-dest",
+			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
+		})
+		volumes = append(volumes, corev1.Volume{
+			Name: gw.Name + "-repository-bundle-dest",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
+
 		h := sha1.New()
 		h.Write([]byte(commits))
 		commits = fmt.Sprintf("%x", h.Sum(nil))
@@ -685,6 +689,80 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Env: []corev1.EnvVar{{
 				Name:  "BOOTSTRAP_BASE",
 				Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
+			}},
+			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		})
+	}
+
+	if gw.Spec.App.PortalReference.Enabled {
+		portalInitContainerVolumeMounts := []corev1.VolumeMount{}
+		portalInitContainerVolumeMounts = append(portalInitContainerVolumeMounts, corev1.VolumeMount{
+			Name:      gw.Name + "-portal-init-config",
+			MountPath: "/portal/config.json",
+			SubPath:   "config.json",
+		})
+
+		volumes = append(volumes, corev1.Volume{
+			Name: gw.Name + "-portal-init-config",
+			VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: gw.Spec.App.PortalReference.PortalName + "-api-summary",
+				},
+				DefaultMode: &defaultMode,
+				Optional:    &optional,
+				Items: []corev1.KeyToPath{{
+					Key:  "apis",
+					Path: "config.json",
+				}},
+			}},
+		})
+
+		portalInitContainerVolumeMounts = append(portalInitContainerVolumeMounts, corev1.VolumeMount{
+			Name:      gw.Name + "-portal-init-dest",
+			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/1",
+		})
+		volumes = append(volumes, corev1.Volume{
+			Name: gw.Name + "-portal-init-dest",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, portalInitContainerVolumeMounts...)
+
+		portalInitContainerImage := "docker.io/layer7api/portal-bulk-init:0.0.1"
+		portalInitContainerImagePullPolicy := corev1.PullIfNotPresent
+		portalInitContainerSecurityContext := corev1.SecurityContext{}
+
+		if gw.Spec.App.PortalReference.InitContainerImage != "" {
+			portalInitContainerImage = gw.Spec.App.PortalReference.InitContainerImage
+		}
+
+		if gw.Spec.App.PortalReference.InitContainerImagePullPolicy != "" {
+			portalInitContainerImagePullPolicy = gw.Spec.App.PortalReference.InitContainerImagePullPolicy
+		}
+
+		if platform == "openshift" {
+			portalInitContainerSecurityContext = ocContainerSecurityContext
+		}
+
+		if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+			portalInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
+		}
+
+		if gw.Spec.App.PortalReference.InitContainerSecurityContext != (corev1.SecurityContext{}) {
+			portalInitContainerSecurityContext = gw.Spec.App.PortalReference.InitContainerSecurityContext
+		}
+		initContainers = append(initContainers, corev1.Container{
+			Name:            "portal-init",
+			Image:           portalInitContainerImage,
+			ImagePullPolicy: portalInitContainerImagePullPolicy,
+			SecurityContext: &portalInitContainerSecurityContext,
+			VolumeMounts:    portalInitContainerVolumeMounts,
+			Env: []corev1.EnvVar{{
+				Name:  "BOOTSTRAP_BASE",
+				Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/1",
 			}},
 			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,

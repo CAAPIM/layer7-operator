@@ -1,15 +1,8 @@
 apiVersion: security.brcmlabs.com/v1alpha1
 kind: L7Api
 metadata:
-  labels:
-    app.kubernetes.io/name: l7api
-    app.kubernetes.io/instance: l7api-sample
-    app.kubernetes.io/part-of: layer7-operator
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: layer7-operator
   name: l7api-sample
 spec:
-  name: l7api
   portalPublished: false
   graphmanBundle: jsongz
   serviceUrl: /v1/api

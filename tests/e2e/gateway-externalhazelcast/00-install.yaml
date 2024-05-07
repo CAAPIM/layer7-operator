@@ -19,11 +19,12 @@ spec:
       enabled: false
     hazelcast:
       external: true
+      url: my.hazelcast:5701
     listenPorts:
       harden: true
       custom:
         enabled: false
-      ports: [ ]
+      ports: []
     service:
       # annotations:
       type: LoadBalancer

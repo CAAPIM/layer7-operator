@@ -8,6 +8,6 @@ spec:
   endpoint: https://github.com/uppoju/l7GWMyFramework
   branch: main
   type: git
-  auth:
-    vendor: Github
-    existingSecretName: test-repository-secret
+  auth: {}
+    # vendor: Github
+    # existingSecretName: test-repository-secret

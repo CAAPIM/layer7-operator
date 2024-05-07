@@ -22,9 +22,9 @@ import (
 
 // L7PortalSpec defines the desired state of L7Portal
 type L7PortalSpec struct {
-	// Name of the Portal
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name"
-	Name string `json:"name,omitempty"`
+	// PortalTenant is the tenantId of the API Developer Portal
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="PortalTenant"
+	PortalTenant string `json:"portalTenant,omitempty"`
 	//Labels - Custom Labels
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Labels"
 	Labels map[string]string `json:"labels,omitempty"`
@@ -51,6 +51,8 @@ type L7PortalSpec struct {
 	// SyncIntervalSeconds how often the Portal CR is reconciled. Default is 10 seconds
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="SyncIntervalSeconds"
 	SyncIntervalSeconds int `json:"syncIntervalSeconds,omitempty"`
+	// PortalManaged if PortalManaged is true the portal controller will not manage APIs and will be only be responsible for maintaining a list of L7Api Portal published Metadata.
+	PortalManaged bool `json:"portalManaged,omitempty"`
 }
 
 // L7PortalStatus defines the observed state of L7Portal

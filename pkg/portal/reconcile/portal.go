@@ -43,6 +43,8 @@ func syncPortal(ctx context.Context, params Params) {
 		return
 	}
 
+	// remove additional options
+	// this will be portal managed only
 	if l7Portal.Spec.PortalManaged {
 		externalManaged(params, ctx, l7Portal)
 	} else {

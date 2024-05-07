@@ -62,8 +62,6 @@ func syncPortalApis(ctx context.Context, params Params) {
 	}
 
 	for _, api := range portalApiSummary {
-		// @TODO - Make this V(2) logger, once I figure out how to enable it
-		// params.Log.Info("syncPortalApis : Syncing API: " + api.Name)
 		params.Log.V(2).Info("syncing portal apis", "name", api.Name, "namespace", params.Instance.Namespace)
 
 		policyXml := templategen.BuildTemplate(api)

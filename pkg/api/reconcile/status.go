@@ -11,7 +11,6 @@ import (
 	"github.com/caapim/layer7-operator/pkg/api"
 )
 
-// TODO: Move status updates here.
 func Status(ctx context.Context, params Params) error {
 	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
 		portalMeta := templategen.PortalAPI{}
@@ -60,46 +59,3 @@ func Status(ctx context.Context, params Params) error {
 	}
 	return nil
 }
-
-// func Self(ctx context.Context, params Params) error {
-// 	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
-// 		portalMeta := templategen.PortalAPI{}
-// 		portalMetaBytes, err := json.Marshal(params.Instance.Spec.PortalMeta)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		err = json.Unmarshal(portalMetaBytes, &portalMeta)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		policyXml := templategen.BuildTemplate(portalMeta)
-// 		graphmanBundleBytes, sha1sum, err := api.ConvertPortalPolicyXmlToGraphman(policyXml)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		if params.Instance.Status.Checksum != sha1sum {
-// 			params.Instance.Spec.GraphmanBundle = base64.StdEncoding.EncodeToString(graphmanBundleBytes)
-// 			params.Instance.Status.Ready = true
-// 			params.Instance.Status.Checksum = sha1sum
-// 			err = params.Client.Update(ctx, params.Instance)
-// 			if err != nil {
-// 				params.Log.V(2).Info("failed to update api", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
-// 				return err
-// 			}
-// 		}
-// 		return nil
-// 	}
-
-// 	if !params.Instance.Status.Ready {
-// 		params.Instance.Status.Ready = true
-// 		err := params.Client.Status().Update(ctx, params.Instance)
-// 		if err != nil {
-// 			params.Log.V(2).Info("failed to update api status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }

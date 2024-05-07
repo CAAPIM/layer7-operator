@@ -699,8 +699,8 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		portalInitContainerVolumeMounts := []corev1.VolumeMount{}
 		portalInitContainerVolumeMounts = append(portalInitContainerVolumeMounts, corev1.VolumeMount{
 			Name:      gw.Name + "-portal-init-config",
-			MountPath: "/portal/config.gz",
-			SubPath:   "config.gz",
+			MountPath: "/portal/config.json",
+			SubPath:   "config.json",
 		})
 
 		volumes = append(volumes, corev1.Volume{
@@ -713,7 +713,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				Optional:    &optional,
 				Items: []corev1.KeyToPath{{
 					Key:  "apis",
-					Path: "config.gz",
+					Path: "config.json",
 				}},
 			}},
 		})

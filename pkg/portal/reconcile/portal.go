@@ -18,10 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-//////
-//////  REFACTOR
-//////
-
 const tempDirectoryBase = "/tmp/portalapis/"
 
 type RawPortalAPISummary struct {
@@ -43,8 +39,7 @@ func syncPortal(ctx context.Context, params Params) {
 		return
 	}
 
-	// remove additional options
-	// this will be portal managed only
+	// this will be portal managed only in the future
 	if l7Portal.Spec.PortalManaged {
 		externalManaged(params, ctx, l7Portal)
 	} else {
@@ -81,9 +76,6 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 		return
 	}
 
-	// TODO:
-	// Refactor when deleted entities are available
-	// Should only retrieve changes after a last modified date to reduce resource utilisation
 	requestCacheEntry = l7Portal.Name + "-api-summary"
 	syncRequest, _ = syncCache.Read(requestCacheEntry)
 
@@ -169,8 +161,6 @@ func locallyManaged(params Params, ctx context.Context, l7Portal *v1alpha1.L7Por
 		params.Log.V(2).Info("failed to retrieve configmap", "name", l7Portal.Name, "namespace", l7Portal.Namespace)
 	}
 
-	// TODO:
-	// Refactor when deleted entities are available
 	apiRemovalList := []string{}
 	if len(currentPortalAPIList) > len(portalAPIList) {
 

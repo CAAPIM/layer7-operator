@@ -70,16 +70,11 @@ spec:
       - type: graphman
         source: secret
         name: graphman-bootstrap-secret-bundle
-        csi:
-          driver: secrets-store.csi.k8s.io
-          readOnly: true
-          volumeAttributes:
-            secretProviderClass: "my-provider"
     listenPorts:
       harden: true
       custom:
         enabled: false
-      ports: [ ]
+      ports: []
     service:
       # annotations:
       type: LoadBalancer

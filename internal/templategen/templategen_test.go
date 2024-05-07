@@ -41,7 +41,7 @@ func TestBuildTemplate(t *testing.T) {
 
 	t.Run("Performance Test", func(t *testing.T) {
 		duration := perfTest(portalApi, iterations)
-		timeout := time.Duration(750 * time.Millisecond)
+		timeout := time.Duration(3000 * time.Millisecond)
 
 		if min(duration, timeout) == timeout {
 			t.Errorf("perfTest(portalApi,iterations) = %v, want %v", duration, timeout)

@@ -48,24 +48,23 @@ spec:
             name: restman-bootstrap-bundle
             optional: false
           name: restman-bootstrap-bundle
-        - name: restman-bootstrap-secret-bundle
-          secret:
+        - secret:
             defaultMode: 444
             secretName: restman-bootstrap-secret-bundle
+          name: restman-bootstrap-secret-bundle
         - configMap:
             defaultMode: 444
             name: graphman-bootstrap-bundle
             optional: false
-        - csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: my-provider
-          name: graphman-bootstrap-secret-bundle
+          name: graphman-bootstrap-bundle 
+        - name: graphman-bootstrap-secret-bundle
+          secret:
+            defaultMode: 444
+            secretName: graphman-bootstrap-secret-bundle
         - configMap:
             defaultMode: 493
             name: ssg-repository-init-config
             optional: false
           name: ssg-repository-init-config
-        - emptyDir: { }
+        - emptyDir: {}
           name: ssg-repository-bundle-dest

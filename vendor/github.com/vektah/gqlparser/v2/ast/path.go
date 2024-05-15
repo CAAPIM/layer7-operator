@@ -18,6 +18,9 @@ var _ PathElement = PathIndex(0)
 var _ PathElement = PathName("")
 
 func (path Path) String() string {
+	if path == nil {
+		return ""
+	}
 	var str bytes.Buffer
 	for i, v := range path {
 		switch v := v.(type) {
@@ -60,8 +63,8 @@ func (path *Path) UnmarshalJSON(b []byte) error {
 
 type PathIndex int
 
-func (_ PathIndex) isPathElement() {}
+func (PathIndex) isPathElement() {}
 
 type PathName string
 
-func (_ PathName) isPathElement() {}
+func (PathName) isPathElement() {}

@@ -60,12 +60,12 @@ func (r *Gateway) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Gateway) ValidateUpdate(obj runtime.Object) (admission.Warnings, error) {
-	gateway, ok := obj.(*Gateway)
+func (r *Gateway) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	_, ok := old.(*Gateway)
 	if !ok {
-		return nil, fmt.Errorf("expected a Gateway, received %T", obj)
+		return nil, fmt.Errorf("expected a Gateway, received %T", r)
 	}
-	return validateGateway(gateway)
+	return validateGateway(r)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -168,7 +168,7 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 	}
 
 	if r.Spec.App.Management.SecretName == "" {
-		warnings = append(warnings, "it is strongly recommended that you use an existing secret for gateway credentials")
+		warnings = append(warnings, "using an existing secret for gateway credentials is strongly recommended")
 		if r.Spec.App.Management.Username == "" || r.Spec.App.Management.Password == "" {
 			return warnings, fmt.Errorf("please specify management username and password")
 		}
@@ -194,7 +194,7 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 	}
 
 	if r.Spec.App.Management.Service.Enabled {
-		if r.Spec.App.Management.Service.Type != v1.ServiceTypeClusterIP && r.Spec.App.Service.Type != v1.ServiceTypeLoadBalancer && r.Spec.App.Service.Type != v1.ServiceTypeNodePort {
+		if r.Spec.App.Management.Service.Type != v1.ServiceTypeClusterIP && r.Spec.App.Management.Service.Type != v1.ServiceTypeLoadBalancer && r.Spec.App.Management.Service.Type != v1.ServiceTypeNodePort {
 			return warnings, fmt.Errorf("please specify a valid management service type, valid types are LoadBalancer, ClusterIP and NodePort")
 		}
 	}

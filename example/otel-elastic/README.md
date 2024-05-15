@@ -162,7 +162,7 @@ spec:
     - name: OTEL_TRACES_EXPORTER
       value: otlp
     - name: OTEL_RESOURCE_ATTRIBUTES
-      value: service.version=11.0.00_CR2,deployment.environment=development
+      value: service.version=11.1.00,deployment.environment=development
   exporter:
     endpoint: http://localhost:4317
   propagators:
@@ -182,7 +182,9 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
 processors:
   batch:
   resource:
@@ -191,8 +193,8 @@ processors:
       value: "ssg"
       action: upsert
 exporters:
-  logging:
-    loglevel: warn 
+  debug:
+    verbosity: basic
   otlp/elastic:
     endpoint: apm-server-quickstart-apm-http:8200
     tls:
@@ -213,10 +215,10 @@ service:
     metrics:
       receivers: [otlp]
       processors: [resource,batch]
-      exporters: [otlp/elastic]
+      exporters: [otlp/elastic,debug]
     logs: 
       receivers: [otlp]
-      exporters: [otlp/elastic]
+      exporters: [otlp/elastic, debug]
 ```
 
 ### Service Level Configuration
@@ -224,13 +226,13 @@ This integration uses the background metrics processing task to capture Gateway 
 
 
 ### Gateway Application Configuration
-The Gateway requires OTel specific pod annotations that inject a Collector Sidecar into the Gateway deployment 
+The Gateway has OTel specific configuration. 
 
 - Pod Annotations
 ```
   app:
     podAnnotations:
-      sidecar.opentelemetry.io/inject: "ssg-eck" <== this injects the OpenTelemetryCollector sidecar
+      sidecar.opentelemetry.io/inject: "ssg-prom" <== this injects the OpenTelemetryCollector sidecar
       instrumentation.opentelemetry.io/inject-java: "true" <== this loads the OpenTelemetry Java agent onto the Gateway
       instrumentation.opentelemetry.io/container-names: "gateway" <== this defines which container the Java Agent is loaded onto
 ```
@@ -241,22 +243,36 @@ cwp:
   enabled: true
   properties:
     ...
+    - name: otel.enabled
+      value: "true"
     - name: otel.serviceMetricEnabled
       value: "true"
     - name: otel.traceEnabled
       value: "true"
     - name: otel.metricPrefix
       value: l7_
-    - name: otel.resourceAttributes
-      value: k8s.container.name,k8s.pod.name
     - name: otel.traceConfig
       value: |
         {
-         "services": [
-           {"url": ".*api.*"},
-           {"url": ".*test.*"}
-         ]
+          "services": [
+            {"resolutionPath": ".*"}
+          ]
         }
+```
+
+- System Properties
+```
+system:
+  properties: |-
+    ...
+    # OpenTelemetry Agent Configuration
+    otel.instrumentation.common.default-enabled=true
+    otel.instrumentation.opentelemetry-api.enabled=true
+    otel.instrumentation.runtime-metrics.enabled=true
+    otel.instrumentation.runtime-telemetry.enabled=true
+    otel.instrumentation.opentelemetry-instrumentation-annotations.enabled=true
+    otel.java.global-autoconfigure.enabled=true
+    # Additional properties go here
 ```
 
 ### Quickstart Kind
@@ -613,11 +629,11 @@ status:
 
 #### Create a Gateway Custom Resource
 ```
-kubectl apply -f ./example/gateway/otel-elastic-gateway.yaml
+kubectl apply -f ./gateway/otel-elastic-gateway.yaml
 ```
 
 #### Referencing the repositories we created
-[ssg-gateway.yaml](./ssg-gateway.yaml) contains 3 repository references, the 'type' defines how a repository is applied to the Container Gateway.
+[otel-elastic-gateway.yaml](../gateway/otel-elastic-gateway.yaml) contains 3 repository references, the 'type' defines how a repository is applied to the Container Gateway.
 - Dynamic repositories are applied directly to the Graphman endpoint on the Gateway which does not require a gateway restart
 - Static repositories are bootstrapped to the Container Gateway with an initContainer which requires a gateway restart.
 ```

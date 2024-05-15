@@ -17,3 +17,7 @@ bindings:
     type: string
   AnyObject:
     type: interface{}
+  JSON:
+    type: interface{}
+  Long:
+    type: int64

@@ -10446,7 +10446,14 @@ TCPSocket specifies an action involving a TCP port.
         <td><b><a href="#gatewayspecappredisauth">auth</a></b></td>
         <td>object</td>
         <td>
-          Auth if using sentinel<br/>
+          Auth if using sentinel or standalone (from Gateway v11.1.00)<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>commandTimeout</b></td>
+        <td>integer</td>
+        <td>
+          CommandTimeout for Redis commands<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10488,7 +10495,7 @@ TCPSocket specifies an action involving a TCP port.
         <td><b><a href="#gatewayspecappredistls">tls</a></b></td>
         <td>object</td>
         <td>
-          TLS configuration<br/>
+          TLS configuration if using sentinel or standalone (from Gateway v11.1.00)<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10507,7 +10514,7 @@ TCPSocket specifies an action involving a TCP port.
 
 
 
-Auth if using sentinel
+Auth if using sentinel or standalone (from Gateway v11.1.00)
 
 <table>
     <thead>
@@ -10623,7 +10630,7 @@ Standalone configuration
 
 
 
-TLS configuration
+TLS configuration if using sentinel or standalone (from Gateway v11.1.00)
 
 <table>
     <thead>

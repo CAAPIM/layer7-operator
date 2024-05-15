@@ -25,8 +25,11 @@ Gateways
 - [Basic](./basic)
 - [Advanced](./advanced)
 
-Open Telemetry Examples
-- [Elastic Stack (reference architecture)](./otel-elastic)
+Open Telemetry Example
+- [Grafana LGTM Stack](./otel-lgtm/)
+
+Other examples
+- [Elastic Stack](./otel-elastic)
 - [Prometheus](./otel-prometheus)
 
 Repositories (used in both examples)

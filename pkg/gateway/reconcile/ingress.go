@@ -15,7 +15,6 @@ import (
 )
 
 func Ingress(ctx context.Context, params Params) error {
-
 	//Potentially delete the ingress if it exists.
 	if !params.Instance.Spec.App.Ingress.Enabled || strings.ToLower(params.Instance.Spec.App.Ingress.Type) == "route" {
 		return nil
@@ -40,7 +39,7 @@ func Ingress(ctx context.Context, params Params) error {
 		return err
 	}
 
-	if reflect.DeepEqual(currentIngress.Spec, desiredIngress.Spec) {
+	if reflect.DeepEqual(currentIngress.Spec, desiredIngress.Spec) && reflect.DeepEqual(currentIngress.ObjectMeta.Annotations, desiredIngress.ObjectMeta.Annotations) {
 		params.Log.V(2).Info("no ingress updates needed", "name", desiredIngress.Name, "namespace", desiredIngress.Namespace)
 		return nil
 	}
@@ -52,13 +51,8 @@ func Ingress(ctx context.Context, params Params) error {
 	updatedIngress.Spec.TLS = desiredIngress.Spec.TLS
 	updatedIngress.Spec.DefaultBackend = desiredIngress.Spec.DefaultBackend
 	updatedIngress.Spec.IngressClassName = desiredIngress.Spec.IngressClassName
-
-	for k, v := range desiredIngress.ObjectMeta.Annotations {
-		updatedIngress.ObjectMeta.Annotations[k] = v
-	}
-	for k, v := range desiredIngress.ObjectMeta.Labels {
-		updatedIngress.ObjectMeta.Labels[k] = v
-	}
+	updatedIngress.ObjectMeta.Annotations = desiredIngress.ObjectMeta.Annotations
+	updatedIngress.ObjectMeta.Labels = desiredIngress.ObjectMeta.Labels
 
 	patch := client.MergeFrom(&currentIngress)
 	if err := params.Client.Patch(ctx, updatedIngress, patch); err != nil {

@@ -1,0 +1,59 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: ssg-lgtm
+spec:
+  mode: sidecar
+  image: otel/opentelemetry-collector-contrib:0.97.0
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+      transform:
+        metric_statements:
+          - context: datapoint
+            statements:
+            - set(attributes["namespace"], resource.attributes["k8s.namespace.name"])
+            - set(attributes["container"], resource.attributes["k8s.container.name"])
+            - set(attributes["pod"], resource.attributes["k8s.pod.name"])
+    exporters:
+      debug:
+        verbosity: basic
+      loki:
+        endpoint: http://loki-loki-distributed-gateway.grafana-loki.svc.cluster.local/loki/api/v1/push
+      prometheusremotewrite:
+        endpoint: http://mimir-nginx.grafana-loki.svc.cluster.local/api/v1/push
+      otlp:
+        endpoint: tempo.grafana-loki.svc.cluster.local:4317
+        tls:
+          insecure: true
+    service:
+      telemetry:
+        logs:
+          level: "debug"
+        metrics:
+          address: "0.0.0.0:8888"
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp]
+        metrics:
+          receivers: [otlp]
+          processors: [transform,batch]
+          exporters: [prometheusremotewrite, debug]
+        logs: 
+          receivers: [otlp]
+          exporters: [debug,loki]
+    extensions:
+      health_check:
+      pprof:
+        endpoint: 0.0.0.0:1777
+      zpages:
+        endpoint: 0.0.0.0:55679

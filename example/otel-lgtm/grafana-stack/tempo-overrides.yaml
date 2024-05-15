@@ -1,0 +1,7 @@
+# https://github.com/grafana/helm-charts/blob/main/charts/tempo/values.yaml
+persistence:
+  enabled: false
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+

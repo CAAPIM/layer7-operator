@@ -42,50 +42,62 @@ func NewSecret(gw *securityv1.Gateway, name string) *corev1.Secret {
 		}
 	case gw.Name + "-redis-properties":
 		redisConfig := ""
-
+		auth := ""
+		tlsConfig := ""
+		publicCrt := ""
+		username := ""
+		password := ""
 		redisGroupName := "l7GW"
+		commandTimeout := 5000
 
 		if gw.Spec.App.Redis.GroupName != "" {
 			redisGroupName = gw.Spec.App.Redis.GroupName
 		}
 
+		if gw.Spec.App.Redis.CommandTimeout != 0 {
+			commandTimeout = gw.Spec.App.Redis.CommandTimeout
+		}
+
+		if gw.Spec.App.Redis.Tls.Enabled {
+			tlsConfig = fmt.Sprintf("redis.ssl.cert=redis.crt\nredis.ssl.verifypeer=%v", gw.Spec.App.Redis.Tls.VerifyPeer)
+			if gw.Spec.App.Redis.Tls.Crt != "" {
+				publicCrt = gw.Spec.App.Redis.Tls.Crt
+				data["redis.crt"] = []byte(publicCrt)
+			}
+		}
+
 		switch strings.ToLower(string(gw.Spec.App.Redis.Type)) {
 
 		case string(securityv1.RedisTypeStandalone):
-			redisConfig = fmt.Sprintf("redis.type=%s\nredis.standalone.hostname=%s\nredis.standalone.port=%d\nredis.key.prefix.grpname=%s", gw.Spec.App.Redis.Type, gw.Spec.App.Redis.Standalone.Hostname, gw.Spec.App.Redis.Standalone.Port, redisGroupName)
-		case string(securityv1.RedisTypeSentinel):
-			nodes := strings.Join(gw.Spec.App.Redis.Sentinel.Nodes, ",")
-			auth := ""
-			tlsConfig := ""
-			publicCrt := ""
-			if gw.Spec.App.Redis.Tls.Enabled {
-				tlsConfig = fmt.Sprintf("redis.ssl.cert=redis.crt\nredis.ssl.verifypeer=%v", gw.Spec.App.Redis.Tls.VerifyPeer)
-				if gw.Spec.App.Redis.Tls.Crt != "" {
-					publicCrt = gw.Spec.App.Redis.Tls.Crt
-					data["redis.crt"] = []byte(publicCrt)
-				}
-			}
-
 			if gw.Spec.App.Redis.Auth.Enabled {
-				username := ""
-				password := ""
-
 				if gw.Spec.App.Redis.Auth.Username != "" {
-					username = "redis.sentinel.username=" + gw.Spec.App.Redis.Auth.Username + "\n"
+					username = "redis.standalone.username=" + gw.Spec.App.Redis.Auth.Username
 				}
-
+				if gw.Spec.App.Redis.Auth.PasswordPlainText != "" {
+					password = "redis.standalone.password=" + gw.Spec.App.Redis.Auth.PasswordPlainText
+				}
+				if gw.Spec.App.Redis.Auth.PasswordEncoded != "" {
+					password = "redis.standalone.encodedPassword=" + gw.Spec.App.Redis.Auth.PasswordEncoded
+				}
+				auth = fmt.Sprintf("%s\n%s", username, password)
+			}
+			redisConfig = fmt.Sprintf("redis.type=%s\nredis.standalone.hostname=%s\nredis.standalone.port=%d\nredis.key.prefix.grpname=%s\nredis.commandTimeout=%d\n%s\n%s", gw.Spec.App.Redis.Type, gw.Spec.App.Redis.Standalone.Hostname, gw.Spec.App.Redis.Standalone.Port, redisGroupName, commandTimeout, tlsConfig, auth)
+		case string(securityv1.RedisTypeSentinel):
+			if gw.Spec.App.Redis.Auth.Enabled {
+				if gw.Spec.App.Redis.Auth.Username != "" {
+					username = "redis.sentinel.username=" + gw.Spec.App.Redis.Auth.Username
+				}
 				if gw.Spec.App.Redis.Auth.PasswordPlainText != "" {
 					password = "redis.sentinel.password=" + gw.Spec.App.Redis.Auth.PasswordPlainText
 				}
-
 				if gw.Spec.App.Redis.Auth.PasswordEncoded != "" {
 					password = "redis.sentinel.encodedPassword=" + gw.Spec.App.Redis.Auth.PasswordEncoded
 				}
-
-				auth = fmt.Sprintf("%s%s", username, password)
+				auth = fmt.Sprintf("%s\n%s", username, password)
 			}
+			nodes := strings.Join(gw.Spec.App.Redis.Sentinel.Nodes, ",")
 
-			redisConfig = fmt.Sprintf("redis.type=%s\nredis.sentinel.master=%s\nredis.sentinel.nodes=%s\nredis.ssl=%v\n%s\n%s", gw.Spec.App.Redis.Type, gw.Spec.App.Redis.Sentinel.MasterSet, nodes, gw.Spec.App.Redis.Tls.Enabled, tlsConfig, auth)
+			redisConfig = fmt.Sprintf("redis.type=%s\nredis.sentinel.master=%s\nredis.sentinel.nodes=%s\nredis.key.prefix.grpname=%s\nredis.commandTimeout=%d\nredis.ssl=%v\n%s\n%s", gw.Spec.App.Redis.Type, gw.Spec.App.Redis.Sentinel.MasterSet, nodes, redisGroupName, commandTimeout, gw.Spec.App.Redis.Tls.Enabled, tlsConfig, auth)
 		}
 		data["redis.properties"] = []byte(redisConfig)
 	}

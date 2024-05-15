@@ -7,4 +7,4 @@ The Layer7 Gateway Operator, built using the [Operator SDK](https://github.com/o
 ## [Additional Documentation](https://github.com/CAAPIM/layer7-operator/wiki)
 ## [More Examples](./example)
 ## [API (Custom Resource) Docs](./docs/readme.md)
-## Techdocs (coming soon)
+## [Techdocs](https://techdocs.broadcom.com/us/en/ca-enterprise-software/layer7-api-management/api-gateway/congw11-1/learning-center/thinking-in-kubernetes/introduction-to-layer7-operator.html)

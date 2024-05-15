@@ -89,19 +89,21 @@
           "fields": "",
           "values": false
         },
+        "showPercentChange": false,
         "text": {},
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "10.4.1",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(l7_service_attempted_count_total{job=\"$gatewayDeployment\"}) ",
+          "expr": "sum(l7_service_attempted_count_total{job=\"$gatewayDeployment\"})",
           "instant": false,
           "interval": "",
           "legendFormat": "{{podName}}",
@@ -153,15 +155,17 @@
           "fields": "",
           "values": false
         },
+        "showPercentChange": false,
         "text": {},
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "10.4.1",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -218,21 +222,23 @@
           "fields": "",
           "values": false
         },
+        "showPercentChange": false,
         "text": {},
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "10.4.1",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "l7_service_attempted_count_total - l7_service_success_count_total",
+          "expr": "sum(l7_service_attempted_count_total{job=\"$gatewayDeployment\"} - l7_service_success_count_total{job=\"$gatewayDeployment\"})",
           "interval": "",
-          "legendFormat": "{{pod}}-{{l7_method}}",
+          "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
         }
@@ -251,6 +257,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -265,6 +272,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -320,18 +328,18 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(l7_service_attempted_count_total{job=\"$gatewayDeployment\"}[$__rate_interval]))",
+          "expr": "sum(rate(l7_service_attempted_count_total{job=\"$gatewayDeployment\"}[5m]))",
           "instant": false,
           "interval": "",
           "legendFormat": "${gatewayDeployment}",
           "refId": "A"
         }
       ],
-      "title": "Transactions Per Second (Cluster)",
+      "title": "Transaction Rate (Cluster[5m])",
       "type": "timeseries"
     },
     {
@@ -410,15 +418,16 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "10.4.1",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
+          "editorMode": "code",
           "exemplar": true,
-          "expr": "l7_total_service_policy_violations{}",
+          "expr": "l7_service_policy_violations_count_total{job=\"$gatewayDeployment\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -441,17 +450,27 @@
               "goid": true,
               "instance": true,
               "job": true,
+              "l7_goid": true,
+              "l7_method": false,
               "name": true,
               "namespace": true,
               "pod": false,
               "service": true,
               "serviceUri": true
             },
+            "includeByName": {},
             "indexByName": {},
             "renameByName": {
-              "Value": "Total",
+              "Value": "Count",
               "__name__": "",
-              "apiName": "Service Name"
+              "apiName": "Service Name",
+              "container": "",
+              "l7_method": "Method",
+              "l7_serviceName": "Service Name",
+              "l7_serviceUri": "Service URI",
+              "namespace": "",
+              "pod": "Pod",
+              "service": ""
             }
           }
         }
@@ -469,6 +488,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -483,6 +503,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -542,18 +563,18 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(l7_service_attempted_count_total{job=\"$gatewayDeployment\",l7_method=\"$requestMethod\"}[$__rate_interval])",
+          "expr": "rate(l7_service_attempted_count_total{l7_serviceName=\"$serviceName\",job=\"$gatewayDeployment\",l7_method=\"$requestMethod\"}[5m])",
           "instant": false,
           "interval": "",
-          "legendFormat": "$gatewayPod-$requestMethod",
+          "legendFormat": "{{l7_serviceName}}",
           "refId": "A"
         }
       ],
-      "title": "Transactions Per Second  (Service)",
+      "title": "Transactions Rate (Service[5m])",
       "type": "timeseries"
     },
     {
@@ -599,15 +620,17 @@
           "fields": "",
           "values": false
         },
+        "showPercentChange": false,
         "text": {},
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "10.4.1",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -630,7 +653,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
           "custom": {
             "fillOpacity": 80,
@@ -649,10 +672,14 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
           },
-          "unit": "short"
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -664,25 +691,30 @@
       },
       "id": 29,
       "options": {
+        "bucketOffset": 0,
         "combine": false,
         "legend": {
-          "calcs": [],
+          "calcs": [
+            "lastNotNull"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         }
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "10.4.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(l7_service_latency_milliseconds_bucket{job=\"$gatewayDeployment\",pod=\"$gatewayPod\"}[$__rate_interval])) by (le))",
+          "exemplar": false,
+          "expr": "histogram_quantile(0.95, l7_service_latency_milliseconds_bucket{})",
+          "format": "time_series",
           "instant": false,
-          "legendFormat": "$gatewayPod",
+          "legendFormat": "{{l7_serviceName}}",
           "range": true,
           "refId": "A"
         }
@@ -795,15 +827,16 @@
           }
         ]
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "10.4.1",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "l7_http_request_total{gateway_name!=\"\",service_name!=\"\"}",
+          "expr": "l7_service_attempted_count_total{job=\"$gatewayDeployment\", l7_method=\"$requestMethod\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -818,11 +851,11 @@
           "options": {
             "include": {
               "names": [
-                "pod",
-                "request_method",
-                "request_uri",
-                "service_name",
-                "Value"
+                "l7_method",
+                "l7_serviceName",
+                "l7_serviceUri",
+                "Value",
+                "pod"
               ]
             }
           }
@@ -830,31 +863,17 @@
         {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "namespace": true
-            },
-            "indexByName": {
-              "Value": 4,
-              "pod": 1,
-              "request_method": 3,
-              "request_uri": 2,
-              "service_name": 0
-            },
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
             "renameByName": {
-              "Value": "Total",
-              "namespace": "Namespace",
-              "pod": "Pod",
-              "request_uri": "Request URI",
-              "service_name": "Service Name"
+              "Value": "Count",
+              "exported_job": "",
+              "l7_method": "Method",
+              "l7_serviceName": "Service Name",
+              "l7_serviceUri": "Service URI",
+              "pod": "Pod"
             }
-          }
-        },
-        {
-          "id": "reduce",
-          "options": {
-            "includeTimeField": false,
-            "mode": "reduceFields",
-            "reducers": []
           }
         }
       ],
@@ -897,6 +916,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -910,6 +930,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -968,7 +989,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -993,6 +1014,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1006,6 +1028,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -1036,7 +1059,7 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1064,18 +1087,18 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "process_runtime_jvm_system_cpu_load_1m_ratio",
+          "expr": "process_runtime_jvm_system_cpu_load_1m",
           "interval": "",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "System Load",
+      "title": "System Load (1m)",
       "type": "timeseries"
     },
     {
@@ -1089,6 +1112,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1102,6 +1126,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -1160,7 +1185,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -1185,6 +1210,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1198,6 +1224,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -1256,7 +1283,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -1272,54 +1299,17 @@
     }
   ],
   "refresh": "5s",
-  "schemaVersion": 38,
-  "style": "dark",
+  "schemaVersion": 39,
   "tags": [],
   "templating": {
     "list": [
       {
-        "allValue": "\"\"",
-        "current": {
-          "selected": true,
-          "text": "Rest Api 1",
-          "value": "Rest Api 1"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus"
-        },
-        "definition": "l7_http_request_total{service_name!=\"\"}",
-        "hide": 0,
-        "includeAll": false,
-        "label": "Service Name",
-        "multi": false,
-        "name": "serviceName",
-        "options": [],
-        "query": {
-          "query": "l7_http_request_total{service_name!=\"\"}",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "/.*service_name=\"([^\"]*)\"/",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": "\"\"",
         "current": {
           "selected": false,
           "text": "ssg",
           "value": "ssg"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus"
-        },
-        "definition": "l7_http_request_total{job!=\"\"}",
+        "definition": "label_values(l7_service_attempted_count_total,job)",
         "hide": 0,
         "includeAll": false,
         "label": "Gateway Deployment",
@@ -1327,61 +1317,23 @@
         "name": "gatewayDeployment",
         "options": [],
         "query": {
-          "query": "l7_http_request_total{job!=\"\"}",
-          "refId": "StandardVariableQuery"
+          "qryType": 1,
+          "query": "label_values(l7_service_attempted_count_total,job)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
-        "regex": "/.*job=\"([^\"]*)\"/",
+        "regex": "",
         "skipUrlSync": false,
         "sort": 0,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
+        "type": "query"
       },
       {
-        "allValue": "\"\"",
-        "current": {
-          "selected": true,
-          "text": "GET",
-          "value": "GET"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus"
-        },
-        "definition": "l7_http_request_total{request_method!=\"\"}",
-        "hide": 0,
-        "includeAll": false,
-        "label": "Request Method",
-        "multi": false,
-        "name": "requestMethod",
-        "options": [],
-        "query": {
-          "query": "l7_http_request_total{request_method!=\"\"}",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "/.*request_method=\"([^\"]*)\"/",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": "\"\"",
         "current": {
           "selected": false,
-          "text": "ssg-f6f7788c7-57g9j",
-          "value": "ssg-f6f7788c7-57g9j"
+          "text": "ssg-5b88cc7874-5jjlm",
+          "value": "ssg-5b88cc7874-5jjlm"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus"
-        },
-        "definition": "l7_http_request_total{pod!=\"\"}",
+        "definition": "label_values(l7_service_attempted_count_total{pod!=\"\", job=\"$gatewayDeployment\"},pod)",
         "hide": 0,
         "includeAll": false,
         "label": "Pod",
@@ -1389,17 +1341,63 @@
         "name": "gatewayPod",
         "options": [],
         "query": {
-          "query": "l7_http_request_total{pod!=\"\"}",
-          "refId": "StandardVariableQuery"
+          "qryType": 1,
+          "query": "label_values(l7_service_attempted_count_total{pod!=\"\", job=\"$gatewayDeployment\"},pod)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
-        "regex": "/.*pod=\"([^\"]*)\"/",
+        "regex": "",
         "skipUrlSync": false,
         "sort": 0,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "Gateway GraphQL Management Service",
+          "value": "Gateway GraphQL Management Service"
+        },
+        "definition": "label_values(l7_service_attempted_count_total{job=\"$gatewayDeployment\", pod=\"$gatewayPod\"},l7_serviceName)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Service Name",
+        "multi": false,
+        "name": "serviceName",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(l7_service_attempted_count_total{job=\"$gatewayDeployment\", pod=\"$gatewayPod\"},l7_serviceName)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "POST",
+          "value": "POST"
+        },
+        "definition": "label_values(l7_service_attempted_count_total{job=\"$gatewayDeployment\", l7_serviceName=\"$serviceName\"},l7_method)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Request Method",
+        "multi": false,
+        "name": "requestMethod",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(l7_service_attempted_count_total{job=\"$gatewayDeployment\", l7_serviceName=\"$serviceName\"},l7_method)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
       }
     ]
   },

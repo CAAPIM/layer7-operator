@@ -5476,7 +5476,8 @@ spec:
                   redis:
                     properties:
                       auth:
-                        description: Auth if using sentinel
+                        description: Auth if using sentinel or standalone (from Gateway
+                          v11.1.00)
                         properties:
                           enabled:
                             description: Enable or disable Redis auth Authentication
@@ -5489,6 +5490,9 @@ spec:
                           username:
                             type: string
                         type: object
+                      commandTimeout:
+                        description: CommandTimeout for Redis commands
+                        type: integer
                       enabled:
                         description: Enable or disable a Redis integration
                         type: boolean
@@ -5521,7 +5525,8 @@ spec:
                             type: integer
                         type: object
                       tls:
-                        description: TLS configuration
+                        description: TLS configuration if using sentinel or standalone
+                          (from Gateway v11.1.00)
                         properties:
                           crt:
                             description: Crt in plaintext
@@ -7771,16 +7776,6 @@ spec:
                   type: string
                 description: Labels - Custom Labels
                 type: object
-              mode:
-                description: Mode determines how or if the Portal is contacted defaults
-                  to auto, options are auto, local. Local requires enrollmentBundle
-                  to be set.
-                type: string
-              portalManaged:
-                description: PortalManaged if PortalManaged is true the portal controller
-                  will not manage APIs and will be only be responsible for maintaining
-                  a list of L7Api Portal published Metadata.
-                type: boolean
               portalTenant:
                 description: PortalTenant is the tenantId of the API Developer Portal
                 type: string

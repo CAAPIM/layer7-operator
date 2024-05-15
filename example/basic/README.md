@@ -59,7 +59,7 @@ ssg-64ccd9dd48-bqstf                                  1/1     Running   0       
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
@@ -114,7 +114,7 @@ kubectl apply -f ./example/gateway/basic-gateway.yaml
 ```
 
 ##### Referencing the repositories we created
-[ssg-gateway.yaml](../gateway/basic-gateway.yaml) contains 3 repository references, the 'type' defines how a repository is applied to the Container Gateway.
+[basic-gateway.yaml](../gateway/basic-gateway.yaml) contains 3 repository references, the 'type' defines how a repository is applied to the Container Gateway.
 - Dynamic repositories are applied directly to the Graphman endpoint on the Gateway which does not require a gateway restart
 - Static repositories are bootstrapped to the Container Gateway with an initContainer which requires a gateway restart.
 ```
@@ -313,5 +313,5 @@ kubectl delete -k ./example/repositories/
 
 ### Uninstall the Operator
 ```
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
 ```

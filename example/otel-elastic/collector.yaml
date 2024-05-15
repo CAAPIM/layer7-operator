@@ -3,14 +3,16 @@ kind: OpenTelemetryCollector
 metadata:
   name: ssg-eck
 spec:
-  image: otel/opentelemetry-collector-contrib:0.77.0
+  image: otel/opentelemetry-collector-contrib:0.97.0
   mode: sidecar
   config: |
     receivers:
       otlp:
         protocols:
           grpc:
+            endpoint: 0.0.0.0:4317
           http:
+            endpoint: 0.0.0.0:4318
     processors:
       batch:
       resource:
@@ -19,8 +21,8 @@ spec:
           value: "ssg"
           action: upsert
     exporters:
-      logging:
-        loglevel: warn 
+      debug:
+        verbosity: basic
       otlp/elastic:
         endpoint: apm-server-quickstart-apm-http:8200
         tls:
@@ -41,7 +43,7 @@ spec:
         metrics:
           receivers: [otlp]
           processors: [resource,batch]
-          exporters: [otlp/elastic]
+          exporters: [otlp/elastic,debug]
         logs: 
           receivers: [otlp]
-          exporters: [otlp/elastic]
+          exporters: [otlp/elastic, debug]

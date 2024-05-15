@@ -1,7 +1,7 @@
 # This Makefile drives the quickstart sections of all examples.
 #SHELL := /bin/bash
 
-.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test
+.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel
 
 wait:
 ifeq ($(OS),Windows_NT)
@@ -21,9 +21,13 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
+	echo "skipping install"
+	kubectl apply -f ../deploy/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
+# kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
+# @$(MAKE) --silent t=10 wait
+# kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
 install-cr1:
 	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
@@ -40,7 +44,30 @@ advanced:
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
 
-otel-prometheus-example-kind: install-cr1 cert-manager prometheus open-telemetry jaeger nginx-kind
+
+grafana-stack:
+	helm repo add grafana https://grafana.github.io/helm-charts
+	helm upgrade --install --values ./otel-lgtm/grafana-stack/loki-overrides.yaml loki grafana/loki -n grafana-loki --create-namespace
+	helm upgrade --install --values ./otel-lgtm/grafana-stack/promtail-overrides.yaml promtail grafana/promtail -n grafana-loki
+	helm upgrade --install --values ./otel-lgtm/grafana-stack/tempo-overrides.yaml tempo grafana/tempo -n grafana-loki
+	helm upgrade --install --values ./otel-lgtm/grafana-stack/mimir-distributed-overrides.yaml mimir grafana/mimir-distributed -n grafana-loki
+
+otel-lgtm-example-kind: install cert-manager prometheus-lgtm open-telemetry grafana-stack nginx-kind
+	kubectl apply -f ./otel-lgtm/collector.yaml
+	kubectl apply -f ./otel-lgtm/instrumentation.yaml
+	kubectl apply -k ./repositories
+	@$(MAKE) --silent t=10 wait
+	kubectl apply -f ./gateway/otel-lgtm-gateway.yaml
+
+
+otel-lgtm-example: install cert-manager prometheus-lgtm open-telemetry grafana-stack
+	kubectl apply -f ./otel-lgtm/collector.yaml
+	kubectl apply -f ./otel-lgtm/instrumentation.yaml
+	kubectl apply -k ./repositories
+	@$(MAKE) --silent t=10 wait
+	kubectl apply -f ./gateway/otel-lgtm-gateway.yaml
+
+otel-prometheus-example-kind: install cert-manager prometheus open-telemetry jaeger nginx-kind
 	kubectl apply -f ./otel-prometheus/servicemonitor.yaml
 	kubectl apply -f ./otel-prometheus/collector.yaml
 	kubectl apply -f ./otel-prometheus/instrumentation.yaml
@@ -50,7 +77,7 @@ otel-prometheus-example-kind: install-cr1 cert-manager prometheus open-telemetry
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 
-otel-prometheus-example: install-cr1 cert-manager prometheus open-telemetry jaeger
+otel-prometheus-example: install cert-manager prometheus open-telemetry jaeger
 	kubectl apply -f ./otel-prometheus/servicemonitor.yaml
 	kubectl apply -f ./otel-prometheus/collector.yaml
 	kubectl apply -f ./otel-prometheus/instrumentation.yaml
@@ -60,7 +87,7 @@ otel-prometheus-example: install-cr1 cert-manager prometheus open-telemetry jaeg
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 
-otel-elastic-example-kind: install-cr1 cert-manager open-telemetry elastic nginx-kind
+otel-elastic-example-kind: install cert-manager open-telemetry elastic nginx-kind
 	@$(MAKE) --silent t=$(shell kubectl get secret/apm-server-quickstart-apm-token -o go-template='{{index .data "secret-token" | base64decode}}') create-collector
 	kubectl apply -f ./otel-elastic/instrumentation.yaml
 	@$(MAKE) --silent t=10 wait
@@ -73,11 +100,7 @@ otel-elastic-example-kind: install-cr1 cert-manager open-telemetry elastic nginx
 	@echo "1. Open kibana.brcmlabs.com in a browser\n2. Complete the Post Installation tasks\n3. Test your Gateway\n4. View Logs, Metrics and Traces\n\nusername: elastic\npassword: $(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')"
 	@echo "#####################################################\n"
 
-randomtest:
-	elasticPass=$(shell kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')
-	@echo "${elasticPass}"
-
-otel-elastic-example: install-cr1 cert-manager open-telemetry elastic
+otel-elastic-example: install cert-manager open-telemetry elastic
 	@$(MAKE) --silent t=$(shell kubectl get secret/apm-server-quickstart-apm-token -o go-template='{{index .data "secret-token" | base64decode}}') create-collector
 	kubectl apply -f ./otel-elastic/instrumentation.yaml
 	@$(MAKE) --silent t=10 wait
@@ -91,7 +114,7 @@ otel-elastic-example: install-cr1 cert-manager open-telemetry elastic
 	@echo "#####################################################\n"
 
 cert-manager:
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=cert-manager -n cert-manager
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=cainjector -n cert-manager
@@ -115,7 +138,7 @@ metrics-server:
 	kubectl apply -f ./metrics-server/metrics-server-0-6-3.yaml
 
 open-telemetry:
-	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
+	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.97.1/opentelemetry-operator.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=opentelemetry-operator -n opentelemetry-operator-system
 
@@ -125,6 +148,14 @@ prometheus:
 	-kubectl create ns monitoring
 	kubectl apply -k ./otel-prometheus/monitoring/grafana/
 	helm upgrade -i prometheus -f ./otel-prometheus/monitoring/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
+
+prometheus-lgtm:
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	helm repo update
+	-kubectl create ns monitoring
+	kubectl apply -k ./otel-lgtm/prometheus/grafana-dashboard/
+	helm upgrade -i prometheus -f ./otel-lgtm/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
+
 
 jaeger:
 	-kubectl create namespace observability
@@ -143,23 +174,23 @@ nginx:
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
 
 uninstall:
-	-kubectl delete -f ./example/gateway
+	-kubectl delete -f ./gateway
 	-kubectl delete -k ./repositories/
 	-kubectl delete -f ./otel-prometheus/collector.yaml
 	-kubectl delete -f ./otel-elastic/collector.yaml
 	-kubectl delete -f ./otel-prometheus/instrumentation.yaml
 	-kubectl delete -f ./otel-elastic/instrumentation.yaml
 	-kubectl delete -f ./otel-prometheus/observability/jaeger
-	-kubectl delete -f ../deploy/bundle.yaml
-	-kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
+	-kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.97.1/opentelemetry-operator.yaml
 	-helm uninstall prometheus -n monitoring
 	-kubectl delete -k ./otel-prometheus/monitoring/grafana/
-	-kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+	-kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
 	-kubectl delete -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.44.0/jaeger-operator.yaml -n observability
 	-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 	-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 	-kubectl delete ns observability
 	-kubectl delete ns monitoring
+	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
 
 uninstall-kind:
 	kind delete cluster --name layer7

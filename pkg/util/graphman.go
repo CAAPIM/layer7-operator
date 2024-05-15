@@ -136,45 +136,6 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 
 	bundleBytes, _ := json.Marshal(bundle)
 	return bundleBytes, nil
-
-	// bundle.ListenPorts = append(bundle.ListenPorts, &graphman.ListenPortInput{
-	// 	Name:            "Default HTTPS (8443)",
-	// 	Port:            8443,
-	// 	Enabled:         true,
-	// 	Protocol:        "HTTPS",
-	// 	EnabledFeatures: []graphman.ListenPortFeature{"PUBLISHED_SERVICE_MESSAGE_INPUT"},
-
-	// 	TlsSettings: &graphman.ListenPortTlsSettingsInput{
-	// 		KeystoreId:           "00000000000000000000000000000002",
-	// 		KeyAlias:             "brcmlabs",
-	// 		TlsVersions:          []string{"TLSv1.2", "TLSv1.3"},
-	// 		UseCipherSuitesOrder: true,
-	// 		ClientAuthentication: "OPTIONAL",
-	// 		CipherSuites: []string{
-	// 			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-	// 			"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-	// 			"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
-	// 			"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-	// 			"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-	// 			"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-	// 			"TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
-	// 			"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
-	// 			"TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-	// 			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-	// 			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-	// 			"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-	// 			"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-	// 			"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-	// 			"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-	// 			"TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-	// 			"TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-	// 			"TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-	// 			"TLS_AES_256_GCM_SHA384",
-	// 			"TLS_AES_128_GCM_SHA256",
-	// 		},
-	// 	},
-	// })
-
 }
 
 func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) {

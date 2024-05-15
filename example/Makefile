@@ -21,16 +21,7 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	echo "skipping install"
-	kubectl apply -f ../deploy/bundle.yaml
-	@$(MAKE) --silent t=10 wait
-	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
-# kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
-# @$(MAKE) --silent t=10 wait
-# kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
-
-install-cr1:
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 

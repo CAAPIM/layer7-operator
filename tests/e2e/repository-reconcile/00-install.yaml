@@ -9,5 +9,3 @@ spec:
   branch: main
   type: git
   auth: {}
-    # vendor: Github
-    # existingSecretName: test-repository-secret

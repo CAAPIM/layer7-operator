@@ -56,11 +56,11 @@ OPERATOR_SDK_VERSION ?= v1.33.0
 #IMG ?= docker.io/layer7api/layer7-operator:v$(VERSION)
 IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.28.0
+ENVTEST_K8S_VERSION = 1.29.0
 
 START_KIND_CLUSTER ?= true
 
-KUBE_VERSION ?= 1.28
+KUBE_VERSION ?= 1.29
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
 GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.00

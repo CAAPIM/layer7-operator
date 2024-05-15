@@ -81,6 +81,7 @@ var _ = Describe("Gateway controller", func() {
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",
+								Password: "7layer",
 							},
 							Username: "admin",
 							Password: "7layer",

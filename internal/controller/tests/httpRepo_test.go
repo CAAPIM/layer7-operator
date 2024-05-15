@@ -126,6 +126,7 @@ var _ = Describe("Gateway controller support for http repo", func() {
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",
+								Password: "7layer",
 							},
 							Username: "admin",
 							Password: "7layer",

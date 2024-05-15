@@ -63,7 +63,7 @@ START_KIND_CLUSTER ?= true
 KUBE_VERSION ?= 1.28
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
-GATEWAY_IMG ?= docker.io/caapim/gateway:11.0.00_CR2
+GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.00
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))

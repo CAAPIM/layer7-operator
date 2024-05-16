@@ -28,12 +28,3 @@ func gqlClient(username string, password string, target string, encpass string) 
 	}
 	return graphql.NewClient(target, httpClient)
 }
-
-func GqlSummary() {
-	//client := gqlClient()
-	// resp, err := summary(context.Background(), client)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// fmt.Println(resp.ClusterProperties)
-}

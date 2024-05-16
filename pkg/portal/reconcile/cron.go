@@ -46,12 +46,6 @@ func registerJobs(ctx context.Context, params Params) {
 		params.Log.V(2).Info("portal sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 
-	_, err = s.Every(portalSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-portal-apis").Do(syncPortalApis, ctx, params)
-
-	if err != nil {
-		params.Log.V(2).Info("portal api sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-	}
-
 }
 
 func removeJob(tag string) error {

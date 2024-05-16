@@ -1,0 +1,63 @@
+# https://github.com/grafana/mimir/blob/main/operations/helm/charts/mimir-distributed/values.yaml
+alertmanager:
+  resources:
+    requests:
+      cpu: 20m
+compactor:
+  resources:
+    requests:
+      cpu: 20m
+distributor:
+  resources:
+    requests:
+      cpu: 20m
+ingester:
+  replicas: 2
+  zoneAwareReplication:
+    enabled: false
+  resources:
+    requests:
+      cpu: 20m
+overrides_exporter:
+  resources:
+    requests:
+      cpu: 20m
+querier:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 20m
+query_frontend:
+  resources:
+    requests:
+      cpu: 20m
+query_scheduler:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 20m
+ruler:
+  resources:
+    requests:
+      cpu: 20m
+store_gateway:
+  zoneAwareReplication:
+    enabled: false
+  resources:
+    requests:
+      cpu: 20m
+minio:
+  serviceAccount:
+    name: minio-mimir-sa
+  resources:
+    requests:
+      cpu: 20m
+rollout_operator:
+  resources:
+    requests:
+      cpu: 20m
+mimir:
+  structuredConfig:
+    limits:
+      max_label_name_length: 2048
+      max_label_value_length: 8192

@@ -195,7 +195,7 @@ func Gateway(ctx context.Context, params Params) error {
 
 // TempStorage writes API Metadata to /tmp/portalapis/<l7PortalName>/apiname.json
 // This does not track the deployment tag which will be resolved in a future update
-// if l7api and l7portal should have the same deployment tags, l7portal deployment tags are
+// l7api and l7portal should have the same deployment tags, l7portal deployment tags are
 // primarily used for bootstrapping portal apis to target container gateway deployments.
 // this mechanism will be updated in the future.
 func WriteTempStorage(ctx context.Context, params Params) error {

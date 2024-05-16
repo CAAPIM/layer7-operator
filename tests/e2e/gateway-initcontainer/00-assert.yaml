@@ -21,7 +21,7 @@ spec:
             name: ssg
         - secretRef:
             name: ssg
-        image: docker.io/caapim/gateway:11.0.00_CR2
+        image: docker.io/caapim/gateway:11.1.00
         imagePullPolicy: IfNotPresent
         lifecycle: {}
         livenessProbe:
@@ -30,7 +30,7 @@ spec:
             - /bin/bash
             - /opt/docker/rc.d/diagnostic/health_check.sh
           failureThreshold: 25
-          initialDelaySeconds: 45
+          initialDelaySeconds: 30
           periodSeconds: 15
           successThreshold: 1
           timeoutSeconds: 1
@@ -48,7 +48,7 @@ spec:
             - /bin/bash
             - /opt/docker/rc.d/diagnostic/health_check.sh
           failureThreshold: 25
-          initialDelaySeconds: 45
+          initialDelaySeconds: 30
           periodSeconds: 15
           successThreshold: 1
           timeoutSeconds: 1

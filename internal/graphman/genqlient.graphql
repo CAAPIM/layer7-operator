@@ -1,330 +1,4 @@
-query everything {
-    policyFragments {
-        name
-        checksum
-        folderPath
-        policy {
-            xml
-        }
-        guid
-    }
-    webApiServices {
-        name
-        checksum
-        resolutionPath
-        folderPath
-        policy {
-            xml
-        }
-        enabled
-        methodsAllowed
-    }
-    soapServices {
-        name
-        checksum
-        folderPath
-        resolvers {
-            resolutionPath
-        }
-        wsdl
-        wssProcessingEnabled
-        enabled
-        methodsAllowed
-        policy {
-            xml
-        }
-    }
-    clusterProperties {
-        name
-        checksum
-        value
-    }
-    trustedCerts {
-        name
-        checksum
-        certBase64
-        verifyHostname
-        trustAnchor
-        trustedFor
-        revocationCheckPolicyType
-    }
-    encassConfigs {
-        name
-        checksum
-        policyName
-        guid
-        encassArgs {
-            name
-            type
-            ordinal
-            guiLabel
-            guiPrompt
-        }
-        encassResults {
-            name
-            type
-        }
-    }
-    jdbcConnections {
-        name
-        checksum
-        driverClass
-        jdbcUrl
-        enabled
-        username
-        password
-        minPoolSize
-        maxPoolSize
-        properties {
-            name
-            value
-        }
-    }
-    schemas {
-        systemId
-        checksum
-        targetNs
-        description
-        content
-    }
-    dtds {
-        systemId
-        checksum
-        publicId
-        description
-        content
-    }
-    fips {
-        name
-        checksum
-        goid
-        enableCredentialTypeX509
-        enableCredentialTypeSaml
-        certificateReferences {
-            thumbprintSha1
-        }
-    }
-    ldaps {
-        name
-        goid
-        ldapUrls
-        ldapsClientAuthEnabled
-        ldapsClientKeyAlias
-        searchBase
-        writable
-        bindDn
-        bindPassword
-        userMappings {
-            objClass
-            nameAttrName
-            loginAttrName
-            passwdAttrName
-            firstNameAttrName
-            lastNameAttrName
-            emailNameAttrName
-            kerberosAttrName
-            kerberosEnterpriseAttrName
-            userCertAttrName
-            passwdType {
-                val
-            }
-        }
-        groupMappings {
-            objClass
-            nameAttrName
-            memberAttrName
-            memberStrategy {
-                val
-            }
-        }
-        checksum
-    }
-    internalGroups {
-        name
-        checksum
-        goid
-        description
-    }
-    fipGroups {
-        name
-        providerName
-        checksum
-        goid
-        description
-    }
-    internalUsers {
-        name
-        goid
-        checksum
-        memberOf {
-            name
-        }
-        login
-        password
-        firstName
-        lastName
-        email
-        certBase64
-    }
-    fipUsers {
-        name
-        providerName
-        checksum
-        goid
-        subjectDn
-        memberOf {
-            name
-        }
-        login
-        firstName
-        lastName
-        email
-        certBase64
-    }
-    keys {
-        alias
-        checksum
-        goid
-        p12
-    }
-    secrets {
-        name
-        secretType
-        checksum
-        goid
-        variableReferencable
-        secret
-        description
-    }
-    cassandraConnections {
-        goid
-        name
-        keyspace
-        contactPoints
-        port
-        username
-        securePasswordName
-        sslEnabled
-        cipherSuites
-        properties {
-            name
-            value
-        }
-        checksum
-    }
-    jmsDestinations {
-        name
-        direction
-        providerType
-        initialContextFactoryClassname
-        connectionFactoryName
-        jndiUrl
-        jndiUsername
-        jndiPassword
-        template
-        enabled
-        jndiSslDetails {
-            sslEnabled
-            sslForAuthenticationOnly
-            sslVerifyServerCertificate
-            sslVerifyServerHostname
-            sslClientKeyAlias
-        }
-        destinationType
-        destinationName
-        destinationUsername
-        destinationPassword
-        destinationSslDetails {
-            sslEnabled
-            sslForAuthenticationOnly
-            sslVerifyServerCertificate
-            sslVerifyServerHostname
-            sslClientKeyAlias
-        }
-        template
-        enabled
-        properties {
-            name
-            value
-        }
-        checksum
-    }
-    emailListeners {
-        goid
-        name
-        enabled
-        hostname
-        port
-        username
-        password
-        serverType
-        sslEnabled
-        deleteOnReceive
-        folder
-        pollInterval
-        hardwiredServiceName
-        properties {
-            name
-            value
-        }
-        checksum
-    }
-    listenPorts {
-        name
-        goid
-        enabled
-        checksum
-        port
-        protocol
-        enabledFeatures
-        hardwiredServiceName
-        tlsSettings {
-            clientAuthentication
-            cipherSuites
-            useCipherSuitesOrder
-            tlsVersions
-            keyAlias
-        }
-        properties {
-            name
-            value
-        }
-        checksum
-    }
-    globalPolicies {
-        name
-        tag
-        folderPath
-        policy {
-            xml
-        }
-        guid
-        goid
-        checksum
-    }
-    backgroundTaskPolicies {
-        name
-        folderPath
-        guid
-        policy {
-            xml
-        }
-        checksum
-    }
-    scheduledTasks {
-        name
-        policyName
-        jobType
-        cronExpression
-        executeOnSingleNode
-        executeOnCreation
-        executionDate
-        status
-        runAsUser
-        runAsUserProviderName
-        checksum
-    }
-}
+
 
 mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!) {
     deleteWebApiServices (resolutionPaths: $webApiServiceResolutionPaths) {
@@ -335,7 +9,29 @@ mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFr
     }
 }
 
-mutation applyBundle (
+mutation deleteSecrets($secrets: [String!]!) {
+  deleteSecrets(names: $secrets) {
+    detailedStatus {status description}
+    secrets {
+        goid
+        name
+    }
+  }
+}
+
+mutation deleteKeys($keys: [String!]!) {
+  deleteKeys(aliases: $keys) {
+    detailedStatus {status description}
+    keys { 
+        goid 
+        keystoreId 
+        alias 
+    }
+  }
+}
+
+
+mutation installBundle (
     $activeConnectors: [ActiveConnectorInput!]!=[],
     $administrativeUserAccountProperties: [AdministrativeUserAccountPropertyInput!]!=[],
     $backgroundTaskPolicies:[BackgroundTaskPolicyInput!]!=[],
@@ -347,6 +43,13 @@ mutation applyBundle (
     $fipGroups:[FipGroupInput!]!=[],
     $fipUsers:[FipUserInput!]!=[],
     $fips:[FipInput!]!=[],
+    $federatedGroups:[FederatedGroupInput!]!=[],
+    $federatedUsers:[FederatedUserInput!]!=[],
+    $internalIdps:[InternalIdpInput!]=[],
+    $federatedIdps:[FederatedIdpInput!]!=[],
+    $ldapIdps:[LdapIdpInput!]=[],
+    $simpleLdapIdps:[SimpleLdapIdpInput!]=[],
+    $policyBackedIdps:[PolicyBackedIdpInput!]=[],
     $globalPolicies:[GlobalPolicyInput!]!=[],
     $internalGroups:[InternalGroupInput!]!=[],
     $internalSoapServices:[SoapServiceInput!]!=[],
@@ -358,6 +61,7 @@ mutation applyBundle (
     $ldaps:[LdapInput!]!=[],
     $listenPorts: [ListenPortInput!]!=[],
     $passwordPolicies:[PasswordPolicyInput!]!=[],
+    $policies: [L7PolicyInput!]!=[],
     $policyFragments: [PolicyFragmentInput!]!=[],
     $revocationCheckPolicies:[RevocationCheckPolicyInput!]!=[],
     $scheduledTasks:[ScheduledTaskInput!]!=[],
@@ -370,6 +74,7 @@ mutation applyBundle (
     $serviceResolutionConfigs:[ServiceResolutionConfigInput!]!=[],
     $folders: [FolderInput!]!=[],
     $smConfigs: [SMConfigInput!]!=[],
+    $services: [L7ServiceInput!]!=[],
     $soapServices:[SoapServiceInput!]!=[],
     $trustedCerts:[TrustedCertInput!]!=[],
     $webApiServices: [WebApiServiceInput!]!=[]) {
@@ -378,7 +83,6 @@ mutation applyBundle (
     setServiceResolutionConfigs (input: $serviceResolutionConfigs){detailedStatus {action status description source {name value} target {name value}}}
     setPasswordPolicies (input: $passwordPolicies){detailedStatus {action status description source {name value} target {name value}}}
     setAdministrativeUserAccountProperties (input: $administrativeUserAccountProperties){detailedStatus {action status description source {name value} target {name value}}}
-
     setFolders(input: $folders){detailedStatus {action status description source {name value} target {name value}}}
     setRevocationCheckPolicies (input: $revocationCheckPolicies){detailedStatus {action status description source {name value} target {name value}}}
     setTrustedCerts (input: $trustedCerts){detailedStatus {action status description source {name value} target {name value}}}
@@ -388,29 +92,37 @@ mutation applyBundle (
     setSchemas (input: $schemas){detailedStatus {action status description source {name value} target {name value}}}
     setDtds (input: $dtds){detailedStatus {action status description source {name value} target {name value}}}
     setJdbcConnections (input: $jdbcConnections){detailedStatus {action status description source {name value} target {name value}}}
+    setInternalIdps (input: $internalIdps){detailedStatus {action status description source {name value} target {name value}}}
+    setFederatedIdps (input: $federatedIdps){detailedStatus {action status description source {name value} target {name value}}}
+    setLdapIdps (input: $ldapIdps){detailedStatus {action status description source {name value} target {name value}}}
+    setSimpleLdapIdps (input: $simpleLdapIdps){detailedStatus {action status description source {name value} target {name value}}}
     setFips (input: $fips){detailedStatus {action status description source {name value} target {name value}}}
     setLdaps (input: $ldaps){detailedStatus {action status description source {name value} target {name value}}}
+    setFederatedGroups (input: $federatedGroups){detailedStatus {action status description source {name value} target {name value}}}
     setFipGroups (input: $fipGroups){detailedStatus {action status description source {name value} target {name value}}}
     setInternalGroups (input: $internalGroups){detailedStatus {action status description source {name value} target {name value}}}
+    setFederatedUsers (input: $federatedUsers){detailedStatus {action status description source {name value} target {name value}}}
     setFipUsers (input: $fipUsers){detailedStatus {action status description source {name value} target {name value}}}
     setInternalUsers (input: $internalUsers){detailedStatus {action status description source {name value} target {name value}}}
     setCassandraConnections (input: $cassandraConnections){detailedStatus {action status description source {name value} target {name value}}}
-    setJmsDestinations (input: $jmsDestinations){detailedStatus {action status description source {name value} target {name value}}}
     setSMConfigs (input: $smConfigs){detailedStatus {action status description source {name value} target {name value}}}
+    setPolicies (input: $policies){detailedStatus {action status description source {name value} target {name value}}}
     setPolicyFragments (input: $policyFragments){detailedStatus {action status description source {name value} target {name value}}}
     setEncassConfigs (input: $encassConfigs){detailedStatus {action status description source {name value} target {name value}}}
     setGlobalPolicies (input: $globalPolicies){detailedStatus {action status description source {name value} target {name value}}}
     setBackgroundTaskPolicies (input: $backgroundTaskPolicies){detailedStatus {action status description source {name value} target {name value}}}
+    setServices(input: $services){detailedStatus {action status description source {name value} target {name value}}}
     setWebApiServices (input: $webApiServices){detailedStatus {action status description source {name value} target {name value}}}
     setSoapServices (input: $soapServices){detailedStatus {action status description source {name value} target {name value}}}
     setInternalWebApiServices (input: $internalWebApiServices){detailedStatus {action status description source {name value} target {name value}}}
     setInternalSoapServices (input: $internalSoapServices){detailedStatus {action status description source {name value} target {name value}}}
+    setPolicyBackedIdps (input: $policyBackedIdps){detailedStatus {action status description source {name value} target {name value}}}
+    setJmsDestinations (input: $jmsDestinations){detailedStatus {action status description source {name value} target {name value}}}
     setEmailListeners (input: $emailListeners){detailedStatus {action status description source {name value} target {name value}}}
     setListenPorts (input: $listenPorts){detailedStatus {action status description source {name value} target {name value}}}
     setActiveConnectors (input: $activeConnectors){detailedStatus {action status description source {name value} target {name value}}}
     setScheduledTasks (input: $scheduledTasks){detailedStatus {action status description source {name value} target {name value}}}
     setLogSinks(input: $logSinks){detailedStatus {action status description source {name value} target {name value}}}
-
     # Keys must be mutated at the end
     setKeys (input: $keys) {detailedStatus {action status description source {name value} target {name value}}}
 }

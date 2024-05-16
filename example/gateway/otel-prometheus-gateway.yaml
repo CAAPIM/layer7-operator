@@ -3,21 +3,18 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "11.0.00_COMBINED"
+  version: "11.1.00"
   license:
     accept: false
     secretName: gateway-license
   app:
     podAnnotations:
-      sidecar.opentelemetry.io/inject: "ssg"
+      sidecar.opentelemetry.io/inject: "ssg-prom"
       instrumentation.opentelemetry.io/inject-java: "true"
       instrumentation.opentelemetry.io/container-names: "gateway"
     replicas: 1
-    image: docker.io/layer7api/gateway:11.0.00_COMBINED
+    image: docker.io/caapim/gateway:11.1.00
     imagePullPolicy: IfNotPresent
-    # serviceAccount:
-    #   create: true
-    #   name: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
@@ -78,7 +75,7 @@ spec:
       ## Reserved for future use
       graphman:
         enabled: true
-        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.0
+        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
       cluster:
         #password: 7layer
         hostname: gateway.brcmlabs.com
@@ -106,6 +103,14 @@ spec:
       custom:
         enabled: false
       ports: []
+    log:
+      override: true
+      properties: |-
+        handlers = com.l7tech.server.log.GatewayRootLoggingHandler, com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler
+        com.l7tech.server.log.GatewayRootLoggingHandler.formatter = com.l7tech.util.JsonLogFormatter
+        java.util.logging.SimpleFormatter.format=
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.formatter = com.l7tech.util.JsonLogFormatter
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.level = CONFIG
     cwp:
       enabled: true
       properties:
@@ -120,21 +125,20 @@ spec:
             com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion.level = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
+        - name: otel.enabled
+          value: "true"
         - name: otel.serviceMetricEnabled
           value: "true"
         - name: otel.traceEnabled
           value: "true"
         - name: otel.metricPrefix
           value: l7_
-        - name: otel.resourceAttributes
-          value: k8s.container.name,k8s.pod.name
         - name: otel.traceConfig
           value: |
             {
-             "services": [
-               {"url": ".*api.*"},
-               {"url": ".*test.*"}
-             ]
+              "services": [
+                {"resolutionPath": ".*"}
+              ]
             }
     system:
       properties: |-
@@ -150,6 +154,13 @@ spec:
         # Must be set correctly when Gateway is running in FIPS mode. If not specified it will default to PKCS12.
         javax.net.ssl.trustStoreType=jks
         com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
+        # OpenTelemetry Agent Configuration
+        otel.instrumentation.common.default-enabled=true
+        otel.instrumentation.opentelemetry-api.enabled=true
+        otel.instrumentation.runtime-metrics.enabled=true
+        otel.instrumentation.runtime-telemetry.enabled=true
+        otel.instrumentation.opentelemetry-instrumentation-annotations.enabled=true
+        otel.java.global-autoconfigure.enabled=true
         # Additional properties go here
     service:
       # annotations:

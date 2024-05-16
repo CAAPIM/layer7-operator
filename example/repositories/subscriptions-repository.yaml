@@ -8,5 +8,3 @@ spec:
   branch: main
   type: git
   auth: {}
-#    vendor: Github
-#    existingSecretName: graphman-repository-secret

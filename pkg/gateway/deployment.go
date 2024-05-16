@@ -67,7 +67,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				Command: []string{"/bin/bash", "/opt/docker/rc.d/diagnostic/health_check.sh"},
 			},
 		},
-		InitialDelaySeconds: 45,
+		InitialDelaySeconds: 30,
 		TimeoutSeconds:      1,
 		PeriodSeconds:       15,
 		FailureThreshold:    25,
@@ -80,7 +80,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				Command: []string{"/bin/bash", "/opt/docker/rc.d/diagnostic/health_check.sh"},
 			},
 		},
-		InitialDelaySeconds: 45,
+		InitialDelaySeconds: 30,
 		TimeoutSeconds:      1,
 		PeriodSeconds:       15,
 		FailureThreshold:    25,
@@ -773,7 +773,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	otkDbInitContainer := false
 	otkBootstrapDirectory := "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK"
 	otkInitContainerVolumeMounts := []corev1.VolumeMount{}
-	otkInitContainerImage := "docker.io/layer7api/otk-install:latest"
+	otkInitContainerImage := "docker.io/caapim/otk-install:4.6.2_202402"
 	otkInitContainerImagePullPolicy := corev1.PullIfNotPresent
 	otkInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -867,7 +867,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		})
 	}
 
-	if otkDbInitContainer && gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle {
+	if otkDbInitContainer && (gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle) {
 		initContainers = append(initContainers, corev1.Container{
 			Name:            "otk-db-init",
 			Image:           otkInitContainerImage,

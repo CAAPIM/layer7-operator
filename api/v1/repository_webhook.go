@@ -56,11 +56,11 @@ func (r *Repository) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Repository) ValidateUpdate(obj runtime.Object) (admission.Warnings, error) {
-	repository, ok := obj.(*Repository)
+	_, ok := obj.(*Repository)
 	if !ok {
-		return nil, fmt.Errorf("expected a Gateway, received %T", obj)
+		return nil, fmt.Errorf("expected a Repository, received %T", obj)
 	}
-	return validateRepository(repository)
+	return validateRepository(r)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -138,6 +138,8 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 					}
 				}
 			}
+		} else {
+			warnings = append(warnings, "using authentication for your remote repository is strongly recommended. repository: "+r.Name)
 		}
 
 	}

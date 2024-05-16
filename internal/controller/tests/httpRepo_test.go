@@ -22,8 +22,8 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
 			gatewayName         = "ssg-repo"
-			version             = "11.0.00_CR2"
-			image               = "docker.io/caapim/gateway:11.0.00_CR2"
+			version             = "11.1.00"
+			image               = "docker.io/caapim/gateway:11.1.00"
 			repoName            = "http-repo"
 		)
 
@@ -126,6 +126,7 @@ var _ = Describe("Gateway controller support for http repo", func() {
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",
+								Password: "7layer",
 							},
 							Username: "admin",
 							Password: "7layer",

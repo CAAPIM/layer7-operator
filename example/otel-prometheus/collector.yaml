@@ -1,32 +1,29 @@
 apiVersion: opentelemetry.io/v1alpha1
 kind: OpenTelemetryCollector
 metadata:
-  name: ssg
+  name: ssg-prom
 spec:
-  image: otel/opentelemetry-collector-contrib:0.77.0
+  image: otel/opentelemetry-collector-contrib:0.97.0
   mode: sidecar
   config: |
     receivers:
       otlp:
         protocols:
           grpc:
+            endpoint: 0.0.0.0:4317
           http:
+            endpoint: 0.0.0.0:4318
     processors:
       batch:
-      resource:
-        attributes:
-        - key: layer7gw.name
-          value: "ssg"
-          action: upsert
     exporters:
-      logging:
-        loglevel: warn 
+      debug:
+        verbosity: basic
       prometheus:
         endpoint: "0.0.0.0:8889"
         const_labels:
           name: ssg
-      jaeger:
-        endpoint: simple-allinone-collector:14250
+      otlp:
+        endpoint: simple-allinone-collector:4317
         tls:
           insecure: true
     service:
@@ -39,14 +36,14 @@ spec:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [jaeger]
+          exporters: [otlp]
         metrics:
           receivers: [otlp]
           processors: [batch]
-          exporters: [prometheus, logging]
+          exporters: [prometheus, debug]
         logs: 
           receivers: [otlp]
-          exporters: [logging]
+          exporters: [debug]
     extensions:
       health_check:
       pprof:

@@ -18,8 +18,8 @@ var _ = Describe("Gateway controller", func() {
 			gwLicenseSecretName = "gateway-license"
 			namespace           = "l7operator"
 			gatewayName         = "podconfig"
-			version             = "11.0.00_CR2"
-			image               = "docker.io/caapim/gateway:11.0.00_CR2"
+			version             = "11.1.00"
+			image               = "docker.io/caapim/gateway:11.1.00"
 		)
 
 		BeforeEach(func() {
@@ -81,6 +81,7 @@ var _ = Describe("Gateway controller", func() {
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",
+								Password: "7layer",
 							},
 							Username: "admin",
 							Password: "7layer",

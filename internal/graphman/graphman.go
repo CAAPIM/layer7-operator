@@ -23,7 +23,7 @@ type Bundle struct {
 	Schemas                             []*SchemaInput                            `json:"schemas,omitempty"`
 	Dtds                                []*DtdInput                               `json:"dtds,omitempty"`
 	Fips                                []*FipInput                               `json:"fips,omitempty"`
-	LdapIdps                            []*LdapInput                              `json:"ldaps,omitempty"`
+	Ldaps                               []*LdapInput                              `json:"ldaps,omitempty"`
 	InternalGroups                      []*InternalGroupInput                     `json:"internalGroups,omitempty"`
 	FipGroups                           []*FipGroupInput                          `json:"fipGroups,omitempty"`
 	InternalUsers                       []*InternalUserInput                      `json:"internalUsers,omitempty"`
@@ -48,6 +48,15 @@ type Bundle struct {
 	CustomKeyValues                     []*CustomKeyValueInput                    `json:"customKeyValues,omitempty"`
 	ServiceResolutionConfigs            []*ServiceResolutionConfigInput           `json:"serviceResolutionConfigs,omitempty"`
 	Folders                             []*FolderInput                            `json:"folders,omitempty"`
+	FederatedIdps                       []*FederatedIdpInput                      `json:"federatedIdps,omitempty"`
+	FederatedGroups                     []*FederatedGroupInput                    `json:"federatedGroups,omitempty"`
+	FederatedUsers                      []*FederatedUserInput                     `json:"federatedUsers,omitempty"`
+	InternalIdps                        []*InternalIdpInput                       `json:"internalIdps,omitempty"`
+	LdapIdps                            []*LdapIdpInput                           `json:"ldapIdps,omitempty"`
+	SimpleLdapIdps                      []*SimpleLdapIdpInput                     `json:"simpleLdapIdps,omitempty"`
+	PolicyBackedIdps                    []*PolicyBackedIdpInput                   `json:"policyBackedIdps,omitempty"`
+	Policies                            []*L7PolicyInput                          `json:"policies,omitempty"`
+	Services                            []*L7ServiceInput                         `json:"services,omitempty"`
 }
 
 var entities = []string{
@@ -87,7 +96,16 @@ var entities = []string{
 	".internalsoap",
 	".global",
 	".policy",
-	".bgpolicy",
+	"federatedIdps",
+	"federatedGroups",
+	"federatedUsers",
+	"internalIdps",
+	"ldapIdps",
+	"simpleLdapIdps",
+	"policyBackedIdps",
+	"policies",
+	"services",
+	".service",
 }
 
 type BundleApplyErrors struct {
@@ -99,18 +117,6 @@ type BundleApplyError struct {
 	Status string `json:"status,omitempty"`
 	Entity string `json:"entity,omitempty"`
 	Detail string `json:"detail,omitempty"`
-}
-
-func Query(username string, password string, target string, encpass string) ([]byte, error) {
-	resp, err := everything(context.Background(), gqlClient(username, password, target, encpass))
-	if err != nil {
-		return nil, err
-	}
-	respBytes, err := json.Marshal(resp)
-	if err != nil {
-		return nil, err
-	}
-	return respBytes, nil
 }
 
 func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
@@ -164,6 +170,15 @@ func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
 	destBundle.CustomKeyValues = append(destBundle.CustomKeyValues, srcBundle.CustomKeyValues...)
 	destBundle.ServiceResolutionConfigs = append(destBundle.ServiceResolutionConfigs, srcBundle.ServiceResolutionConfigs...)
 	destBundle.Folders = append(destBundle.Folders, srcBundle.Folders...)
+	destBundle.FederatedIdps = append(destBundle.FederatedIdps, srcBundle.FederatedIdps...)
+	destBundle.FederatedGroups = append(destBundle.FederatedGroups, srcBundle.FederatedGroups...)
+	destBundle.FederatedUsers = append(destBundle.FederatedUsers, srcBundle.FederatedUsers...)
+	destBundle.InternalIdps = append(destBundle.InternalIdps, srcBundle.InternalIdps...)
+	destBundle.LdapIdps = append(destBundle.LdapIdps, srcBundle.LdapIdps...)
+	destBundle.SimpleLdapIdps = append(destBundle.SimpleLdapIdps, srcBundle.SimpleLdapIdps...)
+	destBundle.PolicyBackedIdps = append(destBundle.PolicyBackedIdps, srcBundle.PolicyBackedIdps...)
+	destBundle.Policies = append(destBundle.Policies, srcBundle.Policies...)
+	destBundle.Services = append(destBundle.Services, srcBundle.Services...)
 
 	bundleBytes, err := json.Marshal(destBundle)
 	if err != nil {
@@ -188,31 +203,6 @@ func Implode(path string) ([]byte, error) {
 	return bundleBytes, nil
 }
 
-// Apply - applies a bundle to a target gateway.
-// func Apply(path string, username string, password string, target string, encpass string) ([]byte, error) {
-// 	bundle, err := implodeBundle(path)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	resp, applyErr := applyBundle(context.Background(), gqlClient(username, password, target, encpass), bundle.ActiveConnectors, bundle.AdministrativeUserAccountProperties, bundle.BackgroundTasks, bundle.CassandraConnections, bundle.ClusterProperties, bundle.Dtds, bundle.EmailListeners, bundle.EncassConfigs, bundle.FipGroups, bundle.FipUsers, bundle.Fips, bundle.GlobalPolicies, bundle.InternalGroups, bundle.InternalSoapServices, bundle.InternalUsers, bundle.InternalWebApiServices, bundle.JdbcConnections, bundle.JmsDestinations, bundle.Keys, bundle.LdapIdps, bundle.ListenPorts, bundle.PasswordPolicies, bundle.PolicyFragments, bundle.RevocationCheckPolicies, bundle.ScheduledTasks, bundle.LogSinks, bundle.Schemas, bundle.Secrets, bundle.HttpConfigurations, bundle.CustomKeyValues, bundle.ServerModuleFiles, bundle.ServiceResolutionConfigs, bundle.Folders, bundle.SiteMinderConfigs, bundle.InternalSoapServices, bundle.TrustedCerts, bundle.InternalWebApiServices)
-
-// 	err = CheckDetailedStatus(bundle, resp)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if applyErr != nil {
-// 		return nil, err
-// 	}
-
-// 	respBytes, err := json.Marshal(resp)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return respBytes, nil
-// }
-
 func RemoveL7PortalApi(username string, password string, target string, apiName string, policyFragmentName string) ([]byte, error) {
 	resp, err := deleteL7PortalApi(context.Background(), gqlClient(username, password, target, ""), []string{apiName}, []string{policyFragmentName})
 	if err != nil {
@@ -233,7 +223,7 @@ func ApplyDynamicBundle(username string, password string, target string, encpass
 		return nil, err
 	}
 
-	resp, err := applyBundle(context.Background(), gqlClient(username, password, target, encpass), bundle.ActiveConnectors, bundle.AdministrativeUserAccountProperties, bundle.BackgroundTasks, bundle.CassandraConnections, bundle.ClusterProperties, bundle.Dtds, bundle.EmailListeners, bundle.EncassConfigs, bundle.FipGroups, bundle.FipUsers, bundle.Fips, bundle.GlobalPolicies, bundle.InternalGroups, bundle.InternalSoapServices, bundle.InternalUsers, bundle.InternalWebApiServices, bundle.JdbcConnections, bundle.JmsDestinations, bundle.Keys, bundle.LdapIdps, bundle.ListenPorts, bundle.PasswordPolicies, bundle.PolicyFragments, bundle.RevocationCheckPolicies, bundle.ScheduledTasks, bundle.LogSinks, bundle.Schemas, bundle.Secrets, bundle.HttpConfigurations, bundle.CustomKeyValues, bundle.ServerModuleFiles, bundle.ServiceResolutionConfigs, bundle.Folders, bundle.SiteMinderConfigs, bundle.InternalSoapServices, bundle.TrustedCerts, bundle.WebApiServices)
+	resp, err := installBundle(context.Background(), gqlClient(username, password, target, encpass), bundle.ActiveConnectors, bundle.AdministrativeUserAccountProperties, bundle.BackgroundTasks, bundle.CassandraConnections, bundle.ClusterProperties, bundle.Dtds, bundle.EmailListeners, bundle.EncassConfigs, bundle.FipGroups, bundle.FipUsers, bundle.Fips, bundle.FederatedGroups, bundle.FederatedUsers, bundle.InternalIdps, bundle.FederatedIdps, bundle.LdapIdps, bundle.SimpleLdapIdps, bundle.PolicyBackedIdps, bundle.GlobalPolicies, bundle.InternalGroups, bundle.InternalSoapServices, bundle.InternalUsers, bundle.InternalWebApiServices, bundle.JdbcConnections, bundle.JmsDestinations, bundle.Keys, bundle.Ldaps, bundle.ListenPorts, bundle.PasswordPolicies, bundle.Policies, bundle.PolicyFragments, bundle.RevocationCheckPolicies, bundle.ScheduledTasks, bundle.LogSinks, bundle.Schemas, bundle.Secrets, bundle.HttpConfigurations, bundle.CustomKeyValues, bundle.ServerModuleFiles, bundle.ServiceResolutionConfigs, bundle.Folders, bundle.SiteMinderConfigs, bundle.Services, bundle.SoapServices, bundle.TrustedCerts, bundle.WebApiServices)
 
 	detailedErr := CheckDetailedStatus(bundle, resp)
 	if detailedErr != nil {
@@ -303,19 +293,19 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		}
 		bundle.GlobalPolicies = append(bundle.GlobalPolicies, &globalPolicy)
 	case ".policy":
-		policyFragment := PolicyFragmentInput{}
+		policyFragment := L7PolicyInput{}
 		err := json.Unmarshal(f, &policyFragment)
 		if err != nil {
 			return *bundle, err
 		}
-		bundle.PolicyFragments = append(bundle.PolicyFragments, &policyFragment)
-	case ".bgpolicy":
-		backgroundTask := BackgroundTaskPolicyInput{}
-		err := json.Unmarshal(f, &backgroundTask)
+		bundle.Policies = append(bundle.Policies, &policyFragment)
+	case ".service":
+		service := L7ServiceInput{}
+		err := json.Unmarshal(f, &service)
 		if err != nil {
-			return *bundle, err
+			return *bundle, nil
 		}
-		bundle.BackgroundTasks = append(bundle.BackgroundTasks, &backgroundTask)
+		bundle.Services = append(bundle.Services, &service)
 	case "clusterProperties":
 		clusterProperty := ClusterPropertyInput{}
 		err := json.Unmarshal(f, &clusterProperty)
@@ -373,12 +363,12 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		}
 		bundle.Fips = append(bundle.Fips, &fip)
 	case "ldaps":
-		ldapIdp := LdapInput{}
-		err := json.Unmarshal(f, &ldapIdp)
+		ldap := LdapInput{}
+		err := json.Unmarshal(f, &ldap)
 		if err != nil {
 			return *bundle, err
 		}
-		bundle.LdapIdps = append(bundle.LdapIdps, &ldapIdp)
+		bundle.Ldaps = append(bundle.Ldaps, &ldap)
 	case "internalGroups":
 		internalGroup := InternalGroupInput{}
 		err := json.Unmarshal(f, &internalGroup)
@@ -521,7 +511,71 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 			return *bundle, nil
 		}
 		bundle.Folders = append(bundle.Folders, &folder)
+	case "federatedIdps":
+		federatedIdp := FederatedIdpInput{}
+		err := json.Unmarshal(f, &federatedIdp)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.FederatedIdps = append(bundle.FederatedIdps, &federatedIdp)
+	case "federatedGroups":
+		federatedGroup := FederatedGroupInput{}
+		err := json.Unmarshal(f, &federatedGroup)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.FederatedGroups = append(bundle.FederatedGroups, &federatedGroup)
+	case "federatedUsers":
+		federatedUser := FederatedUserInput{}
+		err := json.Unmarshal(f, &federatedUser)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.FederatedUsers = append(bundle.FederatedUsers, &federatedUser)
+	case "internalIdps":
+		internalIdp := InternalIdpInput{}
+		err := json.Unmarshal(f, &internalIdp)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.InternalIdps = append(bundle.InternalIdps, &internalIdp)
+	case "ldapIdps":
+		ldapIdp := LdapIdpInput{}
+		err := json.Unmarshal(f, &ldapIdp)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.LdapIdps = append(bundle.LdapIdps, &ldapIdp)
+	case "simpleLdapIdps":
+		simpleLdapIdp := SimpleLdapIdpInput{}
+		err := json.Unmarshal(f, &simpleLdapIdp)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.SimpleLdapIdps = append(bundle.SimpleLdapIdps, &simpleLdapIdp)
+	case "policyBackedIdps":
+		policyBackedIdp := PolicyBackedIdpInput{}
+		err := json.Unmarshal(f, &policyBackedIdp)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.PolicyBackedIdps = append(bundle.PolicyBackedIdps, &policyBackedIdp)
+	case "policies":
+		policy := L7PolicyInput{}
+		err := json.Unmarshal(f, &policy)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.Policies = append(bundle.Policies, &policy)
+	case "services":
+		service := L7ServiceInput{}
+		err := json.Unmarshal(f, &service)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.Services = append(bundle.Services, &service)
 	}
+
 	return *bundle, nil
 }
 
@@ -561,7 +615,7 @@ func implodeBundle(path string) (Bundle, error) {
 // 	}
 // }
 
-func CheckDetailedStatus(bundle Bundle, resp *applyBundleResponse) error {
+func CheckDetailedStatus(bundle Bundle, resp *installBundleResponse) error {
 	var bundleApplyErrors BundleApplyErrors
 
 	if resp.SetActiveConnectors != nil {
@@ -821,6 +875,70 @@ func CheckDetailedStatus(bundle Bundle, resp *applyBundleResponse) error {
 		for i, r := range resp.SetFolders.DetailedStatus {
 			if r.Status == "ERROR" {
 				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Folders", Name: bundle.Folders[i].Name})
+			}
+		}
+	}
+
+	if resp.SetFederatedIdps != nil {
+		for i, r := range resp.SetFederatedIdps.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FederatedIdps", Name: bundle.FederatedIdps[i].Name})
+			}
+		}
+	}
+	if resp.SetFederatedGroups != nil {
+		for i, r := range resp.SetFederatedGroups.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FederatedGroups", Name: bundle.FederatedGroups[i].Name})
+			}
+		}
+	}
+	if resp.SetFederatedUsers != nil {
+		for i, r := range resp.SetFederatedUsers.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "FederatedUsers", Name: bundle.FederatedUsers[i].Name})
+			}
+		}
+	}
+	if resp.SetInternalIdps != nil {
+		for i, r := range resp.SetInternalIdps.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "InternalIdps", Name: bundle.InternalIdps[i].Name})
+			}
+		}
+	}
+	if resp.SetLdapIdps != nil {
+		for i, r := range resp.SetLdapIdps.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "LdapIdps", Name: bundle.LdapIdps[i].Name})
+			}
+		}
+	}
+	if resp.SetSimpleLdapIdps != nil {
+		for i, r := range resp.SetSimpleLdapIdps.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "SimpleLdapIdps", Name: bundle.SimpleLdapIdps[i].Name})
+			}
+		}
+	}
+	if resp.SetPolicyBackedIdps != nil {
+		for i, r := range resp.SetPolicyBackedIdps.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "PolicyBackedIdps", Name: bundle.PolicyBackedIdps[i].Name})
+			}
+		}
+	}
+	if resp.SetPolicies != nil {
+		for i, r := range resp.SetPolicies.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Policies", Name: bundle.Policies[i].Name})
+			}
+		}
+	}
+	if resp.SetServices != nil {
+		for i, r := range resp.SetServices.DetailedStatus {
+			if r.Status == "ERROR" {
+				bundleApplyErrors.Errors = append(bundleApplyErrors.Errors, BundleApplyError{Status: string(r.Status), Detail: r.Description, Entity: "Services", Name: bundle.Services[i].Name})
 			}
 		}
 	}

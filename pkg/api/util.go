@@ -92,5 +92,4 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string) ([]byte, string, error) 
 	h.Write(graphmanBundleBytes)
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 	return graphmanBundleBytes, sha1Sum, nil
-
 }

@@ -12,7 +12,7 @@ metadata:
           },
           "spec": {
             "app": {
-              "image": "docker.io/caapim/gateway:11.0.00_CR2",
+              "image": "docker.io/caapim/gateway:11.1.00",
               "management": {
                 "cluster": {
                   "hostname": "gateway.brcmlabs.com",
@@ -44,7 +44,7 @@ metadata:
               "accept": false,
               "secretName": "gateway-license"
             },
-            "version": "11.0.00_CR2"
+            "version": "11.1.00"
           },
           "status": {}
         },

@@ -341,13 +341,15 @@ type Redis struct {
 	Type RedisType `json:"type,omitempty"`
 	// GroupName that should be used when connecting to Redis
 	GroupName string `json:"groupName,omitempty"`
+	// CommandTimeout for Redis commands
+	CommandTimeout int `json:"commandTimeout,omitempty"`
 	// Sentinel configuration
 	Sentinel RedisSentinel `json:"sentinel,omitempty"`
 	// Standalone configuration
 	Standalone RedisStandalone `json:"standalone,omitempty"`
-	// Auth if using sentinel
+	// Auth if using sentinel or standalone (from Gateway v11.1.00)
 	Auth RedisAuth `json:"auth,omitempty"`
-	// TLS configuration
+	// TLS configuration if using sentinel or standalone (from Gateway v11.1.00)
 	Tls RedisTls `json:"tls,omitempty"`
 }
 

@@ -2,19 +2,15 @@ apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
   name: otk-ssg-dmz
-  namespace: default
 spec:
-  version: "11.0.00_CR2"
+  version: "11.1.00"
   license:
     accept: false
     secretName: gateway-license
   app:
     replicas: 2
-    image: docker.io/caapim/gateway:11.0.00_CR2
+    image: docker.io/caapim/gateway:11.1.00
     imagePullPolicy: IfNotPresent
-    # serviceAccount:
-    #   create: true
-    #   name: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
@@ -34,7 +30,7 @@ spec:
       description: Gateway Secret
     otk:
       enabled: true
-      initContainerImage: layer7api/otk-install:latest
+      initContainerImage: docker.io/caapim/otk-install:4.6.2_202402
       type: dmz
       internalGatewayReference: otk-ssg-internal
       database:
@@ -171,7 +167,6 @@ spec:
       ingressClassName: nginx
       annotations:
         nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        cert-manager.io/cluster-issuer: "brcmlabs-issuer"
         # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
       tls:
       - hosts: 

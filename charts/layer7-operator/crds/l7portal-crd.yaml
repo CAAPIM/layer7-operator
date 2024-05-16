@@ -68,13 +68,8 @@ spec:
                   type: string
                 description: Labels - Custom Labels
                 type: object
-              mode:
-                description: Mode determines how or if the Portal is contacted defaults
-                  to auto, options are auto, local. Local requires enrollmentBundle
-                  to be set.
-                type: string
               portalTenant:
-                description: Name Portal name
+                description: PortalTenant is the tenantId of the API Developer Portal
                 type: string
               syncIntervalSeconds:
                 description: SyncIntervalSeconds how often the Portal CR is reconciled.

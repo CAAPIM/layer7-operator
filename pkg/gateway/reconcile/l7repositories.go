@@ -111,6 +111,11 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 		}
 	}
 
+	singleton := false
+	if !gateway.Spec.App.SingletonExtraction {
+		singleton = true
+	}
+
 	for i, pod := range podList.Items {
 
 		update := false
@@ -124,9 +129,7 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 		latestCommit := commit
 		currentCommit := pod.ObjectMeta.Annotations["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
 
-		singleton := false
-
-		if params.Instance.Spec.App.SingletonExtraction {
+		if gateway.Spec.App.SingletonExtraction {
 			if pod.ObjectMeta.Labels["management-access"] == "leader" {
 				latestCommit = commit + "-leader"
 				singleton = true
@@ -145,13 +148,10 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 				repoRef.Directories = []string{"/"}
 			}
 			for d := range repoRef.Directories {
-
 				ext := repository.Spec.Branch
-
 				if ext == "" {
 					ext = repository.Spec.Tag
 				}
-
 				gitPath := "/tmp/" + repoRef.Name + "-" + ext + "/" + repoRef.Directories[d]
 
 				if strings.ToLower(repository.Spec.Type) == "http" {
@@ -167,7 +167,6 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 					if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
 						folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 					}
-
 					gitPath = "/tmp/" + repository.Name + "-" + folderName
 
 				}
@@ -203,7 +202,6 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 					}
 
 					params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-
 					if err := params.Client.Patch(context.Background(), &podList.Items[i],
 						client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 						params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)

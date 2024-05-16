@@ -36,8 +36,8 @@ var _ = Describe("Gateway controller", func() {
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
 			gatewayName         = "ssg"
-			version             = "11.0.00_CR2"
-			image               = "docker.io/caapim/gateway:11.0.00_CR2"
+			version             = "11.1.00"
+			image               = "docker.io/caapim/gateway:11.1.00"
 			repoName            = "l7-gw-myframework"
 			repoCheckoutPath    = "/tmp/l7GWMyFramework"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyFramework"
@@ -134,6 +134,7 @@ var _ = Describe("Gateway controller", func() {
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",
+								Password: "7layer",
 							},
 							Graphman: securityv1.Graphman{
 								Enabled:            true,

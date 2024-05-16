@@ -142,15 +142,6 @@ kind: Instrumentation
 metadata:
   name: otel-instrumentation
 spec:
-  env:
-    - name: OTEL_SERVICE_NAME
-      value: ssg
-    - name: OTEL_METRICS_EXPORTER
-      value: otlp
-    - name: OTEL_TRACES_EXPORTER
-      value: otlp
-    - name: OTEL_RESOURCE_ATTRIBUTES
-      value: service.version=11.0.00_CR2,deployment.environment=development
   exporter:
     endpoint: http://localhost:4317
   propagators:
@@ -249,7 +240,16 @@ spec:
 ```
 
 ### Gateway Application Configuration
-The Gateway has OTel specific cluster-wide properties.
+The Gateway has OTel specific configuration. 
+
+- Pod Annotations
+```
+  app:
+    podAnnotations:
+      sidecar.opentelemetry.io/inject: "ssg-eck" <== this injects the OpenTelemetryCollector sidecar
+      instrumentation.opentelemetry.io/inject-java: "true" <== this loads the OpenTelemetry Java agent onto the Gateway
+      instrumentation.opentelemetry.io/container-names: "gateway" <== this defines which container the Java Agent is loaded onto
+```
 
 - Cluster-Wide Properties
 ```
@@ -257,43 +257,36 @@ cwp:
   enabled: true
   properties:
     ...
+    - name: otel.enabled
+      value: "true"
     - name: otel.serviceMetricEnabled
       value: "true"
     - name: otel.traceEnabled
       value: "true"
     - name: otel.metricPrefix
       value: l7_
-    - name: otel.resourceAttributes
-      value: k8s.container.name,k8s.pod.name
     - name: otel.traceConfig
       value: |
         {
-         "services": [
-           {"url": ".*api.*"},
-           {"url": ".*test.*"}
-         ]
+          "services": [
+            {"resolutionPath": ".*"}
+          ]
         }
 ```
 
-### Service Level Configuration
-The [global-graphman-bundle.json](../base/resources/secrets/bundles/global-graphman-bundle.json) contains a message-completed policy with a single Telemetry Metric assertion. This collects generic service level information that we use to populate the Grafana Dashboard. In our example we use message-completed because it only requires a change in one place, the Telemetry metric assertion can also be inserted into an existing service(s) to capture service specific metrics at any point that you wish to monitor.
-
+- System Properties
 ```
-{
-    "globalPolicies": [
-      {
-        "name": "message-completed",
-        "folderPath": "/global",
-        "goid": "278f6d2cbeb3e0e3b0d9cde605c8a711",
-        "guid": "b3ef3421-8151-4f85-99f8-1dacc7d65748",
-        "tag": "message-completed",
-        "checksum": "570bbce5b1062a17479465574ce046633823cebe",
-        "policy": {
-          "xml": "..."
-        }
-      }
-    ]
-  }
+system:
+  properties: |-
+    ...
+    # OpenTelemetry Agent Configuration
+    otel.instrumentation.common.default-enabled=true
+    otel.instrumentation.opentelemetry-api.enabled=true
+    otel.instrumentation.runtime-metrics.enabled=true
+    otel.instrumentation.runtime-telemetry.enabled=true
+    otel.instrumentation.opentelemetry-instrumentation-annotations.enabled=true
+    otel.java.global-autoconfigure.enabled=true
+    # Additional properties go here
 ```
 
 ### Quickstart Kind
@@ -416,7 +409,7 @@ You can now move on to test your gateway deployment!
 ### Install Cert Manager
 These steps are based the official documentation for installing Cert-Manager [here](https://cert-manager.io/docs/installation/). Cert-Manager is a pre-requisite for the Open Telemetry Operator.
 ```
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
 ```
 
 #### View CertManager Components
@@ -450,7 +443,7 @@ These steps are based the official documentation for installing Open Telemetry [
 
 - Install the Open Telemetry Operator.
 ```
-kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
+kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.97.1/opentelemetry-operator.yaml
 ```
 
 #### View Open Telemetry Components
@@ -566,7 +559,7 @@ https://github.com/kubernetes/ingress-nginx/tree/main/deploy/static/provider
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
 ```
 
 #### Verify the Operator is up and running
@@ -617,11 +610,11 @@ status:
 
 ### Create a Gateway
 ```
-kubectl apply -f ./example/gateway/otel-prometheus-gateway.yaml
+kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 ```
 
 #### Referencing the repositories we created
-[ssg-gateway.yaml](./ssg-gateway.yaml) contains 3 repository references, the 'type' defines how a repository is applied to the Container Gateway.
+[otel-prometheus-gateway.yaml](../gateway/otel-prometheus-gateway.yaml) contains 3 repository references, the 'type' defines how a repository is applied to the Container Gateway.
 - Dynamic repositories are applied directly to the Graphman endpoint on the Gateway which does not require a gateway restart
 - Static repositories are bootstrapped to the Container Gateway with an initContainer which requires a gateway restart.
 ```
@@ -704,7 +697,7 @@ status:
     ready: true
     startTime: 2023-04-03 18:57:24 +0000 UTC
   host: gateway.brcmlabs.com
-  image: caapim/gateway:11.0.00_CR2
+  image: caapim/gateway:11.1.00
   ready: 1
   replicas: 1
 repositoryStatus:
@@ -733,7 +726,7 @@ repositoryStatus:
   storageSecretName: l7-gw-mysubscriptions-repository
   type: dynamic
 state: Ready
-version: 11.0.00_CR2
+version: 11.1.00
 ```
 
 #### Repository CR

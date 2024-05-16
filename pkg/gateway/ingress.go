@@ -21,19 +21,55 @@ func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
 			Host: r.Host,
 		}
 		paths := []networkingv1.HTTPIngressPath{}
-		path := networkingv1.HTTPIngressPath{
-			Path:     "/",
-			PathType: &pathTypePrefix,
-			Backend: networkingv1.IngressBackend{
-				Service: &networkingv1.IngressServiceBackend{
-					Name: gw.Name,
-					Port: networkingv1.ServiceBackendPort{
-						Name: portName,
+
+		if r.HTTP != nil {
+			if r.HTTP.Paths != nil {
+				for _, p := range r.HTTP.Paths {
+
+					if p.Backend.Service != nil {
+
+						if p.Backend.Service.Name == "" {
+							p.Backend.Service.Name = gw.Name
+						}
+						if p.Backend.Service.Name == "management" {
+							p.Backend.Service.Name = gw.Name + "-management-service"
+						}
+
+						if p.Backend.Service.Port.Name == "" {
+							p.Backend.Service.Port.Name = portName
+						}
+
+						if p.Backend.Service.Port.Number != 0 {
+							p.Backend.Service.Port.Name = ""
+						}
+					}
+
+					if p.PathType == nil {
+						p.PathType = &pathTypePrefix
+					}
+
+					if p.Path == "" {
+						p.Path = "/"
+					}
+					paths = append(paths, p)
+
+				}
+			}
+		} else {
+			path := networkingv1.HTTPIngressPath{
+				Path:     "/",
+				PathType: &pathTypePrefix,
+				Backend: networkingv1.IngressBackend{
+					Service: &networkingv1.IngressServiceBackend{
+						Name: gw.Name,
+						Port: networkingv1.ServiceBackendPort{
+							Name: portName,
+						},
 					},
 				},
-			},
+			}
+			paths = append(paths, path)
 		}
-		paths = append(paths, path)
 
 		rule.HTTP = &networkingv1.HTTPIngressRuleValue{
 			Paths: paths,

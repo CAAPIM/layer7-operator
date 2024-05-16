@@ -75,6 +75,6 @@ grafana:
     ## Secret must be manually created in the namespace
     ##
     tls:
-    - secretName: default
+    - secretName: brcmlabs
       hosts:
       - grafana.brcmlabs.com

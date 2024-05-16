@@ -1,0 +1,136 @@
+prometheusOperator:
+  namespaces:
+    releaseNamespace: true
+    additional:
+    - kube-system
+    - default
+  denyNamespaces: []
+  prometheusInstanceNamespaces: []
+  alertmanagerInstanceNamespaces: []
+  thanosRulerInstanceNamespaces: []
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+grafana:
+  enabled: true
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'layer7'
+        orgId: 1
+        folder: 'Layer7'
+        type: file
+        disableDeletion: true
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/layer7
+
+  dashboardsConfigMaps:
+    layer7: layer7-gateway-dashboard
+
+  adminPassword: 7layer
+
+  additionalDataSources:
+    - name: loki
+      id: 3
+      uid: P982945308D3682D1
+      editable: true
+      orgId: 1
+      type: loki
+      url: http://loki-gateway.grafana-loki.svc.cluster.local
+      jsonData:
+        derivedFields:
+        - name: otelId
+          datasourceUid: caa853f8-508d-47f2-a711-ad469652ab58
+          matcherRegex: '"otelId":"([a-zA-Z0-9-]+)"'
+          matcherType: regex
+          url: '$${__value.raw}'
+      version: 1
+    - name: tempo
+      id: 4
+      editable: true
+      uid: caa853f8-508d-47f2-a711-ad469652ab58
+      orgId: 1
+      type: tempo
+      url: http://tempo.grafana-loki.svc.cluster.local:3100
+      version: 1
+      jsonData:
+        tracesToLogsV2:
+          customQuery: true
+          datasourceUid: P982945308D3682D1
+          filterByTraceID: true
+          query: '{$${__tags}}|="$${__trace.traceId}"'
+          spanEndTimeShift: 10m
+          spanStartTimeShift: '-10m'
+          tags:
+            - key: k8s.pod.name
+              value: pod
+            - key: k8s.container.name
+              value: container
+    - name: mimir
+      id: 5
+      uid: mimir
+      editable: true
+      orgId: 1
+      type: prometheus
+      url: http://mimir-nginx.grafana-loki.svc.cluster.local/prometheus
+    - name: tempo-minimal
+      id: 6
+      editable: true
+      uid: tempo-minimal
+      orgId: 1
+      type: tempo
+      url: http://tempo.grafana-loki.svc.cluster.local:3100
+      version: 1
+      jsonData:
+        tracesToLogsV2:
+          customQuery: true
+          datasourceUid: P982945308D3682D1
+          filterByTraceID: true
+
+  rbac:
+    ## If true, Grafana PSPs will be created
+    ##
+    pspEnabled: false
+
+  ingress:
+    ## If true, Grafana Ingress will be created
+    ##
+    enabled: true
+
+    ## IngressClassName for Grafana Ingress.
+    ## Should be provided if Ingress is enable.
+    ##
+    ingressClassName: nginx
+
+    ## Annotations for Grafana Ingress
+    ##
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+
+    ## Labels to be added to the Ingress
+    ##
+    labels: {}
+
+    ## Hostnames.
+    ## Must be provided if Ingress is enable.
+    ##
+    hosts:
+      - grafana.brcmlabs.com
+
+    ## Path for grafana ingress
+    path: /
+
+    ## TLS configuration for grafana Ingress
+    ## Secret must be manually created in the namespace
+    ##
+    tls:
+    - secretName: brcmlabs
+      hosts:
+      - grafana.brcmlabs.com

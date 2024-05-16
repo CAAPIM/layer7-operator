@@ -11,13 +11,13 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "11.0.00_CR2"
+  version: "11.1.00"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.0.00_CR2
+    image: docker.io/caapim/gateway:11.1.00
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
     updateStrategy:
@@ -79,6 +79,4 @@ spec:
   endpoint: https://github.com/uppoju/l7GWMyFramework
   branch: main
   type: git
-  auth:
-    vendor: Github
-    existingSecretName: test-repository-secret
+  auth: {}

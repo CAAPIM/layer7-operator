@@ -94,7 +94,7 @@ pipeline {
                    remoteSSH.password = "7layer"
                    sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
                    sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
-                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make docker-build docker-push"
+                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${RELEASE_VERSION}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make docker-build docker-push"
 
                 }
               }
@@ -126,7 +126,7 @@ pipeline {
                    remoteSSH.password = "7layer"
                    sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
                    sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
-                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make bundle-build bundle-push"
+                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${RELEASE_VERSION}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make bundle-build bundle-push"
 
                 }
               }

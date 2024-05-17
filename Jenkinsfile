@@ -13,7 +13,7 @@ def jobname="${currentBuild.rawBuild.project.parent.displayName}"
 def DOCKER_HUB_REG = "docker-hub.usw1.packages.broadcom.com"
 
 def remoteHostInstanceName = ""
-def remoteHostIP = ""
+def remoteHostIP = "10.252.129.46"
 def remoteSSH = [:]
 
 def AGENT_WORKSPACE_FOLDER = "/opt/agentWorkSpace"
@@ -39,24 +39,7 @@ pipeline {
     string(name: 'KUBE_VERSION', defaultValue: '1.28', description: 'kube version')
     }
     stages {
-        stage('Clone perfauto template in GCP to build and run operator tests'){
-            steps{
-                script{
-            remoteHostInstanceName = "l7operator-${today}-${BUILD_NUMBER}"
-                    def built = build job: 'releng/Self-Service/deploy-gcp-instance/develop',
-                    parameters: [
-                        string(name: 'INSTANCE_NAME', value: "${remoteHostInstanceName}"),
-                        string(name: 'CPU', value: '4'),
-                        string(name: 'MEM', value: '16384'),
-                        string(name: 'SOURCE_IMAGE', value: 'perfauto-template')
-                    ]
-                    copyArtifacts(projectName: 'releng/Self-Service/deploy-gcp-instance/develop', selector: specific("${built.number}"));
-                    remoteHostIP = sh(script: "ls -af|grep 10.|tr -d '\n'",returnStdout: true).trim()
-                    print ("${remoteHostIP}")
-            sh "sleep 60s"
-                }
-            }
-        }
+        
         stage('Prepare Remote Host - Checkout') {
                 steps {
                     script {
@@ -166,18 +149,7 @@ pipeline {
     }
 
     post {
-        always {
-            script {
-        		//delete gcp instance
-                        build job: "releng/Self-Service/destroy-gcp-instance/develop",
-                        propagate: false,
-                        wait: true,
-                        parameters: [
-                            string(name: 'INSTANCE_NAME', value: "${remoteHostInstanceName}")
-                        ]
-                        echo "${remoteHostInstanceName}* is destroyed..."
-                }
-        }
+        
         success {
             script {
                 // 15. send commit status to repo when the build is a pull request

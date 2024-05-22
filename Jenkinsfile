@@ -27,7 +27,7 @@ pipeline {
         DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
         VERSION = '$BRANCH_NAME'
         TESTREPO_USER = 'uppoju'
-        TESTREPO_TOKEN = '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'
+        TESTREPO_TOKEN = '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'
         TEST_BRANCH = 'ingtest-test'
         DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
         UNEASYROOSTER_LICENSE_FILE_PATH = "https://github.gwd.broadcom.net/raw/ESD/UneasyRooster/release/11.0.00_saber/DEVLICENSE.xml"

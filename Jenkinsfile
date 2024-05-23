@@ -25,9 +25,7 @@ pipeline {
         JOBNAME = "${jobname}"
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
         DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
-        VERSION = '$BRANCH_NAME'
-        TESTREPO_USER = 'uppoju'
-        TESTREPO_CREDS = credentials('GITHUB_CAAPIM_TOKEN')
+        VERSION = '$BRANCH_NAME'        
         TEST_BRANCH = 'ingtest-test'
         DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
         UNEASYROOSTER_LICENSE_FILE_PATH = "https://github.gwd.broadcom.net/raw/ESD/UneasyRooster/release/11.0.00_saber/DEVLICENSE.xml"
@@ -103,7 +101,7 @@ pipeline {
             steps {
                 echo "Build and Run Tests"
               script {
-                 withCredentials([usernamePassword(credentialsId: 'GITHUB_CAAPIM_TOKEN', passwordVariable: 'APIKEY', usernameVariable: 'USERNAME')]) {
+                 withCredentials([usernamePassword(credentialsId: 'GITHUB_GWOPERATOR_TESTREPO_TOKEN', passwordVariable: 'APIKEY', usernameVariable: 'TESTREPO_USER')]) {
                     remoteSSH.name = "ng1Agent"
                     remoteSSH.host = "${remoteHostIP}"
                     remoteSSH.allowAnyHosts = true
@@ -113,8 +111,8 @@ pipeline {
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; ./hack/install-go.sh; export PATH=${PATH}:/usr/local/go/bin; ./hack/install-kind.sh; kind --version"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; curl -Lo /usr/local/bin/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kubectl-kuttl_0.15.0_linux_x86_64; chmod +x /usr/local/bin/kubectl-kuttl"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; export KUBE_VERSION=${KUBE_VERSION}; make prepare-e2e; kubectl config view"
-                    sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://${APIKEY}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework; cd /tmp/l7GWMyFramework; git checkout -b ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git push --set-upstream origin ingtest-${BRANCH_NAME}-${BUILD_NUMBER}"
-                    sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://${APIKEY}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs; cd /tmp/l7GWMyAPIs; git checkout -b ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git push --set-upstream origin ingtest-${BRANCH_NAME}-${BUILD_NUMBER}"
+                    sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://oauth2:${APIKEY}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework; cd /tmp/l7GWMyFramework; git checkout -b ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git push --set-upstream origin ingtest-${BRANCH_NAME}-${BUILD_NUMBER}"
+                    sshCommand remote: remoteSSH, command: "export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git clone https://oauth2:${APIKEY}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs; cd /tmp/l7GWMyAPIs; git checkout -b ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; git push --set-upstream origin ingtest-${BRANCH_NAME}-${BUILD_NUMBER}"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; export ARTIFACT_HOST=${ARTIFACT_HOST}; export USE_EXISTING_CLUSTER=true; export TESTREPO_TOKEN=${APIKEY}; export TESTREPO_USER=${TESTREPO_USER}; make test"
                     sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export TEST_BRANCH=ingtest-${BRANCH_NAME}-${BUILD_NUMBER}; export ARTIFACT_HOST=${ARTIFACT_HOST}; export USE_EXISTING_CLUSTER=true; export TESTREPO_TOKEN=${APIKEY}; export TESTREPO_USER=${TESTREPO_USER}; make e2e"
                 }

@@ -217,7 +217,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: docker-build
 docker-build: dockerfile #test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+	$(CONTAINER_TOOL) build -f operator.Dockerfile -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.

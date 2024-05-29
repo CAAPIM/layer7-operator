@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     certified: "false"
-    containerImage: docker.io/caapim/layer7-operator:v1.0.5
+    containerImage: docker.io/caapim/layer7-operator:v1.0.6
     operatorframework.io/suggested-namespace: layer7-operator-system
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community
@@ -103,16 +103,14 @@ spec:
         displayName: DeploymentTags
         path: deploymentTags
       - description: GraphmanBundle associated with this API currently limited to
-          Service and Fragments
+          Service and Fragments auto generated when PortalMeta is set and PortalPublished
+          is true
         displayName: GraphmanBundle
         path: graphmanBundle
       - description: L7Portal is the L7Portal that this API is associated with when
-          Portal Published
+          Portal Published is true
         displayName: L7Portal
         path: l7Portal
-      - description: Name of the API
-        displayName: Name
-        path: name
       - description: PortalPublished
         displayName: PortalPublished
         path: portalPublished
@@ -136,7 +134,7 @@ spec:
           APIs will be applied to
         displayName: DeploymentTags
         path: deploymentTags
-      - description: Name Portal name
+      - description: Enabled - if enabled this Portal and its APIs will be synced
         displayName: Enabled
         path: enabled
       - description: Endoint - Portal endpoint
@@ -149,13 +147,9 @@ spec:
       - description: Labels - Custom Labels
         displayName: Labels
         path: labels
-      - description: Mode determines how or if the Portal is contacted defaults to
-          auto, options are auto, local. Local requires enrollmentBundle to be set.
-        displayName: Mode
-        path: mode
-      - description: Name of the Portal
-        displayName: Name
-        path: name
+      - description: PortalTenant is the tenantId of the API Developer Portal
+        displayName: PortalTenant
+        path: portalTenant
       - description: SyncIntervalSeconds how often the Portal CR is reconciled. Default
           is 10 seconds
         displayName: SyncIntervalSeconds

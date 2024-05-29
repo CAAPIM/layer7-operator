@@ -64,34 +64,34 @@ func registerJobs(ctx context.Context, params Params) {
 			params.Log.V(2).Info("otk policy sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		}
 		if params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeDMZ || params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeInternal {
-			_, err = s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-otk-certificates").Do(syncOtkCertificates, ctx, params)
+			_, err = s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-otk-certificates").Do(syncOtkCertificates, ctx, params)
 			if err != nil {
 				params.Log.V(2).Info("otk certificate sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 			}
-			_, err = s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-otk-certificate-secret").Do(manageCertificateSecrets, ctx, params)
+			_, err = s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-otk-certificate-secret").Do(manageCertificateSecrets, ctx, params)
 			if err != nil {
 				params.Log.V(2).Info("otk certificate secret sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 			}
 		}
 	}
 
-	_, err := s.Every(repoSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-repository-references").Do(syncRepository, ctx, params)
+	_, err := s.Every(repoSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-repository-references").Do(syncRepository, ctx, params)
 
 	if err != nil {
 		params.Log.V(2).Info("repository sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 
-	_, err = s.Every(extSecretSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-external-secrets").Do(syncExternalSecrets, ctx, params)
+	_, err = s.Every(extSecretSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-external-secrets").Do(syncExternalSecrets, ctx, params)
 	if err != nil {
 		params.Log.V(2).Info("external secret sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 
-	_, err = s.Every(extKeySyncInterval).Seconds().Tag(params.Instance.Name+"-sync-external-keys").Do(syncExternalKeys, ctx, params)
+	_, err = s.Every(extKeySyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-external-keys").Do(syncExternalKeys, ctx, params)
 	if err != nil {
 		params.Log.V(2).Info("external key sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 
-	_, err = s.Every(managementPodSyncInterval).Seconds().Tag(params.Instance.Name+"-select-management-pod").Do(ManagementPod, ctx, params)
+	_, err = s.Every(managementPodSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-select-management-pod").Do(ManagementPod, ctx, params)
 	if err != nil {
 		params.Log.V(2).Info("external key sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}

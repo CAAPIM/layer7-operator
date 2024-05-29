@@ -33,7 +33,6 @@ spec:
           metadata:
             type: object
           spec:
-            description: L7ApiSpec defines the desired state of L7Api
             properties:
               deploymentTags:
                 description: DeploymentTags target Gateway deployments that this API
@@ -43,15 +42,79 @@ spec:
                 type: array
               graphmanBundle:
                 description: GraphmanBundle associated with this API currently limited
-                  to Service and Fragments
+                  to Service and Fragments auto generated when PortalMeta is set and
+                  PortalPublished is true
                 type: string
               l7Portal:
                 description: L7Portal is the L7Portal that this API is associated
-                  with when Portal Published
+                  with when Portal Published is true
                 type: string
-              name:
-                description: Name of the API
-                type: string
+              portalMeta:
+                description: PortalMeta is reserved for the API Developer Portal
+                properties:
+                  apiId:
+                    type: string
+                  apiUuid:
+                    type: string
+                  checksum:
+                    type: string
+                  createTs:
+                    type: integer
+                  customFieldValues:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        value:
+                          type: string
+                      required:
+                      - name
+                      - value
+                      type: object
+                    type: array
+                  enabled:
+                    type: boolean
+                  locationUrl:
+                    type: string
+                  modifyTs:
+                    type: integer
+                  name:
+                    type: string
+                  policyEntities:
+                    items:
+                      properties:
+                        policyEntityUuid:
+                          type: string
+                        policyTemplateArguments:
+                          items:
+                            properties:
+                              name:
+                                type: string
+                              value:
+                                type: string
+                            required:
+                            - name
+                            - value
+                            type: object
+                          type: array
+                      required:
+                      - policyEntityUuid
+                      - policyTemplateArguments
+                      type: object
+                    type: array
+                  publishedTs:
+                    type: integer
+                  serviceId:
+                    type: string
+                  ssgServiceType:
+                    type: string
+                  ssgUrl:
+                    type: string
+                  ssgUrlEncoded:
+                    type: string
+                  tenantId:
+                    type: string
+                type: object
               portalPublished:
                 description: PortalPublished
                 type: boolean
@@ -62,25 +125,26 @@ spec:
           status:
             description: L7ApiStatus defines the observed state of L7Api
             properties:
+              checksum:
+                type: string
               gateways:
                 items:
                   properties:
                     checksum:
                       type: string
                     deployment:
+                      description: 'Phase       corev1.PodPhase `json:"phase,omitempty"`
+                        Reason: Success/Failed to sync because of x'
                       type: string
                     lastUpdated:
+                      description: Ready       bool            `json:"ready,omitempty"`
                       type: string
                     name:
                       type: string
-                    phase:
-                      description: PodPhase is a label for the condition of a pod
-                        at the current time.
-                      type: string
-                    ready:
-                      type: boolean
                   type: object
                 type: array
+              ready:
+                type: boolean
             type: object
         type: object
     served: true

@@ -12,6 +12,7 @@ today=(dateFormat.format(calendar.getTime()));
 def jobname="${currentBuild.rawBuild.project.parent.displayName}"
 def DOCKER_HUB_REG = "docker-hub.usw1.packages.broadcom.com"
 
+
 def remoteHostInstanceName = ""
 def remoteHostIP = ""
 def remoteSSH = [:]
@@ -22,6 +23,13 @@ pipeline {
 
     agent { label "default" }
     environment {
+        ARTIFACTORY_DOCKER_SBO_IMAGE_REG = "sbo-saas-docker-release-local.usw1.packages.broadcom.com"
+        ARTIFACTORY_DOCKER_GO_IMAGE_REG = "docker-hub.usw1.packages.broadcom.com"
+        ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST = "apim-docker-dev-local.usw1.packages.broadcom.com"
+        ARTIFACT_HOST =  "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}"
+        ARTIFACTORY_DOCKER_DEV_LOCAL_REG_PROJECT = "apim-gateway"
+        IMAGE_NAME = "layer7-operator"
+        IMAGE_TAG_BASE = "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_PROJECT}/${IMAGE_NAME}"
         JOBNAME = "${jobname}"
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
         DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
@@ -29,10 +37,11 @@ pipeline {
         TEST_BRANCH = 'ingtest-test'
         DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
         UNEASYROOSTER_LICENSE_FILE_PATH = "https://github.gwd.broadcom.net/raw/ESD/UneasyRooster/release/11.0.00_saber/DEVLICENSE.xml"
+        GOPROXY = ""
         USE_EXISTING_CLUSTER = true
     }
     parameters {
-    string(name: 'ARTIFACT_HOST', description: 'artifactory host')
+    //string(name: 'ARTIFACT_HOST', description: 'artifactory host')
     string(name: 'RELEASE_VERSION', description: 'release version for docker tag')
     string(name: 'KUBE_VERSION', defaultValue: '1.28', description: 'kube version')
     }
@@ -129,9 +138,13 @@ pipeline {
                    remoteSSH.allowAnyHosts = true
                    remoteSSH.user = "root"
                    remoteSSH.password = "7layer"
-                   sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
-                   sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
-                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make docker-build docker-push"
+                   sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}"
+                   sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_SBO_IMAGE_REG}"
+                   sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_GO_IMAGE_REG}"
+                   sshCommand remote: remoteSSH, command: "export DISTROLESS_IMG=sbo-saas-docker-release-local.usw1.packages.broadcom.com/broadcom-images/approved/distroless/static:debian12-nonroot; export GO_BUILD_IMG=docker-hub.usw1.packages.broadcom.com/golang:1.22; make dockerfile"
+                   sshCommand remote: remoteSSH, command: "docker build -f operator.Dockerfile --push -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION}  . --build-arg VERSION=${RELEASE_VERSION} --build-arg CREATED=${TIMESTAMP} --build-arg GOPROXY=${GOPROXY}"
+                      
+
 
                 }
               }
@@ -143,41 +156,11 @@ pipeline {
                           remoteSSH.allowAnyHosts = true
                           remoteSSH.user = "root"
                           remoteSSH.password = "7layer"
-                          sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
-                          sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
-                          sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${RELEASE_VERSION}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make docker-build docker-push"
-
-                    }
-                }
-            }
-        }
-        stage('Build and push Operator bundle') {
-            steps {
-                echo "Build and push Operator bundle"
-              script {
-                withFolderProperties {
-                   remoteSSH.name = "ng1Agent"
-                   remoteSSH.host = "${remoteHostIP}"
-                   remoteSSH.allowAnyHosts = true
-                   remoteSSH.user = "root"
-                   remoteSSH.password = "7layer"
-                   sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
-                   sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
-                   sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${BRANCH_NAME}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make bundle-build bundle-push"
-
-                }
-              }
-                echo "Push docker image for main branch"
-                script {
-                    if ("${BRANCH_NAME}" == "main") {
-                         remoteSSH.name = "ng1Agent"
-                         remoteSSH.host = "${remoteHostIP}"
-                         remoteSSH.allowAnyHosts = true
-                         remoteSSH.user = "root"
-                         remoteSSH.password = "7layer"
-                         sshCommand remote: remoteSSH, command: "docker login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io"
-                         sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACT_HOST}"
-                         sshCommand remote: remoteSSH, command: "cd ${OPERATOR_WORKSPACE_FOLDER}/; export PATH=${PATH}:/usr/local/bin:/usr/local/go/bin; export VERSION=${RELEASE_VERSION}; export ARTIFACT_HOST=${ARTIFACT_HOST}; make bundle-build bundle-push"
+                          sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}"
+                          sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_SBO_IMAGE_REG}"
+                          sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_GO_IMAGE_REG}"
+                          sshCommand remote: remoteSSH, command: "export DISTROLESS_IMG=sbo-saas-docker-release-local.usw1.packages.broadcom.com/broadcom-images/approved/distroless/static:debian12-nonroot; export GO_BUILD_IMG=docker-hub.usw1.packages.broadcom.com/golang:1.22; make dockerfile"
+                          sshCommand remote: remoteSSH, command: "docker build -f operator.Dockerfile --push -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:main . --build-arg VERSION=${RELEASE_VERSION} --build-arg CREATED=${TIMESTAMP} --build-arg GOPROXY=${GOPROXY}"
 
                     }
                 }

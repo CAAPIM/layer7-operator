@@ -21,7 +21,7 @@ func syncRepository(ctx context.Context, params Params) {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
 	if err != nil && k8serrors.IsNotFound(err) {
 		params.Log.Error(err, "gateway not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-		_ = removeJob(params.Instance.Name + "-sync-repository-references")
+		_ = removeJob(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-repository-references")
 		return
 	}
 
@@ -32,7 +32,7 @@ func syncRepository(ctx context.Context, params Params) {
 		}
 	}
 	if cntr == 0 {
-		_ = removeJob(params.Instance.Name + "-sync-repository-references")
+		_ = removeJob(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-repository-references")
 		return
 	}
 
@@ -152,7 +152,8 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 				if ext == "" {
 					ext = repository.Spec.Tag
 				}
-				gitPath := "/tmp/" + repoRef.Name + "-" + ext + "/" + repoRef.Directories[d]
+
+				gitPath := "/tmp/" + repoRef.Name + "-" + gateway.Namespace + "-" + ext + "/" + repoRef.Directories[d]
 
 				if strings.ToLower(repository.Spec.Type) == "http" {
 					fileURL, err := url.Parse(repository.Spec.Endpoint)
@@ -167,7 +168,7 @@ func applyEphemeral(ctx context.Context, params Params, gateway *securityv1.Gate
 					if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
 						folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 					}
-					gitPath = "/tmp/" + repository.Name + "-" + folderName
+					gitPath = "/tmp/" + repository.Name + "-" + gateway.Namespace + "-" + folderName
 
 				}
 
@@ -260,7 +261,7 @@ func applyDbBacked(ctx context.Context, params Params, gateway *securityv1.Gatew
 		if ext == "" {
 			ext = repository.Spec.Tag
 		}
-		gitPath := "/tmp/" + repoRef.Name + "-" + ext + "/" + repoRef.Directories[d]
+		gitPath := "/tmp/" + repoRef.Name + "-" + gateway.Namespace + "-" + ext + "/" + repoRef.Directories[d]
 		requestCacheEntry := gatewayDeployment.Name + "-" + repoRef.Name + "-" + commit
 		syncRequest, err := syncCache.Read(requestCacheEntry)
 		tryRequest := true

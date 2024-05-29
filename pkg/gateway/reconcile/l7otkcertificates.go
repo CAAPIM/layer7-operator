@@ -20,12 +20,12 @@ func syncOtkCertificates(ctx context.Context, params Params) {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
 	if err != nil && k8serrors.IsNotFound(err) {
 		params.Log.Error(err, "gateway not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-		_ = removeJob(params.Instance.Name + "-sync-otk-certificates")
+		_ = removeJob(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-otk-certificates")
 		return
 	}
 
 	if !gateway.Spec.App.Otk.Enabled {
-		_ = removeJob(params.Instance.Name + "-sync-otk-certificates")
+		_ = removeJob(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-otk-certificates")
 		return
 	}
 

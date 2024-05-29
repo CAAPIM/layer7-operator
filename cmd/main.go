@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
@@ -55,8 +56,6 @@ func init() {
 
 	utilruntime.Must(routev1.AddToScheme(scheme))
 	utilruntime.Must(securityv1.AddToScheme(scheme))
-	// utilruntime.Must(monitoring.AddToScheme(scheme))
-	// utilruntime.Must(otelv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(securityv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -84,29 +83,36 @@ func main() {
 		os.Exit(1)
 	}
 
+	oNamespace, err := util.GetOperatorNamespace()
+	if err != nil {
+		setupLog.Error(err, "failed to get operator namespace")
+		os.Exit(1)
+	}
+
 	webhookenabled, err := util.GetWebhookEnabled()
 
 	if err != nil {
 		setupLog.Error(err, "failed to determine if webhook should be enabled")
 	}
 
-	cOpts := cache.Options{}
-
-	if strings.Contains(namespace, ",") {
-		cOpts.Namespaces = append(cOpts.Namespaces, strings.Split(namespace, ",")...)
-	} else {
-		cOpts.Namespaces = append(cOpts.Namespaces, namespace)
-	}
-
 	options := ctrl.Options{
-		Scheme:                  scheme,
-		MetricsBindAddress:      metricsAddr,
-		Port:                    9443,
+		Scheme: scheme,
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+		},
 		HealthProbeBindAddress:  probeAddr,
 		LeaderElection:          enableLeaderElection,
+		LeaderElectionNamespace: oNamespace,
 		LeaderElectionID:        "d464e6a2.brcmlabs.com",
-		LeaderElectionNamespace: namespace,
-		Cache:                   cOpts,
+	}
+
+	// Add support for MultiNamespace set in WATCH_NAMESPACE
+	if len(namespace) > 0 {
+		namespaces := make(map[string]cache.Config)
+		for _, ns := range append(strings.Split(namespace, ","), oNamespace) {
+			namespaces[ns] = cache.Config{}
+		}
+		options.Cache.DefaultNamespaces = namespaces
 	}
 
 	restConfig := ctrl.GetConfigOrDie()

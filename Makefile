@@ -64,6 +64,9 @@ KUBE_VERSION ?= 1.29
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
 GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.00
+GO_BUILD_IMG ?= golang:1.22
+DISTROLESS_IMG ?= gcr.io/distroless/static:nonroot
+GO_PROXY ?= ""
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -213,7 +216,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go --zap-log-level=10
 
 .PHONY: docker-build
-docker-build: #test ## Build docker image with the manager.
+docker-build: dockerfile #test ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${IMG} .
 
 .PHONY: docker-push
@@ -297,7 +300,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.0.1
-CONTROLLER_TOOLS_VERSION ?= v0.12.0
+CONTROLLER_TOOLS_VERSION ?= v0.13.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
@@ -399,6 +402,10 @@ version:
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/operator/kustomization.yaml
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/bundle/kustomization.yaml
+
+.PHONY: dockerfile
+dockerfile:
+	cat Dockerfile | sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" | sed -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" > operator.Dockerfile
 
 generate-docs:
 	crdoc --resources config/crd/bases/security.brcmlabs.com_gateways.yaml --output docs/gateway.md

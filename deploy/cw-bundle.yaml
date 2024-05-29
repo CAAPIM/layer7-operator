@@ -8461,7 +8461,7 @@ spec:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
-        - --zap-log-level=info
+        - --zap-log-level=10
         - --zap-time-encoding=rfc3339nano
         command:
         - /manager
@@ -8476,8 +8476,8 @@ spec:
           value: ""
         - name: NO_PROXY
           value: ""
-        image: docker.io/layer7api/layer7-operator:main
-        imagePullPolicy: IfNotPresent
+        image: harbor.sutraone.com/operator/layer7-operator:jenkins_build_update
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz

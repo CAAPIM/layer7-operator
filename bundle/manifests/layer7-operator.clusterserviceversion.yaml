@@ -66,13 +66,6 @@ metadata:
           "apiVersion": "security.brcmlabs.com/v1alpha1",
           "kind": "L7Api",
           "metadata": {
-            "labels": {
-              "app.kubernetes.io/created-by": "layer7-operator",
-              "app.kubernetes.io/instance": "l7api-sample",
-              "app.kubernetes.io/managed-by": "kustomize",
-              "app.kubernetes.io/name": "l7api",
-              "app.kubernetes.io/part-of": "layer7-operator"
-            },
             "name": "l7api-sample"
           },
           "spec": {
@@ -81,7 +74,6 @@ metadata:
               "ssg1"
             ],
             "graphmanBundle": "jsongz",
-            "name": "l7api",
             "portalPublished": false,
             "serviceUrl": "/v1/api"
           }
@@ -90,13 +82,6 @@ metadata:
           "apiVersion": "security.brcmlabs.com/v1alpha1",
           "kind": "L7Portal",
           "metadata": {
-            "labels": {
-              "app.kubernetes.io/created-by": "layer7-operator",
-              "app.kubernetes.io/instance": "l7portal-sample",
-              "app.kubernetes.io/managed-by": "kustomize",
-              "app.kubernetes.io/name": "l7portal",
-              "app.kubernetes.io/part-of": "layer7-operator"
-            },
             "name": "dev-portal"
           },
           "spec": {
@@ -112,20 +97,20 @@ metadata:
             "endpoint": "dev-ssg.brcmlabs.com",
             "enrollmentBundle": "",
             "mode": "auto",
-            "name": "portal"
+            "portalTenant": "portal"
           }
         }
       ]
     capabilities: Basic Install
     certified: "false"
     containerImage: docker.io/caapim/layer7-operator:v1.0.5
-    createdAt: "2024-02-24T12:05:48Z"
+    createdAt: "2024-05-21T06:50:18Z"
     operatorframework.io/suggested-namespace: layer7-operator-system
-    operators.operatorframework.io/builder: operator-sdk-v1.33.0
+    operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community
-  name: layer7-operator.v1.0.5
+  name: layer7-operator.v1.0.6
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -219,16 +204,14 @@ spec:
         displayName: DeploymentTags
         path: deploymentTags
       - description: GraphmanBundle associated with this API currently limited to
-          Service and Fragments
+          Service and Fragments auto generated when PortalMeta is set and PortalPublished
+          is true
         displayName: GraphmanBundle
         path: graphmanBundle
       - description: L7Portal is the L7Portal that this API is associated with when
-          Portal Published
+          Portal Published is true
         displayName: L7Portal
         path: l7Portal
-      - description: Name of the API
-        displayName: Name
-        path: name
       - description: PortalPublished
         displayName: PortalPublished
         path: portalPublished
@@ -252,7 +235,7 @@ spec:
           APIs will be applied to
         displayName: DeploymentTags
         path: deploymentTags
-      - description: Name Portal name
+      - description: Enabled - if enabled this Portal and its APIs will be synced
         displayName: Enabled
         path: enabled
       - description: Endoint - Portal endpoint
@@ -265,13 +248,9 @@ spec:
       - description: Labels - Custom Labels
         displayName: Labels
         path: labels
-      - description: Mode determines how or if the Portal is contacted defaults to
-          auto, options are auto, local. Local requires enrollmentBundle to be set.
-        displayName: Mode
-        path: mode
-      - description: Name of the Portal
-        displayName: Name
-        path: name
+      - description: PortalTenant is the tenantId of the API Developer Portal
+        displayName: PortalTenant
+        path: portalTenant
       - description: SyncIntervalSeconds how often the Portal CR is reconciled. Default
           is 10 seconds
         displayName: SyncIntervalSeconds
@@ -659,7 +638,7 @@ spec:
                 - name: HTTP_PROXY
                 - name: HTTPS_PROXY
                 - name: NO_PROXY
-                image: docker.io/caapim/layer7-operator:v1.0.5
+                image: docker.io/caapim/layer7-operator:1.0.6
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -770,7 +749,7 @@ spec:
   provider:
     name: Broadcom
     url: https://www.broadcom.com/
-  version: 1.0.5
+  version: 1.0.6
   webhookdefinitions:
   - admissionReviewVersions:
     - v1

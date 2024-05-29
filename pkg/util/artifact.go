@@ -23,14 +23,14 @@ var ErrInvalidZipArchive = errors.New("InvalidZipArchive")
 // This is currently limited to URLs that contain the file extension as would be the
 // case when targeting releases from Git releases.
 // The following extensions are accepted .tar, .tar.gz, .zip
-func DownloadArtifact(URL string, username string, token string, name string, forceUpdate bool) (string, error) {
+func DownloadArtifact(URL string, username string, token string, name string, forceUpdate bool, namespace string) (string, error) {
 	fileURL, err := url.Parse(URL)
 	if err != nil {
 		return "", err
 	}
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
-	fileName := "/tmp/" + name + "-" + segments[len(segments)-1]
+	fileName := "/tmp/" + name + "-" + namespace + "-" + segments[len(segments)-1]
 
 	// Downloaded artifacts are treated as immutable, once a given release has been downloaded it will not be
 	// retrieved again unless there is a URL change.
@@ -124,7 +124,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 			return "", ErrInvalidTarArchive
 		}
 	case "json":
-		fileName = name + "-" + segments[len(segments)-1]
+		fileName = name + "-" + namespace + "-" + segments[len(segments)-1]
 
 		folderName := strings.ReplaceAll("/tmp/"+fileName, "."+ext, "")
 		os.Mkdir(folderName, 0755)

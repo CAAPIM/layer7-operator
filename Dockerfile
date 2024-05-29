@@ -1,24 +1,32 @@
-# Build the manager binary
-FROM golang:1.21 as builder
+FROM GO_BUILD_IMG as builder
 
+ARG GOPROXY
 WORKDIR /workspace
-# Copy the Go Modules manifests
+
 COPY go.mod go.mod
 COPY go.sum go.sum
 
-COPY vendor/ vendor/
 COPY internal/ internal/
 COPY cmd/main.go cmd/main.go
 COPY api/ api/
-COPY clientcmd/ clientcmd/
 COPY pkg/ pkg/
 COPY scripts/ scripts/
+ENV GOPROXY=${GOPROXY}
+RUN go mod download
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager cmd/main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+
+FROM DISTROLESS_IMG
+
+ARG AUTHOR=layer7
+ARG VERSION
+ARG CREATED
+
+LABEL com.broadcom.ims.layer7-operator=${AUTHOR}
+LABEL com.broadcom.ims.layer7-operator=${VERSION}
+LABEL com.broadcom.ims.layer7-operator=${CREATED}
+
 WORKDIR /
 COPY --from=builder /workspace/scripts .
 COPY --from=builder /workspace/manager .

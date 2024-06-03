@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: repositories.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -27,14 +27,19 @@ spec:
         description: Repository is the Schema for the repositories API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -57,8 +62,9 @@ spec:
                     description: KnownHosts is required for SSH Auth
                     type: string
                   password:
-                    description: Password repository Password password or token are
-                      acceptable
+                    description: |-
+                      Password repository Password
+                      password or token are acceptable
                     type: string
                   sshKey:
                     description: SSHKey for Git SSH Authentication
@@ -70,7 +76,8 @@ spec:
                     description: Token repository Access Token
                     type: string
                   type:
-                    description: Auth Type defaults to basic, possible options are
+                    description: |-
+                      Auth Type defaults to basic, possible options are
                       none, basic or ssh
                     type: string
                   username:
@@ -81,10 +88,10 @@ spec:
                     type: string
                 type: object
               branch:
-                description: Branch - specify which branch to clone if branch and
-                  tag are both specified branch will take precedence and tag will
-                  be ignored if branch and tag are both missing the entire repository
-                  will be cloned
+                description: |-
+                  Branch - specify which branch to clone
+                  if branch and tag are both specified branch will take precedence and tag will be ignored
+                  if branch and tag are both missing the entire repository will be cloned
                 type: string
               enabled:
                 description: Enabled - if enabled this repository will be synced
@@ -98,9 +105,9 @@ spec:
                 description: Labels - Custom Labels
                 type: object
               localReference:
-                description: LocalReference lets the Repository controller use a local
-                  Kubernetes Configmap/Secret as a repository source This is not currently
-                  implemented
+                description: |-
+                  LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
+                  This is not currently implemented
                 properties:
                   configMapName:
                     type: string
@@ -120,8 +127,9 @@ spec:
                     type: integer
                 type: object
               tag:
-                description: Tag - clone a specific tag. tags do not change, once
-                  cloned this will not be checked for updates
+                description: |-
+                  Tag - clone a specific tag.
+                  tags do not change, once cloned this will not be checked for updates
                 type: string
               type:
                 description: Type of Repository - Git or HTTP

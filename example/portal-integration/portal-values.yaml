@@ -1,0 +1,163 @@
+global:
+  portalRepository: caapim/
+  pullSecret: broadcom-apim
+  subdomainPrefix: dev-portal
+  databasePassword: 7layer
+  demoDatabaseRootPassword: 7layer
+  demoDatabaseReplicationPassword: 7layer
+
+portal:
+  domain: brcmlabs.com
+  analytics:
+    enabled: false
+  internalSSG:
+    secretName: ssg-secret
+  papi:
+    secretName: papi-secret
+
+ingress:
+  class:
+    name: nginx
+    enabled: true
+  type:
+    kubernetes: true
+    openshift: false
+  secretName: dispatcher-tls
+  create: true
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+  tenantIds:
+    - portal
+
+image:
+  dispatcher: dispatcher:Layer7Operator-5.2.3
+  pssg: pssg:5.2.3
+  apim: ingress:5.2.3
+  enterprise: portal-enterprise:5.2.3
+  data: portal-data:Layer7Operator-5.2.3
+  tps: tenant-provisioning-service:5.2.3
+  analytics: analytics-server:5.2.3
+  authenticator: authenticator:5.2.3
+  dbUpgrade: db-upgrade-portal:Layer7Operator-5.2.3
+  rbacUpgrade: db-upgrade-rbac:5.2.3
+  upgradeVerify: upgrade-verify:5.2.3
+  tlsManager: tls-automator:5.2.3
+
+rabbitmq:
+  enabled: true
+  host: rabbitmq
+  fullnameOverride: rabbitmq
+  image:
+    registry: caapim
+    repository: message-broker
+    tag: "5.2.3"
+    pullSecrets:
+      - broadcom-apim
+  pdb:
+    create: false
+    maxUnavailable: ""
+    minAvailable: ""
+  serviceAccount:
+    create: true
+  rbac:
+    create: true
+  persistence:
+    enabled: true
+  replicaCount: 1
+  clustering:
+    forceBoot: false
+  service:
+    port: 5672
+    extraPorts:
+    - name: mqtt
+      port: 1883
+      targetPort: mqtt
+  extraContainerPorts:
+  - name: mqtt
+    containerPort: 1883
+  auth:
+    username: user
+    secretName: rabbitmq-secret
+    existingPasswordSecret: rabbitmq-secret
+    existingErlangSecret: rabbitmq-secret
+    password: 7layereyal7
+    erlangCookie: L7Secure
+  extraPlugins: "rabbitmq_web_mqtt"
+  loadDefinition:
+    enabled: true
+    existingSecret: rabbitmq-load-definition
+  extraConfiguration: |-
+    management.load_definitions = /app/load_definition.json
+    mqtt.exchange = portal-external
+    mqtt.subscription_ttl = 86400000
+    mqtt.prefetch = 1
+    disk_free_limit.absolute = 2GB
+  resources:
+    limits: {}
+    requests: {}
+  customLivenessProbe:
+    exec:
+      command:
+        - sh
+        - -ec
+        - curl -f  --user {{ .Values.auth.username }}:$RABBITMQ_PASSWORD 127.0.0.1:{{ .Values.containerPorts.manager }}/api/health/checks/virtual-hosts
+  customReadinessProbe:
+    exec:
+      command:
+        - sh
+        - -ec
+        - curl -f  --user {{ .Values.auth.username }}:$RABBITMQ_PASSWORD 127.0.0.1:{{ .Values.containerPorts.manager }}/api/health/checks/local-alarms
+
+mysql:
+  image:
+    tag: "8.0.36-debian-11-r4"
+  auth:
+    username: portal
+    existingSecret: database-secret
+  initdbScripts:
+    elevate-admin.sql: |
+      GRANT ALL PRIVILEGES ON *.* TO 'portal'@'%'; FLUSH PRIVILEGES;
+  primary:
+    configuration: |-
+      [client]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      default-character-set=utf8mb4
+      plugin_dir=/opt/bitnami/mysql/plugin
+      [mysqld]
+      default_authentication_plugin=mysql_native_password
+      skip-name-resolve
+      explicit_defaults_for_timestamp
+      basedir=/opt/bitnami/mysql
+      plugin_dir=/opt/bitnami/mysql/plugin
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      datadir=/bitnami/mysql/data
+      tmpdir=/opt/bitnami/mysql/tmp
+      collation-server=utf8mb4_0900_ai_ci
+      character-set-server=utf8mb4
+      innodb_log_buffer_size=32M
+      innodb_log_file_size=80M
+      max_allowed_packet=8M
+      group_concat_max_len=512000
+      sql_mode = "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+      bind-address=0.0.0.0
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+      log-error=/opt/bitnami/mysql/logs/mysqld.log
+      [manager]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+    pdb:
+      create: false
+      maxUnavailable: ""
+      minAvailable: ""
+    persistence:
+      annotations:
+        helm.sh/hook: pre-install
+        helm.sh/hook-weight: "-10"
+  commonAnnotations:
+    helm.sh/hook: pre-install
+    helm.sh/hook-weight: "-10"
+

@@ -3,6 +3,9 @@
 
 .PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel
 
+
+PORTAL_DOMAIN ?= brcmlabs.com
+
 wait:
 ifeq ($(OS),Windows_NT)
 	TIMEOUT /T $(t)
@@ -35,6 +38,39 @@ advanced:
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
 
+portal-example: install kubeconfig redis
+	helm repo add layer7 https://caapim.github.io/apim-charts/
+	helm repo update
+	@echo "####################################################################################################################################"
+	@echo "Deploying the Layer7 API Developer Portal, this will take several minutes and complete when all components are ready."
+	@echo "####################################################################################################################################"
+	helm upgrade --install portal --set ingress.create=false --set-file portal.registryCredentials=./portal-integration/secrets/docker-secret.yaml -f ./portal-integration/portal-values.yaml layer7/portal -n default
+	kubectl -n default wait --for=condition=ready --timeout=600s pod -l app=apim
+	@$(MAKE) --silent t=15 wait
+	@echo "####################################################################################################################################"
+	@echo "Provisioning Portal Tenant"
+	@echo "####################################################################################################################################"
+	./portal-integration/create-tenant.sh -d ./portal-integration/enroll-payload.json -n default
+	@$(MAKE) --silent t=30 wait
+	@echo "####################################################################################################################################"
+	@echo "Configuring Portal Tenant"
+	@echo "####################################################################################################################################"
+	./portal-integration/configure-portal.sh
+
+kubeconfig:
+	kubectl apply -f ./portal-integration/serviceaccount
+	@$(MAKE) --silent t=10 wait
+	kubectl apply -f ./portal-integration/serviceaccount/secret
+	./portal-integration/serviceaccount/create-serviceaccount.sh
+
+redis:
+	helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis -n redis --create-namespace
+	@$(MAKE) --silent t=10 wait
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis -n redis
+
+
+configure-nginx-ssl-passthrough:
+	kubectl -n ingress-nginx  get deployment ingress-nginx-controller -oyaml | sed -e "s/env:/\- \-\-enable\-ssl\-passthrough\n        env\:/g" | kubectl -n ingress-nginx apply -f -
 
 grafana-stack:
 	helm repo add grafana https://grafana.github.io/helm-charts

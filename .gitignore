@@ -26,7 +26,8 @@ testbin/*
 *~
 
 
-
+nginx-ingress.yaml
+docker-secret.yaml
 mysql-values.yaml
 example/tls.*
 portal-gateway.yaml

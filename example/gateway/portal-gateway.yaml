@@ -1,15 +1,15 @@
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
-  name: ssg
+  name: portal-ssg
 spec:
-  version: "11.1.00"
+  version: "11.0.00_CR2"
   license:
-    accept: false
+    accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: caapim/gateway:11.1.00
+    image: caapim/gateway:11.0.00_CR2
     imagePullPolicy: IfNotPresent
     updateStrategy:
       type: rollingUpdate
@@ -29,73 +29,12 @@ spec:
       enabled: true
       type: standalone
       standalone:
-        hostname: 192.168.1.10
-        port: 30036
-      # auth:
-      #   enabled: false
-      #   username: redis-user
-      #   passwordPlaintext: redis-pass
-        #passwordEncoded: encoded-redis-pass
-      # tls:
-      #   enabled: false
-      #   verifyPeer: true
-      #   crt: |+
-      #     -----BEGIN CERTIFICATE-----
-      #     MIIEPzCCAyegAwIBAgIQeU+e4GXMcNWtPvtYtGsxejANBgkqhkiG9w0BAQsFADAT
-      #     MREwDwYDVQQDEwhyZWRpcy1jYTAeFw0yMzEyMDgxNzA0MjRaFw0yNDEyMDcxNzA0
-      #     MjRaMBkxFzAVBgNVBAMTDnNlbnRpbmVsLXJlZGlzMIIBIjANBgkqhkiG9w0BAQEF
-      #     AAOCAQ8AMIIBCgKCAQEAsWKC5hOfxscAxaqnkz/u4zCImNNhxrBn6mJUIsDQk+0r
-      #     FZ46ACK1ViYCwezV/6rKOGm4zQYorTn/lUGXWX23cc4YbKHFPneLPW7ZSCHd65/V
-      #     TUPIpxGiwbzrWMq7RWGMPrXlxISIqQsHYH+1To5PvWUn0CQUpcOWTv7NpYql7ugy
-      #     GrO77y2PLa0KXsJ/Z2q6VSAoBV51nGmVMOhp0dWuKmHJKYZ4R6Xkj19FrtusZFDh
-      #     02mLWIwgZlnAU1egy7LXdkWhkrD1QoVQoY+OvEVzyeAmOz1mxzuwnGlE5LE5B/xa
-      #     dhL8wGwRNOxizOrKD46UQN1gOPf3qt4Qt4qAOIUcOwIDAQABo4IBhzCCAYMwDgYD
-      #     VR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjAMBgNV
-      #     HRMBAf8EAjAAMB8GA1UdIwQYMBaAFPyHIhBglky8kYnBsdPBhb81SrnFMIIBIQYD
-      #     VR0RBIIBGDCCARSCKCouc2VudGluZWwtcmVkaXMucmVkaXMuc3ZjLmNsdXN0ZXIu
-      #     bG9jYWyCLXNlbnRpbmVsLXJlZGlzLW1hc3Rlci5yZWRpcy5zdmMuY2x1c3Rlci5s
-      #     b2NhbIIvKi5zZW50aW5lbC1yZWRpcy1tYXN0ZXIucmVkaXMuc3ZjLmNsdXN0ZXIu
-      #     bG9jYWyCMSouc2VudGluZWwtcmVkaXMtaGVhZGxlc3MucmVkaXMuc3ZjLmNsdXN0
-      #     ZXIubG9jYWyCL3NlbnRpbmVsLXJlZGlzLWhlYWRsZXNzLnJlZGlzLnN2Yy5jbHVz
-      #     dGVyLmxvY2FsggkxMjcuMC4wLjGCCWxvY2FsaG9zdIIOc2VudGluZWwtcmVkaXMw
-      #     DQYJKoZIhvcNAQELBQADggEBAAyYb2dtzhJaVe3H9NaYxBne98wB+TQ0sfQ7S5xd
-      #     LOMBOYShutQ4AYTR2z/lBApuM6rGEXJH+kWheNJ3XYwfcazYdUVF4TYbvgXwlAWX
-      #     c51Bv2pvN8d3Gm/snSkEHfwXwdtPxr0JXoJ6aFpCzIpkcWYgYdGWL9C+YnYV7CSQ
-      #     diDTCBfjJUD6znxaSTHzrJSGxF10dQIZk7WckzKiCmaCKMtx9T0x2YHNQfHVIRUz
-      #     l5ANpWC8RhBaq9klUmMDn3Sk9huL+cxSnOK5wAxk8gmZxr0Xupbb6hRG6QJ+Wv4P
-      #     1C6GAAf5Obxk6iFTvVGg+dpE5XuSK132MQAVnglXQ/9iV60=
-      #     -----END CERTIFICATE-----
-      # sentinel:
-      #   masterSet: mymaster
-      #   nodes:
-      #   - sentinel-redis-node-0.sentinel-redis-headless.redis.svc.cluster.local:26379
-      #   - sentinel-redis-node-1.sentinel-redis-headless.redis.svc.cluster.local:26379
-      #   - sentinel-redis-node-2.sentinel-redis-headless.redis.svc.cluster.local:26379
+        hostname: standalone-redis-master.redis.svc.cluster.local
+        port: 6379
     bundle: []
-      # - type: graphman
-      #   source: secret
-      #   name: graphman-portal-bootstrap-bundle
     repositoryReferences: []
-      # - name: l7-gw-myframework
-      #   enabled: true
-      #   type: dynamic
-      #   encryption:
-      #     existingSecret: graphman-encryption-secret
-      #     key: FRAMEWORK_ENCRYPTION_PASSPHRASE
-      # - name: l7-gw-myapis
-      #   enabled: true
-      #   type: dynamic
-      #   encryption:
-      #     existingSecret: graphman-encryption-secret
-      #     key: APIS_ENCRYPTION_PASSPHRASE
-      # - name: l7-gw-mysubscriptions
-      #   enabled: true
-      #   type: dynamic
-      #   encryption:
-      #     existingSecret: graphman-encryption-secret
-      #     key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
     portalReference:
-      enabled: true
+      enabled: false
       portalName: dev-portal
       initContainerImagePullPolicy: Always
     bootstrap:
@@ -103,46 +42,28 @@ spec:
         enabled: true
     initContainers:
     - name: gateway-init
-      image: harbor.sutraone.com/operator/gateway-portal-init:1.0.0
+      image: layer7api/gateway-portal-init:1.0.0
       imagePullPolicy: Always
       volumeMounts:
       - name: config-directory
         mountPath: /opt/docker/custom
-    hazelcast:
-      external: false
-      endpoint: hazelcast.example.com:5701
     management:
       secretName: gateway-secret
-      #username: admin
-      #password: 7layer
-      # Management port requires a separate service...
       service:
-        enabled: true
-        #annotations:
-          # cloud.google.com/load-balancer-type: "Internal"
-        type: LoadBalancer
-        ports:
-        - name: management
-          port: 9443
-          targetPort: 9443
-          protocol: TCP   
+        enabled: false
       restman:
         enabled: false
       graphman:
         enabled: true
         initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
       cluster:
-        #password: 7layer
-        hostname: mydevgw.brcmlabs.com
+        hostname: gateway.brcmlabs.com
       database:
-        enabled: false # this runs the gateway in dbbacked/ephemeral mode
-      #  jdbcUrl: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
-      #  username: "gateway"
-      #  password: "ACm8BDr3Rfk2Flx9V"
+        enabled: false
     java:
       jvmHeap:
         calculate: true
-        percentage: 50
+        percentage: 75
         default: 4g
       extraArgs:
       - -Dcom.l7tech.server.audit.message.saveToInternal=false
@@ -152,9 +73,9 @@ spec:
       - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
       - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
       - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true
-      #- -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
+      - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
     listenPorts:
-      harden: true
+      harden: false
       custom:
         enabled: false
       ports: []
@@ -193,7 +114,6 @@ spec:
         com.l7tech.server.extension.sharedKeyValueStoreProvider=redis
         com.l7tech.server.extension.sharedCounterProvider=redis
         com.l7tech.server.extension.sharedRateLimiterProvider=redis
-
     service:
       # annotations:
       type: ClusterIP
@@ -210,17 +130,7 @@ spec:
         # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
       tls:
       - hosts: 
-        - mydevgw.brcmlabs.com
+        - gateway.brcmlabs.com
         secretName: brcmlabs
       rules:
-      - host: mydevgw.brcmlabs.com
-    # containerSecurityContext:
-    #   runAsNonRoot: true
-    #   runAsUser: 1000669998
-    #   capabilities:
-    #     drop:
-    #     - ALL
-    #   allowPrivilegeEscalation: false
-    # podSecurityContext:
-    #   runAsUser: 1000669998
-    #   runAsGroup: 1000669998
+      - host: gateway.brcmlabs.com

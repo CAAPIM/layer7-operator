@@ -32,6 +32,11 @@ ARTIFACT_HOST ?= docker.io
 IMAGE_TAG ?= layer7api/layer7-operator
 IMAGE_TAG_BASE ?= $(ARTIFACT_HOST)/$(IMAGE_TAG)
 
+CREATED ?= $(shell echo `date`)
+YEAR ?= $(shell echo `date +%Y`)
+AUTHOR ?= "layer7"
+COPYRIGHT ?= Copyright © ${YEAR} Broadcom Inc. and/or its subsidiaries. All Rights Reserved.
+
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:$(VERSION)
@@ -222,6 +227,11 @@ docker-build: dockerfile #test ## Build docker image with the manager.
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	$(CONTAINER_TOOL) push ${IMG}
+
+.PHONY: docker-build-push
+docker-build-push: dockerfile #test ## Build docker image with the manager.
+	$(CONTAINER_TOOL) build -t ${IMG} -f operator.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.author=layer7" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.version=${IMAGE_TAG}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.created=${CREATED}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.copyright=${COPYRIGHT}" --push .
+
 
 # PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:

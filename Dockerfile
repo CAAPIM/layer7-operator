@@ -1,5 +1,15 @@
 FROM GO_BUILD_IMG as builder
 
+ARG AUTHOR=layer7
+ARG VERSION
+ARG CREATED
+ARG COPYRIGHT
+
+LABEL com.broadcom.ims.label.author=${AUTHOR}
+LABEL com.broadcom.ims.label.version=${VERSION}
+LABEL com.broadcom.ims.label.created=${CREATED}
+LABEL com.broadcom.ims.label.copyright=${COPYRIGHT}
+
 ARG GOPROXY
 WORKDIR /workspace
 
@@ -22,10 +32,12 @@ FROM DISTROLESS_IMG
 ARG AUTHOR=layer7
 ARG VERSION
 ARG CREATED
+ARG COPYRIGHT
 
-LABEL com.broadcom.ims.layer7-operator=${AUTHOR}
-LABEL com.broadcom.ims.layer7-operator=${VERSION}
-LABEL com.broadcom.ims.layer7-operator=${CREATED}
+LABEL com.broadcom.ims.label.author=${AUTHOR}
+LABEL com.broadcom.ims.label.version=${VERSION}
+LABEL com.broadcom.ims.label.created=${CREATED}
+LABEL com.broadcom.ims.label.copyright=${COPYRIGHT}
 
 WORKDIR /
 COPY --from=builder /workspace/scripts .

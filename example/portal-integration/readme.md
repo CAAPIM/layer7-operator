@@ -619,6 +619,6 @@ make uninstall-kind
 helm del portal -n default
 kubectl delete statefulset portal-mysql -n default
 kubectl delete pvc data-portal-mysql-0 data-rabbitmq-0 -n default
-helm del redis -n default
+helm del redis -n redis
 kubectl delete -f ./portal-integration/operator/bundle.yaml
 ```

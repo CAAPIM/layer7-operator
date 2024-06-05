@@ -38,7 +38,12 @@ advanced:
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
 
-portal-example: install kubeconfig redis
+portal-example: kubeconfig redis
+	kubectl apply -f ./portal-integration/operator/bundle.yaml
+	@$(MAKE) --silent t=10 wait
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
+	kubectl apply -k ./base
+	kubectl apply -f ./gateway/portal-gateway.yaml
 	helm repo add layer7 https://caapim.github.io/apim-charts/
 	helm repo update
 	@echo "####################################################################################################################################"

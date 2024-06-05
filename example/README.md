@@ -28,6 +28,9 @@ Gateways
 Open Telemetry Example
 - [Grafana LGTM Stack](./otel-lgtm/)
 
+Portal Integration Example
+- [Portal Integration](./portal-integration/)
+
 Other examples
 - [Elastic Stack](./otel-elastic)
 - [Prometheus](./otel-prometheus)

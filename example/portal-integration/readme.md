@@ -5,8 +5,8 @@ By the end of this example you should have a better understanding of the Layer7 
 
 
 ### Getting started
-1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
-2. Place the registry credential for the Portal images in [./portal-integration/secrets](../portal-integration/secrets/) called docker-secret.yaml available on the [CA API Developer Portal Solutions & Patches](https://techdocs.broadcom.com/us/product-content/recommended-reading/technical-document-index/ca-api-developer-portal-solutions-and-patches.html) page.
+1. Place a gateway v11 license in [example/base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+2. Place the registry credential for the Portal images in [example/portal-integration/secrets](../portal-integration/secrets/) called docker-secret.yaml available on the [CA API Developer Portal Solutions & Patches](https://techdocs.broadcom.com/us/product-content/recommended-reading/technical-document-index/ca-api-developer-portal-solutions-and-patches.html) page.
 3. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/portal-gateway.yaml)
   - update license.accept to true before proceeding
@@ -15,24 +15,10 @@ By the end of this example you should have a better understanding of the Layer7 
     accept: true
     secretName: gateway-license
   ```
-4. You will need an ingress controller like nginx
-    - if you do not have one installed already you can use the makefile in the example directory to deploy one
-        - ```cd example```
-        - Generic Kubernetes
-            - ```make nginx```
-        - Kind (Kubernetes in Docker)
-            - follow the steps in Quickstart
-            or
-            - ```make nginx-kind```
-    - **NOTE:** the Portal requires an ingress controller that supports ssl/tls passthrough for mutual ssl/tls.
-        - This will add the following [command line argument](https://kubernetes.github.io/ingress-nginx/user-guide/cli-arguments/) to nginx, in the ingress-nginx namespace. **It has only been tested** deployed with the above commands
-        - ```--enable-ssl-passthrough```
-        - The following command will edit your nginx deployment
-            - ```make configure-nginx-ssl-passthrough```
-5. Resources
+4. Resources
    - You will need a machine that is capable of running the Portal Core stack and the Gateway
      - At a minimum you should have 8(v)cpu and 16GB RAM allocated to your Kind instance or Kubernetes node.
-6. DNS/Host file configuration
+5. DNS/Host file configuration
    - You will need the following entries in your hosts file or local DNS
      If you're running Kind locally
      ```
@@ -70,10 +56,34 @@ By the end of this example you should have a better understanding of the Layer7 
          ```
          - Your hosts file will need to use yourportaldomain.com in place of brcmlabs.com
          - The [enroll-payload](./enroll-payload.json) will also need to be updated
-         - Finally set the following environment variable
-           - export PORTAL_DOMAIN=yourportaldomain.com
+6. You will need an ingress controller like nginx
+    - if you do not have one installed already you can use the makefile in the example directory to deploy one
+        - ```cd example```
+        - Generic Kubernetes
+            - ```make nginx```
+        - Kind (Kubernetes in Docker)
+            - follow the steps in [Quickstart](#quickstart)
+            or
+            - ```make nginx-kind```
+    - **NOTE:** the Portal requires an ingress controller that supports ssl/tls passthrough for mutual ssl/tls.
+        - This will add the following [command line argument](https://kubernetes.github.io/ingress-nginx/user-guide/cli-arguments/) to nginx, in the ingress-nginx namespace. **It has only been tested** deployed with the above commands
+        - ```--enable-ssl-passthrough```
+        - The following command will edit your nginx deployment
+            - ```make configure-nginx-ssl-passthrough```
+
 
 ### Guide
+- This guide targets the default namespace for the layer7, operator, gateway, portal and redis. This can be updated by setting the following environment variable
+```
+export NAMESPACE=yournamespace
+```
+- We don't specify a namespace for the manual steps or commands to view different resources, if you aren't using the default namespace you can update your current namespace with the following command
+```
+kubectl config set-context --current --namespace=yournamespace
+```
+
+If you deploy the nginx ingress controller as part of this example, it will use a namespace called ingress-nginx
+
 * [Quickstart](#quickstart)
     * [Using an existing Kubernetes Cluster](#existing-kubernetes-cluster)
     * [Using Kind](#kind)
@@ -131,16 +141,17 @@ make kind-cluster nginx-kind configure-nginx-ssl-passthrough portal-example
 ```
 
 ### Existing Kubernetes Cluster
-```
-make portal-example
-```
-if you don't have an ingress controller you can deploy nginx with the following
+An ingress controller is required for this example, if you don't have an ingress controller you can deploy nginx with the following
 ```
 make nginx configure-nginx-ssl-passthrough
 ```
 if you are using kind
 ```
 make nginx-kind configure-nginx-ssl-passthrough
+```
+Deploy the example components
+```
+make portal-example
 ```
 
 ## If you used the Makefile proceed to [Configure the Developer Portal](#configure-the-developer-portal)
@@ -185,12 +196,12 @@ make redis
 ```
 or manually
 ```
-helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis -n redis --create-namespace
-kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis -n redis
+helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis
+kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis
 ```
 View Redis Pod
 ```
-kubectl get pods -n redis
+kubectl get pods
 ```
 
 ### Deploy the Developer Portal
@@ -200,15 +211,15 @@ You can deploy the portal using the following commands
 ```
 helm repo add layer7 https://caapim.github.io/apim-charts/
 helm repo update
-helm upgrade --install portal --set ingress.create=false --set-file portal.registryCredentials=./portal-integration/secrets/docker-secret.yaml -f ./portal-integration/portal-values.yaml layer7/portal -n default
-kubectl -n default wait --for=condition=ready --timeout=600s pod -l app=apim
+helm upgrade --install portal --set ingress.create=false --set-file portal.registryCredentials=./portal-integration/secrets/docker-secret.yaml -f ./portal-integration/portal-values.yaml layer7/portal
+kubectl wait --for=condition=ready --timeout=600s pod -l app=apim
 ```
 
 #### Provision a Portal Tenant
 The following script will provision a Portal Tenant with the configuration in [enroll-payload.json](../portal-integration/enroll-payload.json).
 
 ```
-./portal-integration/create-tenant.sh -d ./portal-integration/enroll-payload.json -n default
+./portal-integration/create-tenant.sh -d ./portal-integration/enroll-payload.json
 ```
 output
 ```
@@ -249,7 +260,7 @@ kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=
 ### Create a Gateway
 The [Gateway Custom Resource](../gateway/portal-gateway.yaml) is configured to use Redis and Gateway version 11.0.00_CR2
 
-Make sure that you've accepted the license in [portal-gateway.yaml](../gateway/portal-gateway.yaml) and placed a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+Make sure that you've accepted the license in [portal-gateway.yaml](../gateway/portal-gateway.yaml) and placed a gateway v11 license in [example/base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 ```
 kubectl apply -k ./base
 ```
@@ -366,7 +377,7 @@ In the same browser
 - Click 'Environment'
 - Set 'CLOUD NATIVE ENVIRONMENT' to
   - `example-k8` <== in the experimental version of this integration the name needs to include k8
-- Set 'Workspace' (namespace)
+- Set 'Workspace' (namespace). If you are not using the default namespace, use the namespace you selected earlier
   - `default`
 - Set 'Deployment Tags' (these target Operator Managed Gateways)
   - `portal-ssg`
@@ -378,7 +389,7 @@ In the same browser
   - Copy the contents
   - Paste into the config field
 - Click 'Save'
-- Click the 'labels.keystore.details.proxies' tab
+- Click the 'Proxies' tab
 - Click 'example-k8 (portal-ssg)'
 
 ![create-portal-environment](../images/create-portal-environment.gif)
@@ -616,9 +627,9 @@ make uninstall-kind
 
 ### Uninstall
 ```
-helm del portal -n default
-kubectl delete statefulset portal-mysql -n default
-kubectl delete pvc data-portal-mysql-0 data-rabbitmq-0 -n default
-helm del redis -n redis
+helm del portal 
+kubectl delete statefulset portal-mysql
+kubectl delete pvc data-portal-mysql-0 data-rabbitmq-0
+helm del redis
 kubectl delete -f ./portal-integration/operator/bundle.yaml
 ```

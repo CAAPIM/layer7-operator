@@ -3,7 +3,7 @@ These examples cover a broader set of the features that the Layer7 Operator prov
 
 ## Prerequisites
 - Kubernetes v1.25+
-- Gateway v10/11.x License
+- Gateway v11.x License
 - Ingress Controller (You can also expose Gateway Services as L4 LoadBalancers)
 - Accept the Gateway License
   - license.accept defaults to false in all of the [Gateway examples](./gateway/)

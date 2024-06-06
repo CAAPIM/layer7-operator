@@ -29,7 +29,7 @@ spec:
       enabled: true
       type: standalone
       standalone:
-        hostname: standalone-redis-master.redis.svc.cluster.local
+        hostname: standalone-redis-master
         port: 6379
     bundle: []
     repositoryReferences: []

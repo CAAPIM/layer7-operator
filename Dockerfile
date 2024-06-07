@@ -11,6 +11,7 @@ LABEL com.broadcom.ims.label.created=${CREATED}
 LABEL com.broadcom.ims.label.copyright=${COPYRIGHT}
 
 ARG GOPROXY
+ARG TARGETARCH
 WORKDIR /workspace
 
 COPY go.mod go.mod
@@ -24,7 +25,7 @@ COPY scripts/ scripts/
 ENV GOPROXY=${GOPROXY}
 RUN go mod download
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} GO111MODULE=on go build -a -o manager cmd/main.go
 
 
 FROM DISTROLESS_IMG

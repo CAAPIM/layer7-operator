@@ -4,7 +4,7 @@
     "multiclusterEnabled": true,
     "noReplyEmail": "noreply@brcmlabs.com",
     "performanceLogLevel": "ERROR",
-    "portalLogLevel": "ERROR",
+    "portalLogLevel": "INFO",
     "portalName": "Operator Example",
     "subdomain": "brcmlabs.com",
     "tenantId": "portal",

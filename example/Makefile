@@ -25,22 +25,22 @@ create-collector:
 
 install:
 	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
 basic:
 	kubectl apply -k ./repositories
-	@$(MAKE) --silent t=10 wait 
+	@$(MAKE) --silent t=15 wait 
 	kubectl apply -f ./gateway/basic-gateway.yaml
 
 advanced:
 	kubectl apply -k ./repositories
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
 
 portal-example: kubeconfig redis
 	kubectl apply -f ./portal-integration/operator/bundle.yaml -n ${NAMESPACE}
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 	kubectl apply -k ./base -n ${NAMESPACE}
 	kubectl apply -f ./gateway/portal-gateway.yaml -n ${NAMESPACE}
@@ -64,13 +64,13 @@ portal-example: kubeconfig redis
 
 kubeconfig:
 	kubectl -n ${NAMESPACE} apply -f ./portal-integration/serviceaccount
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl -n ${NAMESPACE} apply -f ./portal-integration/serviceaccount/secret
 	./portal-integration/serviceaccount/create-serviceaccount.sh ${NAMESPACE}
 
 redis:
 	helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis -n ${NAMESPACE}
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis -n ${NAMESPACE}
 
 
@@ -88,7 +88,7 @@ otel-lgtm-example-kind: install cert-manager prometheus-lgtm open-telemetry graf
 	kubectl apply -f ./otel-lgtm/collector.yaml
 	kubectl apply -f ./otel-lgtm/instrumentation.yaml
 	kubectl apply -k ./repositories
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl apply -f ./gateway/otel-lgtm-gateway.yaml
 
 
@@ -96,7 +96,7 @@ otel-lgtm-example: install cert-manager prometheus-lgtm open-telemetry grafana-s
 	kubectl apply -f ./otel-lgtm/collector.yaml
 	kubectl apply -f ./otel-lgtm/instrumentation.yaml
 	kubectl apply -k ./repositories
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl apply -f ./gateway/otel-lgtm-gateway.yaml
 
 otel-prometheus-example-kind: install cert-manager prometheus open-telemetry jaeger nginx-kind
@@ -106,7 +106,7 @@ otel-prometheus-example-kind: install cert-manager prometheus open-telemetry jae
 	kubectl apply -f ./otel-prometheus/observability/jaeger/jaeger.yaml
 	kubectl apply -f ./otel-prometheus/observability/jaeger/ingress.yaml
 	kubectl apply -k ./repositories
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 
 otel-prometheus-example: install cert-manager prometheus open-telemetry jaeger
@@ -116,13 +116,13 @@ otel-prometheus-example: install cert-manager prometheus open-telemetry jaeger
 	kubectl apply -f ./otel-prometheus/observability/jaeger/jaeger.yaml
 	kubectl apply -f ./otel-prometheus/observability/jaeger/ingress.yaml
 	kubectl apply -k ./repositories
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 
 otel-elastic-example-kind: install cert-manager open-telemetry elastic nginx-kind
 	@$(MAKE) --silent t=$(shell kubectl get secret/apm-server-quickstart-apm-token -o go-template='{{index .data "secret-token" | base64decode}}') create-collector
 	kubectl apply -f ./otel-elastic/instrumentation.yaml
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl apply -k ./repositories
 	kubectl apply -f ./gateway/otel-elastic-gateway.yaml
 	@echo "Creating Layer7 Dashboard"
@@ -135,7 +135,7 @@ otel-elastic-example-kind: install cert-manager open-telemetry elastic nginx-kin
 otel-elastic-example: install cert-manager open-telemetry elastic
 	@$(MAKE) --silent t=$(shell kubectl get secret/apm-server-quickstart-apm-token -o go-template='{{index .data "secret-token" | base64decode}}') create-collector
 	kubectl apply -f ./otel-elastic/instrumentation.yaml
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl apply -k ./repositories
 	kubectl apply -f ./gateway/otel-elastic-gateway.yaml
 	@echo "Creating Layer7 Dashboard"
@@ -147,7 +147,7 @@ otel-elastic-example: install cert-manager open-telemetry elastic
 
 cert-manager:
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=cert-manager -n cert-manager
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=cainjector -n cert-manager
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=webhook -n cert-manager
@@ -155,10 +155,10 @@ cert-manager:
 elastic:
 	kubectl create -f https://download.elastic.co/downloads/eck/2.8.0/crds.yaml
 	kubectl apply -f https://download.elastic.co/downloads/eck/2.8.0/operator.yaml
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l control-plane=elastic-operator -n elastic-system
 	kubectl apply -f ./otel-elastic/components
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l elasticsearch.k8s.elastic.co/statefulset-name=quickstart-es-default
 	kubectl wait --for=condition=ready --timeout=600s pod -l apm.k8s.elastic.co/name=apm-server-quickstart
 	kubectl wait --for=condition=ready --timeout=600s pod -l kibana.k8s.elastic.co/name=quickstart
@@ -171,7 +171,7 @@ metrics-server:
 
 open-telemetry:
 	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.97.1/opentelemetry-operator.yaml
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=opentelemetry-operator -n opentelemetry-operator-system
 
 prometheus:
@@ -192,17 +192,17 @@ prometheus-lgtm:
 jaeger:
 	-kubectl create namespace observability
 	kubectl apply -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.44.0/jaeger-operator.yaml -n observability
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l name=jaeger-operator -n observability
 
 nginx-kind:
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=20 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
 
 nginx:
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-	@$(MAKE) --silent t=10 wait
+	@$(MAKE) --silent t=20 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
 
 uninstall:

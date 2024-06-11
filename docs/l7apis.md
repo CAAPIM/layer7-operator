@@ -94,7 +94,9 @@ L7Api is the Schema for the l7apis API
         <td><b>graphmanBundle</b></td>
         <td>string</td>
         <td>
-          GraphmanBundle associated with this API currently limited to Service and Fragments auto generated when PortalMeta is set and PortalPublished is true<br/>
+          GraphmanBundle associated with this API
+currently limited to Service and Fragments
+auto generated when PortalMeta is set and PortalPublished is true<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -431,7 +433,8 @@ L7ApiStatus defines the observed state of L7Api
         <td><b>deployment</b></td>
         <td>string</td>
         <td>
-          Phase       corev1.PodPhase `json:"phase,omitempty"` Reason: Success/Failed to sync because of x<br/>
+          Phase       corev1.PodPhase `json:"phase,omitempty"`
+Reason: Success/Failed to sync because of x<br/>
         </td>
         <td>false</td>
       </tr><tr>

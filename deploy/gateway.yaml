@@ -66,5 +66,4 @@ spec:
   enabled: true
   endpoint: dev-ssg.brcmlabs.com
   enrollmentBundle: ""
-  mode: auto
   portalTenant: portal

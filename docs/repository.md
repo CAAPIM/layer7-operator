@@ -108,7 +108,9 @@ Spec - Repository Spec
         <td><b>branch</b></td>
         <td>string</td>
         <td>
-          Branch - specify which branch to clone if branch and tag are both specified branch will take precedence and tag will be ignored if branch and tag are both missing the entire repository will be cloned<br/>
+          Branch - specify which branch to clone
+if branch and tag are both specified branch will take precedence and tag will be ignored
+if branch and tag are both missing the entire repository will be cloned<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -129,7 +131,8 @@ Spec - Repository Spec
         <td><b><a href="#repositoryspeclocalreference">localReference</a></b></td>
         <td>object</td>
         <td>
-          LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source This is not currently implemented<br/>
+          LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
+This is not currently implemented<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -150,7 +153,8 @@ Spec - Repository Spec
         <td><b>tag</b></td>
         <td>string</td>
         <td>
-          Tag - clone a specific tag. tags do not change, once cloned this will not be checked for updates<br/>
+          Tag - clone a specific tag.
+tags do not change, once cloned this will not be checked for updates<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -198,7 +202,8 @@ Auth contains a reference to the credentials required to connect to your Git rep
         <td><b>password</b></td>
         <td>string</td>
         <td>
-          Password repository Password password or token are acceptable<br/>
+          Password repository Password
+password or token are acceptable<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -226,7 +231,8 @@ Auth contains a reference to the credentials required to connect to your Git rep
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          Auth Type defaults to basic, possible options are none, basic or ssh<br/>
+          Auth Type defaults to basic, possible options are
+none, basic or ssh<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -252,7 +258,8 @@ Auth contains a reference to the credentials required to connect to your Git rep
 
 
 
-LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source This is not currently implemented
+LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
+This is not currently implemented
 
 <table>
     <thead>

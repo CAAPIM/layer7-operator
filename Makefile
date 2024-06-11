@@ -115,7 +115,9 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+#$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd:generateEmbeddedObjectMeta=true,maxDescLen=75 webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -415,11 +417,13 @@ version:
 dockerfile:
 	cat Dockerfile | sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" | sed -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" > operator.Dockerfile
 
-generate-docs:
-	crdoc --resources config/crd/bases/security.brcmlabs.com_gateways.yaml --output docs/gateway.md
-	crdoc --resources config/crd/bases/security.brcmlabs.com_repositories.yaml --output docs/repository.md
-	crdoc --resources config/crd/bases/security.brcmlabs.com_l7portals.yaml --output docs/l7portals.md
-	crdoc --resources config/crd/bases/security.brcmlabs.com_l7apis.yaml --output docs/l7apis.md
+generate-docs: controller-gen
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=./tmp/crd/bases
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_gateways.yaml --output docs/gateway.md
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_repositories.yaml --output docs/repository.md
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7portals.yaml --output docs/l7portals.md
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7apis.yaml --output docs/l7apis.md
+	rm -r ./tmp/
 
 helmify:
 #$(call go-get-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify@v0.3.7)

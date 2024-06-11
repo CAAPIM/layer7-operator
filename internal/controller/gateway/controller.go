@@ -149,6 +149,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{})
+		//.Watches(&corev1.Secret{}, )
 
 	if r.Platform == "openshift" {
 		builder.Owns(&routev1.Route{})

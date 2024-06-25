@@ -232,7 +232,7 @@ docker-push: ## Push docker image with the manager.
 
 .PHONY: docker-build-push
 docker-build-push: dockerfile #test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} -f operator.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.author=layer7" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.version=${IMAGE_TAG}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.created=${CREATED}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.copyright=${COPYRIGHT}" --push .
+	$(CONTAINER_TOOL) build -t ${IMG} -f operator.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}" --push .
 
 # PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
@@ -244,10 +244,10 @@ PLATFORMS ?= linux/arm64,linux/amd64
 .PHONY: docker-buildx
 docker-buildx: ## Build and push docker image for the manager for cross-platform support
 # copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
-#sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > cross.Dockerfile
 	- $(CONTAINER_TOOL) buildx create --name xplatform-builder
 	$(CONTAINER_TOOL) buildx use xplatform-builder
-	- $(CONTAINER_TOOL) buildx build  --platform=$(PLATFORMS) --tag ${IMG} -f operator.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.author=layer7" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.version=${IMAGE_TAG}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.created=${CREATED}" --annotation "index,index-descriptor,manifest,manifest-descriptor:com.broadcom.ims.copyright=${COPYRIGHT}" --push .
+	- $(CONTAINER_TOOL) buildx build  --platform=$(PLATFORMS) --tag ${IMG} -f cross.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}"  .
 	- $(CONTAINER_TOOL) buildx rm xplatform-builder
 
 ##@ Deployment

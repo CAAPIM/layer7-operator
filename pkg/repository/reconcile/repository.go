@@ -29,7 +29,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	authType := repository.Spec.Auth.Type
 	if err != nil {
 		params.Log.Info("repository unavailable", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
-		_ = s.RemoveByTag(params.Instance.Name + "-sync-repository")
+		_ = s.RemoveByTag(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-repository")
 		return nil
 	}
 

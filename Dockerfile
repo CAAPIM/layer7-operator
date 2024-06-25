@@ -1,14 +1,18 @@
 FROM GO_BUILD_IMG as builder
 
 ARG AUTHOR=layer7
+ARG VENDOR=Broadcom Inc.
+ARG TITLE
 ARG VERSION
 ARG CREATED
 ARG COPYRIGHT
 
-LABEL com.broadcom.ims.label.author=${AUTHOR}
-LABEL com.broadcom.ims.label.version=${VERSION}
-LABEL com.broadcom.ims.label.created=${CREATED}
-LABEL com.broadcom.ims.label.copyright=${COPYRIGHT}
+LABEL org.opencontainers.image.created=${CREATED}
+LABEL org.opencontainers.image.authors=${AUTHOR}
+LABEL org.opencontainers.image.title=${TITLE}
+LABEL org.opencontainers.image.version=${VERSION}
+LABEL org.opencontainers.image.vendor=${VENDOR}
+LABEL com.broadcom.copyright=${COPYRIGHT}
 
 ARG GOPROXY
 ARG TARGETARCH
@@ -24,21 +28,25 @@ COPY pkg/ pkg/
 COPY scripts/ scripts/
 ENV GOPROXY=${GOPROXY}
 RUN go mod download
-# Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} GO111MODULE=on go build -a -o manager cmd/main.go
 
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager cmd/main.go
 
 FROM DISTROLESS_IMG
 
 ARG AUTHOR=layer7
+ARG VENDOR=Broadcom Inc.
+ARG TITLE
 ARG VERSION
 ARG CREATED
 ARG COPYRIGHT
 
-LABEL com.broadcom.ims.label.author=${AUTHOR}
-LABEL com.broadcom.ims.label.version=${VERSION}
-LABEL com.broadcom.ims.label.created=${CREATED}
-LABEL com.broadcom.ims.label.copyright=${COPYRIGHT}
+LABEL org.opencontainers.image.created=${CREATED}
+LABEL org.opencontainers.image.authors=${AUTHOR}
+LABEL org.opencontainers.image.title=${TITLE}
+LABEL org.opencontainers.image.version=${VERSION}
+LABEL org.opencontainers.image.vendor=${VENDOR}
+LABEL com.broadcom.copyright=${COPYRIGHT}
+
 
 WORKDIR /
 COPY --from=builder /workspace/scripts .

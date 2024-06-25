@@ -37,6 +37,7 @@ pipeline {
         TEST_BRANCH = 'ingtest-test'
         DOCKERHOST_IP = apimUtils.getDockerHostIP(DOCKER_HOST)
         UNEASYROOSTER_LICENSE_FILE_PATH = "https://github.gwd.broadcom.net/raw/ESD/UneasyRooster/release/11.0.00_saber/DEVLICENSE.xml"
+        COPYRIGHT = "Copyright © ${YEAR} Broadcom Inc. and/or its subsidiaries. All Rights Reserved."
         GOPROXY = ""
         USE_EXISTING_CLUSTER = true
     }
@@ -142,7 +143,7 @@ pipeline {
                    sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_SBO_IMAGE_REG}"
                    sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_GO_IMAGE_REG}"
                    sshCommand remote: remoteSSH, command: "export DISTROLESS_IMG=sbo-saas-docker-release-local.usw1.packages.broadcom.com/broadcom-images/approved/distroless/static:debian12-nonroot; export GO_BUILD_IMG=docker-hub.usw1.packages.broadcom.com/golang:1.22; make dockerfile"
-                   sshCommand remote: remoteSSH, command: "docker build -f operator.Dockerfile --push -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION}  . --build-arg VERSION=${RELEASE_VERSION} --build-arg CREATED=${TIMESTAMP} --build-arg GOPROXY=${GOPROXY}"
+                   sshCommand remote: remoteSSH, command: "docker build -f operator.Dockerfile --push -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION} . --build-arg COPYRIGHT=${COPYRIGHT} --build-arg VERSION=${RELEASE_VERSION} --build-arg CREATED=${TIMESTAMP} --build-arg GOPROXY=${GOPROXY}"
                       
 
 
@@ -160,7 +161,7 @@ pipeline {
                           sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_SBO_IMAGE_REG}"
                           sshCommand remote: remoteSSH, command: "docker login -u ${ARTIFACTORY_CREDS_USR} -p ${ARTIFACTORY_CREDS_PSW} ${ARTIFACTORY_DOCKER_GO_IMAGE_REG}"
                           sshCommand remote: remoteSSH, command: "export DISTROLESS_IMG=sbo-saas-docker-release-local.usw1.packages.broadcom.com/broadcom-images/approved/distroless/static:debian12-nonroot; export GO_BUILD_IMG=docker-hub.usw1.packages.broadcom.com/golang:1.22; make dockerfile"
-                          sshCommand remote: remoteSSH, command: "docker build -f operator.Dockerfile --push -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:main . --build-arg VERSION=${RELEASE_VERSION} --build-arg CREATED=${TIMESTAMP} --build-arg GOPROXY=${GOPROXY}"
+                          sshCommand remote: remoteSSH, command: "docker build -f operator.Dockerfile --push -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:main . --build-arg COPYRIGHT=${COPYRIGHT} --build-arg VERSION=main --build-arg CREATED=${TIMESTAMP} --build-arg GOPROXY=${GOPROXY}"
 
                     }
                 }

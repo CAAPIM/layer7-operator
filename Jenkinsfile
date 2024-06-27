@@ -15,7 +15,7 @@ pipeline {
         def CREATED = sh(script: "echo `date`", returnStdout: true).trim()
         def YEAR = sh(script: "echo `date +%Y`", returnStdout: true).trim()
         VERSION = "${env.BRANCH_NAME}"    
-        COPYRIGHT = "Copyright © ${YEAR} Broadcom Inc. and/or its subsidiaries. All Rights Reserved."
+        COPYRIGHT = "Copyright ${YEAR} Broadcom Inc. and/or its subsidiaries. All Rights Reserved."
         GOPROXY = ""
     }
     parameters {
@@ -43,7 +43,7 @@ pipeline {
                       DISTROLESS_IMG=${ARTIFACTORY_DOCKER_SBO_IMAGE_REG}/broadcom-images/approved/distroless/static:debian12-nonroot
                       GO_BUILD_IMG=${ARTIFACTORY_DOCKER_GO_IMAGE_REG}/golang:1.22
                       cat Dockerfile | sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" | sed -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" > operator.Dockerfile
-                      docker build -f operator.Dockerfile -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION} . --build-arg TITLE="${IMAGE_NAME}" --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${RELEASE_VERSION}" --build-arg CREATED="${TIMESTAMP}" --build-arg GOPROXY="${GOPROXY}"
+                      docker build -f operator.Dockerfile -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION} . --build-arg TITLE="${IMAGE_NAME}" --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${RELEASE_VERSION}" --build-arg CREATED="${CREATED}" --build-arg GOPROXY="${GOPROXY}"
                       docker push ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION}
                   '''
                   }

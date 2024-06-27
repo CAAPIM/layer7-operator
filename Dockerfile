@@ -15,7 +15,6 @@ LABEL org.opencontainers.image.vendor=${VENDOR}
 LABEL com.broadcom.copyright=${COPYRIGHT}
 
 ARG GOPROXY
-ARG TARGETARCH
 WORKDIR /workspace
 
 COPY go.mod go.mod

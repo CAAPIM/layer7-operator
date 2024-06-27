@@ -6,7 +6,6 @@ spec:
   portalTenant: portal
   enabled: true
   endpoint: dev-ssg.brcmlabs.com
-  mode: auto
   enrollmentBundle: ""
   deploymentTags:
   - ssg

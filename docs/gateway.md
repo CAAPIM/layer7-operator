@@ -101,7 +101,8 @@ GatewaySpec defines the desired state of Gateway
         <td><b>version</b></td>
         <td>string</td>
         <td>
-          Version references the Gateway release that this Operator is intended to be used with while all supported container gateway versions will work, some functionality will not be available<br/>
+          Version references the Gateway release that this Operator is intended to be used with
+while all supported container gateway versions will work, some functionality will not be available<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -170,7 +171,9 @@ App contains application specific configuration for the Gateway and its deployme
         <td><b><a href="#gatewayspecappcontainersecuritycontext">containerSecurityContext</a></b></td>
         <td>object</td>
         <td>
-          SecurityContext holds security configuration that will be applied to a container. Some fields are present in both SecurityContext and PodSecurityContext.  When both are set, the values in SecurityContext take precedence.<br/>
+          SecurityContext holds security configuration that will be applied to a container.
+Some fields are present in both SecurityContext and PodSecurityContext.  When both
+are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -282,24 +285,44 @@ App contains application specific configuration for the Gateway and its deployme
         <td><b><a href="#gatewayspecapplifecyclehooks">lifecycleHooks</a></b></td>
         <td>object</td>
         <td>
-          Lifecycle describes actions that the management system should take in response to container lifecycle events. For the PostStart and PreStop lifecycle handlers, management of the container blocks until the action is complete, unless the container process fails, in which case the handler is aborted.<br/>
+          Lifecycle describes actions that the management system should take in response to container lifecycle
+events. For the PostStart and PreStop lifecycle handlers, management of the container blocks
+until the action is complete, unless the container process fails, in which case the handler is aborted.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapplistenports">listenPorts</a></b></td>
         <td>object</td>
         <td>
-          ListenPorts The Layer7 Gateway instantiates the following HTTP(s) ports by default Harden applies the following changes, setting ports overrides this flag. - 8080 (HTTP) - Disable - Allow Published Service Message input only 
- - 8443 (HTTPS) - Remove Management Features (no Policy Manager Access) - Enables TLSv1.2,TLS1.3 only - Disables insecure Cipher Suites 
- - 9443 (HTTPS) - Enables TLSv1.2,TLS1.3 only - Disables insecure Cipher Suites 
- - 2124 (Inter-Node Communication) - Not created - if using an existing database 2124 will not be modified<br/>
+          ListenPorts The Layer7 Gateway instantiates the following HTTP(s) ports by default
+Harden applies the following changes, setting ports overrides this flag.
+- 8080 (HTTP)
+  - Disable
+  - Allow Published Service Message input only
+
+
+- 8443 (HTTPS)
+  - Remove Management Features (no Policy Manager Access)
+  - Enables TLSv1.2,TLS1.3 only
+  - Disables insecure Cipher Suites
+
+
+- 9443 (HTTPS)
+  - Enables TLSv1.2,TLS1.3 only
+  - Disables insecure Cipher Suites
+
+
+- 2124 (Inter-Node Communication)
+  - Not created
+  - if using an existing database 2124 will not be modified<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapplivenessprobe">livenessProbe</a></b></td>
         <td>object</td>
         <td>
-          Probe describes a health check to be performed against a container to determine whether it is alive or ready to receive traffic.<br/>
+          Probe describes a health check to be performed against a container to determine whether it is
+alive or ready to receive traffic.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -355,28 +378,39 @@ App contains application specific configuration for the Gateway and its deployme
         <td><b><a href="#gatewayspecapppodsecuritycontext">podSecurityContext</a></b></td>
         <td>object</td>
         <td>
-          PodSecurityContext holds pod-level security attributes and common container settings. Some fields are also present in container.securityContext.  Field values of container.securityContext take precedence over field values of PodSecurityContext.<br/>
+          PodSecurityContext holds pod-level security attributes and common container settings.
+Some fields are also present in container.securityContext.  Field values of
+container.securityContext take precedence over field values of PodSecurityContext.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappportalreference">portalReference</a></b></td>
         <td>object</td>
         <td>
-          PortalReference is for bulk syncing of Portal APIs via initContainer (bootstrap) the Portal API lifecycle is managed by the API Controller. Disabling a portalReference will only remove the initContainer<br/>
+          PortalReference is for bulk syncing of Portal APIs via initContainer (bootstrap)
+the Portal API lifecycle is managed by the API Controller. Disabling a portalReference will only remove the initContainer<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappprestopscript">preStopScript</a></b></td>
         <td>object</td>
         <td>
-          PreStopScript During upgrades and other events where Gateway pods are replaced you may have APIs/Services that have long running connections open. This functionality delays Kubernetes sending a SIGTERM to the container gateway while connections remain open. This works in conjunction with terminationGracePeriodSeconds which should always be higher than preStopScript.timeoutSeconds. If preStopScript.timeoutSeconds is exceeded, the script will exit 0 and normal pod termination will resume. The preStop script will monitor connections to inbound (not outbound) Gateway Application TCP ports (i.e. inbound listener ports opened by the Gateway Application and not some other process) except those that are explicitly excluded. The following ports are excluded from monitoring by default. 8777 (Hazelcast) - Embedded Hazelcast. 2124 (Internode-Communication) - not utilised by the Container Gateway. If there are no open connections, the preStop script will exit immediately ignoring preStopScript.timeoutSeconds to avoid unnecessary resource utilisation (pod stuck in terminating state) during upgrades. While there aren't any explicit limits on preStopScript.timeoutSeconds and terminationGracePeriodSeconds running these for extended periods of time (i.e. more than 5 minutes) may be less reliable where other Kubernetes processes may remove the pod before terminationGracePeriodSeconds is reached. If you do run services like this we recommend testing before any real life implementation or better, creating a dedicated workload without autoscaling enabled (HPA) where you have more control over when/how pods are replaced.<br/>
+          PreStopScript During upgrades and other events where Gateway pods are replaced you may have APIs/Services that have long running connections open.
+This functionality delays Kubernetes sending a SIGTERM to the container gateway while connections remain open. This works in conjunction with terminationGracePeriodSeconds which should always be higher than preStopScript.timeoutSeconds. If preStopScript.timeoutSeconds is exceeded, the script will exit 0 and normal pod termination will resume.
+The preStop script will monitor connections to inbound (not outbound) Gateway Application TCP ports (i.e. inbound listener ports opened by the Gateway Application and not some other process) except those that are explicitly excluded.
+The following ports are excluded from monitoring by default.
+8777 (Hazelcast) - Embedded Hazelcast.
+2124 (Internode-Communication) - not utilised by the Container Gateway.
+If there are no open connections, the preStop script will exit immediately ignoring preStopScript.timeoutSeconds to avoid unnecessary resource utilisation (pod stuck in terminating state) during upgrades.
+While there aren't any explicit limits on preStopScript.timeoutSeconds and terminationGracePeriodSeconds running these for extended periods of time (i.e. more than 5 minutes) may be less reliable where other Kubernetes processes may remove the pod before terminationGracePeriodSeconds is reached. If you do run services like this we recommend testing before any real life implementation or better, creating a dedicated workload without autoscaling enabled (HPA) where you have more control over when/how pods are replaced.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappreadinessprobe">readinessProbe</a></b></td>
         <td>object</td>
         <td>
-          Probe describes a health check to be performed against a container to determine whether it is alive or ready to receive traffic.<br/>
+          Probe describes a health check to be performed against a container to determine whether it is
+alive or ready to receive traffic.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -441,7 +475,10 @@ App contains application specific configuration for the Gateway and its deployme
         <td><b>singletonExtraction</b></td>
         <td>boolean</td>
         <td>
-          SingletonExtraction works with the Gateway in Ephemeral mode. this enables scheduled tasks that are set to execute on a single node and jms destinations that are outbound to be applied to one ephemeral gateway only. This works inconjunction with repository references and only supports dynamic repository references.<br/>
+          SingletonExtraction works with the Gateway in Ephemeral mode.
+this enables scheduled tasks that are set to execute on a single node and jms destinations that are outbound
+to be applied to one ephemeral gateway only.
+This works inconjunction with repository references and only supports dynamic repository references.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -546,14 +583,26 @@ Describes node affinity scheduling rules for the pod.
         <td><b><a href="#gatewayspecappaffinitynodeaffinitypreferredduringschedulingignoredduringexecutionindex">preferredDuringSchedulingIgnoredDuringExecution</a></b></td>
         <td>[]object</td>
         <td>
-          The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding "weight" to the sum if the node matches the corresponding matchExpressions; the node(s) with the highest sum are the most preferred.<br/>
+          The scheduler will prefer to schedule pods to nodes that satisfy
+the affinity expressions specified by this field, but it may choose
+a node that violates one or more of the expressions. The node that is
+most preferred is the one with the greatest sum of weights, i.e.
+for each node that meets all of the scheduling requirements (resource
+request, requiredDuringScheduling affinity expressions, etc.),
+compute a sum by iterating through the elements of this field and adding
+"weight" to the sum if the node matches the corresponding matchExpressions; the
+node(s) with the highest sum are the most preferred.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitynodeaffinityrequiredduringschedulingignoredduringexecution">requiredDuringSchedulingIgnoredDuringExecution</a></b></td>
         <td>object</td>
         <td>
-          If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to an update), the system may or may not try to eventually evict the pod from its node.<br/>
+          If the affinity requirements specified by this field are not met at
+scheduling time, the pod will not be scheduled onto the node.
+If the affinity requirements specified by this field cease to be met
+at some point during pod execution (e.g. due to an update), the system
+may or may not try to eventually evict the pod from its node.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -565,7 +614,8 @@ Describes node affinity scheduling rules for the pod.
 
 
 
-An empty preferred scheduling term matches all objects with implicit weight 0 (i.e. it's a no-op). A null preferred scheduling term matches no objects (i.e. is also a no-op).
+An empty preferred scheduling term matches all objects with implicit weight 0
+(i.e. it's a no-op). A null preferred scheduling term matches no objects (i.e. is also a no-op).
 
 <table>
     <thead>
@@ -635,7 +685,8 @@ A node selector term, associated with the corresponding weight.
 
 
 
-A node selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A node selector requirement is a selector that contains values, a key, and an operator
+that relates the key and values.
 
 <table>
     <thead>
@@ -657,14 +708,19 @@ A node selector requirement is a selector that contains values, a key, and an op
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          Represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.<br/>
+          Represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. If the operator is Gt or Lt, the values array must have a single element, which will be interpreted as an integer. This array is replaced during a strategic merge patch.<br/>
+          An array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. If the operator is Gt or Lt, the values
+array must have a single element, which will be interpreted as an integer.
+This array is replaced during a strategic merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -676,7 +732,8 @@ A node selector requirement is a selector that contains values, a key, and an op
 
 
 
-A node selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A node selector requirement is a selector that contains values, a key, and an operator
+that relates the key and values.
 
 <table>
     <thead>
@@ -698,14 +755,19 @@ A node selector requirement is a selector that contains values, a key, and an op
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          Represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.<br/>
+          Represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. If the operator is Gt or Lt, the values array must have a single element, which will be interpreted as an integer. This array is replaced during a strategic merge patch.<br/>
+          An array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. If the operator is Gt or Lt, the values
+array must have a single element, which will be interpreted as an integer.
+This array is replaced during a strategic merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -717,7 +779,11 @@ A node selector requirement is a selector that contains values, a key, and an op
 
 
 
-If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to an update), the system may or may not try to eventually evict the pod from its node.
+If the affinity requirements specified by this field are not met at
+scheduling time, the pod will not be scheduled onto the node.
+If the affinity requirements specified by this field cease to be met
+at some point during pod execution (e.g. due to an update), the system
+may or may not try to eventually evict the pod from its node.
 
 <table>
     <thead>
@@ -744,7 +810,9 @@ If the affinity requirements specified by this field are not met at scheduling t
 
 
 
-A null or empty node selector term matches no objects. The requirements of them are ANDed. The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+A null or empty node selector term matches no objects. The requirements of
+them are ANDed.
+The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
 
 <table>
     <thead>
@@ -778,7 +846,8 @@ A null or empty node selector term matches no objects. The requirements of them 
 
 
 
-A node selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A node selector requirement is a selector that contains values, a key, and an operator
+that relates the key and values.
 
 <table>
     <thead>
@@ -800,14 +869,19 @@ A node selector requirement is a selector that contains values, a key, and an op
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          Represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.<br/>
+          Represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. If the operator is Gt or Lt, the values array must have a single element, which will be interpreted as an integer. This array is replaced during a strategic merge patch.<br/>
+          An array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. If the operator is Gt or Lt, the values
+array must have a single element, which will be interpreted as an integer.
+This array is replaced during a strategic merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -819,7 +893,8 @@ A node selector requirement is a selector that contains values, a key, and an op
 
 
 
-A node selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A node selector requirement is a selector that contains values, a key, and an operator
+that relates the key and values.
 
 <table>
     <thead>
@@ -841,14 +916,19 @@ A node selector requirement is a selector that contains values, a key, and an op
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          Represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.<br/>
+          Represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. If the operator is Gt or Lt, the values array must have a single element, which will be interpreted as an integer. This array is replaced during a strategic merge patch.<br/>
+          An array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. If the operator is Gt or Lt, the values
+array must have a single element, which will be interpreted as an integer.
+This array is replaced during a strategic merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -875,14 +955,28 @@ Describes pod affinity scheduling rules (e.g. co-locate this pod in the same nod
         <td><b><a href="#gatewayspecappaffinitypodaffinitypreferredduringschedulingignoredduringexecutionindex">preferredDuringSchedulingIgnoredDuringExecution</a></b></td>
         <td>[]object</td>
         <td>
-          The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding "weight" to the sum if the node has pods which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred.<br/>
+          The scheduler will prefer to schedule pods to nodes that satisfy
+the affinity expressions specified by this field, but it may choose
+a node that violates one or more of the expressions. The node that is
+most preferred is the one with the greatest sum of weights, i.e.
+for each node that meets all of the scheduling requirements (resource
+request, requiredDuringScheduling affinity expressions, etc.),
+compute a sum by iterating through the elements of this field and adding
+"weight" to the sum if the node has pods which matches the corresponding podAffinityTerm; the
+node(s) with the highest sum are the most preferred.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodaffinityrequiredduringschedulingignoredduringexecutionindex">requiredDuringSchedulingIgnoredDuringExecution</a></b></td>
         <td>[]object</td>
         <td>
-          If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied.<br/>
+          If the affinity requirements specified by this field are not met at
+scheduling time, the pod will not be scheduled onto the node.
+If the affinity requirements specified by this field cease to be met
+at some point during pod execution (e.g. due to a pod label update), the
+system may or may not try to eventually evict the pod from its node.
+When there are multiple elements, the lists of nodes corresponding to each
+podAffinityTerm are intersected, i.e. all terms must be satisfied.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -916,7 +1010,8 @@ The weights of all of the matched WeightedPodAffinityTerm fields are added per-n
         <td><b>weight</b></td>
         <td>integer</td>
         <td>
-          weight associated with matching the corresponding podAffinityTerm, in the range 1-100.<br/>
+          weight associated with matching the corresponding podAffinityTerm,
+in the range 1-100.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -945,28 +1040,70 @@ Required. A pod affinity term, associated with the corresponding weight.
         <td><b>topologyKey</b></td>
         <td>string</td>
         <td>
-          This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching the labelSelector in the specified namespaces, where co-located is defined as running on a node whose value of the label with key topologyKey matches that of any node on which any of the selected pods is running. Empty topologyKey is not allowed.<br/>
+          This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching
+the labelSelector in the specified namespaces, where co-located is defined as running on a node
+whose value of the label with key topologyKey matches that of any node on which any of the
+selected pods is running.
+Empty topologyKey is not allowed.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodaffinitypreferredduringschedulingignoredduringexecutionindexpodaffinitytermlabelselector">labelSelector</a></b></td>
         <td>object</td>
         <td>
-          A label query over a set of resources, in this case pods.<br/>
+          A label query over a set of resources, in this case pods.
+If it's null, this PodAffinityTerm matches with no Pods.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabelKeys</b></td>
+        <td>[]string</td>
+        <td>
+          MatchLabelKeys is a set of pod label keys to select which pods will
+be taken into consideration. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are merged with `labelSelector` as `key in (value)`
+to select the group of existing pods which pods will be taken into consideration
+for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
+pod labels will be ignored. The default value is empty.
+The same key is forbidden to exist in both matchLabelKeys and labelSelector.
+Also, matchLabelKeys cannot be set when labelSelector isn't set.
+This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>mismatchLabelKeys</b></td>
+        <td>[]string</td>
+        <td>
+          MismatchLabelKeys is a set of pod label keys to select which pods will
+be taken into consideration. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are merged with `labelSelector` as `key notin (value)`
+to select the group of existing pods which pods will be taken into consideration
+for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
+pod labels will be ignored. The default value is empty.
+The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
+Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
+This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodaffinitypreferredduringschedulingignoredduringexecutionindexpodaffinitytermnamespaceselector">namespaceSelector</a></b></td>
         <td>object</td>
         <td>
-          A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces.<br/>
+          A label query over the set of namespaces that the term applies to.
+The term is applied to the union of the namespaces selected by this field
+and the ones listed in the namespaces field.
+null selector and null or empty namespaces list means "this pod's namespace".
+An empty selector ({}) matches all namespaces.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>namespaces</b></td>
         <td>[]string</td>
         <td>
-          namespaces specifies a static list of namespace names that the term applies to. The term is applied to the union of the namespaces listed in this field and the ones selected by namespaceSelector. null or empty namespaces list and null namespaceSelector means "this pod's namespace".<br/>
+          namespaces specifies a static list of namespace names that the term applies to.
+The term is applied to the union of the namespaces listed in this field
+and the ones selected by namespaceSelector.
+null or empty namespaces list and null namespaceSelector means "this pod's namespace".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -979,6 +1116,7 @@ Required. A pod affinity term, associated with the corresponding weight.
 
 
 A label query over a set of resources, in this case pods.
+If it's null, this PodAffinityTerm matches with no Pods.
 
 <table>
     <thead>
@@ -1000,7 +1138,9 @@ A label query over a set of resources, in this case pods.
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1012,7 +1152,8 @@ A label query over a set of resources, in this case pods.
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -1034,14 +1175,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1053,7 +1198,11 @@ A label selector requirement is a selector that contains values, a key, and an o
 
 
 
-A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces.
+A label query over the set of namespaces that the term applies to.
+The term is applied to the union of the namespaces selected by this field
+and the ones listed in the namespaces field.
+null selector and null or empty namespaces list means "this pod's namespace".
+An empty selector ({}) matches all namespaces.
 
 <table>
     <thead>
@@ -1075,7 +1224,9 @@ A label query over the set of namespaces that the term applies to. The term is a
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1087,7 +1238,8 @@ A label query over the set of namespaces that the term applies to. The term is a
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -1109,14 +1261,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1128,7 +1284,12 @@ A label selector requirement is a selector that contains values, a key, and an o
 
 
 
-Defines a set of pods (namely those matching the labelSelector relative to the given namespace(s)) that this pod should be co-located (affinity) or not co-located (anti-affinity) with, where co-located is defined as running on a node whose value of the label with key <topologyKey> matches that of any node on which a pod of the set of pods is running
+Defines a set of pods (namely those matching the labelSelector
+relative to the given namespace(s)) that this pod should be
+co-located (affinity) or not co-located (anti-affinity) with,
+where co-located is defined as running on a node whose value of
+the label with key <topologyKey> matches that of any node on which
+a pod of the set of pods is running
 
 <table>
     <thead>
@@ -1143,28 +1304,70 @@ Defines a set of pods (namely those matching the labelSelector relative to the g
         <td><b>topologyKey</b></td>
         <td>string</td>
         <td>
-          This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching the labelSelector in the specified namespaces, where co-located is defined as running on a node whose value of the label with key topologyKey matches that of any node on which any of the selected pods is running. Empty topologyKey is not allowed.<br/>
+          This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching
+the labelSelector in the specified namespaces, where co-located is defined as running on a node
+whose value of the label with key topologyKey matches that of any node on which any of the
+selected pods is running.
+Empty topologyKey is not allowed.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodaffinityrequiredduringschedulingignoredduringexecutionindexlabelselector">labelSelector</a></b></td>
         <td>object</td>
         <td>
-          A label query over a set of resources, in this case pods.<br/>
+          A label query over a set of resources, in this case pods.
+If it's null, this PodAffinityTerm matches with no Pods.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabelKeys</b></td>
+        <td>[]string</td>
+        <td>
+          MatchLabelKeys is a set of pod label keys to select which pods will
+be taken into consideration. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are merged with `labelSelector` as `key in (value)`
+to select the group of existing pods which pods will be taken into consideration
+for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
+pod labels will be ignored. The default value is empty.
+The same key is forbidden to exist in both matchLabelKeys and labelSelector.
+Also, matchLabelKeys cannot be set when labelSelector isn't set.
+This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>mismatchLabelKeys</b></td>
+        <td>[]string</td>
+        <td>
+          MismatchLabelKeys is a set of pod label keys to select which pods will
+be taken into consideration. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are merged with `labelSelector` as `key notin (value)`
+to select the group of existing pods which pods will be taken into consideration
+for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
+pod labels will be ignored. The default value is empty.
+The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
+Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
+This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodaffinityrequiredduringschedulingignoredduringexecutionindexnamespaceselector">namespaceSelector</a></b></td>
         <td>object</td>
         <td>
-          A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces.<br/>
+          A label query over the set of namespaces that the term applies to.
+The term is applied to the union of the namespaces selected by this field
+and the ones listed in the namespaces field.
+null selector and null or empty namespaces list means "this pod's namespace".
+An empty selector ({}) matches all namespaces.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>namespaces</b></td>
         <td>[]string</td>
         <td>
-          namespaces specifies a static list of namespace names that the term applies to. The term is applied to the union of the namespaces listed in this field and the ones selected by namespaceSelector. null or empty namespaces list and null namespaceSelector means "this pod's namespace".<br/>
+          namespaces specifies a static list of namespace names that the term applies to.
+The term is applied to the union of the namespaces listed in this field
+and the ones selected by namespaceSelector.
+null or empty namespaces list and null namespaceSelector means "this pod's namespace".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1177,6 +1380,7 @@ Defines a set of pods (namely those matching the labelSelector relative to the g
 
 
 A label query over a set of resources, in this case pods.
+If it's null, this PodAffinityTerm matches with no Pods.
 
 <table>
     <thead>
@@ -1198,7 +1402,9 @@ A label query over a set of resources, in this case pods.
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1210,7 +1416,8 @@ A label query over a set of resources, in this case pods.
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -1232,14 +1439,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1251,7 +1462,11 @@ A label selector requirement is a selector that contains values, a key, and an o
 
 
 
-A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces.
+A label query over the set of namespaces that the term applies to.
+The term is applied to the union of the namespaces selected by this field
+and the ones listed in the namespaces field.
+null selector and null or empty namespaces list means "this pod's namespace".
+An empty selector ({}) matches all namespaces.
 
 <table>
     <thead>
@@ -1273,7 +1488,9 @@ A label query over the set of namespaces that the term applies to. The term is a
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1285,7 +1502,8 @@ A label query over the set of namespaces that the term applies to. The term is a
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -1307,14 +1525,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1341,14 +1563,28 @@ Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the
         <td><b><a href="#gatewayspecappaffinitypodantiaffinitypreferredduringschedulingignoredduringexecutionindex">preferredDuringSchedulingIgnoredDuringExecution</a></b></td>
         <td>[]object</td>
         <td>
-          The scheduler will prefer to schedule pods to nodes that satisfy the anti-affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling anti-affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding "weight" to the sum if the node has pods which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred.<br/>
+          The scheduler will prefer to schedule pods to nodes that satisfy
+the anti-affinity expressions specified by this field, but it may choose
+a node that violates one or more of the expressions. The node that is
+most preferred is the one with the greatest sum of weights, i.e.
+for each node that meets all of the scheduling requirements (resource
+request, requiredDuringScheduling anti-affinity expressions, etc.),
+compute a sum by iterating through the elements of this field and adding
+"weight" to the sum if the node has pods which matches the corresponding podAffinityTerm; the
+node(s) with the highest sum are the most preferred.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodantiaffinityrequiredduringschedulingignoredduringexecutionindex">requiredDuringSchedulingIgnoredDuringExecution</a></b></td>
         <td>[]object</td>
         <td>
-          If the anti-affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the anti-affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied.<br/>
+          If the anti-affinity requirements specified by this field are not met at
+scheduling time, the pod will not be scheduled onto the node.
+If the anti-affinity requirements specified by this field cease to be met
+at some point during pod execution (e.g. due to a pod label update), the
+system may or may not try to eventually evict the pod from its node.
+When there are multiple elements, the lists of nodes corresponding to each
+podAffinityTerm are intersected, i.e. all terms must be satisfied.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1382,7 +1618,8 @@ The weights of all of the matched WeightedPodAffinityTerm fields are added per-n
         <td><b>weight</b></td>
         <td>integer</td>
         <td>
-          weight associated with matching the corresponding podAffinityTerm, in the range 1-100.<br/>
+          weight associated with matching the corresponding podAffinityTerm,
+in the range 1-100.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -1411,28 +1648,70 @@ Required. A pod affinity term, associated with the corresponding weight.
         <td><b>topologyKey</b></td>
         <td>string</td>
         <td>
-          This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching the labelSelector in the specified namespaces, where co-located is defined as running on a node whose value of the label with key topologyKey matches that of any node on which any of the selected pods is running. Empty topologyKey is not allowed.<br/>
+          This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching
+the labelSelector in the specified namespaces, where co-located is defined as running on a node
+whose value of the label with key topologyKey matches that of any node on which any of the
+selected pods is running.
+Empty topologyKey is not allowed.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodantiaffinitypreferredduringschedulingignoredduringexecutionindexpodaffinitytermlabelselector">labelSelector</a></b></td>
         <td>object</td>
         <td>
-          A label query over a set of resources, in this case pods.<br/>
+          A label query over a set of resources, in this case pods.
+If it's null, this PodAffinityTerm matches with no Pods.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabelKeys</b></td>
+        <td>[]string</td>
+        <td>
+          MatchLabelKeys is a set of pod label keys to select which pods will
+be taken into consideration. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are merged with `labelSelector` as `key in (value)`
+to select the group of existing pods which pods will be taken into consideration
+for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
+pod labels will be ignored. The default value is empty.
+The same key is forbidden to exist in both matchLabelKeys and labelSelector.
+Also, matchLabelKeys cannot be set when labelSelector isn't set.
+This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>mismatchLabelKeys</b></td>
+        <td>[]string</td>
+        <td>
+          MismatchLabelKeys is a set of pod label keys to select which pods will
+be taken into consideration. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are merged with `labelSelector` as `key notin (value)`
+to select the group of existing pods which pods will be taken into consideration
+for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
+pod labels will be ignored. The default value is empty.
+The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
+Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
+This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodantiaffinitypreferredduringschedulingignoredduringexecutionindexpodaffinitytermnamespaceselector">namespaceSelector</a></b></td>
         <td>object</td>
         <td>
-          A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces.<br/>
+          A label query over the set of namespaces that the term applies to.
+The term is applied to the union of the namespaces selected by this field
+and the ones listed in the namespaces field.
+null selector and null or empty namespaces list means "this pod's namespace".
+An empty selector ({}) matches all namespaces.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>namespaces</b></td>
         <td>[]string</td>
         <td>
-          namespaces specifies a static list of namespace names that the term applies to. The term is applied to the union of the namespaces listed in this field and the ones selected by namespaceSelector. null or empty namespaces list and null namespaceSelector means "this pod's namespace".<br/>
+          namespaces specifies a static list of namespace names that the term applies to.
+The term is applied to the union of the namespaces listed in this field
+and the ones selected by namespaceSelector.
+null or empty namespaces list and null namespaceSelector means "this pod's namespace".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1445,6 +1724,7 @@ Required. A pod affinity term, associated with the corresponding weight.
 
 
 A label query over a set of resources, in this case pods.
+If it's null, this PodAffinityTerm matches with no Pods.
 
 <table>
     <thead>
@@ -1466,7 +1746,9 @@ A label query over a set of resources, in this case pods.
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1478,7 +1760,8 @@ A label query over a set of resources, in this case pods.
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -1500,14 +1783,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1519,7 +1806,11 @@ A label selector requirement is a selector that contains values, a key, and an o
 
 
 
-A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces.
+A label query over the set of namespaces that the term applies to.
+The term is applied to the union of the namespaces selected by this field
+and the ones listed in the namespaces field.
+null selector and null or empty namespaces list means "this pod's namespace".
+An empty selector ({}) matches all namespaces.
 
 <table>
     <thead>
@@ -1541,7 +1832,9 @@ A label query over the set of namespaces that the term applies to. The term is a
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1553,7 +1846,8 @@ A label query over the set of namespaces that the term applies to. The term is a
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -1575,14 +1869,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1594,7 +1892,12 @@ A label selector requirement is a selector that contains values, a key, and an o
 
 
 
-Defines a set of pods (namely those matching the labelSelector relative to the given namespace(s)) that this pod should be co-located (affinity) or not co-located (anti-affinity) with, where co-located is defined as running on a node whose value of the label with key <topologyKey> matches that of any node on which a pod of the set of pods is running
+Defines a set of pods (namely those matching the labelSelector
+relative to the given namespace(s)) that this pod should be
+co-located (affinity) or not co-located (anti-affinity) with,
+where co-located is defined as running on a node whose value of
+the label with key <topologyKey> matches that of any node on which
+a pod of the set of pods is running
 
 <table>
     <thead>
@@ -1609,28 +1912,70 @@ Defines a set of pods (namely those matching the labelSelector relative to the g
         <td><b>topologyKey</b></td>
         <td>string</td>
         <td>
-          This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching the labelSelector in the specified namespaces, where co-located is defined as running on a node whose value of the label with key topologyKey matches that of any node on which any of the selected pods is running. Empty topologyKey is not allowed.<br/>
+          This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching
+the labelSelector in the specified namespaces, where co-located is defined as running on a node
+whose value of the label with key topologyKey matches that of any node on which any of the
+selected pods is running.
+Empty topologyKey is not allowed.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodantiaffinityrequiredduringschedulingignoredduringexecutionindexlabelselector">labelSelector</a></b></td>
         <td>object</td>
         <td>
-          A label query over a set of resources, in this case pods.<br/>
+          A label query over a set of resources, in this case pods.
+If it's null, this PodAffinityTerm matches with no Pods.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabelKeys</b></td>
+        <td>[]string</td>
+        <td>
+          MatchLabelKeys is a set of pod label keys to select which pods will
+be taken into consideration. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are merged with `labelSelector` as `key in (value)`
+to select the group of existing pods which pods will be taken into consideration
+for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
+pod labels will be ignored. The default value is empty.
+The same key is forbidden to exist in both matchLabelKeys and labelSelector.
+Also, matchLabelKeys cannot be set when labelSelector isn't set.
+This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>mismatchLabelKeys</b></td>
+        <td>[]string</td>
+        <td>
+          MismatchLabelKeys is a set of pod label keys to select which pods will
+be taken into consideration. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are merged with `labelSelector` as `key notin (value)`
+to select the group of existing pods which pods will be taken into consideration
+for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
+pod labels will be ignored. The default value is empty.
+The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
+Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
+This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappaffinitypodantiaffinityrequiredduringschedulingignoredduringexecutionindexnamespaceselector">namespaceSelector</a></b></td>
         <td>object</td>
         <td>
-          A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces.<br/>
+          A label query over the set of namespaces that the term applies to.
+The term is applied to the union of the namespaces selected by this field
+and the ones listed in the namespaces field.
+null selector and null or empty namespaces list means "this pod's namespace".
+An empty selector ({}) matches all namespaces.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>namespaces</b></td>
         <td>[]string</td>
         <td>
-          namespaces specifies a static list of namespace names that the term applies to. The term is applied to the union of the namespaces listed in this field and the ones selected by namespaceSelector. null or empty namespaces list and null namespaceSelector means "this pod's namespace".<br/>
+          namespaces specifies a static list of namespace names that the term applies to.
+The term is applied to the union of the namespaces listed in this field
+and the ones selected by namespaceSelector.
+null or empty namespaces list and null namespaceSelector means "this pod's namespace".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1643,6 +1988,7 @@ Defines a set of pods (namely those matching the labelSelector relative to the g
 
 
 A label query over a set of resources, in this case pods.
+If it's null, this PodAffinityTerm matches with no Pods.
 
 <table>
     <thead>
@@ -1664,7 +2010,9 @@ A label query over a set of resources, in this case pods.
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1676,7 +2024,8 @@ A label query over a set of resources, in this case pods.
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -1698,14 +2047,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1717,7 +2070,11 @@ A label selector requirement is a selector that contains values, a key, and an o
 
 
 
-A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces.
+A label query over the set of namespaces that the term applies to.
+The term is applied to the union of the namespaces selected by this field
+and the ones listed in the namespaces field.
+null selector and null or empty namespaces list means "this pod's namespace".
+An empty selector ({}) matches all namespaces.
 
 <table>
     <thead>
@@ -1739,7 +2096,9 @@ A label query over the set of namespaces that the term applies to. The term is a
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1751,7 +2110,8 @@ A label query over the set of namespaces that the term applies to. The term is a
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -1773,14 +2133,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1841,7 +2205,8 @@ Autoscaling configuration for the Gateway
         <td><b><a href="#gatewayspecappautoscalinghpabehavior">behavior</a></b></td>
         <td>object</td>
         <td>
-          HorizontalPodAutoscalerBehavior configures the scaling behavior of the target in both Up and Down directions (scaleUp and scaleDown fields respectively).<br/>
+          HorizontalPodAutoscalerBehavior configures the scaling behavior of the target
+in both Up and Down directions (scaleUp and scaleDown fields respectively).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1878,7 +2243,8 @@ Autoscaling configuration for the Gateway
 
 
 
-HorizontalPodAutoscalerBehavior configures the scaling behavior of the target in both Up and Down directions (scaleUp and scaleDown fields respectively).
+HorizontalPodAutoscalerBehavior configures the scaling behavior of the target
+in both Up and Down directions (scaleUp and scaleDown fields respectively).
 
 <table>
     <thead>
@@ -1893,14 +2259,21 @@ HorizontalPodAutoscalerBehavior configures the scaling behavior of the target in
         <td><b><a href="#gatewayspecappautoscalinghpabehaviorscaledown">scaleDown</a></b></td>
         <td>object</td>
         <td>
-          scaleDown is scaling policy for scaling Down. If not set, the default value is to allow to scale down to minReplicas pods, with a 300 second stabilization window (i.e., the highest recommendation for the last 300sec is used).<br/>
+          scaleDown is scaling policy for scaling Down.
+If not set, the default value is to allow to scale down to minReplicas pods, with a
+300 second stabilization window (i.e., the highest recommendation for
+the last 300sec is used).<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappautoscalinghpabehaviorscaleup">scaleUp</a></b></td>
         <td>object</td>
         <td>
-          scaleUp is scaling policy for scaling Up. If not set, the default value is the higher of: * increase no more than 4 pods per 60 seconds * double the number of pods per 60 seconds No stabilization is used.<br/>
+          scaleUp is scaling policy for scaling Up.
+If not set, the default value is the higher of:
+  * increase no more than 4 pods per 60 seconds
+  * double the number of pods per 60 seconds
+No stabilization is used.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1912,7 +2285,10 @@ HorizontalPodAutoscalerBehavior configures the scaling behavior of the target in
 
 
 
-scaleDown is scaling policy for scaling Down. If not set, the default value is to allow to scale down to minReplicas pods, with a 300 second stabilization window (i.e., the highest recommendation for the last 300sec is used).
+scaleDown is scaling policy for scaling Down.
+If not set, the default value is to allow to scale down to minReplicas pods, with a
+300 second stabilization window (i.e., the highest recommendation for
+the last 300sec is used).
 
 <table>
     <thead>
@@ -1927,21 +2303,28 @@ scaleDown is scaling policy for scaling Down. If not set, the default value is t
         <td><b><a href="#gatewayspecappautoscalinghpabehaviorscaledownpoliciesindex">policies</a></b></td>
         <td>[]object</td>
         <td>
-          policies is a list of potential scaling polices which can be used during scaling. At least one policy must be specified, otherwise the HPAScalingRules will be discarded as invalid<br/>
+          policies is a list of potential scaling polices which can be used during scaling.
+At least one policy must be specified, otherwise the HPAScalingRules will be discarded as invalid<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>selectPolicy</b></td>
         <td>string</td>
         <td>
-          selectPolicy is used to specify which policy should be used. If not set, the default value Max is used.<br/>
+          selectPolicy is used to specify which policy should be used.
+If not set, the default value Max is used.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>stabilizationWindowSeconds</b></td>
         <td>integer</td>
         <td>
-          stabilizationWindowSeconds is the number of seconds for which past recommendations should be considered while scaling up or scaling down. StabilizationWindowSeconds must be greater than or equal to zero and less than or equal to 3600 (one hour). If not set, use the default values: - For scale up: 0 (i.e. no stabilization is done). - For scale down: 300 (i.e. the stabilization window is 300 seconds long).<br/>
+          stabilizationWindowSeconds is the number of seconds for which past recommendations should be
+considered while scaling up or scaling down.
+StabilizationWindowSeconds must be greater than or equal to zero and less than or equal to 3600 (one hour).
+If not set, use the default values:
+- For scale up: 0 (i.e. no stabilization is done).
+- For scale down: 300 (i.e. the stabilization window is 300 seconds long).<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -1970,7 +2353,8 @@ HPAScalingPolicy is a single policy which must hold true for a specified past in
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          periodSeconds specifies the window of time for which the policy should hold true. PeriodSeconds must be greater than zero and less than or equal to 1800 (30 min).<br/>
+          periodSeconds specifies the window of time for which the policy should hold true.
+PeriodSeconds must be greater than zero and less than or equal to 1800 (30 min).<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -1986,7 +2370,8 @@ HPAScalingPolicy is a single policy which must hold true for a specified past in
         <td><b>value</b></td>
         <td>integer</td>
         <td>
-          value contains the amount of change which is permitted by the policy. It must be greater than zero<br/>
+          value contains the amount of change which is permitted by the policy.
+It must be greater than zero<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2000,7 +2385,11 @@ HPAScalingPolicy is a single policy which must hold true for a specified past in
 
 
 
-scaleUp is scaling policy for scaling Up. If not set, the default value is the higher of: * increase no more than 4 pods per 60 seconds * double the number of pods per 60 seconds No stabilization is used.
+scaleUp is scaling policy for scaling Up.
+If not set, the default value is the higher of:
+  * increase no more than 4 pods per 60 seconds
+  * double the number of pods per 60 seconds
+No stabilization is used.
 
 <table>
     <thead>
@@ -2015,21 +2404,28 @@ scaleUp is scaling policy for scaling Up. If not set, the default value is the h
         <td><b><a href="#gatewayspecappautoscalinghpabehaviorscaleuppoliciesindex">policies</a></b></td>
         <td>[]object</td>
         <td>
-          policies is a list of potential scaling polices which can be used during scaling. At least one policy must be specified, otherwise the HPAScalingRules will be discarded as invalid<br/>
+          policies is a list of potential scaling polices which can be used during scaling.
+At least one policy must be specified, otherwise the HPAScalingRules will be discarded as invalid<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>selectPolicy</b></td>
         <td>string</td>
         <td>
-          selectPolicy is used to specify which policy should be used. If not set, the default value Max is used.<br/>
+          selectPolicy is used to specify which policy should be used.
+If not set, the default value Max is used.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>stabilizationWindowSeconds</b></td>
         <td>integer</td>
         <td>
-          stabilizationWindowSeconds is the number of seconds for which past recommendations should be considered while scaling up or scaling down. StabilizationWindowSeconds must be greater than or equal to zero and less than or equal to 3600 (one hour). If not set, use the default values: - For scale up: 0 (i.e. no stabilization is done). - For scale down: 300 (i.e. the stabilization window is 300 seconds long).<br/>
+          stabilizationWindowSeconds is the number of seconds for which past recommendations should be
+considered while scaling up or scaling down.
+StabilizationWindowSeconds must be greater than or equal to zero and less than or equal to 3600 (one hour).
+If not set, use the default values:
+- For scale up: 0 (i.e. no stabilization is done).
+- For scale down: 300 (i.e. the stabilization window is 300 seconds long).<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2058,7 +2454,8 @@ HPAScalingPolicy is a single policy which must hold true for a specified past in
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          periodSeconds specifies the window of time for which the policy should hold true. PeriodSeconds must be greater than zero and less than or equal to 1800 (30 min).<br/>
+          periodSeconds specifies the window of time for which the policy should hold true.
+PeriodSeconds must be greater than zero and less than or equal to 1800 (30 min).<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2074,7 +2471,8 @@ HPAScalingPolicy is a single policy which must hold true for a specified past in
         <td><b>value</b></td>
         <td>integer</td>
         <td>
-          value contains the amount of change which is permitted by the policy. It must be greater than zero<br/>
+          value contains the amount of change which is permitted by the policy.
+It must be greater than zero<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2088,7 +2486,8 @@ HPAScalingPolicy is a single policy which must hold true for a specified past in
 
 
 
-MetricSpec specifies how to scale based on a single metric (only `type` and one other matching field should be set at once).
+MetricSpec specifies how to scale based on a single metric
+(only `type` and one other matching field should be set at once).
 
 <table>
     <thead>
@@ -2103,42 +2502,61 @@ MetricSpec specifies how to scale based on a single metric (only `type` and one 
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          type is the type of metric source.  It should be one of "ContainerResource", "External", "Object", "Pods" or "Resource", each mapping to a matching field in the object. Note: "ContainerResource" type is available on when the feature-gate HPAContainerMetrics is enabled<br/>
+          type is the type of metric source.  It should be one of "ContainerResource", "External",
+"Object", "Pods" or "Resource", each mapping to a matching field in the object.
+Note: "ContainerResource" type is available on when the feature-gate
+HPAContainerMetrics is enabled<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappautoscalinghpametricsindexcontainerresource">containerResource</a></b></td>
         <td>object</td>
         <td>
-          containerResource refers to a resource metric (such as those specified in requests and limits) known to Kubernetes describing a single container in each pod of the current scale target (e.g. CPU or memory). Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source. This is an alpha feature and can be enabled by the HPAContainerMetrics feature flag.<br/>
+          containerResource refers to a resource metric (such as those specified in
+requests and limits) known to Kubernetes describing a single container in
+each pod of the current scale target (e.g. CPU or memory). Such metrics are
+built in to Kubernetes, and have special scaling options on top of those
+available to normal per-pod metrics using the "pods" source.
+This is an alpha feature and can be enabled by the HPAContainerMetrics feature flag.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappautoscalinghpametricsindexexternal">external</a></b></td>
         <td>object</td>
         <td>
-          external refers to a global metric that is not associated with any Kubernetes object. It allows autoscaling based on information coming from components running outside of cluster (for example length of queue in cloud messaging service, or QPS from loadbalancer running outside of cluster).<br/>
+          external refers to a global metric that is not associated
+with any Kubernetes object. It allows autoscaling based on information
+coming from components running outside of cluster
+(for example length of queue in cloud messaging service, or
+QPS from loadbalancer running outside of cluster).<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappautoscalinghpametricsindexobject">object</a></b></td>
         <td>object</td>
         <td>
-          object refers to a metric describing a single kubernetes object (for example, hits-per-second on an Ingress object).<br/>
+          object refers to a metric describing a single kubernetes object
+(for example, hits-per-second on an Ingress object).<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappautoscalinghpametricsindexpods">pods</a></b></td>
         <td>object</td>
         <td>
-          pods refers to a metric describing each pod in the current scale target (for example, transactions-processed-per-second).  The values will be averaged together before being compared to the target value.<br/>
+          pods refers to a metric describing each pod in the current scale target
+(for example, transactions-processed-per-second).  The values will be
+averaged together before being compared to the target value.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappautoscalinghpametricsindexresource">resource</a></b></td>
         <td>object</td>
         <td>
-          resource refers to a resource metric (such as those specified in requests and limits) known to Kubernetes describing each pod in the current scale target (e.g. CPU or memory). Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source.<br/>
+          resource refers to a resource metric (such as those specified in
+requests and limits) known to Kubernetes describing each pod in the
+current scale target (e.g. CPU or memory). Such metrics are built in to
+Kubernetes, and have special scaling options on top of those available
+to normal per-pod metrics using the "pods" source.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2150,7 +2568,12 @@ MetricSpec specifies how to scale based on a single metric (only `type` and one 
 
 
 
-containerResource refers to a resource metric (such as those specified in requests and limits) known to Kubernetes describing a single container in each pod of the current scale target (e.g. CPU or memory). Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source. This is an alpha feature and can be enabled by the HPAContainerMetrics feature flag.
+containerResource refers to a resource metric (such as those specified in
+requests and limits) known to Kubernetes describing a single container in
+each pod of the current scale target (e.g. CPU or memory). Such metrics are
+built in to Kubernetes, and have special scaling options on top of those
+available to normal per-pod metrics using the "pods" source.
+This is an alpha feature and can be enabled by the HPAContainerMetrics feature flag.
 
 <table>
     <thead>
@@ -2213,7 +2636,10 @@ target specifies the target value for the given metric
         <td><b>averageUtilization</b></td>
         <td>integer</td>
         <td>
-          averageUtilization is the target value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods. Currently only valid for Resource metric source type<br/>
+          averageUtilization is the target value of the average of the
+resource metric across all relevant pods, represented as a percentage of
+the requested value of the resource for the pods.
+Currently only valid for Resource metric source type<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2222,7 +2648,8 @@ target specifies the target value for the given metric
         <td><b>averageValue</b></td>
         <td>int or string</td>
         <td>
-          averageValue is the target value of the average of the metric across all relevant pods (as a quantity)<br/>
+          averageValue is the target value of the average of the
+metric across all relevant pods (as a quantity)<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2241,7 +2668,11 @@ target specifies the target value for the given metric
 
 
 
-external refers to a global metric that is not associated with any Kubernetes object. It allows autoscaling based on information coming from components running outside of cluster (for example length of queue in cloud messaging service, or QPS from loadbalancer running outside of cluster).
+external refers to a global metric that is not associated
+with any Kubernetes object. It allows autoscaling based on information
+coming from components running outside of cluster
+(for example length of queue in cloud messaging service, or
+QPS from loadbalancer running outside of cluster).
 
 <table>
     <thead>
@@ -2297,7 +2728,9 @@ metric identifies the target metric by name and selector
         <td><b><a href="#gatewayspecappautoscalinghpametricsindexexternalmetricselector">selector</a></b></td>
         <td>object</td>
         <td>
-          selector is the string-encoded form of a standard kubernetes label selector for the given metric When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping. When unset, just the metricName will be used to gather metrics.<br/>
+          selector is the string-encoded form of a standard kubernetes label selector for the given metric
+When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping.
+When unset, just the metricName will be used to gather metrics.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2309,7 +2742,9 @@ metric identifies the target metric by name and selector
 
 
 
-selector is the string-encoded form of a standard kubernetes label selector for the given metric When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping. When unset, just the metricName will be used to gather metrics.
+selector is the string-encoded form of a standard kubernetes label selector for the given metric
+When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping.
+When unset, just the metricName will be used to gather metrics.
 
 <table>
     <thead>
@@ -2331,7 +2766,9 @@ selector is the string-encoded form of a standard kubernetes label selector for 
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2343,7 +2780,8 @@ selector is the string-encoded form of a standard kubernetes label selector for 
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -2365,14 +2803,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2406,7 +2848,10 @@ target specifies the target value for the given metric
         <td><b>averageUtilization</b></td>
         <td>integer</td>
         <td>
-          averageUtilization is the target value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods. Currently only valid for Resource metric source type<br/>
+          averageUtilization is the target value of the average of the
+resource metric across all relevant pods, represented as a percentage of
+the requested value of the resource for the pods.
+Currently only valid for Resource metric source type<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2415,7 +2860,8 @@ target specifies the target value for the given metric
         <td><b>averageValue</b></td>
         <td>int or string</td>
         <td>
-          averageValue is the target value of the average of the metric across all relevant pods (as a quantity)<br/>
+          averageValue is the target value of the average of the
+metric across all relevant pods (as a quantity)<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2434,7 +2880,8 @@ target specifies the target value for the given metric
 
 
 
-object refers to a metric describing a single kubernetes object (for example, hits-per-second on an Ingress object).
+object refers to a metric describing a single kubernetes object
+(for example, hits-per-second on an Ingress object).
 
 <table>
     <thead>
@@ -2538,7 +2985,9 @@ metric identifies the target metric by name and selector
         <td><b><a href="#gatewayspecappautoscalinghpametricsindexobjectmetricselector">selector</a></b></td>
         <td>object</td>
         <td>
-          selector is the string-encoded form of a standard kubernetes label selector for the given metric When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping. When unset, just the metricName will be used to gather metrics.<br/>
+          selector is the string-encoded form of a standard kubernetes label selector for the given metric
+When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping.
+When unset, just the metricName will be used to gather metrics.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2550,7 +2999,9 @@ metric identifies the target metric by name and selector
 
 
 
-selector is the string-encoded form of a standard kubernetes label selector for the given metric When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping. When unset, just the metricName will be used to gather metrics.
+selector is the string-encoded form of a standard kubernetes label selector for the given metric
+When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping.
+When unset, just the metricName will be used to gather metrics.
 
 <table>
     <thead>
@@ -2572,7 +3023,9 @@ selector is the string-encoded form of a standard kubernetes label selector for 
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2584,7 +3037,8 @@ selector is the string-encoded form of a standard kubernetes label selector for 
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -2606,14 +3060,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2647,7 +3105,10 @@ target specifies the target value for the given metric
         <td><b>averageUtilization</b></td>
         <td>integer</td>
         <td>
-          averageUtilization is the target value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods. Currently only valid for Resource metric source type<br/>
+          averageUtilization is the target value of the average of the
+resource metric across all relevant pods, represented as a percentage of
+the requested value of the resource for the pods.
+Currently only valid for Resource metric source type<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2656,7 +3117,8 @@ target specifies the target value for the given metric
         <td><b>averageValue</b></td>
         <td>int or string</td>
         <td>
-          averageValue is the target value of the average of the metric across all relevant pods (as a quantity)<br/>
+          averageValue is the target value of the average of the
+metric across all relevant pods (as a quantity)<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2675,7 +3137,9 @@ target specifies the target value for the given metric
 
 
 
-pods refers to a metric describing each pod in the current scale target (for example, transactions-processed-per-second).  The values will be averaged together before being compared to the target value.
+pods refers to a metric describing each pod in the current scale target
+(for example, transactions-processed-per-second).  The values will be
+averaged together before being compared to the target value.
 
 <table>
     <thead>
@@ -2731,7 +3195,9 @@ metric identifies the target metric by name and selector
         <td><b><a href="#gatewayspecappautoscalinghpametricsindexpodsmetricselector">selector</a></b></td>
         <td>object</td>
         <td>
-          selector is the string-encoded form of a standard kubernetes label selector for the given metric When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping. When unset, just the metricName will be used to gather metrics.<br/>
+          selector is the string-encoded form of a standard kubernetes label selector for the given metric
+When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping.
+When unset, just the metricName will be used to gather metrics.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2743,7 +3209,9 @@ metric identifies the target metric by name and selector
 
 
 
-selector is the string-encoded form of a standard kubernetes label selector for the given metric When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping. When unset, just the metricName will be used to gather metrics.
+selector is the string-encoded form of a standard kubernetes label selector for the given metric
+When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping.
+When unset, just the metricName will be used to gather metrics.
 
 <table>
     <thead>
@@ -2765,7 +3233,9 @@ selector is the string-encoded form of a standard kubernetes label selector for 
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2777,7 +3247,8 @@ selector is the string-encoded form of a standard kubernetes label selector for 
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -2799,14 +3270,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2840,7 +3315,10 @@ target specifies the target value for the given metric
         <td><b>averageUtilization</b></td>
         <td>integer</td>
         <td>
-          averageUtilization is the target value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods. Currently only valid for Resource metric source type<br/>
+          averageUtilization is the target value of the average of the
+resource metric across all relevant pods, represented as a percentage of
+the requested value of the resource for the pods.
+Currently only valid for Resource metric source type<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2849,7 +3327,8 @@ target specifies the target value for the given metric
         <td><b>averageValue</b></td>
         <td>int or string</td>
         <td>
-          averageValue is the target value of the average of the metric across all relevant pods (as a quantity)<br/>
+          averageValue is the target value of the average of the
+metric across all relevant pods (as a quantity)<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2868,7 +3347,11 @@ target specifies the target value for the given metric
 
 
 
-resource refers to a resource metric (such as those specified in requests and limits) known to Kubernetes describing each pod in the current scale target (e.g. CPU or memory). Such metrics are built in to Kubernetes, and have special scaling options on top of those available to normal per-pod metrics using the "pods" source.
+resource refers to a resource metric (such as those specified in
+requests and limits) known to Kubernetes describing each pod in the
+current scale target (e.g. CPU or memory). Such metrics are built in to
+Kubernetes, and have special scaling options on top of those available
+to normal per-pod metrics using the "pods" source.
 
 <table>
     <thead>
@@ -2924,7 +3407,10 @@ target specifies the target value for the given metric
         <td><b>averageUtilization</b></td>
         <td>integer</td>
         <td>
-          averageUtilization is the target value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods. Currently only valid for Resource metric source type<br/>
+          averageUtilization is the target value of the average of the
+resource metric across all relevant pods, represented as a percentage of
+the requested value of the resource for the pods.
+Currently only valid for Resource metric source type<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2933,7 +3419,8 @@ target specifies the target value for the given metric
         <td><b>averageValue</b></td>
         <td>int or string</td>
         <td>
-          averageValue is the target value of the average of the metric across all relevant pods (as a quantity)<br/>
+          averageValue is the target value of the average of the
+metric across all relevant pods (as a quantity)<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3122,7 +3609,9 @@ VolumeAtttributes
 
 
 
-SecurityContext holds security configuration that will be applied to a container. Some fields are present in both SecurityContext and PodSecurityContext.  When both are set, the values in SecurityContext take precedence.
+SecurityContext holds security configuration that will be applied to a container.
+Some fields are present in both SecurityContext and PodSecurityContext.  When both
+are set, the values in SecurityContext take precedence.
 
 <table>
     <thead>
@@ -3137,42 +3626,72 @@ SecurityContext holds security configuration that will be applied to a container
         <td><b>allowPrivilegeEscalation</b></td>
         <td>boolean</td>
         <td>
-          AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.<br/>
+          AllowPrivilegeEscalation controls whether a process can gain more
+privileges than its parent process. This bool directly controls if
+the no_new_privs flag will be set on the container process.
+AllowPrivilegeEscalation is true always when the container is:
+1) run as Privileged
+2) has CAP_SYS_ADMIN
+Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappcontainersecuritycontextapparmorprofile">appArmorProfile</a></b></td>
+        <td>object</td>
+        <td>
+          appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappcontainersecuritycontextcapabilities">capabilities</a></b></td>
         <td>object</td>
         <td>
-          The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>privileged</b></td>
         <td>boolean</td>
         <td>
-          Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Run container in privileged mode.
+Processes in privileged containers are essentially equivalent to root on the host.
+Defaults to false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>procMount</b></td>
         <td>string</td>
         <td>
-          procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows.<br/>
+          procMount denotes the type of proc mount to use for the containers.
+The default is DefaultProcMount which uses the container runtime defaults for
+readonly paths and masked paths.
+This requires the ProcMountType feature flag to be enabled.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>readOnlyRootFilesystem</b></td>
         <td>boolean</td>
         <td>
-          Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Whether this container has a read-only root filesystem.
+Default is false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsGroup</b></td>
         <td>integer</td>
         <td>
-          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The GID to run the entrypoint of the container process.
+Uses runtime default if unset.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -3181,14 +3700,23 @@ SecurityContext holds security configuration that will be applied to a container
         <td><b>runAsNonRoot</b></td>
         <td>boolean</td>
         <td>
-          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          Indicates that the container must run as a non-root user.
+If true, the Kubelet will validate the image at runtime to ensure that it
+does not run as UID 0 (root) and fail to start the container if it does.
+If unset or false, no such validation will be performed.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUser</b></td>
         <td>integer</td>
         <td>
-          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The UID to run the entrypoint of the container process.
+Defaults to user specified in image metadata if unspecified.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -3197,21 +3725,74 @@ SecurityContext holds security configuration that will be applied to a container
         <td><b><a href="#gatewayspecappcontainersecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
         <td>object</td>
         <td>
-          The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappcontainersecuritycontextseccompprofile">seccompProfile</a></b></td>
         <td>object</td>
         <td>
-          The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappcontainersecuritycontextwindowsoptions">windowsOptions</a></b></td>
         <td>object</td>
         <td>
-          The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+          The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.containerSecurityContext.appArmorProfile
+<sup><sup>[↩ Parent](#gatewayspecappcontainersecuritycontext)</sup></sup>
+
+
+
+appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of AppArmor profile will be applied.
+Valid options are:
+  Localhost - a profile pre-loaded on the node.
+  RuntimeDefault - the container runtime's default profile.
+  Unconfined - no AppArmor enforcement.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile loaded on the node that should be used.
+The profile must be preconfigured on the node to work.
+Must match the loaded name of the profile.
+Must be set if and only if type is "Localhost".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3223,7 +3804,9 @@ SecurityContext holds security configuration that will be applied to a container
 
 
 
-The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.
+The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -3257,7 +3840,11 @@ The capabilities to add/drop when running containers. Defaults to the default se
 
 
 
-The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.
+The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -3305,7 +3892,10 @@ The SELinux context to be applied to the container. If unspecified, the containe
 
 
 
-The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.
+The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -3320,15 +3910,23 @@ The seccomp options to use by this container. If seccomp options are provided at
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          type indicates which kind of seccomp profile will be applied. Valid options are: 
- Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+          type indicates which kind of seccomp profile will be applied.
+Valid options are:
+
+
+Localhost - a profile defined in a file on the node should be used.
+RuntimeDefault - the container runtime default profile should be used.
+Unconfined - no profile should be applied.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>localhostProfile</b></td>
         <td>string</td>
         <td>
-          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+          localhostProfile indicates a profile defined in a file on the node should be used.
+The profile must be preconfigured on the node to work.
+Must be a descending path, relative to the kubelet's configured seccomp profile location.
+Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3340,7 +3938,10 @@ The seccomp options to use by this container. If seccomp options are provided at
 
 
 
-The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.
 
 <table>
     <thead>
@@ -3355,7 +3956,9 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>gmsaCredentialSpec</b></td>
         <td>string</td>
         <td>
-          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+          GMSACredentialSpec is where the GMSA admission webhook
+(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+GMSA credential spec named by the GMSACredentialSpecName field.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3369,14 +3972,20 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>hostProcess</b></td>
         <td>boolean</td>
         <td>
-          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+          HostProcess determines if a container should be run as a 'Host Process' container.
+All of a Pod's containers must have the same effective HostProcess value
+(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUserName</b></td>
         <td>string</td>
         <td>
-          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          The UserName in Windows to run the entrypoint of the container process.
+Defaults to the user specified in image metadata if unspecified.
+May also be set in PodSecurityContext. If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3579,7 +4188,8 @@ ConfigRefItem is the key in the secret or configmap to mount, path is where it s
 
 
 
-HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the pod's hosts file.
+HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
+pod's hosts file.
 
 <table>
     <thead>
@@ -3591,17 +4201,17 @@ HostAlias holds the mapping between IP and hostnames that will be injected as an
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>hostnames</b></td>
-        <td>[]string</td>
-        <td>
-          Hostnames for the above IP address.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>ip</b></td>
         <td>string</td>
         <td>
           IP address of the host file entry.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>hostnames</b></td>
+        <td>[]string</td>
+        <td>
+          Hostnames for the above IP address.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3681,7 +4291,10 @@ Property is a simple k/v pair
 
 
 
-ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied dynamically keeping any referenced keys up-to-date. You can bring in external secrets using tools like cert-manager
+ExternalKey is a reference to an existing TLS Secret in Kubernetes
+The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+dynamically keeping any referenced keys up-to-date.
+You can bring in external secrets using tools like cert-manager
 
 <table>
     <thead>
@@ -3696,7 +4309,8 @@ ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Op
         <td><b>alias</b></td>
         <td>string</td>
         <td>
-          Alias overrides the key name that is stored in the Gateway This is useful for the default ssl key<br/>
+          Alias overrides the key name that is stored in the Gateway
+This is useful for the default ssl key<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3710,7 +4324,9 @@ ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Op
         <td><b>keyUsageType</b></td>
         <td>string</td>
         <td>
-          KeyUsageType allows keys to be marked as special purpose only one key usage type is allowed SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER<br/>
+          KeyUsageType allows keys to be marked as special purpose
+only one key usage type is allowed
+SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3729,7 +4345,10 @@ ExternalKey is a reference to an existing TLS Secret in Kubernetes The Layer7 Op
 
 
 
-ExternalSecret is a reference to an existing secret in Kubernetes The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied dynamically keeping any referenced secrets up-to-date. You can bring in external secrets using tools like the external secrets operator (external-secrets.io)
+ExternalSecret is a reference to an existing secret in Kubernetes
+The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+dynamically keeping any referenced secrets up-to-date.
+You can bring in external secrets using tools like the external secrets operator (external-secrets.io)
 
 <table>
     <thead>
@@ -3840,7 +4459,8 @@ BundleEncryption allows setting an encryption passphrase per repository or exter
         <td><b>endpoint</b></td>
         <td>string</td>
         <td>
-          Endpoint is the hazelcast server and port my.hazelcast:5701<br/>
+          Endpoint is the hazelcast server and port
+my.hazelcast:5701<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3859,7 +4479,8 @@ BundleEncryption allows setting an encryption passphrase per repository or exter
 
 
 
-LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
+LocalObjectReference contains enough information to let you locate the
+referenced object inside the same namespace.
 
 <table>
     <thead>
@@ -3874,7 +4495,15 @@ LocalObjectReference contains enough information to let you locate the reference
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3922,7 +4551,8 @@ LocalObjectReference contains enough information to let you locate the reference
         <td><b><a href="#gatewayspecappingressroute">route</a></b></td>
         <td>object</td>
         <td>
-          Route for Openshift This acts as an override<br/>
+          Route for Openshift
+This acts as an override<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3955,7 +4585,8 @@ LocalObjectReference contains enough information to let you locate the reference
 
 
 
-Route for Openshift This acts as an override
+Route for Openshift
+This acts as an override
 
 <table>
     <thead>
@@ -3992,6 +4623,8 @@ Route for Openshift This acts as an override
         <td>object</td>
         <td>
           TLSConfig defines config used to secure a route and provide termination<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4025,7 +4658,9 @@ RoutePort defines a port mapping from a router to an endpoint in the service end
         <td><b>targetPort</b></td>
         <td>int or string</td>
         <td>
-          The target port on pods selected by the service this route points to. If this is a string, it will be looked up as a named port in the target endpoints port list. Required<br/>
+          The target port on pods selected by the service this route points to.
+If this is a string, it will be looked up as a named port in the target
+endpoints port list. Required<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -4050,9 +4685,19 @@ TLSConfig defines config used to secure a route and provide termination
     </thead>
     <tbody><tr>
         <td><b>termination</b></td>
-        <td>string</td>
+        <td>enum</td>
         <td>
-          termination indicates termination type.<br/>
+          termination indicates termination type.
+
+
+* edge - TLS termination is done by the router and http is used to communicate with the backend (default)
+* passthrough - Traffic is sent straight to the destination without the router providing TLS termination
+* reencrypt - TLS termination is done by the router and https is used to communicate with the backend
+
+
+Note: passthrough termination is incompatible with httpHeader actions<br/>
+          <br/>
+            <i>Enum</i>: edge, reencrypt, passthrough<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4066,22 +4711,52 @@ TLSConfig defines config used to secure a route and provide termination
         <td><b>certificate</b></td>
         <td>string</td>
         <td>
-          certificate provides certificate contents<br/>
+          certificate provides certificate contents. This should be a single serving certificate, not a certificate
+chain. Do not include a CA certificate.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>destinationCACertificate</b></td>
         <td>string</td>
         <td>
-          destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt termination this file should be provided in order to have routers use it for health checks on the secure connection. If this field is not specified, the router may provide its own destination CA and perform hostname validation using the short service name (service.namespace.svc), which allows infrastructure generated certificates to automatically verify.<br/>
+          destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt
+termination this file should be provided in order to have routers use it for health checks on the secure connection.
+If this field is not specified, the router may provide its own destination CA and perform hostname validation using
+the short service name (service.namespace.svc), which allows infrastructure generated certificates to automatically
+verify.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressroutetlsexternalcertificate">externalCertificate</a></b></td>
+        <td>object</td>
+        <td>
+          externalCertificate provides certificate contents as a secret reference.
+This should be a single serving certificate, not a certificate
+chain. Do not include a CA certificate. The secret referenced should
+be present in the same namespace as that of the Route.
+Forbidden when `certificate` is set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>insecureEdgeTerminationPolicy</b></td>
-        <td>string</td>
+        <td>enum</td>
         <td>
-          insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While each router may make its own decisions on which ports to expose, this is normally port 80. 
- * Allow - traffic is sent to the server on the insecure port (default) * Disable - no traffic is allowed on the insecure port. * Redirect - clients are redirected to the secure port.<br/>
+          insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While
+each router may make its own decisions on which ports to expose, this is normally port 80.
+
+
+If a route does not specify insecureEdgeTerminationPolicy, then the default behavior is "None".
+
+
+* Allow - traffic is sent to the server on the insecure port (edge/reencrypt terminations only).
+
+
+* None - no traffic is allowed on the insecure port (default).
+
+
+* Redirect - clients are redirected to the secure port.<br/>
+          <br/>
+            <i>Enum</i>: Allow, None, Redirect, <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4095,12 +4770,46 @@ TLSConfig defines config used to secure a route and provide termination
 </table>
 
 
+### Gateway.spec.app.ingress.route.tls.externalCertificate
+<sup><sup>[↩ Parent](#gatewayspecappingressroutetls)</sup></sup>
+
+
+
+externalCertificate provides certificate contents as a secret reference.
+This should be a single serving certificate, not a certificate
+chain. Do not include a CA certificate. The secret referenced should
+be present in the same namespace as that of the Route.
+Forbidden when `certificate` is set.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          name of the referent.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.ingress.rules[index]
 <sup><sup>[↩ Parent](#gatewayspecappingress)</sup></sup>
 
 
 
-IngressRule represents the rules mapping the paths under a specified host to the related backend services. Incoming requests are first evaluated for a host match, then routed to the backend associated with the matching IngressRuleValue.
+IngressRule represents the rules mapping the paths under a specified host to
+the related backend services. Incoming requests are first evaluated for a host
+match, then routed to the backend associated with the matching IngressRuleValue.
 
 <table>
     <thead>
@@ -4115,15 +4824,40 @@ IngressRule represents the rules mapping the paths under a specified host to the
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          host is the fully qualified domain name of a network host, as defined by RFC 3986. Note the following deviations from the "host" part of the URI as defined in RFC 3986: 1. IPs are not allowed. Currently an IngressRuleValue can only apply to the IP in the Spec of the parent Ingress. 2. The `:` delimiter is not respected because ports are not allowed. Currently the port of an Ingress is implicitly :80 for http and :443 for https. Both these may change in the future. Incoming requests are matched against the host before the IngressRuleValue. If the host is unspecified, the Ingress routes all traffic based on the specified IngressRuleValue. 
- host can be "precise" which is a domain name without the terminating dot of a network host (e.g. "foo.bar.com") or "wildcard", which is a domain name prefixed with a single wildcard label (e.g. "*.foo.com"). The wildcard character '*' must appear by itself as the first DNS label and matches only a single label. You cannot have a wildcard label by itself (e.g. Host == "*"). Requests will be matched against the Host field in the following way: 1. If host is precise, the request matches this rule if the http host header is equal to Host. 2. If host is a wildcard, then the request matches this rule if the http host header is to equal to the suffix (removing the first label) of the wildcard rule.<br/>
+          host is the fully qualified domain name of a network host, as defined by RFC 3986.
+Note the following deviations from the "host" part of the
+URI as defined in RFC 3986:
+1. IPs are not allowed. Currently an IngressRuleValue can only apply to
+   the IP in the Spec of the parent Ingress.
+2. The `:` delimiter is not respected because ports are not allowed.
+	  Currently the port of an Ingress is implicitly :80 for http and
+	  :443 for https.
+Both these may change in the future.
+Incoming requests are matched against the host before the
+IngressRuleValue. If the host is unspecified, the Ingress routes all
+traffic based on the specified IngressRuleValue.
+
+
+host can be "precise" which is a domain name without the terminating dot of
+a network host (e.g. "foo.bar.com") or "wildcard", which is a domain name
+prefixed with a single wildcard label (e.g. "*.foo.com").
+The wildcard character '*' must appear by itself as the first DNS label and
+matches only a single label. You cannot have a wildcard label by itself (e.g. Host == "*").
+Requests will be matched against the Host field in the following way:
+1. If host is precise, the request matches this rule if the http host header is equal to Host.
+2. If host is a wildcard, then the request matches this rule if the http host header
+is to equal to the suffix (removing the first label) of the wildcard rule.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappingressrulesindexhttp">http</a></b></td>
         <td>object</td>
         <td>
-          HTTPIngressRuleValue is a list of http selectors pointing to backends. In the example: http://<host>/<path>?<searchpart> -> backend where where parts of the url correspond to RFC 3986, this resource will be used to match against everything after the last '/' and before the first '?' or '#'.<br/>
+          HTTPIngressRuleValue is a list of http selectors pointing to backends.
+In the example: http://<host>/<path>?<searchpart> -> backend where
+where parts of the url correspond to RFC 3986, this resource will be used
+to match against everything after the last '/' and before the first '?'
+or '#'.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4135,7 +4869,11 @@ IngressRule represents the rules mapping the paths under a specified host to the
 
 
 
-HTTPIngressRuleValue is a list of http selectors pointing to backends. In the example: http://<host>/<path>?<searchpart> -> backend where where parts of the url correspond to RFC 3986, this resource will be used to match against everything after the last '/' and before the first '?' or '#'.
+HTTPIngressRuleValue is a list of http selectors pointing to backends.
+In the example: http://<host>/<path>?<searchpart> -> backend where
+where parts of the url correspond to RFC 3986, this resource will be used
+to match against everything after the last '/' and before the first '?'
+or '#'.
 
 <table>
     <thead>
@@ -4162,7 +4900,8 @@ HTTPIngressRuleValue is a list of http selectors pointing to backends. In the ex
 
 
 
-HTTPIngressPath associates a path with a backend. Incoming urls matching the path are forwarded to the backend.
+HTTPIngressPath associates a path with a backend. Incoming urls matching the
+path are forwarded to the backend.
 
 <table>
     <thead>
@@ -4177,21 +4916,38 @@ HTTPIngressPath associates a path with a backend. Incoming urls matching the pat
         <td><b><a href="#gatewayspecappingressrulesindexhttppathsindexbackend">backend</a></b></td>
         <td>object</td>
         <td>
-          backend defines the referenced service endpoint to which the traffic will be forwarded to.<br/>
+          backend defines the referenced service endpoint to which the traffic
+will be forwarded to.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>pathType</b></td>
         <td>string</td>
         <td>
-          pathType determines the interpretation of the path matching. PathType can be one of the following values: * Exact: Matches the URL path exactly. * Prefix: Matches based on a URL path prefix split by '/'. Matching is done on a path element by element basis. A path element refers is the list of labels in the path split by the '/' separator. A request is a match for path p if every p is an element-wise prefix of p of the request path. Note that if the last element of the path is a substring of the last element in request path, it is not a match (e.g. /foo/bar matches /foo/bar/baz, but does not match /foo/barbaz). * ImplementationSpecific: Interpretation of the Path matching is up to the IngressClass. Implementations can treat this as a separate PathType or treat it identically to Prefix or Exact path types. Implementations are required to support all path types.<br/>
+          pathType determines the interpretation of the path matching. PathType can
+be one of the following values:
+* Exact: Matches the URL path exactly.
+* Prefix: Matches based on a URL path prefix split by '/'. Matching is
+  done on a path element by element basis. A path element refers is the
+  list of labels in the path split by the '/' separator. A request is a
+  match for path p if every p is an element-wise prefix of p of the
+  request path. Note that if the last element of the path is a substring
+  of the last element in request path, it is not a match (e.g. /foo/bar
+  matches /foo/bar/baz, but does not match /foo/barbaz).
+* ImplementationSpecific: Interpretation of the Path matching is up to
+  the IngressClass. Implementations can treat this as a separate PathType
+  or treat it identically to Prefix or Exact path types.
+Implementations are required to support all path types.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>path</b></td>
         <td>string</td>
         <td>
-          path is matched against the path of an incoming request. Currently it can contain characters disallowed from the conventional "path" part of a URL as defined by RFC 3986. Paths must begin with a '/' and must be present when using PathType with value "Exact" or "Prefix".<br/>
+          path is matched against the path of an incoming request. Currently it can
+contain characters disallowed from the conventional "path" part of a URL
+as defined by RFC 3986. Paths must begin with a '/' and must be present
+when using PathType with value "Exact" or "Prefix".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4203,7 +4959,8 @@ HTTPIngressPath associates a path with a backend. Incoming urls matching the pat
 
 
 
-backend defines the referenced service endpoint to which the traffic will be forwarded to.
+backend defines the referenced service endpoint to which the traffic
+will be forwarded to.
 
 <table>
     <thead>
@@ -4218,14 +4975,18 @@ backend defines the referenced service endpoint to which the traffic will be for
         <td><b><a href="#gatewayspecappingressrulesindexhttppathsindexbackendresource">resource</a></b></td>
         <td>object</td>
         <td>
-          resource is an ObjectRef to another Kubernetes resource in the namespace of the Ingress object. If resource is specified, a service.Name and service.Port must not be specified. This is a mutually exclusive setting with "Service".<br/>
+          resource is an ObjectRef to another Kubernetes resource in the namespace
+of the Ingress object. If resource is specified, a service.Name and
+service.Port must not be specified.
+This is a mutually exclusive setting with "Service".<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappingressrulesindexhttppathsindexbackendservice">service</a></b></td>
         <td>object</td>
         <td>
-          service references a service as a backend. This is a mutually exclusive setting with "Resource".<br/>
+          service references a service as a backend.
+This is a mutually exclusive setting with "Resource".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4237,7 +4998,10 @@ backend defines the referenced service endpoint to which the traffic will be for
 
 
 
-resource is an ObjectRef to another Kubernetes resource in the namespace of the Ingress object. If resource is specified, a service.Name and service.Port must not be specified. This is a mutually exclusive setting with "Service".
+resource is an ObjectRef to another Kubernetes resource in the namespace
+of the Ingress object. If resource is specified, a service.Name and
+service.Port must not be specified.
+This is a mutually exclusive setting with "Service".
 
 <table>
     <thead>
@@ -4266,7 +5030,9 @@ resource is an ObjectRef to another Kubernetes resource in the namespace of the 
         <td><b>apiGroup</b></td>
         <td>string</td>
         <td>
-          APIGroup is the group for the resource being referenced. If APIGroup is not specified, the specified Kind must be in the core API group. For any other third-party types, APIGroup is required.<br/>
+          APIGroup is the group for the resource being referenced.
+If APIGroup is not specified, the specified Kind must be in the core API group.
+For any other third-party types, APIGroup is required.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4278,7 +5044,8 @@ resource is an ObjectRef to another Kubernetes resource in the namespace of the 
 
 
 
-service references a service as a backend. This is a mutually exclusive setting with "Resource".
+service references a service as a backend.
+This is a mutually exclusive setting with "Resource".
 
 <table>
     <thead>
@@ -4293,14 +5060,16 @@ service references a service as a backend. This is a mutually exclusive setting 
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          name is the referenced service. The service must exist in the same namespace as the Ingress object.<br/>
+          name is the referenced service. The service must exist in
+the same namespace as the Ingress object.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappingressrulesindexhttppathsindexbackendserviceport">port</a></b></td>
         <td>object</td>
         <td>
-          port of the referenced service. A port name or port number is required for a IngressServiceBackend.<br/>
+          port of the referenced service. A port name or port number
+is required for a IngressServiceBackend.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4312,7 +5081,8 @@ service references a service as a backend. This is a mutually exclusive setting 
 
 
 
-port of the referenced service. A port name or port number is required for a IngressServiceBackend.
+port of the referenced service. A port name or port number
+is required for a IngressServiceBackend.
 
 <table>
     <thead>
@@ -4327,14 +5097,16 @@ port of the referenced service. A port name or port number is required for a Ing
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          name is the name of the port on the Service. This is a mutually exclusive setting with "Number".<br/>
+          name is the name of the port on the Service.
+This is a mutually exclusive setting with "Number".<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>number</b></td>
         <td>integer</td>
         <td>
-          number is the numerical port number (e.g. 80) on the Service. This is a mutually exclusive setting with "Name".<br/>
+          number is the numerical port number (e.g. 80) on the Service.
+This is a mutually exclusive setting with "Name".<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -4363,14 +5135,21 @@ IngressTLS describes the transport layer security associated with an ingress.
         <td><b>hosts</b></td>
         <td>[]string</td>
         <td>
-          hosts is a list of hosts included in the TLS certificate. The values in this list must match the name/s used in the tlsSecret. Defaults to the wildcard host setting for the loadbalancer controller fulfilling this Ingress, if left unspecified.<br/>
+          hosts is a list of hosts included in the TLS certificate. The values in
+this list must match the name/s used in the tlsSecret. Defaults to the
+wildcard host setting for the loadbalancer controller fulfilling this
+Ingress, if left unspecified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>secretName</b></td>
         <td>string</td>
         <td>
-          secretName is the name of the secret used to terminate TLS traffic on port 443. Field is left optional to allow TLS routing based on SNI hostname alone. If the SNI host in a listener conflicts with the "Host" header field used by an IngressRule, the SNI host is used for termination and value of the "Host" header is used for routing.<br/>
+          secretName is the name of the secret used to terminate TLS traffic on
+port 443. Field is left optional to allow TLS routing based on SNI
+hostname alone. If the SNI host in a listener conflicts with the "Host"
+header field used by an IngressRule, the SNI host is used for termination
+and value of the "Host" header is used for routing.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4397,77 +5176,119 @@ A single application container that you want to run within a pod.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the container specified as a DNS_LABEL. Each container in a pod must have a unique name (DNS_LABEL). Cannot be updated.<br/>
+          Name of the container specified as a DNS_LABEL.
+Each container in a pod must have a unique name (DNS_LABEL).
+Cannot be updated.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>args</b></td>
         <td>[]string</td>
         <td>
-          Arguments to the entrypoint. The container image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell<br/>
+          Arguments to the entrypoint.
+The container image's CMD is used if this is not provided.
+Variable references $(VAR_NAME) are expanded using the container's environment. If a variable
+cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced
+to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will
+produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless
+of whether the variable exists or not. Cannot be updated.
+More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Entrypoint array. Not executed within a shell. The container image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell<br/>
+          Entrypoint array. Not executed within a shell.
+The container image's ENTRYPOINT is used if this is not provided.
+Variable references $(VAR_NAME) are expanded using the container's environment. If a variable
+cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced
+to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will
+produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless
+of whether the variable exists or not. Cannot be updated.
+More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexenvindex">env</a></b></td>
         <td>[]object</td>
         <td>
-          List of environment variables to set in the container. Cannot be updated.<br/>
+          List of environment variables to set in the container.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexenvfromindex">envFrom</a></b></td>
         <td>[]object</td>
         <td>
-          List of sources to populate environment variables in the container. The keys defined within a source must be a C_IDENTIFIER. All invalid keys will be reported as an event when the container is starting. When a key exists in multiple sources, the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Cannot be updated.<br/>
+          List of sources to populate environment variables in the container.
+The keys defined within a source must be a C_IDENTIFIER. All invalid keys
+will be reported as an event when the container is starting. When a key exists in multiple
+sources, the value associated with the last source will take precedence.
+Values defined by an Env with a duplicate key will take precedence.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>image</b></td>
         <td>string</td>
         <td>
-          Container image name. More info: https://kubernetes.io/docs/concepts/containers/images This field is optional to allow higher level config management to default or override container images in workload controllers like Deployments and StatefulSets.<br/>
+          Container image name.
+More info: https://kubernetes.io/docs/concepts/containers/images
+This field is optional to allow higher level config management to default or override
+container images in workload controllers like Deployments and StatefulSets.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>imagePullPolicy</b></td>
         <td>string</td>
         <td>
-          Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated. More info: https://kubernetes.io/docs/concepts/containers/images#updating-images<br/>
+          Image pull policy.
+One of Always, Never, IfNotPresent.
+Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/containers/images#updating-images<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlifecycle">lifecycle</a></b></td>
         <td>object</td>
         <td>
-          Actions that the management system should take in response to container lifecycle events. Cannot be updated.<br/>
+          Actions that the management system should take in response to container lifecycle events.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlivenessprobe">livenessProbe</a></b></td>
         <td>object</td>
         <td>
-          Periodic probe of container liveness. Container will be restarted if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Periodic probe of container liveness.
+Container will be restarted if the probe fails.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          List of ports to expose from the container. Not specifying a port here DOES NOT prevent that port from being exposed. Any port which is listening on the default "0.0.0.0" address inside a container will be accessible from the network. Modifying this array with strategic merge patch may corrupt the data. For more information See https://github.com/kubernetes/kubernetes/issues/108255. Cannot be updated.<br/>
+          List of ports to expose from the container. Not specifying a port here
+DOES NOT prevent that port from being exposed. Any port which is
+listening on the default "0.0.0.0" address inside a container will be
+accessible from the network.
+Modifying this array with strategic merge patch may corrupt the data.
+For more information See https://github.com/kubernetes/kubernetes/issues/108255.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexreadinessprobe">readinessProbe</a></b></td>
         <td>object</td>
         <td>
-          Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Periodic probe of container service readiness.
+Container will be removed from service endpoints if the probe fails.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4481,63 +5302,108 @@ A single application container that you want to run within a pod.
         <td><b><a href="#gatewayspecappinitcontainersindexresources">resources</a></b></td>
         <td>object</td>
         <td>
-          Compute Resources required by this container. Cannot be updated. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+          Compute Resources required by this container.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>restartPolicy</b></td>
         <td>string</td>
         <td>
-          RestartPolicy defines the restart behavior of individual containers in a pod. This field may only be set for init containers, and the only allowed value is "Always". For non-init containers or when this field is not specified, the restart behavior is defined by the Pod's restart policy and the container type. Setting the RestartPolicy as "Always" for the init container will have the following effect: this init container will be continually restarted on exit until all regular containers have terminated. Once all regular containers have completed, all init containers with restartPolicy "Always" will be shut down. This lifecycle differs from normal init containers and is often referred to as a "sidecar" container. Although this init container still starts in the init container sequence, it does not wait for the container to complete before proceeding to the next init container. Instead, the next init container starts immediately after this init container is started, or after any startupProbe has successfully completed.<br/>
+          RestartPolicy defines the restart behavior of individual containers in a pod.
+This field may only be set for init containers, and the only allowed value is "Always".
+For non-init containers or when this field is not specified,
+the restart behavior is defined by the Pod's restart policy and the container type.
+Setting the RestartPolicy as "Always" for the init container will have the following effect:
+this init container will be continually restarted on
+exit until all regular containers have terminated. Once all regular
+containers have completed, all init containers with restartPolicy "Always"
+will be shut down. This lifecycle differs from normal init containers and
+is often referred to as a "sidecar" container. Although this init
+container still starts in the init container sequence, it does not wait
+for the container to complete before proceeding to the next init
+container. Instead, the next init container starts immediately after this
+init container is started, or after any startupProbe has successfully
+completed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexsecuritycontext">securityContext</a></b></td>
         <td>object</td>
         <td>
-          SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/<br/>
+          SecurityContext defines the security options the container should be run with.
+If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext.
+More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexstartupprobe">startupProbe</a></b></td>
         <td>object</td>
         <td>
-          StartupProbe indicates that the Pod has successfully initialized. If specified, no other probes are executed until this completes successfully. If this probe fails, the Pod will be restarted, just as if the livenessProbe failed. This can be used to provide different probe parameters at the beginning of a Pod's lifecycle, when it might take a long time to load data or warm a cache, than during steady-state operation. This cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          StartupProbe indicates that the Pod has successfully initialized.
+If specified, no other probes are executed until this completes successfully.
+If this probe fails, the Pod will be restarted, just as if the livenessProbe failed.
+This can be used to provide different probe parameters at the beginning of a Pod's lifecycle,
+when it might take a long time to load data or warm a cache, than during steady-state operation.
+This cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>stdin</b></td>
         <td>boolean</td>
         <td>
-          Whether this container should allocate a buffer for stdin in the container runtime. If this is not set, reads from stdin in the container will always result in EOF. Default is false.<br/>
+          Whether this container should allocate a buffer for stdin in the container runtime. If this
+is not set, reads from stdin in the container will always result in EOF.
+Default is false.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>stdinOnce</b></td>
         <td>boolean</td>
         <td>
-          Whether the container runtime should close the stdin channel after it has been opened by a single attach. When stdin is true the stdin stream will remain open across multiple attach sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the first client attaches to stdin, and then remains open and accepts data until the client disconnects, at which time stdin is closed and remains closed until the container is restarted. If this flag is false, a container processes that reads from stdin will never receive an EOF. Default is false<br/>
+          Whether the container runtime should close the stdin channel after it has been opened by
+a single attach. When stdin is true the stdin stream will remain open across multiple attach
+sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the
+first client attaches to stdin, and then remains open and accepts data until the client disconnects,
+at which time stdin is closed and remains closed until the container is restarted. If this
+flag is false, a container processes that reads from stdin will never receive an EOF.
+Default is false<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>terminationMessagePath</b></td>
         <td>string</td>
         <td>
-          Optional: Path at which the file to which the container's termination message will be written is mounted into the container's filesystem. Message written is intended to be brief final status, such as an assertion failure message. Will be truncated by the node if greater than 4096 bytes. The total message length across all containers will be limited to 12kb. Defaults to /dev/termination-log. Cannot be updated.<br/>
+          Optional: Path at which the file to which the container's termination message
+will be written is mounted into the container's filesystem.
+Message written is intended to be brief final status, such as an assertion failure message.
+Will be truncated by the node if greater than 4096 bytes. The total message length across
+all containers will be limited to 12kb.
+Defaults to /dev/termination-log.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>terminationMessagePolicy</b></td>
         <td>string</td>
         <td>
-          Indicate how the termination message should be populated. File will use the contents of terminationMessagePath to populate the container status message on both success and failure. FallbackToLogsOnError will use the last chunk of container log output if the termination message file is empty and the container exited with an error. The log output is limited to 2048 bytes or 80 lines, whichever is smaller. Defaults to File. Cannot be updated.<br/>
+          Indicate how the termination message should be populated. File will use the contents of
+terminationMessagePath to populate the container status message on both success and failure.
+FallbackToLogsOnError will use the last chunk of container log output if the termination
+message file is empty and the container exited with an error.
+The log output is limited to 2048 bytes or 80 lines, whichever is smaller.
+Defaults to File.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>tty</b></td>
         <td>boolean</td>
         <td>
-          Whether this container should allocate a TTY for itself, also requires 'stdin' to be true. Default is false.<br/>
+          Whether this container should allocate a TTY for itself, also requires 'stdin' to be true.
+Default is false.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4551,14 +5417,18 @@ A single application container that you want to run within a pod.
         <td><b><a href="#gatewayspecappinitcontainersindexvolumemountsindex">volumeMounts</a></b></td>
         <td>[]object</td>
         <td>
-          Pod volumes to mount into the container's filesystem. Cannot be updated.<br/>
+          Pod volumes to mount into the container's filesystem.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>workingDir</b></td>
         <td>string</td>
         <td>
-          Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image. Cannot be updated.<br/>
+          Container's working directory.
+If not specified, the container runtime's default will be used, which
+might be configured in the container image.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4592,7 +5462,15 @@ EnvVar represents an environment variable present in a Container.
         <td><b>value</b></td>
         <td>string</td>
         <td>
-          Variable references $(VAR_NAME) are expanded using the previously defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to "".<br/>
+          Variable references $(VAR_NAME) are expanded
+using the previously defined environment variables in the container and
+any service environment variables. If a variable cannot be resolved,
+the reference in the input string will be unchanged. Double $$ are reduced
+to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+"$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+Escaped references will never be expanded, regardless of whether the variable
+exists or not.
+Defaults to "".<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4633,14 +5511,16 @@ Source for the environment variable's value. Cannot be used if value is not empt
         <td><b><a href="#gatewayspecappinitcontainersindexenvindexvaluefromfieldref">fieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`, spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
+          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexenvindexvaluefromresourcefieldref">resourceFieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
+          Selects a resource of the container: only resources limits and requests
+(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4681,7 +5561,15 @@ Selects a key of a ConfigMap.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4700,7 +5588,8 @@ Selects a key of a ConfigMap.
 
 
 
-Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`, spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
 
 <table>
     <thead>
@@ -4734,7 +5623,8 @@ Selects a field of the pod: supports metadata.name, metadata.namespace, `metadat
 
 
 
-Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+Selects a resource of the container: only resources limits and requests
+(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
 
 <table>
     <thead>
@@ -4797,7 +5687,15 @@ Selects a key of a secret in the pod's namespace
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4872,7 +5770,15 @@ The ConfigMap to select from
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4906,7 +5812,15 @@ The Secret to select from
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4925,7 +5839,8 @@ The Secret to select from
 
 
 
-Actions that the management system should take in response to container lifecycle events. Cannot be updated.
+Actions that the management system should take in response to container lifecycle events.
+Cannot be updated.
 
 <table>
     <thead>
@@ -4940,14 +5855,25 @@ Actions that the management system should take in response to container lifecycl
         <td><b><a href="#gatewayspecappinitcontainersindexlifecyclepoststart">postStart</a></b></td>
         <td>object</td>
         <td>
-          PostStart is called immediately after a container is created. If the handler fails, the container is terminated and restarted according to its restart policy. Other management of the container blocks until the hook completes. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
+          PostStart is called immediately after a container is created. If the handler fails,
+the container is terminated and restarted according to its restart policy.
+Other management of the container blocks until the hook completes.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlifecycleprestop">preStop</a></b></td>
         <td>object</td>
         <td>
-          PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The Pod's termination grace period countdown begins before the PreStop hook is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period (unless delayed by finalizers). Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
+          PreStop is called immediately before a container is terminated due to an
+API request or management event such as liveness/startup probe failure,
+preemption, resource contention, etc. The handler is not called if the
+container crashes or exits. The Pod's termination grace period countdown begins before the
+PreStop hook is executed. Regardless of the outcome of the handler, the
+container will eventually terminate within the Pod's termination grace
+period (unless delayed by finalizers). Other management of the container blocks until the hook completes
+or until the termination grace period is reached.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4959,7 +5885,10 @@ Actions that the management system should take in response to container lifecycl
 
 
 
-PostStart is called immediately after a container is created. If the handler fails, the container is terminated and restarted according to its restart policy. Other management of the container blocks until the hook completes. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
+PostStart is called immediately after a container is created. If the handler fails,
+the container is terminated and restarted according to its restart policy.
+Other management of the container blocks until the hook completes.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
 
 <table>
     <thead>
@@ -4985,10 +5914,19 @@ PostStart is called immediately after a container is created. If the handler fai
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappinitcontainersindexlifecyclepoststartsleep">sleep</a></b></td>
+        <td>object</td>
+        <td>
+          Sleep represents the duration that the container should sleep before being terminated.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlifecyclepoststarttcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5015,7 +5953,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5042,14 +5984,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5070,7 +6015,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5097,7 +6043,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5111,12 +6058,43 @@ HTTPHeader describes a custom header to be used in HTTP probes
 </table>
 
 
+### Gateway.spec.app.initContainers[index].lifecycle.postStart.sleep
+<sup><sup>[↩ Parent](#gatewayspecappinitcontainersindexlifecyclepoststart)</sup></sup>
+
+
+
+Sleep represents the duration that the container should sleep before being terminated.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>seconds</b></td>
+        <td>integer</td>
+        <td>
+          Seconds is the number of seconds to sleep.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.initContainers[index].lifecycle.postStart.tcpSocket
 <sup><sup>[↩ Parent](#gatewayspecappinitcontainersindexlifecyclepoststart)</sup></sup>
 
 
 
-Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.
+Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.
 
 <table>
     <thead>
@@ -5131,7 +6109,9 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5150,7 +6130,15 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
 
 
 
-PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The Pod's termination grace period countdown begins before the PreStop hook is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period (unless delayed by finalizers). Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
+PreStop is called immediately before a container is terminated due to an
+API request or management event such as liveness/startup probe failure,
+preemption, resource contention, etc. The handler is not called if the
+container crashes or exits. The Pod's termination grace period countdown begins before the
+PreStop hook is executed. Regardless of the outcome of the handler, the
+container will eventually terminate within the Pod's termination grace
+period (unless delayed by finalizers). Other management of the container blocks until the hook completes
+or until the termination grace period is reached.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
 
 <table>
     <thead>
@@ -5176,10 +6164,19 @@ PreStop is called immediately before a container is terminated due to an API req
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappinitcontainersindexlifecycleprestopsleep">sleep</a></b></td>
+        <td>object</td>
+        <td>
+          Sleep represents the duration that the container should sleep before being terminated.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlifecycleprestoptcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5206,7 +6203,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5233,14 +6234,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5261,7 +6265,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5288,7 +6293,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5302,12 +6308,43 @@ HTTPHeader describes a custom header to be used in HTTP probes
 </table>
 
 
+### Gateway.spec.app.initContainers[index].lifecycle.preStop.sleep
+<sup><sup>[↩ Parent](#gatewayspecappinitcontainersindexlifecycleprestop)</sup></sup>
+
+
+
+Sleep represents the duration that the container should sleep before being terminated.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>seconds</b></td>
+        <td>integer</td>
+        <td>
+          Seconds is the number of seconds to sleep.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.initContainers[index].lifecycle.preStop.tcpSocket
 <sup><sup>[↩ Parent](#gatewayspecappinitcontainersindexlifecycleprestop)</sup></sup>
 
 
 
-Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.
+Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.
 
 <table>
     <thead>
@@ -5322,7 +6359,9 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5341,7 +6380,10 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
 
 
 
-Periodic probe of container liveness. Container will be restarted if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+Periodic probe of container liveness.
+Container will be restarted if the probe fails.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
 
 <table>
     <thead>
@@ -5363,7 +6405,8 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.<br/>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5386,7 +6429,8 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>initialDelaySeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5395,7 +6439,8 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1.<br/>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5404,7 +6449,8 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5420,7 +6466,16 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -5429,7 +6484,9 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5458,7 +6515,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5494,8 +6555,11 @@ GRPC specifies an action involving a GRPC port.
         <td><b>service</b></td>
         <td>string</td>
         <td>
-          Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
- If this is not specified, the default behavior is defined by gRPC.<br/>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5522,14 +6586,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5550,7 +6617,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5577,7 +6645,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5611,7 +6680,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5645,7 +6716,8 @@ ContainerPort represents a network port in a single container.
         <td><b>containerPort</b></td>
         <td>integer</td>
         <td>
-          Number of port to expose on the pod's IP address. This must be a valid port number, 0 < x < 65536.<br/>
+          Number of port to expose on the pod's IP address.
+This must be a valid port number, 0 < x < 65536.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5661,7 +6733,10 @@ ContainerPort represents a network port in a single container.
         <td><b>hostPort</b></td>
         <td>integer</td>
         <td>
-          Number of port to expose on the host. If specified, this must be a valid port number, 0 < x < 65536. If HostNetwork is specified, this must match ContainerPort. Most containers do not need this.<br/>
+          Number of port to expose on the host.
+If specified, this must be a valid port number, 0 < x < 65536.
+If HostNetwork is specified, this must match ContainerPort.
+Most containers do not need this.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5670,14 +6745,17 @@ ContainerPort represents a network port in a single container.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          If specified, this must be an IANA_SVC_NAME and unique within the pod. Each named port in a pod must have a unique name. Name for the port that can be referred to by services.<br/>
+          If specified, this must be an IANA_SVC_NAME and unique within the pod. Each
+named port in a pod must have a unique name. Name for the port that can be
+referred to by services.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          Protocol for port. Must be UDP, TCP, or SCTP. Defaults to "TCP".<br/>
+          Protocol for port. Must be UDP, TCP, or SCTP.
+Defaults to "TCP".<br/>
           <br/>
             <i>Default</i>: TCP<br/>
         </td>
@@ -5691,7 +6769,10 @@ ContainerPort represents a network port in a single container.
 
 
 
-Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+Periodic probe of container service readiness.
+Container will be removed from service endpoints if the probe fails.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
 
 <table>
     <thead>
@@ -5713,7 +6794,8 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.<br/>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5736,7 +6818,8 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>initialDelaySeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5745,7 +6828,8 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1.<br/>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5754,7 +6838,8 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5770,7 +6855,16 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -5779,7 +6873,9 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5808,7 +6904,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5844,8 +6944,11 @@ GRPC specifies an action involving a GRPC port.
         <td><b>service</b></td>
         <td>string</td>
         <td>
-          Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
- If this is not specified, the default behavior is defined by gRPC.<br/>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5872,14 +6975,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5900,7 +7006,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5927,7 +7034,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5961,7 +7069,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5995,14 +7105,16 @@ ContainerResizePolicy represents resource resize policy for the container.
         <td><b>resourceName</b></td>
         <td>string</td>
         <td>
-          Name of the resource to which this resource resize policy applies. Supported values: cpu, memory.<br/>
+          Name of the resource to which this resource resize policy applies.
+Supported values: cpu, memory.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>restartPolicy</b></td>
         <td>string</td>
         <td>
-          Restart policy to apply when specified resource is resized. If not specified, it defaults to NotRequired.<br/>
+          Restart policy to apply when specified resource is resized.
+If not specified, it defaults to NotRequired.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -6014,7 +7126,9 @@ ContainerResizePolicy represents resource resize policy for the container.
 
 
 
-Compute Resources required by this container. Cannot be updated. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+Compute Resources required by this container.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 
 <table>
     <thead>
@@ -6029,23 +7143,33 @@ Compute Resources required by this container. Cannot be updated. More info: http
         <td><b><a href="#gatewayspecappinitcontainersindexresourcesclaimsindex">claims</a></b></td>
         <td>[]object</td>
         <td>
-          Claims lists the names of resources, defined in spec.resourceClaims, that are used by this container. 
- This is an alpha field and requires enabling the DynamicResourceAllocation feature gate. 
- This field is immutable. It can only be set for containers.<br/>
+          Claims lists the names of resources, defined in spec.resourceClaims,
+that are used by this container.
+
+
+This is an alpha field and requires enabling the
+DynamicResourceAllocation feature gate.
+
+
+This field is immutable. It can only be set for containers.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>limits</b></td>
         <td>map[string]int or string</td>
         <td>
-          Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+          Limits describes the maximum amount of compute resources allowed.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>requests</b></td>
         <td>map[string]int or string</td>
         <td>
-          Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+          Requests describes the minimum amount of compute resources required.
+If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+otherwise to an implementation-defined value. Requests cannot exceed Limits.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6072,7 +7196,9 @@ ResourceClaim references one entry in PodSpec.ResourceClaims.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name must match the name of one entry in pod.spec.resourceClaims of the Pod where this field is used. It makes that resource available inside a container.<br/>
+          Name must match the name of one entry in pod.spec.resourceClaims of
+the Pod where this field is used. It makes that resource available
+inside a container.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -6084,7 +7210,9 @@ ResourceClaim references one entry in PodSpec.ResourceClaims.
 
 
 
-SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+SecurityContext defines the security options the container should be run with.
+If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext.
+More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 
 <table>
     <thead>
@@ -6099,42 +7227,72 @@ SecurityContext defines the security options the container should be run with. I
         <td><b>allowPrivilegeEscalation</b></td>
         <td>boolean</td>
         <td>
-          AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.<br/>
+          AllowPrivilegeEscalation controls whether a process can gain more
+privileges than its parent process. This bool directly controls if
+the no_new_privs flag will be set on the container process.
+AllowPrivilegeEscalation is true always when the container is:
+1) run as Privileged
+2) has CAP_SYS_ADMIN
+Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappinitcontainersindexsecuritycontextapparmorprofile">appArmorProfile</a></b></td>
+        <td>object</td>
+        <td>
+          appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexsecuritycontextcapabilities">capabilities</a></b></td>
         <td>object</td>
         <td>
-          The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>privileged</b></td>
         <td>boolean</td>
         <td>
-          Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Run container in privileged mode.
+Processes in privileged containers are essentially equivalent to root on the host.
+Defaults to false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>procMount</b></td>
         <td>string</td>
         <td>
-          procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows.<br/>
+          procMount denotes the type of proc mount to use for the containers.
+The default is DefaultProcMount which uses the container runtime defaults for
+readonly paths and masked paths.
+This requires the ProcMountType feature flag to be enabled.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>readOnlyRootFilesystem</b></td>
         <td>boolean</td>
         <td>
-          Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Whether this container has a read-only root filesystem.
+Default is false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsGroup</b></td>
         <td>integer</td>
         <td>
-          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The GID to run the entrypoint of the container process.
+Uses runtime default if unset.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -6143,14 +7301,23 @@ SecurityContext defines the security options the container should be run with. I
         <td><b>runAsNonRoot</b></td>
         <td>boolean</td>
         <td>
-          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          Indicates that the container must run as a non-root user.
+If true, the Kubelet will validate the image at runtime to ensure that it
+does not run as UID 0 (root) and fail to start the container if it does.
+If unset or false, no such validation will be performed.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUser</b></td>
         <td>integer</td>
         <td>
-          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The UID to run the entrypoint of the container process.
+Defaults to user specified in image metadata if unspecified.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -6159,21 +7326,74 @@ SecurityContext defines the security options the container should be run with. I
         <td><b><a href="#gatewayspecappinitcontainersindexsecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
         <td>object</td>
         <td>
-          The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexsecuritycontextseccompprofile">seccompProfile</a></b></td>
         <td>object</td>
         <td>
-          The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexsecuritycontextwindowsoptions">windowsOptions</a></b></td>
         <td>object</td>
         <td>
-          The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+          The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.initContainers[index].securityContext.appArmorProfile
+<sup><sup>[↩ Parent](#gatewayspecappinitcontainersindexsecuritycontext)</sup></sup>
+
+
+
+appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of AppArmor profile will be applied.
+Valid options are:
+  Localhost - a profile pre-loaded on the node.
+  RuntimeDefault - the container runtime's default profile.
+  Unconfined - no AppArmor enforcement.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile loaded on the node that should be used.
+The profile must be preconfigured on the node to work.
+Must match the loaded name of the profile.
+Must be set if and only if type is "Localhost".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6185,7 +7405,9 @@ SecurityContext defines the security options the container should be run with. I
 
 
 
-The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.
+The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -6219,7 +7441,11 @@ The capabilities to add/drop when running containers. Defaults to the default se
 
 
 
-The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.
+The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -6267,7 +7493,10 @@ The SELinux context to be applied to the container. If unspecified, the containe
 
 
 
-The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.
+The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -6282,15 +7511,23 @@ The seccomp options to use by this container. If seccomp options are provided at
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          type indicates which kind of seccomp profile will be applied. Valid options are: 
- Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+          type indicates which kind of seccomp profile will be applied.
+Valid options are:
+
+
+Localhost - a profile defined in a file on the node should be used.
+RuntimeDefault - the container runtime default profile should be used.
+Unconfined - no profile should be applied.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>localhostProfile</b></td>
         <td>string</td>
         <td>
-          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+          localhostProfile indicates a profile defined in a file on the node should be used.
+The profile must be preconfigured on the node to work.
+Must be a descending path, relative to the kubelet's configured seccomp profile location.
+Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6302,7 +7539,10 @@ The seccomp options to use by this container. If seccomp options are provided at
 
 
 
-The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.
 
 <table>
     <thead>
@@ -6317,7 +7557,9 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>gmsaCredentialSpec</b></td>
         <td>string</td>
         <td>
-          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+          GMSACredentialSpec is where the GMSA admission webhook
+(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+GMSA credential spec named by the GMSACredentialSpecName field.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6331,14 +7573,20 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>hostProcess</b></td>
         <td>boolean</td>
         <td>
-          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+          HostProcess determines if a container should be run as a 'Host Process' container.
+All of a Pod's containers must have the same effective HostProcess value
+(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUserName</b></td>
         <td>string</td>
         <td>
-          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          The UserName in Windows to run the entrypoint of the container process.
+Defaults to the user specified in image metadata if unspecified.
+May also be set in PodSecurityContext. If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6350,7 +7598,13 @@ The Windows specific settings applied to all containers. If unspecified, the opt
 
 
 
-StartupProbe indicates that the Pod has successfully initialized. If specified, no other probes are executed until this completes successfully. If this probe fails, the Pod will be restarted, just as if the livenessProbe failed. This can be used to provide different probe parameters at the beginning of a Pod's lifecycle, when it might take a long time to load data or warm a cache, than during steady-state operation. This cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+StartupProbe indicates that the Pod has successfully initialized.
+If specified, no other probes are executed until this completes successfully.
+If this probe fails, the Pod will be restarted, just as if the livenessProbe failed.
+This can be used to provide different probe parameters at the beginning of a Pod's lifecycle,
+when it might take a long time to load data or warm a cache, than during steady-state operation.
+This cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
 
 <table>
     <thead>
@@ -6372,7 +7626,8 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.<br/>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6395,7 +7650,8 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>initialDelaySeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6404,7 +7660,8 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1.<br/>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6413,7 +7670,8 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6429,7 +7687,16 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -6438,7 +7705,9 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6467,7 +7736,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6503,8 +7776,11 @@ GRPC specifies an action involving a GRPC port.
         <td><b>service</b></td>
         <td>string</td>
         <td>
-          Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
- If this is not specified, the default behavior is defined by gRPC.<br/>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6531,14 +7807,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6559,7 +7838,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6586,7 +7866,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6620,7 +7901,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6688,7 +7971,8 @@ VolumeMount describes a mounting of a Volume within a container.
         <td><b>mountPath</b></td>
         <td>string</td>
         <td>
-          Path within the container at which the volume should be mounted.  Must not contain ':'.<br/>
+          Path within the container at which the volume should be mounted.  Must
+not contain ':'.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6702,28 +7986,64 @@ VolumeMount describes a mounting of a Volume within a container.
         <td><b>mountPropagation</b></td>
         <td>string</td>
         <td>
-          mountPropagation determines how mounts are propagated from the host to container and the other way around. When not set, MountPropagationNone is used. This field is beta in 1.10.<br/>
+          mountPropagation determines how mounts are propagated from the host
+to container and the other way around.
+When not set, MountPropagationNone is used.
+This field is beta in 1.10.
+When RecursiveReadOnly is set to IfPossible or to Enabled, MountPropagation must be None or unspecified
+(which defaults to None).<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>readOnly</b></td>
         <td>boolean</td>
         <td>
-          Mounted read-only if true, read-write otherwise (false or unspecified). Defaults to false.<br/>
+          Mounted read-only if true, read-write otherwise (false or unspecified).
+Defaults to false.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>recursiveReadOnly</b></td>
+        <td>string</td>
+        <td>
+          RecursiveReadOnly specifies whether read-only mounts should be handled
+recursively.
+
+
+If ReadOnly is false, this field has no meaning and must be unspecified.
+
+
+If ReadOnly is true, and this field is set to Disabled, the mount is not made
+recursively read-only.  If this field is set to IfPossible, the mount is made
+recursively read-only, if it is supported by the container runtime.  If this
+field is set to Enabled, the mount is made recursively read-only if it is
+supported by the container runtime, otherwise the pod will not be started and
+an error will be generated to indicate the reason.
+
+
+If this field is set to IfPossible or Enabled, MountPropagation must be set to
+None (or be unspecified, which defaults to None).
+
+
+If this field is not specified, it is treated as an equivalent of Disabled.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>subPath</b></td>
         <td>string</td>
         <td>
-          Path within the volume from which the container's volume should be mounted. Defaults to "" (volume's root).<br/>
+          Path within the volume from which the container's volume should be mounted.
+Defaults to "" (volume's root).<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>subPathExpr</b></td>
         <td>string</td>
         <td>
-          Expanded path within the volume from which the container's volume should be mounted. Behaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment. Defaults to "" (volume's root). SubPathExpr and SubPath are mutually exclusive.<br/>
+          Expanded path within the volume from which the container's volume should be mounted.
+Behaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment.
+Defaults to "" (volume's root).
+SubPathExpr and SubPath are mutually exclusive.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6784,21 +8104,24 @@ Java configuration for the Gateway
         <td><b>calculate</b></td>
         <td>boolean</td>
         <td>
-          Calculate the JVMHeap size based on resource requests and limits if resources are left unset this will be ignored<br/>
+          Calculate the JVMHeap size based on resource requests and limits
+if resources are left unset this will be ignored<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>default</b></td>
         <td>string</td>
         <td>
-          Default Heap Size to use if calculate is false or requests.limits.memory is not set Set to 2g<br/>
+          Default Heap Size to use if calculate is false or requests.limits.memory is not set
+Set to 2g<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>percentage</b></td>
         <td>integer</td>
         <td>
-          Percentage of requests.limits.memory to allocate to the jvm 50% is the default, should be no higher than 75%<br/>
+          Percentage of requests.limits.memory to allocate to the jvm
+50% is the default, should be no higher than 75%<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6810,7 +8133,9 @@ Java configuration for the Gateway
 
 
 
-Lifecycle describes actions that the management system should take in response to container lifecycle events. For the PostStart and PreStop lifecycle handlers, management of the container blocks until the action is complete, unless the container process fails, in which case the handler is aborted.
+Lifecycle describes actions that the management system should take in response to container lifecycle
+events. For the PostStart and PreStop lifecycle handlers, management of the container blocks
+until the action is complete, unless the container process fails, in which case the handler is aborted.
 
 <table>
     <thead>
@@ -6825,14 +8150,25 @@ Lifecycle describes actions that the management system should take in response t
         <td><b><a href="#gatewayspecapplifecyclehookspoststart">postStart</a></b></td>
         <td>object</td>
         <td>
-          PostStart is called immediately after a container is created. If the handler fails, the container is terminated and restarted according to its restart policy. Other management of the container blocks until the hook completes. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
+          PostStart is called immediately after a container is created. If the handler fails,
+the container is terminated and restarted according to its restart policy.
+Other management of the container blocks until the hook completes.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapplifecyclehooksprestop">preStop</a></b></td>
         <td>object</td>
         <td>
-          PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The Pod's termination grace period countdown begins before the PreStop hook is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period (unless delayed by finalizers). Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
+          PreStop is called immediately before a container is terminated due to an
+API request or management event such as liveness/startup probe failure,
+preemption, resource contention, etc. The handler is not called if the
+container crashes or exits. The Pod's termination grace period countdown begins before the
+PreStop hook is executed. Regardless of the outcome of the handler, the
+container will eventually terminate within the Pod's termination grace
+period (unless delayed by finalizers). Other management of the container blocks until the hook completes
+or until the termination grace period is reached.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6844,7 +8180,10 @@ Lifecycle describes actions that the management system should take in response t
 
 
 
-PostStart is called immediately after a container is created. If the handler fails, the container is terminated and restarted according to its restart policy. Other management of the container blocks until the hook completes. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
+PostStart is called immediately after a container is created. If the handler fails,
+the container is terminated and restarted according to its restart policy.
+Other management of the container blocks until the hook completes.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
 
 <table>
     <thead>
@@ -6870,10 +8209,19 @@ PostStart is called immediately after a container is created. If the handler fai
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecapplifecyclehookspoststartsleep">sleep</a></b></td>
+        <td>object</td>
+        <td>
+          Sleep represents the duration that the container should sleep before being terminated.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecapplifecyclehookspoststarttcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6900,7 +8248,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6927,14 +8279,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6955,7 +8310,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6982,7 +8338,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6996,12 +8353,43 @@ HTTPHeader describes a custom header to be used in HTTP probes
 </table>
 
 
+### Gateway.spec.app.lifecycleHooks.postStart.sleep
+<sup><sup>[↩ Parent](#gatewayspecapplifecyclehookspoststart)</sup></sup>
+
+
+
+Sleep represents the duration that the container should sleep before being terminated.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>seconds</b></td>
+        <td>integer</td>
+        <td>
+          Seconds is the number of seconds to sleep.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.lifecycleHooks.postStart.tcpSocket
 <sup><sup>[↩ Parent](#gatewayspecapplifecyclehookspoststart)</sup></sup>
 
 
 
-Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.
+Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.
 
 <table>
     <thead>
@@ -7016,7 +8404,9 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7035,7 +8425,15 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
 
 
 
-PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The Pod's termination grace period countdown begins before the PreStop hook is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period (unless delayed by finalizers). Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
+PreStop is called immediately before a container is terminated due to an
+API request or management event such as liveness/startup probe failure,
+preemption, resource contention, etc. The handler is not called if the
+container crashes or exits. The Pod's termination grace period countdown begins before the
+PreStop hook is executed. Regardless of the outcome of the handler, the
+container will eventually terminate within the Pod's termination grace
+period (unless delayed by finalizers). Other management of the container blocks until the hook completes
+or until the termination grace period is reached.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
 
 <table>
     <thead>
@@ -7061,10 +8459,19 @@ PreStop is called immediately before a container is terminated due to an API req
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecapplifecyclehooksprestopsleep">sleep</a></b></td>
+        <td>object</td>
+        <td>
+          Sleep represents the duration that the container should sleep before being terminated.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecapplifecyclehooksprestoptcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7091,7 +8498,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7118,14 +8529,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7146,7 +8560,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7173,7 +8588,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7187,12 +8603,43 @@ HTTPHeader describes a custom header to be used in HTTP probes
 </table>
 
 
+### Gateway.spec.app.lifecycleHooks.preStop.sleep
+<sup><sup>[↩ Parent](#gatewayspecapplifecyclehooksprestop)</sup></sup>
+
+
+
+Sleep represents the duration that the container should sleep before being terminated.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>seconds</b></td>
+        <td>integer</td>
+        <td>
+          Seconds is the number of seconds to sleep.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.lifecycleHooks.preStop.tcpSocket
 <sup><sup>[↩ Parent](#gatewayspecapplifecyclehooksprestop)</sup></sup>
 
 
 
-Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.
+Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.
 
 <table>
     <thead>
@@ -7207,7 +8654,9 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7226,10 +8675,27 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
 
 
 
-ListenPorts The Layer7 Gateway instantiates the following HTTP(s) ports by default Harden applies the following changes, setting ports overrides this flag. - 8080 (HTTP) - Disable - Allow Published Service Message input only 
- - 8443 (HTTPS) - Remove Management Features (no Policy Manager Access) - Enables TLSv1.2,TLS1.3 only - Disables insecure Cipher Suites 
- - 9443 (HTTPS) - Enables TLSv1.2,TLS1.3 only - Disables insecure Cipher Suites 
- - 2124 (Inter-Node Communication) - Not created - if using an existing database 2124 will not be modified
+ListenPorts The Layer7 Gateway instantiates the following HTTP(s) ports by default
+Harden applies the following changes, setting ports overrides this flag.
+- 8080 (HTTP)
+  - Disable
+  - Allow Published Service Message input only
+
+
+- 8443 (HTTPS)
+  - Remove Management Features (no Policy Manager Access)
+  - Enables TLSv1.2,TLS1.3 only
+  - Disables insecure Cipher Suites
+
+
+- 9443 (HTTPS)
+  - Enables TLSv1.2,TLS1.3 only
+  - Disables insecure Cipher Suites
+
+
+- 2124 (Inter-Node Communication)
+  - Not created
+  - if using an existing database 2124 will not be modified
 
 <table>
     <thead>
@@ -7319,7 +8785,11 @@ ListenPort is translated into a Restman Bundle
         <td><b>managementFeatures</b></td>
         <td>[]string</td>
         <td>
-          ManagementFeatures that should be available on this port - Published service message input - Administrative access - Browser-based administration - Built-in services<br/>
+          ManagementFeatures that should be available on this port
+- Published service message input
+- Administrative access
+- Browser-based administration
+- Built-in services<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7415,14 +8885,53 @@ Tls configuration for Gateway Ports
         <td><b>cipherSuites</b></td>
         <td>[]string</td>
         <td>
-          CipherSuites - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 - TLS_DHE_RSA_WITH_AES_256_CBC_SHA - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 - TLS_DHE_RSA_WITH_AES_128_CBC_SHA - TLS_AES_256_GCM_SHA384 - TLS_AES_128_GCM_SHA256 - TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384 (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384 (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384 (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384 (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA (Disabled by Harden) - TLS_RSA_WITH_AES_256_GCM_SHA384 (Disabled by Harden) - TLS_RSA_WITH_AES_256_CBC_SHA256 (Disabled by Harden) - TLS_RSA_WITH_AES_256_CBC_SHA (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256 (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256 (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256 (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256 (Disabled by Harden) - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA (Disabled by Harden) - TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA (Disabled by Harden) - TLS_RSA_WITH_AES_128_GCM_SHA256 (Disabled by Harden) - TLS_RSA_WITH_AES_128_CBC_SHA256 (Disabled by Harden) - TLS_RSA_WITH_AES_128_CBC_SHA (Disabled by Harden)<br/>
+          CipherSuites
+	- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+	- TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+	- TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+	- TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+	- TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+	- TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+	- TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+	- TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+	- TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+	- TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+	- TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+	- TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+	- TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+	- TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+	- TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+	- TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+	- TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+	- TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+	- TLS_AES_256_GCM_SHA384
+	- TLS_AES_128_GCM_SHA256
+ - TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384 (Disabled by Harden)
+ - TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384 (Disabled by Harden)
+ - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384 (Disabled by Harden)
+ - TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384 (Disabled by Harden)
+ - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA (Disabled by Harden)
+ - TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA (Disabled by Harden)
+ - TLS_RSA_WITH_AES_256_GCM_SHA384 (Disabled by Harden)
+ - TLS_RSA_WITH_AES_256_CBC_SHA256 (Disabled by Harden)
+ - TLS_RSA_WITH_AES_256_CBC_SHA (Disabled by Harden)
+ - TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256 (Disabled by Harden)
+ - TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256 (Disabled by Harden)
+ - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256 (Disabled by Harden)
+ - TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256 (Disabled by Harden)
+ - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA (Disabled by Harden)
+ - TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA (Disabled by Harden)
+ - TLS_RSA_WITH_AES_128_GCM_SHA256 (Disabled by Harden)
+ - TLS_RSA_WITH_AES_128_CBC_SHA256 (Disabled by Harden)
+ - TLS_RSA_WITH_AES_128_CBC_SHA (Disabled by Harden)<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>clientAuthentication</b></td>
         <td>string</td>
         <td>
-          ClientAuthentication MTLS for the Port None, Optional, Required<br/>
+          ClientAuthentication MTLS for the Port
+None, Optional, Required<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7450,7 +8959,11 @@ Tls configuration for Gateway Ports
         <td><b>versions</b></td>
         <td>[]string</td>
         <td>
-          Versions of TLS - TLS1.0 (not recommended) - TLS1.1 (not recommended) - TLS1.2 - TLS1.3<br/>
+          Versions of TLS
+- TLS1.0 (not recommended)
+- TLS1.1 (not recommended)
+- TLS1.2
+- TLS1.3<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7462,7 +8975,8 @@ Tls configuration for Gateway Ports
 
 
 
-Probe describes a health check to be performed against a container to determine whether it is alive or ready to receive traffic.
+Probe describes a health check to be performed against a container to determine whether it is
+alive or ready to receive traffic.
 
 <table>
     <thead>
@@ -7484,7 +8998,8 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.<br/>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -7507,7 +9022,8 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>initialDelaySeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -7516,7 +9032,8 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1.<br/>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -7525,7 +9042,8 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -7541,7 +9059,16 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -7550,7 +9077,9 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -7579,7 +9108,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7615,8 +9148,11 @@ GRPC specifies an action involving a GRPC port.
         <td><b>service</b></td>
         <td>string</td>
         <td>
-          Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
- If this is not specified, the default behavior is defined by gRPC.<br/>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7643,14 +9179,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7671,7 +9210,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7698,7 +9238,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7732,7 +9273,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7814,7 +9357,8 @@ Management defines configuration for Gateway Managment.
         <td><b><a href="#gatewayspecappmanagementgraphman">graphman</a></b></td>
         <td>object</td>
         <td>
-          Graphman is a GraphQL Gateway Management interface that can be automatically provisioned. The initContainer image is required for bootstrapping graphman bundles defined by the repository controller.<br/>
+          Graphman is a GraphQL Gateway Management interface that can be automatically provisioned.
+The initContainer image is required for bootstrapping graphman bundles defined by the repository controller.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7835,7 +9379,9 @@ Management defines configuration for Gateway Managment.
         <td><b>secretName</b></td>
         <td>string</td>
         <td>
-          SecretName is reference to an existing secret that contains SSG_ADMIN_USERNAME, SSG_ADMIN_PASSWORD, SSG_CLUSTER_PASSPHRASE and optionally SSG_DATABASE_USER and SSG_DATABASE_PASSWORD for mysql backed gateway clusters<br/>
+          SecretName is reference to an existing secret that contains
+SSG_ADMIN_USERNAME, SSG_ADMIN_PASSWORD, SSG_CLUSTER_PASSPHRASE and optionally
+SSG_DATABASE_USER and SSG_DATABASE_PASSWORD for mysql backed gateway clusters<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7943,7 +9489,8 @@ Database configuration for the Gateway
 
 
 
-Graphman is a GraphQL Gateway Management interface that can be automatically provisioned. The initContainer image is required for bootstrapping graphman bundles defined by the repository controller.
+Graphman is a GraphQL Gateway Management interface that can be automatically provisioned.
+The initContainer image is required for bootstrapping graphman bundles defined by the repository controller.
 
 <table>
     <thead>
@@ -8013,42 +9560,72 @@ ContainerSecurityContext
         <td><b>allowPrivilegeEscalation</b></td>
         <td>boolean</td>
         <td>
-          AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.<br/>
+          AllowPrivilegeEscalation controls whether a process can gain more
+privileges than its parent process. This bool directly controls if
+the no_new_privs flag will be set on the container process.
+AllowPrivilegeEscalation is true always when the container is:
+1) run as Privileged
+2) has CAP_SYS_ADMIN
+Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextapparmorprofile">appArmorProfile</a></b></td>
+        <td>object</td>
+        <td>
+          appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextcapabilities">capabilities</a></b></td>
         <td>object</td>
         <td>
-          The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>privileged</b></td>
         <td>boolean</td>
         <td>
-          Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Run container in privileged mode.
+Processes in privileged containers are essentially equivalent to root on the host.
+Defaults to false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>procMount</b></td>
         <td>string</td>
         <td>
-          procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows.<br/>
+          procMount denotes the type of proc mount to use for the containers.
+The default is DefaultProcMount which uses the container runtime defaults for
+readonly paths and masked paths.
+This requires the ProcMountType feature flag to be enabled.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>readOnlyRootFilesystem</b></td>
         <td>boolean</td>
         <td>
-          Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Whether this container has a read-only root filesystem.
+Default is false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsGroup</b></td>
         <td>integer</td>
         <td>
-          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The GID to run the entrypoint of the container process.
+Uses runtime default if unset.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -8057,14 +9634,23 @@ ContainerSecurityContext
         <td><b>runAsNonRoot</b></td>
         <td>boolean</td>
         <td>
-          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          Indicates that the container must run as a non-root user.
+If true, the Kubelet will validate the image at runtime to ensure that it
+does not run as UID 0 (root) and fail to start the container if it does.
+If unset or false, no such validation will be performed.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUser</b></td>
         <td>integer</td>
         <td>
-          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The UID to run the entrypoint of the container process.
+Defaults to user specified in image metadata if unspecified.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -8073,21 +9659,74 @@ ContainerSecurityContext
         <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
         <td>object</td>
         <td>
-          The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextseccompprofile">seccompProfile</a></b></td>
         <td>object</td>
         <td>
-          The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappmanagementgraphmaninitcontainersecuritycontextwindowsoptions">windowsOptions</a></b></td>
         <td>object</td>
         <td>
-          The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+          The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.graphman.initContainerSecurityContext.appArmorProfile
+<sup><sup>[↩ Parent](#gatewayspecappmanagementgraphmaninitcontainersecuritycontext)</sup></sup>
+
+
+
+appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of AppArmor profile will be applied.
+Valid options are:
+  Localhost - a profile pre-loaded on the node.
+  RuntimeDefault - the container runtime's default profile.
+  Unconfined - no AppArmor enforcement.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile loaded on the node that should be used.
+The profile must be preconfigured on the node to work.
+Must match the loaded name of the profile.
+Must be set if and only if type is "Localhost".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8099,7 +9738,9 @@ ContainerSecurityContext
 
 
 
-The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.
+The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -8133,7 +9774,11 @@ The capabilities to add/drop when running containers. Defaults to the default se
 
 
 
-The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.
+The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -8181,7 +9826,10 @@ The SELinux context to be applied to the container. If unspecified, the containe
 
 
 
-The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.
+The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -8196,15 +9844,23 @@ The seccomp options to use by this container. If seccomp options are provided at
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          type indicates which kind of seccomp profile will be applied. Valid options are: 
- Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+          type indicates which kind of seccomp profile will be applied.
+Valid options are:
+
+
+Localhost - a profile defined in a file on the node should be used.
+RuntimeDefault - the container runtime default profile should be used.
+Unconfined - no profile should be applied.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>localhostProfile</b></td>
         <td>string</td>
         <td>
-          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+          localhostProfile indicates a profile defined in a file on the node should be used.
+The profile must be preconfigured on the node to work.
+Must be a descending path, relative to the kubelet's configured seccomp profile location.
+Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8216,7 +9872,10 @@ The seccomp options to use by this container. If seccomp options are provided at
 
 
 
-The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.
 
 <table>
     <thead>
@@ -8231,7 +9890,9 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>gmsaCredentialSpec</b></td>
         <td>string</td>
         <td>
-          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+          GMSACredentialSpec is where the GMSA admission webhook
+(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+GMSA credential spec named by the GMSACredentialSpecName field.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8245,14 +9906,20 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>hostProcess</b></td>
         <td>boolean</td>
         <td>
-          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+          HostProcess determines if a container should be run as a 'Host Process' container.
+All of a Pod's containers must have the same effective HostProcess value
+(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUserName</b></td>
         <td>string</td>
         <td>
-          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          The UserName in Windows to run the entrypoint of the container process.
+Defaults to the user specified in image metadata if unspecified.
+May also be set in PodSecurityContext. If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8355,7 +10022,9 @@ Service is the Gateway Management Service
         <td><b>externalTrafficPolicy</b></td>
         <td>string</td>
         <td>
-          ServiceExternalTrafficPolicy describes how nodes distribute service traffic they receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer IPs.<br/>
+          ServiceExternalTrafficPolicy describes how nodes distribute service traffic they
+receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs,
+and LoadBalancer IPs.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8371,7 +10040,8 @@ Service is the Gateway Management Service
         <td><b>internalTrafficPolicy</b></td>
         <td>string</td>
         <td>
-          ServiceInternalTrafficPolicy describes how nodes distribute service traffic they receive on the ClusterIP.<br/>
+          ServiceInternalTrafficPolicy describes how nodes distribute service traffic they
+receive on the ClusterIP.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8413,7 +10083,8 @@ Service is the Gateway Management Service
         <td><b><a href="#gatewayspecappmanagementserviceportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          Ports exposed by the Service These are appended to the Gateway deployment containerPorts<br/>
+          Ports exposed by the Service
+These are appended to the Gateway deployment containerPorts<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8540,7 +10211,9 @@ clientIP contains the configurations of Client IP based session affinity.
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP". Default value is 10800(for 3 hours).<br/>
+          timeoutSeconds specifies the seconds of ClientIP type session sticky time.
+The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP".
+Default value is 10800(for 3 hours).<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -8576,7 +10249,9 @@ clientIP contains the configurations of Client IP based session affinity.
         <td><b>dmzGatewayReference</b></td>
         <td>string</td>
         <td>
-          OTKPort is used in Single mode - sets the otk.port cluster-wide property and in Dual-Mode sets host_oauth2_auth_server port in #OTK Client Context Variables TODO: Make this an array for many dmz deployments to one internal<br/>
+          OTKPort is used in Single mode - sets the otk.port cluster-wide property and in Dual-Mode
+sets host_oauth2_auth_server port in #OTK Client Context Variables
+TODO: Make this an array for many dmz deployments to one internal<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8618,7 +10293,8 @@ clientIP contains the configurations of Client IP based session affinity.
         <td><b>internalGatewayReference</b></td>
         <td>string</td>
         <td>
-          InternalOtkGatewayReference to an Operator managed Gateway deployment that is configured with otk.type: internal This configures a relationship between DMZ and Internal Gateways.<br/>
+          InternalOtkGatewayReference to an Operator managed Gateway deployment that is configured with otk.type: internal
+This configures a relationship between DMZ and Internal Gateways.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8784,7 +10460,17 @@ Auth for the OTK Database
         <td><b>existingSecret</b></td>
         <td>string</td>
         <td>
-          ExistingSecret containing database credentials The following keys can be set Gateway user (typically otk_user) OTK_DATABASE_USERNAME OTK_DATABASE_PASSWORD Gateway Readonly user (typically otk_user_readonly) OTK_RO_DATABASE_USERNAME OTK_RO_DATABASE_PASSWORD Database admin credentials used to create or update the OTK database OTK_DATABASE_DDL_USERNAME OTK_DATABASE_DDL_PASSWORD<br/>
+          ExistingSecret containing database credentials
+The following keys can be set
+Gateway user (typically otk_user)
+OTK_DATABASE_USERNAME
+OTK_DATABASE_PASSWORD
+Gateway Readonly user (typically otk_user_readonly)
+OTK_RO_DATABASE_USERNAME
+OTK_RO_DATABASE_PASSWORD
+Database admin credentials used to create or update the OTK database
+OTK_DATABASE_DDL_USERNAME
+OTK_DATABASE_DDL_PASSWORD<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8996,7 +10682,8 @@ SQL configuration
         <td><b>jdbcDriverClass</b></td>
         <td>string</td>
         <td>
-          JDBCDriverClass to use in the Gateway JDBC Connection entity defaults to com.mysql.jdbc.Driver<br/>
+          JDBCDriverClass to use in the Gateway JDBC Connection entity
+defaults to com.mysql.jdbc.Driver<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9010,7 +10697,8 @@ SQL configuration
         <td><b>manageSchema</b></td>
         <td>boolean</td>
         <td>
-          ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database only supports MySQL and Oracle<br/>
+          ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database
+only supports MySQL and Oracle<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9058,7 +10746,8 @@ SqlReadOnly configuration
         <td><b>jdbcDriverClass</b></td>
         <td>string</td>
         <td>
-          JDBCDriverClass to use in the Gateway JDBC Connection entity defaults to com.mysql.jdbc.Driver<br/>
+          JDBCDriverClass to use in the Gateway JDBC Connection entity
+defaults to com.mysql.jdbc.Driver<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9072,7 +10761,8 @@ SqlReadOnly configuration
         <td><b>manageSchema</b></td>
         <td>boolean</td>
         <td>
-          ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database only supports MySQL and Oracle<br/>
+          ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database
+only supports MySQL and Oracle<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9099,42 +10789,72 @@ InitContainerSecurityContext
         <td><b>allowPrivilegeEscalation</b></td>
         <td>boolean</td>
         <td>
-          AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.<br/>
+          AllowPrivilegeEscalation controls whether a process can gain more
+privileges than its parent process. This bool directly controls if
+the no_new_privs flag will be set on the container process.
+AllowPrivilegeEscalation is true always when the container is:
+1) run as Privileged
+2) has CAP_SYS_ADMIN
+Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextapparmorprofile">appArmorProfile</a></b></td>
+        <td>object</td>
+        <td>
+          appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextcapabilities">capabilities</a></b></td>
         <td>object</td>
         <td>
-          The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>privileged</b></td>
         <td>boolean</td>
         <td>
-          Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Run container in privileged mode.
+Processes in privileged containers are essentially equivalent to root on the host.
+Defaults to false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>procMount</b></td>
         <td>string</td>
         <td>
-          procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows.<br/>
+          procMount denotes the type of proc mount to use for the containers.
+The default is DefaultProcMount which uses the container runtime defaults for
+readonly paths and masked paths.
+This requires the ProcMountType feature flag to be enabled.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>readOnlyRootFilesystem</b></td>
         <td>boolean</td>
         <td>
-          Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Whether this container has a read-only root filesystem.
+Default is false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsGroup</b></td>
         <td>integer</td>
         <td>
-          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The GID to run the entrypoint of the container process.
+Uses runtime default if unset.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -9143,14 +10863,23 @@ InitContainerSecurityContext
         <td><b>runAsNonRoot</b></td>
         <td>boolean</td>
         <td>
-          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          Indicates that the container must run as a non-root user.
+If true, the Kubelet will validate the image at runtime to ensure that it
+does not run as UID 0 (root) and fail to start the container if it does.
+If unset or false, no such validation will be performed.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUser</b></td>
         <td>integer</td>
         <td>
-          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The UID to run the entrypoint of the container process.
+Defaults to user specified in image metadata if unspecified.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -9159,21 +10888,74 @@ InitContainerSecurityContext
         <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
         <td>object</td>
         <td>
-          The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextseccompprofile">seccompProfile</a></b></td>
         <td>object</td>
         <td>
-          The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappotkinitcontainersecuritycontextwindowsoptions">windowsOptions</a></b></td>
         <td>object</td>
         <td>
-          The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+          The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.initContainerSecurityContext.appArmorProfile
+<sup><sup>[↩ Parent](#gatewayspecappotkinitcontainersecuritycontext)</sup></sup>
+
+
+
+appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of AppArmor profile will be applied.
+Valid options are:
+  Localhost - a profile pre-loaded on the node.
+  RuntimeDefault - the container runtime's default profile.
+  Unconfined - no AppArmor enforcement.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile loaded on the node that should be used.
+The profile must be preconfigured on the node to work.
+Must match the loaded name of the profile.
+Must be set if and only if type is "Localhost".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9185,7 +10967,9 @@ InitContainerSecurityContext
 
 
 
-The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.
+The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -9219,7 +11003,11 @@ The capabilities to add/drop when running containers. Defaults to the default se
 
 
 
-The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.
+The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -9267,7 +11055,10 @@ The SELinux context to be applied to the container. If unspecified, the containe
 
 
 
-The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.
+The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -9282,15 +11073,23 @@ The seccomp options to use by this container. If seccomp options are provided at
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          type indicates which kind of seccomp profile will be applied. Valid options are: 
- Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+          type indicates which kind of seccomp profile will be applied.
+Valid options are:
+
+
+Localhost - a profile defined in a file on the node should be used.
+RuntimeDefault - the container runtime default profile should be used.
+Unconfined - no profile should be applied.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>localhostProfile</b></td>
         <td>string</td>
         <td>
-          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+          localhostProfile indicates a profile defined in a file on the node should be used.
+The profile must be preconfigured on the node to work.
+Must be a descending path, relative to the kubelet's configured seccomp profile location.
+Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9302,7 +11101,10 @@ The seccomp options to use by this container. If seccomp options are provided at
 
 
 
-The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.
 
 <table>
     <thead>
@@ -9317,7 +11119,9 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>gmsaCredentialSpec</b></td>
         <td>string</td>
         <td>
-          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+          GMSACredentialSpec is where the GMSA admission webhook
+(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+GMSA credential spec named by the GMSACredentialSpecName field.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9331,14 +11135,20 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>hostProcess</b></td>
         <td>boolean</td>
         <td>
-          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+          HostProcess determines if a container should be run as a 'Host Process' container.
+All of a Pod's containers must have the same effective HostProcess value
+(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUserName</b></td>
         <td>string</td>
         <td>
-          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          The UserName in Windows to run the entrypoint of the container process.
+Defaults to the user specified in image metadata if unspecified.
+May also be set in PodSecurityContext. If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9388,7 +11198,8 @@ MaintenanceTasks for the OTK database - these are run by calling a Gateway endpo
         <td><b>uri</b></td>
         <td>string</td>
         <td>
-          Uri for custom db-maintenance services Corresponding maintenance policy must support a parameter called task<br/>
+          Uri for custom db-maintenance services
+Corresponding maintenance policy must support a parameter called task<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9436,21 +11247,29 @@ Overrides default OTK install functionality
         <td><b>managePostInstallPolicies</b></td>
         <td>boolean</td>
         <td>
-          ManagePostInstallConfig represent post-installation tasks required for internal/dmz otk gateways These are enabled by default and will override the following customization policies This should be disabled if you intend to manage these via Graphman/Restman bundle. - #OTK OVP Configuration - #OTK Storage Configuration - #OTK  Client Context Variables - OTK FIP Client Authentication Extension<br/>
+          ManagePostInstallConfig represent post-installation tasks required for internal/dmz otk gateways
+These are enabled by default and will override the following customization policies
+This should be disabled if you intend to manage these via Graphman/Restman bundle.
+- #OTK OVP Configuration
+- #OTK Storage Configuration
+- #OTK  Client Context Variables
+- OTK FIP Client Authentication Extension<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>skipInternalServerTools</b></td>
         <td>boolean</td>
         <td>
-          SkipInternalServerTools subSolutionKit install defaults to false<br/>
+          SkipInternalServerTools subSolutionKit install
+defaults to false<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>skipPortalIntegrationComponents</b></td>
         <td>boolean</td>
         <td>
-          SkipPortalIntegrationComponents subSolutionKit install. This does not perform portal integration defaults to true<br/>
+          SkipPortalIntegrationComponents subSolutionKit install. This does not perform portal integration
+defaults to true<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9510,7 +11329,9 @@ PodDisruptionBudgetSpec
 
 
 
-PodSecurityContext holds pod-level security attributes and common container settings. Some fields are also present in container.securityContext.  Field values of container.securityContext take precedence over field values of PodSecurityContext.
+PodSecurityContext holds pod-level security attributes and common container settings.
+Some fields are also present in container.securityContext.  Field values of
+container.securityContext take precedence over field values of PodSecurityContext.
 
 <table>
     <thead>
@@ -9522,12 +11343,29 @@ PodSecurityContext holds pod-level security attributes and common container sett
         </tr>
     </thead>
     <tbody><tr>
+        <td><b><a href="#gatewayspecapppodsecuritycontextapparmorprofile">appArmorProfile</a></b></td>
+        <td>object</td>
+        <td>
+          appArmorProfile is the AppArmor options to use by the containers in this pod.
+Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>fsGroup</b></td>
         <td>integer</td>
         <td>
-          A special supplemental group that applies to all containers in a pod. Some volume types allow the Kubelet to change the ownership of that volume to be owned by the pod: 
- 1. The owning GID will be the FSGroup 2. The setgid bit is set (new files created in the volume will be owned by FSGroup) 3. The permission bits are OR'd with rw-rw---- 
- If unset, the Kubelet will not modify the ownership and permissions of any volume. Note that this field cannot be set when spec.os.name is windows.<br/>
+          A special supplemental group that applies to all containers in a pod.
+Some volume types allow the Kubelet to change the ownership of that volume
+to be owned by the pod:
+
+
+1. The owning GID will be the FSGroup
+2. The setgid bit is set (new files created in the volume will be owned by FSGroup)
+3. The permission bits are OR'd with rw-rw----
+
+
+If unset, the Kubelet will not modify the ownership and permissions of any volume.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -9536,14 +11374,25 @@ PodSecurityContext holds pod-level security attributes and common container sett
         <td><b>fsGroupChangePolicy</b></td>
         <td>string</td>
         <td>
-          fsGroupChangePolicy defines behavior of changing ownership and permission of the volume before being exposed inside Pod. This field will only apply to volume types which support fsGroup based ownership(and permissions). It will have no effect on ephemeral volume types such as: secret, configmaps and emptydir. Valid values are "OnRootMismatch" and "Always". If not specified, "Always" is used. Note that this field cannot be set when spec.os.name is windows.<br/>
+          fsGroupChangePolicy defines behavior of changing ownership and permission of the volume
+before being exposed inside Pod. This field will only apply to
+volume types which support fsGroup based ownership(and permissions).
+It will have no effect on ephemeral volume types such as: secret, configmaps
+and emptydir.
+Valid values are "OnRootMismatch" and "Always". If not specified, "Always" is used.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsGroup</b></td>
         <td>integer</td>
         <td>
-          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The GID to run the entrypoint of the container process.
+Uses runtime default if unset.
+May also be set in SecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence
+for that container.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -9552,14 +11401,24 @@ PodSecurityContext holds pod-level security attributes and common container sett
         <td><b>runAsNonRoot</b></td>
         <td>boolean</td>
         <td>
-          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          Indicates that the container must run as a non-root user.
+If true, the Kubelet will validate the image at runtime to ensure that it
+does not run as UID 0 (root) and fail to start the container if it does.
+If unset or false, no such validation will be performed.
+May also be set in SecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUser</b></td>
         <td>integer</td>
         <td>
-          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The UID to run the entrypoint of the container process.
+Defaults to user specified in image metadata if unspecified.
+May also be set in SecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence
+for that container.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -9568,35 +11427,94 @@ PodSecurityContext holds pod-level security attributes and common container sett
         <td><b><a href="#gatewayspecapppodsecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
         <td>object</td>
         <td>
-          The SELinux context to be applied to all containers. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The SELinux context to be applied to all containers.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in SecurityContext.  If set in
+both SecurityContext and PodSecurityContext, the value specified in SecurityContext
+takes precedence for that container.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapppodsecuritycontextseccompprofile">seccompProfile</a></b></td>
         <td>object</td>
         <td>
-          The seccomp options to use by the containers in this pod. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The seccomp options to use by the containers in this pod.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>supplementalGroups</b></td>
         <td>[]integer</td>
         <td>
-          A list of groups applied to the first process run in each container, in addition to the container's primary GID, the fsGroup (if specified), and group memberships defined in the container image for the uid of the container process. If unspecified, no additional groups are added to any container. Note that group memberships defined in the container image for the uid of the container process are still effective, even if they are not included in this list. Note that this field cannot be set when spec.os.name is windows.<br/>
+          A list of groups applied to the first process run in each container, in addition
+to the container's primary GID, the fsGroup (if specified), and group memberships
+defined in the container image for the uid of the container process. If unspecified,
+no additional groups are added to any container. Note that group memberships
+defined in the container image for the uid of the container process are still effective,
+even if they are not included in this list.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapppodsecuritycontextsysctlsindex">sysctls</a></b></td>
         <td>[]object</td>
         <td>
-          Sysctls hold a list of namespaced sysctls used for the pod. Pods with unsupported sysctls (by the container runtime) might fail to launch. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Sysctls hold a list of namespaced sysctls used for the pod. Pods with unsupported
+sysctls (by the container runtime) might fail to launch.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapppodsecuritycontextwindowsoptions">windowsOptions</a></b></td>
         <td>object</td>
         <td>
-          The Windows specific settings applied to all containers. If unspecified, the options within a container's SecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+          The Windows specific settings applied to all containers.
+If unspecified, the options within a container's SecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.podSecurityContext.appArmorProfile
+<sup><sup>[↩ Parent](#gatewayspecapppodsecuritycontext)</sup></sup>
+
+
+
+appArmorProfile is the AppArmor options to use by the containers in this pod.
+Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of AppArmor profile will be applied.
+Valid options are:
+  Localhost - a profile pre-loaded on the node.
+  RuntimeDefault - the container runtime's default profile.
+  Unconfined - no AppArmor enforcement.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile loaded on the node that should be used.
+The profile must be preconfigured on the node to work.
+Must match the loaded name of the profile.
+Must be set if and only if type is "Localhost".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9608,7 +11526,12 @@ PodSecurityContext holds pod-level security attributes and common container sett
 
 
 
-The SELinux context to be applied to all containers. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container. Note that this field cannot be set when spec.os.name is windows.
+The SELinux context to be applied to all containers.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in SecurityContext.  If set in
+both SecurityContext and PodSecurityContext, the value specified in SecurityContext
+takes precedence for that container.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -9656,7 +11579,8 @@ The SELinux context to be applied to all containers. If unspecified, the contain
 
 
 
-The seccomp options to use by the containers in this pod. Note that this field cannot be set when spec.os.name is windows.
+The seccomp options to use by the containers in this pod.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -9671,15 +11595,23 @@ The seccomp options to use by the containers in this pod. Note that this field c
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          type indicates which kind of seccomp profile will be applied. Valid options are: 
- Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+          type indicates which kind of seccomp profile will be applied.
+Valid options are:
+
+
+Localhost - a profile defined in a file on the node should be used.
+RuntimeDefault - the container runtime default profile should be used.
+Unconfined - no profile should be applied.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>localhostProfile</b></td>
         <td>string</td>
         <td>
-          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+          localhostProfile indicates a profile defined in a file on the node should be used.
+The profile must be preconfigured on the node to work.
+Must be a descending path, relative to the kubelet's configured seccomp profile location.
+Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9725,7 +11657,10 @@ Sysctl defines a kernel parameter to be set
 
 
 
-The Windows specific settings applied to all containers. If unspecified, the options within a container's SecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+The Windows specific settings applied to all containers.
+If unspecified, the options within a container's SecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.
 
 <table>
     <thead>
@@ -9740,7 +11675,9 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>gmsaCredentialSpec</b></td>
         <td>string</td>
         <td>
-          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+          GMSACredentialSpec is where the GMSA admission webhook
+(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+GMSA credential spec named by the GMSACredentialSpecName field.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9754,14 +11691,20 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>hostProcess</b></td>
         <td>boolean</td>
         <td>
-          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+          HostProcess determines if a container should be run as a 'Host Process' container.
+All of a Pod's containers must have the same effective HostProcess value
+(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUserName</b></td>
         <td>string</td>
         <td>
-          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          The UserName in Windows to run the entrypoint of the container process.
+Defaults to the user specified in image metadata if unspecified.
+May also be set in PodSecurityContext. If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9773,7 +11716,8 @@ The Windows specific settings applied to all containers. If unspecified, the opt
 
 
 
-PortalReference is for bulk syncing of Portal APIs via initContainer (bootstrap) the Portal API lifecycle is managed by the API Controller. Disabling a portalReference will only remove the initContainer
+PortalReference is for bulk syncing of Portal APIs via initContainer (bootstrap)
+the Portal API lifecycle is managed by the API Controller. Disabling a portalReference will only remove the initContainer
 
 <table>
     <thead>
@@ -9843,42 +11787,72 @@ InitContainerSecurityContext
         <td><b>allowPrivilegeEscalation</b></td>
         <td>boolean</td>
         <td>
-          AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.<br/>
+          AllowPrivilegeEscalation controls whether a process can gain more
+privileges than its parent process. This bool directly controls if
+the no_new_privs flag will be set on the container process.
+AllowPrivilegeEscalation is true always when the container is:
+1) run as Privileged
+2) has CAP_SYS_ADMIN
+Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappportalreferenceinitcontainersecuritycontextapparmorprofile">appArmorProfile</a></b></td>
+        <td>object</td>
+        <td>
+          appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappportalreferenceinitcontainersecuritycontextcapabilities">capabilities</a></b></td>
         <td>object</td>
         <td>
-          The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>privileged</b></td>
         <td>boolean</td>
         <td>
-          Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Run container in privileged mode.
+Processes in privileged containers are essentially equivalent to root on the host.
+Defaults to false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>procMount</b></td>
         <td>string</td>
         <td>
-          procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows.<br/>
+          procMount denotes the type of proc mount to use for the containers.
+The default is DefaultProcMount which uses the container runtime defaults for
+readonly paths and masked paths.
+This requires the ProcMountType feature flag to be enabled.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>readOnlyRootFilesystem</b></td>
         <td>boolean</td>
         <td>
-          Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Whether this container has a read-only root filesystem.
+Default is false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsGroup</b></td>
         <td>integer</td>
         <td>
-          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The GID to run the entrypoint of the container process.
+Uses runtime default if unset.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -9887,14 +11861,23 @@ InitContainerSecurityContext
         <td><b>runAsNonRoot</b></td>
         <td>boolean</td>
         <td>
-          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          Indicates that the container must run as a non-root user.
+If true, the Kubelet will validate the image at runtime to ensure that it
+does not run as UID 0 (root) and fail to start the container if it does.
+If unset or false, no such validation will be performed.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUser</b></td>
         <td>integer</td>
         <td>
-          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The UID to run the entrypoint of the container process.
+Defaults to user specified in image metadata if unspecified.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -9903,21 +11886,74 @@ InitContainerSecurityContext
         <td><b><a href="#gatewayspecappportalreferenceinitcontainersecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
         <td>object</td>
         <td>
-          The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappportalreferenceinitcontainersecuritycontextseccompprofile">seccompProfile</a></b></td>
         <td>object</td>
         <td>
-          The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappportalreferenceinitcontainersecuritycontextwindowsoptions">windowsOptions</a></b></td>
         <td>object</td>
         <td>
-          The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+          The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.portalReference.initContainerSecurityContext.appArmorProfile
+<sup><sup>[↩ Parent](#gatewayspecappportalreferenceinitcontainersecuritycontext)</sup></sup>
+
+
+
+appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of AppArmor profile will be applied.
+Valid options are:
+  Localhost - a profile pre-loaded on the node.
+  RuntimeDefault - the container runtime's default profile.
+  Unconfined - no AppArmor enforcement.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile loaded on the node that should be used.
+The profile must be preconfigured on the node to work.
+Must match the loaded name of the profile.
+Must be set if and only if type is "Localhost".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9929,7 +11965,9 @@ InitContainerSecurityContext
 
 
 
-The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.
+The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -9963,7 +12001,11 @@ The capabilities to add/drop when running containers. Defaults to the default se
 
 
 
-The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.
+The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -10011,7 +12053,10 @@ The SELinux context to be applied to the container. If unspecified, the containe
 
 
 
-The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.
+The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -10026,15 +12071,23 @@ The seccomp options to use by this container. If seccomp options are provided at
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          type indicates which kind of seccomp profile will be applied. Valid options are: 
- Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+          type indicates which kind of seccomp profile will be applied.
+Valid options are:
+
+
+Localhost - a profile defined in a file on the node should be used.
+RuntimeDefault - the container runtime default profile should be used.
+Unconfined - no profile should be applied.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>localhostProfile</b></td>
         <td>string</td>
         <td>
-          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+          localhostProfile indicates a profile defined in a file on the node should be used.
+The profile must be preconfigured on the node to work.
+Must be a descending path, relative to the kubelet's configured seccomp profile location.
+Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10046,7 +12099,10 @@ The seccomp options to use by this container. If seccomp options are provided at
 
 
 
-The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.
 
 <table>
     <thead>
@@ -10061,7 +12117,9 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>gmsaCredentialSpec</b></td>
         <td>string</td>
         <td>
-          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+          GMSACredentialSpec is where the GMSA admission webhook
+(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+GMSA credential spec named by the GMSACredentialSpecName field.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10075,14 +12133,20 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>hostProcess</b></td>
         <td>boolean</td>
         <td>
-          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+          HostProcess determines if a container should be run as a 'Host Process' container.
+All of a Pod's containers must have the same effective HostProcess value
+(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUserName</b></td>
         <td>string</td>
         <td>
-          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          The UserName in Windows to run the entrypoint of the container process.
+Defaults to the user specified in image metadata if unspecified.
+May also be set in PodSecurityContext. If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10094,7 +12158,14 @@ The Windows specific settings applied to all containers. If unspecified, the opt
 
 
 
-PreStopScript During upgrades and other events where Gateway pods are replaced you may have APIs/Services that have long running connections open. This functionality delays Kubernetes sending a SIGTERM to the container gateway while connections remain open. This works in conjunction with terminationGracePeriodSeconds which should always be higher than preStopScript.timeoutSeconds. If preStopScript.timeoutSeconds is exceeded, the script will exit 0 and normal pod termination will resume. The preStop script will monitor connections to inbound (not outbound) Gateway Application TCP ports (i.e. inbound listener ports opened by the Gateway Application and not some other process) except those that are explicitly excluded. The following ports are excluded from monitoring by default. 8777 (Hazelcast) - Embedded Hazelcast. 2124 (Internode-Communication) - not utilised by the Container Gateway. If there are no open connections, the preStop script will exit immediately ignoring preStopScript.timeoutSeconds to avoid unnecessary resource utilisation (pod stuck in terminating state) during upgrades. While there aren't any explicit limits on preStopScript.timeoutSeconds and terminationGracePeriodSeconds running these for extended periods of time (i.e. more than 5 minutes) may be less reliable where other Kubernetes processes may remove the pod before terminationGracePeriodSeconds is reached. If you do run services like this we recommend testing before any real life implementation or better, creating a dedicated workload without autoscaling enabled (HPA) where you have more control over when/how pods are replaced.
+PreStopScript During upgrades and other events where Gateway pods are replaced you may have APIs/Services that have long running connections open.
+This functionality delays Kubernetes sending a SIGTERM to the container gateway while connections remain open. This works in conjunction with terminationGracePeriodSeconds which should always be higher than preStopScript.timeoutSeconds. If preStopScript.timeoutSeconds is exceeded, the script will exit 0 and normal pod termination will resume.
+The preStop script will monitor connections to inbound (not outbound) Gateway Application TCP ports (i.e. inbound listener ports opened by the Gateway Application and not some other process) except those that are explicitly excluded.
+The following ports are excluded from monitoring by default.
+8777 (Hazelcast) - Embedded Hazelcast.
+2124 (Internode-Communication) - not utilised by the Container Gateway.
+If there are no open connections, the preStop script will exit immediately ignoring preStopScript.timeoutSeconds to avoid unnecessary resource utilisation (pod stuck in terminating state) during upgrades.
+While there aren't any explicit limits on preStopScript.timeoutSeconds and terminationGracePeriodSeconds running these for extended periods of time (i.e. more than 5 minutes) may be less reliable where other Kubernetes processes may remove the pod before terminationGracePeriodSeconds is reached. If you do run services like this we recommend testing before any real life implementation or better, creating a dedicated workload without autoscaling enabled (HPA) where you have more control over when/how pods are replaced.
 
 <table>
     <thead>
@@ -10142,7 +12213,8 @@ PreStopScript During upgrades and other events where Gateway pods are replaced y
 
 
 
-Probe describes a health check to be performed against a container to determine whether it is alive or ready to receive traffic.
+Probe describes a health check to be performed against a container to determine whether it is
+alive or ready to receive traffic.
 
 <table>
     <thead>
@@ -10164,7 +12236,8 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.<br/>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10187,7 +12260,8 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>initialDelaySeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10196,7 +12270,8 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1.<br/>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10205,7 +12280,8 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10221,7 +12297,16 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -10230,7 +12315,9 @@ Probe describes a health check to be performed against a container to determine 
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10259,7 +12346,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10295,8 +12386,11 @@ GRPC specifies an action involving a GRPC port.
         <td><b>service</b></td>
         <td>string</td>
         <td>
-          Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
- If this is not specified, the default behavior is defined by gRPC.<br/>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10323,14 +12417,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10351,7 +12448,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10378,7 +12476,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10412,7 +12511,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10467,7 +12568,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>existingSecret</b></td>
         <td>string</td>
         <td>
-          ExistingSecret mounts an existing secret containing redis configuration to the container gateway. The secret should contain a key called redis.properties and redis.crt if tls is enabled<br/>
+          ExistingSecret mounts an existing secret containing redis configuration
+to the container gateway.
+The secret should contain a key called redis.properties and redis.crt if tls is enabled<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10502,7 +12605,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          Type of sentinel deployment valid options are standalone or sentinel standalone does not support auth or tls and should only be used in non-critical environments for development purposes<br/>
+          Type of sentinel deployment
+valid options are standalone or sentinel
+standalone does not support auth or tls and should only be used in non-critical environments for development purposes<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10529,7 +12634,8 @@ Auth if using sentinel or standalone (from Gateway v11.1.00)
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          Enable or disable Redis auth Authentication is only available for Redis Sentinel<br/>
+          Enable or disable Redis auth
+Authentication is only available for Redis Sentinel<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10707,7 +12813,8 @@ RepositoryReference is reference to a Git repository or HTTP endpoint that conta
         <td><b>directories</b></td>
         <td>[]string</td>
         <td>
-          Directories from the remote repository to sync with the Gateway Limited to dynamic type<br/>
+          Directories from the remote repository to sync with the Gateway
+Limited to dynamic type<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10735,7 +12842,11 @@ RepositoryReference is reference to a Git repository or HTTP endpoint that conta
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          Type static or dynamic static repositories are bootstrapped to the container gateway using an initContainer it is recommended that these stay under 1mb in size when compressed for larger static repositories it is recommended that you use a dedicated initContainer dynamic repositories are applied directly to the gateway whenever the commit of a repository changes<br/>
+          Type static or dynamic
+static repositories are bootstrapped to the container gateway using an initContainer
+it is recommended that these stay under 1mb in size when compressed
+for larger static repositories it is recommended that you use a dedicated initContainer
+dynamic repositories are applied directly to the gateway whenever the commit of a repository changes<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11050,7 +13161,9 @@ Service
         <td><b>externalTrafficPolicy</b></td>
         <td>string</td>
         <td>
-          ServiceExternalTrafficPolicy describes how nodes distribute service traffic they receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer IPs.<br/>
+          ServiceExternalTrafficPolicy describes how nodes distribute service traffic they
+receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs,
+and LoadBalancer IPs.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11066,7 +13179,8 @@ Service
         <td><b>internalTrafficPolicy</b></td>
         <td>string</td>
         <td>
-          ServiceInternalTrafficPolicy describes how nodes distribute service traffic they receive on the ClusterIP.<br/>
+          ServiceInternalTrafficPolicy describes how nodes distribute service traffic they
+receive on the ClusterIP.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11108,7 +13222,8 @@ Service
         <td><b><a href="#gatewayspecappserviceportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          Ports exposed by the Service These are appended to the Gateway deployment containerPorts<br/>
+          Ports exposed by the Service
+These are appended to the Gateway deployment containerPorts<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11235,7 +13350,9 @@ clientIP contains the configurations of Client IP based session affinity.
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP". Default value is 10800(for 3 hours).<br/>
+          timeoutSeconds specifies the seconds of ClientIP type session sticky time.
+The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP".
+Default value is 10800(for 3 hours).<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -11298,77 +13415,119 @@ A single application container that you want to run within a pod.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the container specified as a DNS_LABEL. Each container in a pod must have a unique name (DNS_LABEL). Cannot be updated.<br/>
+          Name of the container specified as a DNS_LABEL.
+Each container in a pod must have a unique name (DNS_LABEL).
+Cannot be updated.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>args</b></td>
         <td>[]string</td>
         <td>
-          Arguments to the entrypoint. The container image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell<br/>
+          Arguments to the entrypoint.
+The container image's CMD is used if this is not provided.
+Variable references $(VAR_NAME) are expanded using the container's environment. If a variable
+cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced
+to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will
+produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless
+of whether the variable exists or not. Cannot be updated.
+More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Entrypoint array. Not executed within a shell. The container image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell<br/>
+          Entrypoint array. Not executed within a shell.
+The container image's ENTRYPOINT is used if this is not provided.
+Variable references $(VAR_NAME) are expanded using the container's environment. If a variable
+cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced
+to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will
+produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless
+of whether the variable exists or not. Cannot be updated.
+More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexenvindex">env</a></b></td>
         <td>[]object</td>
         <td>
-          List of environment variables to set in the container. Cannot be updated.<br/>
+          List of environment variables to set in the container.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexenvfromindex">envFrom</a></b></td>
         <td>[]object</td>
         <td>
-          List of sources to populate environment variables in the container. The keys defined within a source must be a C_IDENTIFIER. All invalid keys will be reported as an event when the container is starting. When a key exists in multiple sources, the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Cannot be updated.<br/>
+          List of sources to populate environment variables in the container.
+The keys defined within a source must be a C_IDENTIFIER. All invalid keys
+will be reported as an event when the container is starting. When a key exists in multiple
+sources, the value associated with the last source will take precedence.
+Values defined by an Env with a duplicate key will take precedence.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>image</b></td>
         <td>string</td>
         <td>
-          Container image name. More info: https://kubernetes.io/docs/concepts/containers/images This field is optional to allow higher level config management to default or override container images in workload controllers like Deployments and StatefulSets.<br/>
+          Container image name.
+More info: https://kubernetes.io/docs/concepts/containers/images
+This field is optional to allow higher level config management to default or override
+container images in workload controllers like Deployments and StatefulSets.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>imagePullPolicy</b></td>
         <td>string</td>
         <td>
-          Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise. Cannot be updated. More info: https://kubernetes.io/docs/concepts/containers/images#updating-images<br/>
+          Image pull policy.
+One of Always, Never, IfNotPresent.
+Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/containers/images#updating-images<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlifecycle">lifecycle</a></b></td>
         <td>object</td>
         <td>
-          Actions that the management system should take in response to container lifecycle events. Cannot be updated.<br/>
+          Actions that the management system should take in response to container lifecycle events.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlivenessprobe">livenessProbe</a></b></td>
         <td>object</td>
         <td>
-          Periodic probe of container liveness. Container will be restarted if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Periodic probe of container liveness.
+Container will be restarted if the probe fails.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          List of ports to expose from the container. Not specifying a port here DOES NOT prevent that port from being exposed. Any port which is listening on the default "0.0.0.0" address inside a container will be accessible from the network. Modifying this array with strategic merge patch may corrupt the data. For more information See https://github.com/kubernetes/kubernetes/issues/108255. Cannot be updated.<br/>
+          List of ports to expose from the container. Not specifying a port here
+DOES NOT prevent that port from being exposed. Any port which is
+listening on the default "0.0.0.0" address inside a container will be
+accessible from the network.
+Modifying this array with strategic merge patch may corrupt the data.
+For more information See https://github.com/kubernetes/kubernetes/issues/108255.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexreadinessprobe">readinessProbe</a></b></td>
         <td>object</td>
         <td>
-          Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Periodic probe of container service readiness.
+Container will be removed from service endpoints if the probe fails.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11382,63 +13541,108 @@ A single application container that you want to run within a pod.
         <td><b><a href="#gatewayspecappsidecarsindexresources">resources</a></b></td>
         <td>object</td>
         <td>
-          Compute Resources required by this container. Cannot be updated. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+          Compute Resources required by this container.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>restartPolicy</b></td>
         <td>string</td>
         <td>
-          RestartPolicy defines the restart behavior of individual containers in a pod. This field may only be set for init containers, and the only allowed value is "Always". For non-init containers or when this field is not specified, the restart behavior is defined by the Pod's restart policy and the container type. Setting the RestartPolicy as "Always" for the init container will have the following effect: this init container will be continually restarted on exit until all regular containers have terminated. Once all regular containers have completed, all init containers with restartPolicy "Always" will be shut down. This lifecycle differs from normal init containers and is often referred to as a "sidecar" container. Although this init container still starts in the init container sequence, it does not wait for the container to complete before proceeding to the next init container. Instead, the next init container starts immediately after this init container is started, or after any startupProbe has successfully completed.<br/>
+          RestartPolicy defines the restart behavior of individual containers in a pod.
+This field may only be set for init containers, and the only allowed value is "Always".
+For non-init containers or when this field is not specified,
+the restart behavior is defined by the Pod's restart policy and the container type.
+Setting the RestartPolicy as "Always" for the init container will have the following effect:
+this init container will be continually restarted on
+exit until all regular containers have terminated. Once all regular
+containers have completed, all init containers with restartPolicy "Always"
+will be shut down. This lifecycle differs from normal init containers and
+is often referred to as a "sidecar" container. Although this init
+container still starts in the init container sequence, it does not wait
+for the container to complete before proceeding to the next init
+container. Instead, the next init container starts immediately after this
+init container is started, or after any startupProbe has successfully
+completed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexsecuritycontext">securityContext</a></b></td>
         <td>object</td>
         <td>
-          SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/<br/>
+          SecurityContext defines the security options the container should be run with.
+If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext.
+More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexstartupprobe">startupProbe</a></b></td>
         <td>object</td>
         <td>
-          StartupProbe indicates that the Pod has successfully initialized. If specified, no other probes are executed until this completes successfully. If this probe fails, the Pod will be restarted, just as if the livenessProbe failed. This can be used to provide different probe parameters at the beginning of a Pod's lifecycle, when it might take a long time to load data or warm a cache, than during steady-state operation. This cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          StartupProbe indicates that the Pod has successfully initialized.
+If specified, no other probes are executed until this completes successfully.
+If this probe fails, the Pod will be restarted, just as if the livenessProbe failed.
+This can be used to provide different probe parameters at the beginning of a Pod's lifecycle,
+when it might take a long time to load data or warm a cache, than during steady-state operation.
+This cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>stdin</b></td>
         <td>boolean</td>
         <td>
-          Whether this container should allocate a buffer for stdin in the container runtime. If this is not set, reads from stdin in the container will always result in EOF. Default is false.<br/>
+          Whether this container should allocate a buffer for stdin in the container runtime. If this
+is not set, reads from stdin in the container will always result in EOF.
+Default is false.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>stdinOnce</b></td>
         <td>boolean</td>
         <td>
-          Whether the container runtime should close the stdin channel after it has been opened by a single attach. When stdin is true the stdin stream will remain open across multiple attach sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the first client attaches to stdin, and then remains open and accepts data until the client disconnects, at which time stdin is closed and remains closed until the container is restarted. If this flag is false, a container processes that reads from stdin will never receive an EOF. Default is false<br/>
+          Whether the container runtime should close the stdin channel after it has been opened by
+a single attach. When stdin is true the stdin stream will remain open across multiple attach
+sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the
+first client attaches to stdin, and then remains open and accepts data until the client disconnects,
+at which time stdin is closed and remains closed until the container is restarted. If this
+flag is false, a container processes that reads from stdin will never receive an EOF.
+Default is false<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>terminationMessagePath</b></td>
         <td>string</td>
         <td>
-          Optional: Path at which the file to which the container's termination message will be written is mounted into the container's filesystem. Message written is intended to be brief final status, such as an assertion failure message. Will be truncated by the node if greater than 4096 bytes. The total message length across all containers will be limited to 12kb. Defaults to /dev/termination-log. Cannot be updated.<br/>
+          Optional: Path at which the file to which the container's termination message
+will be written is mounted into the container's filesystem.
+Message written is intended to be brief final status, such as an assertion failure message.
+Will be truncated by the node if greater than 4096 bytes. The total message length across
+all containers will be limited to 12kb.
+Defaults to /dev/termination-log.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>terminationMessagePolicy</b></td>
         <td>string</td>
         <td>
-          Indicate how the termination message should be populated. File will use the contents of terminationMessagePath to populate the container status message on both success and failure. FallbackToLogsOnError will use the last chunk of container log output if the termination message file is empty and the container exited with an error. The log output is limited to 2048 bytes or 80 lines, whichever is smaller. Defaults to File. Cannot be updated.<br/>
+          Indicate how the termination message should be populated. File will use the contents of
+terminationMessagePath to populate the container status message on both success and failure.
+FallbackToLogsOnError will use the last chunk of container log output if the termination
+message file is empty and the container exited with an error.
+The log output is limited to 2048 bytes or 80 lines, whichever is smaller.
+Defaults to File.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>tty</b></td>
         <td>boolean</td>
         <td>
-          Whether this container should allocate a TTY for itself, also requires 'stdin' to be true. Default is false.<br/>
+          Whether this container should allocate a TTY for itself, also requires 'stdin' to be true.
+Default is false.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11452,14 +13656,18 @@ A single application container that you want to run within a pod.
         <td><b><a href="#gatewayspecappsidecarsindexvolumemountsindex">volumeMounts</a></b></td>
         <td>[]object</td>
         <td>
-          Pod volumes to mount into the container's filesystem. Cannot be updated.<br/>
+          Pod volumes to mount into the container's filesystem.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>workingDir</b></td>
         <td>string</td>
         <td>
-          Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image. Cannot be updated.<br/>
+          Container's working directory.
+If not specified, the container runtime's default will be used, which
+might be configured in the container image.
+Cannot be updated.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11493,7 +13701,15 @@ EnvVar represents an environment variable present in a Container.
         <td><b>value</b></td>
         <td>string</td>
         <td>
-          Variable references $(VAR_NAME) are expanded using the previously defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)". Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to "".<br/>
+          Variable references $(VAR_NAME) are expanded
+using the previously defined environment variables in the container and
+any service environment variables. If a variable cannot be resolved,
+the reference in the input string will be unchanged. Double $$ are reduced
+to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+"$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+Escaped references will never be expanded, regardless of whether the variable
+exists or not.
+Defaults to "".<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11534,14 +13750,16 @@ Source for the environment variable's value. Cannot be used if value is not empt
         <td><b><a href="#gatewayspecappsidecarsindexenvindexvaluefromfieldref">fieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`, spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
+          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexenvindexvaluefromresourcefieldref">resourceFieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
+          Selects a resource of the container: only resources limits and requests
+(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11582,7 +13800,15 @@ Selects a key of a ConfigMap.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11601,7 +13827,8 @@ Selects a key of a ConfigMap.
 
 
 
-Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`, spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
 
 <table>
     <thead>
@@ -11635,7 +13862,8 @@ Selects a field of the pod: supports metadata.name, metadata.namespace, `metadat
 
 
 
-Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+Selects a resource of the container: only resources limits and requests
+(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
 
 <table>
     <thead>
@@ -11698,7 +13926,15 @@ Selects a key of a secret in the pod's namespace
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11773,7 +14009,15 @@ The ConfigMap to select from
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11807,7 +14051,15 @@ The Secret to select from
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+TODO: Add other useful fields. apiVersion, kind, uid?
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11826,7 +14078,8 @@ The Secret to select from
 
 
 
-Actions that the management system should take in response to container lifecycle events. Cannot be updated.
+Actions that the management system should take in response to container lifecycle events.
+Cannot be updated.
 
 <table>
     <thead>
@@ -11841,14 +14094,25 @@ Actions that the management system should take in response to container lifecycl
         <td><b><a href="#gatewayspecappsidecarsindexlifecyclepoststart">postStart</a></b></td>
         <td>object</td>
         <td>
-          PostStart is called immediately after a container is created. If the handler fails, the container is terminated and restarted according to its restart policy. Other management of the container blocks until the hook completes. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
+          PostStart is called immediately after a container is created. If the handler fails,
+the container is terminated and restarted according to its restart policy.
+Other management of the container blocks until the hook completes.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlifecycleprestop">preStop</a></b></td>
         <td>object</td>
         <td>
-          PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The Pod's termination grace period countdown begins before the PreStop hook is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period (unless delayed by finalizers). Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
+          PreStop is called immediately before a container is terminated due to an
+API request or management event such as liveness/startup probe failure,
+preemption, resource contention, etc. The handler is not called if the
+container crashes or exits. The Pod's termination grace period countdown begins before the
+PreStop hook is executed. Regardless of the outcome of the handler, the
+container will eventually terminate within the Pod's termination grace
+period (unless delayed by finalizers). Other management of the container blocks until the hook completes
+or until the termination grace period is reached.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11860,7 +14124,10 @@ Actions that the management system should take in response to container lifecycl
 
 
 
-PostStart is called immediately after a container is created. If the handler fails, the container is terminated and restarted according to its restart policy. Other management of the container blocks until the hook completes. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
+PostStart is called immediately after a container is created. If the handler fails,
+the container is terminated and restarted according to its restart policy.
+Other management of the container blocks until the hook completes.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
 
 <table>
     <thead>
@@ -11886,10 +14153,19 @@ PostStart is called immediately after a container is created. If the handler fai
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappsidecarsindexlifecyclepoststartsleep">sleep</a></b></td>
+        <td>object</td>
+        <td>
+          Sleep represents the duration that the container should sleep before being terminated.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlifecyclepoststarttcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11916,7 +14192,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11943,14 +14223,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11971,7 +14254,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11998,7 +14282,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12012,12 +14297,43 @@ HTTPHeader describes a custom header to be used in HTTP probes
 </table>
 
 
+### Gateway.spec.app.sidecars[index].lifecycle.postStart.sleep
+<sup><sup>[↩ Parent](#gatewayspecappsidecarsindexlifecyclepoststart)</sup></sup>
+
+
+
+Sleep represents the duration that the container should sleep before being terminated.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>seconds</b></td>
+        <td>integer</td>
+        <td>
+          Seconds is the number of seconds to sleep.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.sidecars[index].lifecycle.postStart.tcpSocket
 <sup><sup>[↩ Parent](#gatewayspecappsidecarsindexlifecyclepoststart)</sup></sup>
 
 
 
-Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.
+Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.
 
 <table>
     <thead>
@@ -12032,7 +14348,9 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12051,7 +14369,15 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
 
 
 
-PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The Pod's termination grace period countdown begins before the PreStop hook is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period (unless delayed by finalizers). Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
+PreStop is called immediately before a container is terminated due to an
+API request or management event such as liveness/startup probe failure,
+preemption, resource contention, etc. The handler is not called if the
+container crashes or exits. The Pod's termination grace period countdown begins before the
+PreStop hook is executed. Regardless of the outcome of the handler, the
+container will eventually terminate within the Pod's termination grace
+period (unless delayed by finalizers). Other management of the container blocks until the hook completes
+or until the termination grace period is reached.
+More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
 
 <table>
     <thead>
@@ -12077,10 +14403,19 @@ PreStop is called immediately before a container is terminated due to an API req
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappsidecarsindexlifecycleprestopsleep">sleep</a></b></td>
+        <td>object</td>
+        <td>
+          Sleep represents the duration that the container should sleep before being terminated.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlifecycleprestoptcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+          Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12107,7 +14442,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12134,14 +14473,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12162,7 +14504,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12189,7 +14532,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12203,12 +14547,43 @@ HTTPHeader describes a custom header to be used in HTTP probes
 </table>
 
 
+### Gateway.spec.app.sidecars[index].lifecycle.preStop.sleep
+<sup><sup>[↩ Parent](#gatewayspecappsidecarsindexlifecycleprestop)</sup></sup>
+
+
+
+Sleep represents the duration that the container should sleep before being terminated.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>seconds</b></td>
+        <td>integer</td>
+        <td>
+          Seconds is the number of seconds to sleep.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.sidecars[index].lifecycle.preStop.tcpSocket
 <sup><sup>[↩ Parent](#gatewayspecappsidecarsindexlifecycleprestop)</sup></sup>
 
 
 
-Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.
+Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+for the backward compatibility. There are no validation of this field and
+lifecycle hooks will fail in runtime when tcp handler is specified.
 
 <table>
     <thead>
@@ -12223,7 +14598,9 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12242,7 +14619,10 @@ Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the ba
 
 
 
-Periodic probe of container liveness. Container will be restarted if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+Periodic probe of container liveness.
+Container will be restarted if the probe fails.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
 
 <table>
     <thead>
@@ -12264,7 +14644,8 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.<br/>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12287,7 +14668,8 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>initialDelaySeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12296,7 +14678,8 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1.<br/>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12305,7 +14688,8 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12321,7 +14705,16 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -12330,7 +14723,9 @@ Periodic probe of container liveness. Container will be restarted if the probe f
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12359,7 +14754,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12395,8 +14794,11 @@ GRPC specifies an action involving a GRPC port.
         <td><b>service</b></td>
         <td>string</td>
         <td>
-          Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
- If this is not specified, the default behavior is defined by gRPC.<br/>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12423,14 +14825,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12451,7 +14856,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12478,7 +14884,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12512,7 +14919,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12546,7 +14955,8 @@ ContainerPort represents a network port in a single container.
         <td><b>containerPort</b></td>
         <td>integer</td>
         <td>
-          Number of port to expose on the pod's IP address. This must be a valid port number, 0 < x < 65536.<br/>
+          Number of port to expose on the pod's IP address.
+This must be a valid port number, 0 < x < 65536.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12562,7 +14972,10 @@ ContainerPort represents a network port in a single container.
         <td><b>hostPort</b></td>
         <td>integer</td>
         <td>
-          Number of port to expose on the host. If specified, this must be a valid port number, 0 < x < 65536. If HostNetwork is specified, this must match ContainerPort. Most containers do not need this.<br/>
+          Number of port to expose on the host.
+If specified, this must be a valid port number, 0 < x < 65536.
+If HostNetwork is specified, this must match ContainerPort.
+Most containers do not need this.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12571,14 +14984,17 @@ ContainerPort represents a network port in a single container.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          If specified, this must be an IANA_SVC_NAME and unique within the pod. Each named port in a pod must have a unique name. Name for the port that can be referred to by services.<br/>
+          If specified, this must be an IANA_SVC_NAME and unique within the pod. Each
+named port in a pod must have a unique name. Name for the port that can be
+referred to by services.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          Protocol for port. Must be UDP, TCP, or SCTP. Defaults to "TCP".<br/>
+          Protocol for port. Must be UDP, TCP, or SCTP.
+Defaults to "TCP".<br/>
           <br/>
             <i>Default</i>: TCP<br/>
         </td>
@@ -12592,7 +15008,10 @@ ContainerPort represents a network port in a single container.
 
 
 
-Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+Periodic probe of container service readiness.
+Container will be removed from service endpoints if the probe fails.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
 
 <table>
     <thead>
@@ -12614,7 +15033,8 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.<br/>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12637,7 +15057,8 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>initialDelaySeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12646,7 +15067,8 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1.<br/>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12655,7 +15077,8 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12671,7 +15094,16 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -12680,7 +15112,9 @@ Periodic probe of container service readiness. Container will be removed from se
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12709,7 +15143,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12745,8 +15183,11 @@ GRPC specifies an action involving a GRPC port.
         <td><b>service</b></td>
         <td>string</td>
         <td>
-          Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
- If this is not specified, the default behavior is defined by gRPC.<br/>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12773,14 +15214,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12801,7 +15245,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12828,7 +15273,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12862,7 +15308,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12896,14 +15344,16 @@ ContainerResizePolicy represents resource resize policy for the container.
         <td><b>resourceName</b></td>
         <td>string</td>
         <td>
-          Name of the resource to which this resource resize policy applies. Supported values: cpu, memory.<br/>
+          Name of the resource to which this resource resize policy applies.
+Supported values: cpu, memory.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>restartPolicy</b></td>
         <td>string</td>
         <td>
-          Restart policy to apply when specified resource is resized. If not specified, it defaults to NotRequired.<br/>
+          Restart policy to apply when specified resource is resized.
+If not specified, it defaults to NotRequired.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -12915,7 +15365,9 @@ ContainerResizePolicy represents resource resize policy for the container.
 
 
 
-Compute Resources required by this container. Cannot be updated. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+Compute Resources required by this container.
+Cannot be updated.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 
 <table>
     <thead>
@@ -12930,23 +15382,33 @@ Compute Resources required by this container. Cannot be updated. More info: http
         <td><b><a href="#gatewayspecappsidecarsindexresourcesclaimsindex">claims</a></b></td>
         <td>[]object</td>
         <td>
-          Claims lists the names of resources, defined in spec.resourceClaims, that are used by this container. 
- This is an alpha field and requires enabling the DynamicResourceAllocation feature gate. 
- This field is immutable. It can only be set for containers.<br/>
+          Claims lists the names of resources, defined in spec.resourceClaims,
+that are used by this container.
+
+
+This is an alpha field and requires enabling the
+DynamicResourceAllocation feature gate.
+
+
+This field is immutable. It can only be set for containers.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>limits</b></td>
         <td>map[string]int or string</td>
         <td>
-          Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+          Limits describes the maximum amount of compute resources allowed.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>requests</b></td>
         <td>map[string]int or string</td>
         <td>
-          Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+          Requests describes the minimum amount of compute resources required.
+If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+otherwise to an implementation-defined value. Requests cannot exceed Limits.
+More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12973,7 +15435,9 @@ ResourceClaim references one entry in PodSpec.ResourceClaims.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name must match the name of one entry in pod.spec.resourceClaims of the Pod where this field is used. It makes that resource available inside a container.<br/>
+          Name must match the name of one entry in pod.spec.resourceClaims of
+the Pod where this field is used. It makes that resource available
+inside a container.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -12985,7 +15449,9 @@ ResourceClaim references one entry in PodSpec.ResourceClaims.
 
 
 
-SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+SecurityContext defines the security options the container should be run with.
+If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext.
+More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 
 <table>
     <thead>
@@ -13000,42 +15466,72 @@ SecurityContext defines the security options the container should be run with. I
         <td><b>allowPrivilegeEscalation</b></td>
         <td>boolean</td>
         <td>
-          AllowPrivilegeEscalation controls whether a process can gain more privileges than its parent process. This bool directly controls if the no_new_privs flag will be set on the container process. AllowPrivilegeEscalation is true always when the container is: 1) run as Privileged 2) has CAP_SYS_ADMIN Note that this field cannot be set when spec.os.name is windows.<br/>
+          AllowPrivilegeEscalation controls whether a process can gain more
+privileges than its parent process. This bool directly controls if
+the no_new_privs flag will be set on the container process.
+AllowPrivilegeEscalation is true always when the container is:
+1) run as Privileged
+2) has CAP_SYS_ADMIN
+Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappsidecarsindexsecuritycontextapparmorprofile">appArmorProfile</a></b></td>
+        <td>object</td>
+        <td>
+          appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexsecuritycontextcapabilities">capabilities</a></b></td>
         <td>object</td>
         <td>
-          The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>privileged</b></td>
         <td>boolean</td>
         <td>
-          Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Run container in privileged mode.
+Processes in privileged containers are essentially equivalent to root on the host.
+Defaults to false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>procMount</b></td>
         <td>string</td>
         <td>
-          procMount denotes the type of proc mount to use for the containers. The default is DefaultProcMount which uses the container runtime defaults for readonly paths and masked paths. This requires the ProcMountType feature flag to be enabled. Note that this field cannot be set when spec.os.name is windows.<br/>
+          procMount denotes the type of proc mount to use for the containers.
+The default is DefaultProcMount which uses the container runtime defaults for
+readonly paths and masked paths.
+This requires the ProcMountType feature flag to be enabled.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>readOnlyRootFilesystem</b></td>
         <td>boolean</td>
         <td>
-          Whether this container has a read-only root filesystem. Default is false. Note that this field cannot be set when spec.os.name is windows.<br/>
+          Whether this container has a read-only root filesystem.
+Default is false.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsGroup</b></td>
         <td>integer</td>
         <td>
-          The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The GID to run the entrypoint of the container process.
+Uses runtime default if unset.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -13044,14 +15540,23 @@ SecurityContext defines the security options the container should be run with. I
         <td><b>runAsNonRoot</b></td>
         <td>boolean</td>
         <td>
-          Indicates that the container must run as a non-root user. If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and fail to start the container if it does. If unset or false, no such validation will be performed. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          Indicates that the container must run as a non-root user.
+If true, the Kubelet will validate the image at runtime to ensure that it
+does not run as UID 0 (root) and fail to start the container if it does.
+If unset or false, no such validation will be performed.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUser</b></td>
         <td>integer</td>
         <td>
-          The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The UID to run the entrypoint of the container process.
+Defaults to user specified in image metadata if unspecified.
+May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -13060,21 +15565,74 @@ SecurityContext defines the security options the container should be run with. I
         <td><b><a href="#gatewayspecappsidecarsindexsecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
         <td>object</td>
         <td>
-          The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexsecuritycontextseccompprofile">seccompProfile</a></b></td>
         <td>object</td>
         <td>
-          The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.<br/>
+          The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexsecuritycontextwindowsoptions">windowsOptions</a></b></td>
         <td>object</td>
         <td>
-          The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.<br/>
+          The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.sidecars[index].securityContext.appArmorProfile
+<sup><sup>[↩ Parent](#gatewayspecappsidecarsindexsecuritycontext)</sup></sup>
+
+
+
+appArmorProfile is the AppArmor options to use by this container. If set, this profile
+overrides the pod's appArmorProfile.
+Note that this field cannot be set when spec.os.name is windows.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type indicates which kind of AppArmor profile will be applied.
+Valid options are:
+  Localhost - a profile pre-loaded on the node.
+  RuntimeDefault - the container runtime's default profile.
+  Unconfined - no AppArmor enforcement.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>localhostProfile</b></td>
+        <td>string</td>
+        <td>
+          localhostProfile indicates a profile loaded on the node that should be used.
+The profile must be preconfigured on the node to work.
+Must match the loaded name of the profile.
+Must be set if and only if type is "Localhost".<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13086,7 +15644,9 @@ SecurityContext defines the security options the container should be run with. I
 
 
 
-The capabilities to add/drop when running containers. Defaults to the default set of capabilities granted by the container runtime. Note that this field cannot be set when spec.os.name is windows.
+The capabilities to add/drop when running containers.
+Defaults to the default set of capabilities granted by the container runtime.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -13120,7 +15680,11 @@ The capabilities to add/drop when running containers. Defaults to the default se
 
 
 
-The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is windows.
+The SELinux context to be applied to the container.
+If unspecified, the container runtime will allocate a random SELinux context for each
+container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -13168,7 +15732,10 @@ The SELinux context to be applied to the container. If unspecified, the containe
 
 
 
-The seccomp options to use by this container. If seccomp options are provided at both the pod & container level, the container options override the pod options. Note that this field cannot be set when spec.os.name is windows.
+The seccomp options to use by this container. If seccomp options are
+provided at both the pod & container level, the container options
+override the pod options.
+Note that this field cannot be set when spec.os.name is windows.
 
 <table>
     <thead>
@@ -13183,15 +15750,23 @@ The seccomp options to use by this container. If seccomp options are provided at
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          type indicates which kind of seccomp profile will be applied. Valid options are: 
- Localhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.<br/>
+          type indicates which kind of seccomp profile will be applied.
+Valid options are:
+
+
+Localhost - a profile defined in a file on the node should be used.
+RuntimeDefault - the container runtime default profile should be used.
+Unconfined - no profile should be applied.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>localhostProfile</b></td>
         <td>string</td>
         <td>
-          localhostProfile indicates a profile defined in a file on the node should be used. The profile must be preconfigured on the node to work. Must be a descending path, relative to the kubelet's configured seccomp profile location. Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
+          localhostProfile indicates a profile defined in a file on the node should be used.
+The profile must be preconfigured on the node to work.
+Must be a descending path, relative to the kubelet's configured seccomp profile location.
+Must be set if type is "Localhost". Must NOT be set for any other type.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13203,7 +15778,10 @@ The seccomp options to use by this container. If seccomp options are provided at
 
 
 
-The Windows specific settings applied to all containers. If unspecified, the options from the PodSecurityContext will be used. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. Note that this field cannot be set when spec.os.name is linux.
+The Windows specific settings applied to all containers.
+If unspecified, the options from the PodSecurityContext will be used.
+If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+Note that this field cannot be set when spec.os.name is linux.
 
 <table>
     <thead>
@@ -13218,7 +15796,9 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>gmsaCredentialSpec</b></td>
         <td>string</td>
         <td>
-          GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.<br/>
+          GMSACredentialSpec is where the GMSA admission webhook
+(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+GMSA credential spec named by the GMSACredentialSpecName field.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13232,14 +15812,20 @@ The Windows specific settings applied to all containers. If unspecified, the opt
         <td><b>hostProcess</b></td>
         <td>boolean</td>
         <td>
-          HostProcess determines if a container should be run as a 'Host Process' container. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers). In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
+          HostProcess determines if a container should be run as a 'Host Process' container.
+All of a Pod's containers must have the same effective HostProcess value
+(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+In addition, if HostProcess is true then HostNetwork must also be set to true.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>runAsUserName</b></td>
         <td>string</td>
         <td>
-          The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+          The UserName in Windows to run the entrypoint of the container process.
+Defaults to the user specified in image metadata if unspecified.
+May also be set in PodSecurityContext. If set in both SecurityContext and
+PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13251,7 +15837,13 @@ The Windows specific settings applied to all containers. If unspecified, the opt
 
 
 
-StartupProbe indicates that the Pod has successfully initialized. If specified, no other probes are executed until this completes successfully. If this probe fails, the Pod will be restarted, just as if the livenessProbe failed. This can be used to provide different probe parameters at the beginning of a Pod's lifecycle, when it might take a long time to load data or warm a cache, than during steady-state operation. This cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+StartupProbe indicates that the Pod has successfully initialized.
+If specified, no other probes are executed until this completes successfully.
+If this probe fails, the Pod will be restarted, just as if the livenessProbe failed.
+This can be used to provide different probe parameters at the beginning of a Pod's lifecycle,
+when it might take a long time to load data or warm a cache, than during steady-state operation.
+This cannot be updated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
 
 <table>
     <thead>
@@ -13273,7 +15865,8 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.<br/>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13296,7 +15889,8 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>initialDelaySeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after the container has started before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13305,7 +15899,8 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>periodSeconds</b></td>
         <td>integer</td>
         <td>
-          How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1.<br/>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13314,7 +15909,8 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13330,7 +15926,16 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -13339,7 +15944,9 @@ StartupProbe indicates that the Pod has successfully initialized. If specified, 
         <td><b>timeoutSeconds</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13368,7 +15975,11 @@ Exec specifies the action to take.
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Command is the command line to execute inside the container, the working directory for the command  is root ('/') in the container's filesystem. The command is simply exec'd, it is not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use a shell, you need to explicitly call out to that shell. Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13404,8 +16015,11 @@ GRPC specifies an action involving a GRPC port.
         <td><b>service</b></td>
         <td>string</td>
         <td>
-          Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
- If this is not specified, the default behavior is defined by gRPC.<br/>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13432,14 +16046,17 @@ HTTPGet specifies the http request to perform.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Name or number of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>host</b></td>
         <td>string</td>
         <td>
-          Host name to connect to, defaults to the pod IP. You probably want to set "Host" in httpHeaders instead.<br/>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13460,7 +16077,8 @@ HTTPGet specifies the http request to perform.
         <td><b>scheme</b></td>
         <td>string</td>
         <td>
-          Scheme to use for connecting to the host. Defaults to HTTP.<br/>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13487,7 +16105,8 @@ HTTPHeader describes a custom header to be used in HTTP probes
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13521,7 +16140,9 @@ TCPSocket specifies an action involving a TCP port.
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.<br/>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13589,7 +16210,8 @@ VolumeMount describes a mounting of a Volume within a container.
         <td><b>mountPath</b></td>
         <td>string</td>
         <td>
-          Path within the container at which the volume should be mounted.  Must not contain ':'.<br/>
+          Path within the container at which the volume should be mounted.  Must
+not contain ':'.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13603,28 +16225,64 @@ VolumeMount describes a mounting of a Volume within a container.
         <td><b>mountPropagation</b></td>
         <td>string</td>
         <td>
-          mountPropagation determines how mounts are propagated from the host to container and the other way around. When not set, MountPropagationNone is used. This field is beta in 1.10.<br/>
+          mountPropagation determines how mounts are propagated from the host
+to container and the other way around.
+When not set, MountPropagationNone is used.
+This field is beta in 1.10.
+When RecursiveReadOnly is set to IfPossible or to Enabled, MountPropagation must be None or unspecified
+(which defaults to None).<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>readOnly</b></td>
         <td>boolean</td>
         <td>
-          Mounted read-only if true, read-write otherwise (false or unspecified). Defaults to false.<br/>
+          Mounted read-only if true, read-write otherwise (false or unspecified).
+Defaults to false.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>recursiveReadOnly</b></td>
+        <td>string</td>
+        <td>
+          RecursiveReadOnly specifies whether read-only mounts should be handled
+recursively.
+
+
+If ReadOnly is false, this field has no meaning and must be unspecified.
+
+
+If ReadOnly is true, and this field is set to Disabled, the mount is not made
+recursively read-only.  If this field is set to IfPossible, the mount is made
+recursively read-only, if it is supported by the container runtime.  If this
+field is set to Enabled, the mount is made recursively read-only if it is
+supported by the container runtime, otherwise the pod will not be started and
+an error will be generated to indicate the reason.
+
+
+If this field is set to IfPossible or Enabled, MountPropagation must be set to
+None (or be unspecified, which defaults to None).
+
+
+If this field is not specified, it is treated as an equivalent of Disabled.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>subPath</b></td>
         <td>string</td>
         <td>
-          Path within the volume from which the container's volume should be mounted. Defaults to "" (volume's root).<br/>
+          Path within the volume from which the container's volume should be mounted.
+Defaults to "" (volume's root).<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>subPathExpr</b></td>
         <td>string</td>
         <td>
-          Expanded path within the volume from which the container's volume should be mounted. Behaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment. Defaults to "" (volume's root). SubPathExpr and SubPath are mutually exclusive.<br/>
+          Expanded path within the volume from which the container's volume should be mounted.
+Behaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment.
+Defaults to "" (volume's root).
+SubPathExpr and SubPath are mutually exclusive.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13663,7 +16321,8 @@ System
 
 
 
-The pod this Toleration is attached to tolerates any taint that matches the triple <key,value,effect> using the matching operator <operator>.
+The pod this Toleration is attached to tolerates any taint that matches
+the triple <key,value,effect> using the matching operator <operator>.
 
 <table>
     <thead>
@@ -13678,28 +16337,36 @@ The pod this Toleration is attached to tolerates any taint that matches the trip
         <td><b>effect</b></td>
         <td>string</td>
         <td>
-          Effect indicates the taint effect to match. Empty means match all taint effects. When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.<br/>
+          Effect indicates the taint effect to match. Empty means match all taint effects.
+When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>key</b></td>
         <td>string</td>
         <td>
-          Key is the taint key that the toleration applies to. Empty means match all taint keys. If the key is empty, operator must be Exists; this combination means to match all values and all keys.<br/>
+          Key is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be Exists; this combination means to match all values and all keys.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          Operator represents a key's relationship to the value. Valid operators are Exists and Equal. Defaults to Equal. Exists is equivalent to wildcard for value, so that a pod can tolerate all taints of a particular category.<br/>
+          Operator represents a key's relationship to the value.
+Valid operators are Exists and Equal. Defaults to Equal.
+Exists is equivalent to wildcard for value, so that a pod can
+tolerate all taints of a particular category.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>tolerationSeconds</b></td>
         <td>integer</td>
         <td>
-          TolerationSeconds represents the period of time the toleration (which must be of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately) by the system.<br/>
+          TolerationSeconds represents the period of time the toleration (which must be
+of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+it is not set, which means tolerate the taint forever (do not evict). Zero and
+negative values will be treated as 0 (evict immediately) by the system.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -13708,7 +16375,8 @@ The pod this Toleration is attached to tolerates any taint that matches the trip
         <td><b>value</b></td>
         <td>string</td>
         <td>
-          Value is the taint value the toleration matches to. If the operator is Exists, the value should be empty, otherwise just a regular string.<br/>
+          Value is the taint value the toleration matches to.
+If the operator is Exists, the value should be empty, otherwise just a regular string.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13735,7 +16403,23 @@ TopologySpreadConstraint specifies how to spread matching pods among the given t
         <td><b>maxSkew</b></td>
         <td>integer</td>
         <td>
-          MaxSkew describes the degree to which pods may be unevenly distributed. When `whenUnsatisfiable=DoNotSchedule`, it is the maximum permitted difference between the number of matching pods in the target topology and the global minimum. The global minimum is the minimum number of matching pods in an eligible domain or zero if the number of eligible domains is less than MinDomains. For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same labelSelector spread as 2/2/1: In this case, the global minimum is 1. | zone1 | zone2 | zone3 | |  P P  |  P P  |   P   | - if MaxSkew is 1, incoming pod can only be scheduled to zone3 to become 2/2/2; scheduling it onto zone1(zone2) would make the ActualSkew(3-1) on zone1(zone2) violate MaxSkew(1). - if MaxSkew is 2, incoming pod can be scheduled onto any zone. When `whenUnsatisfiable=ScheduleAnyway`, it is used to give higher precedence to topologies that satisfy it. It's a required field. Default value is 1 and 0 is not allowed.<br/>
+          MaxSkew describes the degree to which pods may be unevenly distributed.
+When `whenUnsatisfiable=DoNotSchedule`, it is the maximum permitted difference
+between the number of matching pods in the target topology and the global minimum.
+The global minimum is the minimum number of matching pods in an eligible domain
+or zero if the number of eligible domains is less than MinDomains.
+For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same
+labelSelector spread as 2/2/1:
+In this case, the global minimum is 1.
+| zone1 | zone2 | zone3 |
+|  P P  |  P P  |   P   |
+- if MaxSkew is 1, incoming pod can only be scheduled to zone3 to become 2/2/2;
+scheduling it onto zone1(zone2) would make the ActualSkew(3-1) on zone1(zone2)
+violate MaxSkew(1).
+- if MaxSkew is 2, incoming pod can be scheduled onto any zone.
+When `whenUnsatisfiable=ScheduleAnyway`, it is used to give higher precedence
+to topologies that satisfy it.
+It's a required field. Default value is 1 and 0 is not allowed.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13744,38 +16428,92 @@ TopologySpreadConstraint specifies how to spread matching pods among the given t
         <td><b>topologyKey</b></td>
         <td>string</td>
         <td>
-          TopologyKey is the key of node labels. Nodes that have a label with this key and identical values are considered to be in the same topology. We consider each <key, value> as a "bucket", and try to put balanced number of pods into each bucket. We define a domain as a particular instance of a topology. Also, we define an eligible domain as a domain whose nodes meet the requirements of nodeAffinityPolicy and nodeTaintsPolicy. e.g. If TopologyKey is "kubernetes.io/hostname", each Node is a domain of that topology. And, if TopologyKey is "topology.kubernetes.io/zone", each zone is a domain of that topology. It's a required field.<br/>
+          TopologyKey is the key of node labels. Nodes that have a label with this key
+and identical values are considered to be in the same topology.
+We consider each <key, value> as a "bucket", and try to put balanced number
+of pods into each bucket.
+We define a domain as a particular instance of a topology.
+Also, we define an eligible domain as a domain whose nodes meet the requirements of
+nodeAffinityPolicy and nodeTaintsPolicy.
+e.g. If TopologyKey is "kubernetes.io/hostname", each Node is a domain of that topology.
+And, if TopologyKey is "topology.kubernetes.io/zone", each zone is a domain of that topology.
+It's a required field.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>whenUnsatisfiable</b></td>
         <td>string</td>
         <td>
-          WhenUnsatisfiable indicates how to deal with a pod if it doesn't satisfy the spread constraint. - DoNotSchedule (default) tells the scheduler not to schedule it. - ScheduleAnyway tells the scheduler to schedule the pod in any location, but giving higher precedence to topologies that would help reduce the skew. A constraint is considered "Unsatisfiable" for an incoming pod if and only if every possible node assignment for that pod would violate "MaxSkew" on some topology. For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same labelSelector spread as 3/1/1: | zone1 | zone2 | zone3 | | P P P |   P   |   P   | If WhenUnsatisfiable is set to DoNotSchedule, incoming pod can only be scheduled to zone2(zone3) to become 3/2/1(3/1/2) as ActualSkew(2-1) on zone2(zone3) satisfies MaxSkew(1). In other words, the cluster can still be imbalanced, but scheduler won't make it *more* imbalanced. It's a required field.<br/>
+          WhenUnsatisfiable indicates how to deal with a pod if it doesn't satisfy
+the spread constraint.
+- DoNotSchedule (default) tells the scheduler not to schedule it.
+- ScheduleAnyway tells the scheduler to schedule the pod in any location,
+  but giving higher precedence to topologies that would help reduce the
+  skew.
+A constraint is considered "Unsatisfiable" for an incoming pod
+if and only if every possible node assignment for that pod would violate
+"MaxSkew" on some topology.
+For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same
+labelSelector spread as 3/1/1:
+| zone1 | zone2 | zone3 |
+| P P P |   P   |   P   |
+If WhenUnsatisfiable is set to DoNotSchedule, incoming pod can only be scheduled
+to zone2(zone3) to become 3/2/1(3/1/2) as ActualSkew(2-1) on zone2(zone3) satisfies
+MaxSkew(1). In other words, the cluster can still be imbalanced, but scheduler
+won't make it *more* imbalanced.
+It's a required field.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapptopologyspreadconstraintsindexlabelselector">labelSelector</a></b></td>
         <td>object</td>
         <td>
-          LabelSelector is used to find matching pods. Pods that match this label selector are counted to determine the number of pods in their corresponding topology domain.<br/>
+          LabelSelector is used to find matching pods.
+Pods that match this label selector are counted to determine the number of pods
+in their corresponding topology domain.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>matchLabelKeys</b></td>
         <td>[]string</td>
         <td>
-          MatchLabelKeys is a set of pod label keys to select the pods over which spreading will be calculated. The keys are used to lookup values from the incoming pod labels, those key-value labels are ANDed with labelSelector to select the group of existing pods over which spreading will be calculated for the incoming pod. The same key is forbidden to exist in both MatchLabelKeys and LabelSelector. MatchLabelKeys cannot be set when LabelSelector isn't set. Keys that don't exist in the incoming pod labels will be ignored. A null or empty list means only match against labelSelector. 
- This is a beta field and requires the MatchLabelKeysInPodTopologySpread feature gate to be enabled (enabled by default).<br/>
+          MatchLabelKeys is a set of pod label keys to select the pods over which
+spreading will be calculated. The keys are used to lookup values from the
+incoming pod labels, those key-value labels are ANDed with labelSelector
+to select the group of existing pods over which spreading will be calculated
+for the incoming pod. The same key is forbidden to exist in both MatchLabelKeys and LabelSelector.
+MatchLabelKeys cannot be set when LabelSelector isn't set.
+Keys that don't exist in the incoming pod labels will
+be ignored. A null or empty list means only match against labelSelector.
+
+
+This is a beta field and requires the MatchLabelKeysInPodTopologySpread feature gate to be enabled (enabled by default).<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>minDomains</b></td>
         <td>integer</td>
         <td>
-          MinDomains indicates a minimum number of eligible domains. When the number of eligible domains with matching topology keys is less than minDomains, Pod Topology Spread treats "global minimum" as 0, and then the calculation of Skew is performed. And when the number of eligible domains with matching topology keys equals or greater than minDomains, this value has no effect on scheduling. As a result, when the number of eligible domains is less than minDomains, scheduler won't schedule more than maxSkew Pods to those domains. If value is nil, the constraint behaves as if MinDomains is equal to 1. Valid values are integers greater than 0. When value is not nil, WhenUnsatisfiable must be DoNotSchedule. 
- For example, in a 3-zone cluster, MaxSkew is set to 2, MinDomains is set to 5 and pods with the same labelSelector spread as 2/2/2: | zone1 | zone2 | zone3 | |  P P  |  P P  |  P P  | The number of domains is less than 5(MinDomains), so "global minimum" is treated as 0. In this situation, new pod with the same labelSelector cannot be scheduled, because computed skew will be 3(3 - 0) if new Pod is scheduled to any of the three zones, it will violate MaxSkew. 
- This is a beta field and requires the MinDomainsInPodTopologySpread feature gate to be enabled (enabled by default).<br/>
+          MinDomains indicates a minimum number of eligible domains.
+When the number of eligible domains with matching topology keys is less than minDomains,
+Pod Topology Spread treats "global minimum" as 0, and then the calculation of Skew is performed.
+And when the number of eligible domains with matching topology keys equals or greater than minDomains,
+this value has no effect on scheduling.
+As a result, when the number of eligible domains is less than minDomains,
+scheduler won't schedule more than maxSkew Pods to those domains.
+If value is nil, the constraint behaves as if MinDomains is equal to 1.
+Valid values are integers greater than 0.
+When value is not nil, WhenUnsatisfiable must be DoNotSchedule.
+
+
+For example, in a 3-zone cluster, MaxSkew is set to 2, MinDomains is set to 5 and pods with the same
+labelSelector spread as 2/2/2:
+| zone1 | zone2 | zone3 |
+|  P P  |  P P  |  P P  |
+The number of domains is less than 5(MinDomains), so "global minimum" is treated as 0.
+In this situation, new pod with the same labelSelector cannot be scheduled,
+because computed skew will be 3(3 - 0) if new Pod is scheduled to any of the three zones,
+it will violate MaxSkew.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13784,16 +16522,29 @@ TopologySpreadConstraint specifies how to spread matching pods among the given t
         <td><b>nodeAffinityPolicy</b></td>
         <td>string</td>
         <td>
-          NodeAffinityPolicy indicates how we will treat Pod's nodeAffinity/nodeSelector when calculating pod topology spread skew. Options are: - Honor: only nodes matching nodeAffinity/nodeSelector are included in the calculations. - Ignore: nodeAffinity/nodeSelector are ignored. All nodes are included in the calculations. 
- If this value is nil, the behavior is equivalent to the Honor policy. This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.<br/>
+          NodeAffinityPolicy indicates how we will treat Pod's nodeAffinity/nodeSelector
+when calculating pod topology spread skew. Options are:
+- Honor: only nodes matching nodeAffinity/nodeSelector are included in the calculations.
+- Ignore: nodeAffinity/nodeSelector are ignored. All nodes are included in the calculations.
+
+
+If this value is nil, the behavior is equivalent to the Honor policy.
+This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>nodeTaintsPolicy</b></td>
         <td>string</td>
         <td>
-          NodeTaintsPolicy indicates how we will treat node taints when calculating pod topology spread skew. Options are: - Honor: nodes without taints, along with tainted nodes for which the incoming pod has a toleration, are included. - Ignore: node taints are ignored. All nodes are included. 
- If this value is nil, the behavior is equivalent to the Ignore policy. This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.<br/>
+          NodeTaintsPolicy indicates how we will treat node taints when calculating
+pod topology spread skew. Options are:
+- Honor: nodes without taints, along with tainted nodes for which the incoming pod
+has a toleration, are included.
+- Ignore: node taints are ignored. All nodes are included.
+
+
+If this value is nil, the behavior is equivalent to the Ignore policy.
+This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13805,7 +16556,9 @@ TopologySpreadConstraint specifies how to spread matching pods among the given t
 
 
 
-LabelSelector is used to find matching pods. Pods that match this label selector are counted to determine the number of pods in their corresponding topology domain.
+LabelSelector is used to find matching pods.
+Pods that match this label selector are counted to determine the number of pods
+in their corresponding topology domain.
 
 <table>
     <thead>
@@ -13827,7 +16580,9 @@ LabelSelector is used to find matching pods. Pods that match this label selector
         <td><b>matchLabels</b></td>
         <td>map[string]string</td>
         <td>
-          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13839,7 +16594,8 @@ LabelSelector is used to find matching pods. Pods that match this label selector
 
 
 
-A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
 
 <table>
     <thead>
@@ -13861,14 +16617,18 @@ A label selector requirement is a selector that contains values, a key, and an o
         <td><b>operator</b></td>
         <td>string</td>
         <td>
-          operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>values</b></td>
         <td>[]string</td>
         <td>
-          values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.<br/>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13929,14 +16689,33 @@ Spec to control the desired behavior of rolling update.
         <td><b>maxSurge</b></td>
         <td>int or string</td>
         <td>
-          The maximum number of pods that can be scheduled above the desired number of pods. Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 25%. Example: when this is set to 30%, the new ReplicaSet can be scaled up immediately when the rolling update starts, such that the total number of old and new pods do not exceed 130% of desired pods. Once old pods have been killed, new ReplicaSet can be scaled up further, ensuring that total number of pods running at any time during the update is at most 130% of desired pods.<br/>
+          The maximum number of pods that can be scheduled above the desired number of
+pods.
+Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+This can not be 0 if MaxUnavailable is 0.
+Absolute number is calculated from percentage by rounding up.
+Defaults to 25%.
+Example: when this is set to 30%, the new ReplicaSet can be scaled up immediately when
+the rolling update starts, such that the total number of old and new pods do not exceed
+130% of desired pods. Once old pods have been killed,
+new ReplicaSet can be scaled up further, ensuring that total number of pods running
+at any time during the update is at most 130% of desired pods.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>maxUnavailable</b></td>
         <td>int or string</td>
         <td>
-          The maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 25%. Example: when this is set to 30%, the old ReplicaSet can be scaled down to 70% of desired pods immediately when the rolling update starts. Once new pods are ready, old ReplicaSet can be scaled down further, followed by scaling up the new ReplicaSet, ensuring that the total number of pods available at all times during the update is at least 70% of desired pods.<br/>
+          The maximum number of pods that can be unavailable during the update.
+Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+Absolute number is calculated from percentage by rounding down.
+This can not be 0 if MaxSurge is 0.
+Defaults to 25%.
+Example: when this is set to 30%, the old ReplicaSet can be scaled down to 70% of desired pods
+immediately when the rolling update starts. Once new pods are ready, old ReplicaSet
+can be scaled down further, followed by scaling up the new ReplicaSet, ensuring
+that the total number of pods available at all times during the update is at
+least 70% of desired pods.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13970,7 +16749,8 @@ License for the Major version of Gateway
         <td><b>secretName</b></td>
         <td>string</td>
         <td>
-          SecretName is the Kubernetes Secret that contains the Gateway license There must be a key called license.xml<br/>
+          SecretName is the Kubernetes Secret that contains the Gateway license
+There must be a key called license.xml<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -14032,7 +16812,8 @@ GatewayStatus defines the observed state of Gateways
         <td><b>managementPod</b></td>
         <td>string</td>
         <td>
-          Management Pod is a Gateway with a special annotation is used as a selector for the management service and applying singleton resources<br/>
+          Management Pod is a Gateway with a special annotation is used as a selector for the
+management service and applying singleton resources<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14302,7 +17083,8 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         <td><b>storageSecretName</b></td>
         <td>string</td>
         <td>
-          StorageSecretName is used to mount existing repository bundles to the initContainer these will be less than 1mb in size<br/>
+          StorageSecretName is used to mount existing repository bundles to the initContainer
+these will be less than 1mb in size<br/>
         </td>
         <td>false</td>
       </tr><tr>

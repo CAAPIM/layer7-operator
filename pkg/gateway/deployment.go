@@ -40,7 +40,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	for p := range gw.Spec.App.Service.Ports {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          gw.Spec.App.Service.Ports[p].Name,
-			ContainerPort: gw.Spec.App.Service.Ports[p].Port,
+			ContainerPort: gw.Spec.App.Service.Ports[p].TargetPort,
 			Protocol:      corev1.ProtocolTCP,
 		})
 	}
@@ -49,7 +49,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		for p := range gw.Spec.App.Management.Service.Ports {
 			ports = append(ports, corev1.ContainerPort{
 				Name:          gw.Spec.App.Management.Service.Ports[p].Name,
-				ContainerPort: gw.Spec.App.Management.Service.Ports[p].Port,
+				ContainerPort: gw.Spec.App.Management.Service.Ports[p].TargetPort,
 				Protocol:      corev1.ProtocolTCP,
 			})
 		}

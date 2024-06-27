@@ -29,7 +29,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	authType := repository.Spec.Auth.Type
 	if err != nil {
 		params.Log.Info("repository unavailable", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
-		_ = s.RemoveByTag(params.Instance.Name + "-sync-repository")
+		_ = s.RemoveByTag(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-repository")
 		return nil
 	}
 
@@ -102,7 +102,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		if repository.Status.Summary != repository.Spec.Endpoint {
 			forceUpdate = true
 		}
-		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Name, forceUpdate)
+		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Name, forceUpdate, repository.Namespace)
 		if err != nil {
 			if err == util.ErrInvalidFileFormatError || err == util.ErrInvalidTarArchive || err == util.ErrInvalidZipArchive {
 				params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
@@ -136,7 +136,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 		storageSecretName = repository.Name + "-repository-" + folderName
 	case "git":
-		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts)
+		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			return nil

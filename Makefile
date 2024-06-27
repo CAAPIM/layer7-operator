@@ -32,6 +32,11 @@ ARTIFACT_HOST ?= docker.io
 IMAGE_TAG ?= layer7api/layer7-operator
 IMAGE_TAG_BASE ?= $(ARTIFACT_HOST)/$(IMAGE_TAG)
 
+CREATED ?= $(shell echo `date`)
+YEAR ?= $(shell echo `date +%Y`)
+AUTHOR ?= "layer7"
+COPYRIGHT ?= Copyright © ${YEAR} Broadcom Inc. and/or its subsidiaries. All Rights Reserved.
+
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:$(VERSION)
@@ -64,6 +69,9 @@ KUBE_VERSION ?= 1.29
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
 GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.00
+GO_BUILD_IMG ?= golang:1.22
+DISTROLESS_IMG ?= gcr.io/distroless/static:nonroot
+GO_PROXY ?= ""
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -107,7 +115,9 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+#$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd:generateEmbeddedObjectMeta=true,maxDescLen=75 webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -213,12 +223,16 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go --zap-log-level=10
 
 .PHONY: docker-build
-docker-build: #test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+docker-build: dockerfile #test ## Build docker image with the manager.
+	$(CONTAINER_TOOL) build -f operator.Dockerfile -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	$(CONTAINER_TOOL) push ${IMG}
+
+.PHONY: docker-build-push
+docker-build-push: dockerfile #test ## Build docker image with the manager.
+	$(CONTAINER_TOOL) build -t ${IMG} -f operator.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}" --push .
 
 # PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
@@ -226,16 +240,15 @@ docker-push: ## Push docker image with the manager.
 # - have enabled BuildKit. More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 # - be able to push the image to your registry (i.e. if you do not set a valid value via IMG=<myregistry/image:<tag>> then the export will fail)
 # To adequately provide solutions that are compatible with multiple platforms, you should consider using this option.
-PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
+PLATFORMS ?= linux/arm64,linux/amd64
 .PHONY: docker-buildx
 docker-buildx: ## Build and push docker image for the manager for cross-platform support
-	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
-	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
-	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
-	$(CONTAINER_TOOL) buildx use project-v3-builder
-	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
-	- $(CONTAINER_TOOL) buildx rm project-v3-builder
-	rm Dockerfile.cross
+# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
+	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > cross.Dockerfile
+	- $(CONTAINER_TOOL) buildx create --name xplatform-builder
+	$(CONTAINER_TOOL) buildx use xplatform-builder
+	- $(CONTAINER_TOOL) buildx build  --platform=$(PLATFORMS) --tag ${IMG} -f cross.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}"  .
+	- $(CONTAINER_TOOL) buildx rm xplatform-builder
 
 ##@ Deployment
 
@@ -297,7 +310,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.0.1
-CONTROLLER_TOOLS_VERSION ?= v0.12.0
+CONTROLLER_TOOLS_VERSION ?= v0.15.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
@@ -400,11 +413,17 @@ version:
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/cw-operator/kustomization.yaml
 	sed -i "s~newTag:.*~newTag: ${VERSION}~g" config/bundle/kustomization.yaml
 
-generate-docs:
-	crdoc --resources config/crd/bases/security.brcmlabs.com_gateways.yaml --output docs/gateway.md
-	crdoc --resources config/crd/bases/security.brcmlabs.com_repositories.yaml --output docs/repository.md
-	crdoc --resources config/crd/bases/security.brcmlabs.com_l7portals.yaml --output docs/l7portals.md
-	crdoc --resources config/crd/bases/security.brcmlabs.com_l7apis.yaml --output docs/l7apis.md
+.PHONY: dockerfile
+dockerfile:
+	cat Dockerfile | sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" | sed -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" > operator.Dockerfile
+
+generate-docs: controller-gen
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=./tmp/crd/bases
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_gateways.yaml --output docs/gateway.md
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_repositories.yaml --output docs/repository.md
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7portals.yaml --output docs/l7portals.md
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7apis.yaml --output docs/l7apis.md
+	rm -r ./tmp/
 
 helmify:
 #$(call go-get-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify@v0.3.7)

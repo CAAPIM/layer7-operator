@@ -78,7 +78,7 @@ func StorageSecret(ctx context.Context, params Params) error {
 
 	}
 
-	bundleGzip, err := util.CompressGraphmanBundle("/tmp/" + params.Instance.Name + "-" + ext)
+	bundleGzip, err := util.CompressGraphmanBundle("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
 	if err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@ func syncExternalSecrets(ctx context.Context, params Params) error {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
 	if err != nil && k8serrors.IsNotFound(err) {
 		params.Log.Error(err, "gateway not found", "Name", params.Instance.Name, "namespace", params.Instance.Namespace)
-		_ = s.RemoveByTag(params.Instance.Name + "-sync-external-secrets")
+		_ = s.RemoveByTag(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-external-secrets")
 		return nil
 	}
 
@@ -31,7 +31,7 @@ func syncExternalSecrets(ctx context.Context, params Params) error {
 		}
 	}
 	if cntr == 0 {
-		_ = s.RemoveByTag(params.Instance.Name + "-sync-external-secrets")
+		_ = s.RemoveByTag(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-external-secrets")
 		return nil
 	}
 

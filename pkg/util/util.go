@@ -34,6 +34,7 @@ func Contains(arr []string, str string) bool {
 }
 
 const WatchNamespaceEnvVar = "WATCH_NAMESPACE"
+const OperatorNamespaceEnvVar = "OPERATOR_NAMESPACE"
 const EnableWebHookEnvVar = "ENABLE_WEBHOOK"
 
 // GetWatchNamespace returns the namespace the operator should be watching for changes
@@ -48,6 +49,13 @@ func GetWatchNamespace() (string, error) {
 // GetOperatorNamespace returns the namespace of the operator pod
 func GetOperatorNamespace() (string, error) {
 	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if os.IsNotExist(err) {
+		ns, found := os.LookupEnv(OperatorNamespaceEnvVar)
+		if !found {
+			return "", fmt.Errorf("%s must be set to run locally", OperatorNamespaceEnvVar)
+		}
+		return ns, nil
+	}
 	if err != nil {
 		return "", err
 	}

@@ -11,7 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
-func CloneRepository(url string, username string, token string, privateKey []byte, privateKeyPass string, branch string, tag string, remoteName string, name string, vendor string, authType string, knownHosts []byte) (string, error) {
+func CloneRepository(url string, username string, token string, privateKey []byte, privateKeyPass string, branch string, tag string, remoteName string, name string, vendor string, authType string, knownHosts []byte, namespace string) (string, error) {
 
 	if remoteName == "" {
 		remoteName = "origin"
@@ -102,16 +102,16 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 
 	ext := cloneOpts.ReferenceName.String()
 
-	r, err := git.PlainClone("/tmp/"+name+"-"+ext, false, &cloneOpts)
+	r, err := git.PlainClone("/tmp/"+name+"-"+namespace+"-"+ext, false, &cloneOpts)
 
 	if err == git.ErrRepositoryAlreadyExists {
-		r, _ := git.PlainOpen("/tmp/" + name + "-" + ext)
+		r, _ := git.PlainOpen("/tmp/" + name + "-" + namespace + "-" + ext)
 		w, _ := r.Worktree()
 
 		ref, _ := r.Head()
 
 		if ref == nil {
-			_ = os.RemoveAll("/tmp/" + name + "-" + ext)
+			_ = os.RemoveAll("/tmp/" + name + "-" + namespace + "-" + ext)
 			return "", fmt.Errorf("ref is nil for %s", name)
 		}
 		commit, err := r.CommitObject(ref.Hash())
@@ -123,9 +123,9 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			return commit.Hash.String(), nil
 		}
 
-		gbytes, _ := os.ReadFile("/tmp/" + name + "-" + ext + "/.git/config")
+		gbytes, _ := os.ReadFile("/tmp/" + name + "-" + namespace + "-" + ext + "/.git/config")
 		if !strings.Contains(string(gbytes), cloneOpts.URL) {
-			err = os.RemoveAll("/tmp/" + name + "-" + ext)
+			err = os.RemoveAll("/tmp/" + name + "-" + namespace + "-" + ext)
 			if err != nil {
 				return "", err
 			}

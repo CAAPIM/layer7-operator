@@ -42,7 +42,7 @@ func registerJobs(ctx context.Context, params Params) {
 		repoSyncInterval = params.Instance.Spec.RepositorySyncConfig.IntervalSeconds
 	}
 
-	_, err := s.Every(repoSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-repository").Do(syncRepository, ctx, params)
+	_, err := s.Every(repoSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-repository").Do(syncRepository, ctx, params)
 
 	if err != nil {
 		params.Log.V(2).Info("repository sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)

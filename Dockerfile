@@ -1,24 +1,52 @@
-# Build the manager binary
-FROM golang:1.21 as builder
+FROM GO_BUILD_IMG as builder
 
+ARG AUTHOR=layer7
+ARG VENDOR=Broadcom Inc.
+ARG TITLE
+ARG VERSION
+ARG CREATED
+ARG COPYRIGHT
+
+LABEL org.opencontainers.image.created=${CREATED}
+LABEL org.opencontainers.image.authors=${AUTHOR}
+LABEL org.opencontainers.image.title=${TITLE}
+LABEL org.opencontainers.image.version=${VERSION}
+LABEL org.opencontainers.image.vendor=${VENDOR}
+LABEL com.broadcom.copyright=${COPYRIGHT}
+
+ARG GOPROXY
 WORKDIR /workspace
-# Copy the Go Modules manifests
+
 COPY go.mod go.mod
 COPY go.sum go.sum
 
-COPY vendor/ vendor/
 COPY internal/ internal/
 COPY cmd/main.go cmd/main.go
 COPY api/ api/
-COPY clientcmd/ clientcmd/
 COPY pkg/ pkg/
 COPY scripts/ scripts/
-# Build
+ENV GOPROXY=${GOPROXY}
+RUN go mod download
+
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager cmd/main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+FROM DISTROLESS_IMG
+
+ARG AUTHOR=layer7
+ARG VENDOR=Broadcom Inc.
+ARG TITLE
+ARG VERSION
+ARG CREATED
+ARG COPYRIGHT
+
+LABEL org.opencontainers.image.created=${CREATED}
+LABEL org.opencontainers.image.authors=${AUTHOR}
+LABEL org.opencontainers.image.title=${TITLE}
+LABEL org.opencontainers.image.version=${VERSION}
+LABEL org.opencontainers.image.vendor=${VENDOR}
+LABEL com.broadcom.copyright=${COPYRIGHT}
+
+
 WORKDIR /
 COPY --from=builder /workspace/scripts .
 COPY --from=builder /workspace/manager .

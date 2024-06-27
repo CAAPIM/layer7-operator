@@ -14,10 +14,9 @@ pipeline {
         DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
         def CREATED = sh(script: "echo `date`", returnStdout: true).trim()
         def YEAR = sh(script: "echo `date +%Y`", returnStdout: true).trim()
-        VERSION = '$BRANCH_NAME'      
+        VERSION = "${env.BRANCH_NAME}"    
         COPYRIGHT = "Copyright © ${YEAR} Broadcom Inc. and/or its subsidiaries. All Rights Reserved."
         GOPROXY = ""
-        USE_EXISTING_CLUSTER = true
     }
     parameters {
     string(name: 'RELEASE_VERSION', description: 'release version for docker tag')
@@ -41,8 +40,9 @@ pipeline {
                       docker login ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST} -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}                    
                       docker login ${ARTIFACTORY_DOCKER_SBO_IMAGE_REG} -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}
                       docker login ${ARTIFACTORY_DOCKER_GO_IMAGE_REG}  -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}
-
-                      export DISTROLESS_IMG=sbo-saas-docker-release-local.usw1.packages.broadcom.com/broadcom-images/approved/distroless/static:debian12-nonroot; export GO_BUILD_IMG=docker-hub.usw1.packages.broadcom.com/golang:1.22; make dockerfile
+                      DISTROLESS_IMG=${ARTIFACTORY_DOCKER_SBO_IMAGE_REG}/broadcom-images/approved/distroless/static:debian12-nonroot
+                      GO_BUILD_IMG=${ARTIFACTORY_DOCKER_GO_IMAGE_REG}/golang:1.22
+                      cat Dockerfile | sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" | sed -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" > operator.Dockerfile
                       docker build -f operator.Dockerfile -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION} . --build-arg TITLE="${IMAGE_NAME}" --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${RELEASE_VERSION}" --build-arg CREATED="${TIMESTAMP}" --build-arg GOPROXY="${GOPROXY}"
                   '''
 

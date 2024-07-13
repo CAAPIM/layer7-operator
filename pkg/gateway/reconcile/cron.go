@@ -35,23 +35,7 @@ func ScheduledJobs(ctx context.Context, params Params) error {
 
 func registerJobs(ctx context.Context, params Params) {
 	s.TagsUnique()
-	repoSyncInterval := 10
-	extSecretSyncInterval := 10
-	extKeySyncInterval := 10
-	managementPodSyncInterval := 10
 	otkSyncInterval := 10
-
-	if params.Instance.Spec.App.RepositorySyncIntervalSeconds != 0 {
-		repoSyncInterval = params.Instance.Spec.App.RepositorySyncIntervalSeconds
-	}
-
-	if params.Instance.Spec.App.ExternalSecretsSyncIntervalSeconds != 0 {
-		extSecretSyncInterval = params.Instance.Spec.App.RepositorySyncIntervalSeconds
-	}
-
-	if params.Instance.Spec.App.ExternalKeysSyncIntervalSeconds != 0 {
-		extKeySyncInterval = params.Instance.Spec.App.RepositorySyncIntervalSeconds
-	}
 
 	if params.Instance.Spec.App.Otk.RuntimeSyncIntervalSeconds != 0 {
 		otkSyncInterval = params.Instance.Spec.App.Otk.RuntimeSyncIntervalSeconds
@@ -73,27 +57,6 @@ func registerJobs(ctx context.Context, params Params) {
 				params.Log.V(2).Info("otk certificate secret sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 			}
 		}
-	}
-
-	_, err := s.Every(repoSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-repository-references").Do(syncRepository, ctx, params)
-
-	if err != nil {
-		params.Log.V(2).Info("repository sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-	}
-
-	_, err = s.Every(extSecretSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-external-secrets").Do(syncExternalSecrets, ctx, params)
-	if err != nil {
-		params.Log.V(2).Info("external secret sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-	}
-
-	_, err = s.Every(extKeySyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-external-keys").Do(syncExternalKeys, ctx, params)
-	if err != nil {
-		params.Log.V(2).Info("external key sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-	}
-
-	_, err = s.Every(managementPodSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-select-management-pod").Do(ManagementPod, ctx, params)
-	if err != nil {
-		params.Log.V(2).Info("external key sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 }
 

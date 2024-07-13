@@ -164,6 +164,11 @@ nginx:
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
 
+
+enable-otel-l7operator:
+	kubectl apply -f ./otel-lgtm/layer7-operator/collector.yaml
+	kubectl patch deployment layer7-operator-controller-manager -p '{"spec":{"template":{"spec":{"containers":[{"env":[{"name":"ENABLE_OTEL","value":"true"},{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":"layer7-operator-collector:4317"},{"name": "OTEL_METRIC_PREFIX","value":"layer7_"}], "name": "manager"}]}}}}'
+
 uninstall:
 	-kubectl delete -f ./gateway
 	-kubectl delete -k ./repositories/

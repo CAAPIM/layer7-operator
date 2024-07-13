@@ -11,38 +11,11 @@ import (
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 )
 
-func syncExternalKeys(ctx context.Context, params Params) error {
-	gateway := &securityv1.Gateway{}
-	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
-	if err != nil && k8serrors.IsNotFound(err) {
-		params.Log.Error(err, "gateway not found", "Name", params.Instance.Name, "namespace", params.Instance.Namespace)
-		_ = s.RemoveByTag(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-external-keys")
-		return nil
-	}
-	cntr := 0
-	for _, externalKey := range gateway.Spec.App.ExternalKeys {
-		if externalKey.Enabled {
-			cntr++
-		}
-	}
-	if cntr == 0 {
-		_ = s.RemoveByTag(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-external-keys")
-	}
-
-	err = reconcileExternalKeys(ctx, params, gateway)
-	if err != nil {
-		params.Log.Info("failed to reconcile external keys", "Name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
-	}
-	return nil
-}
-
-func reconcileExternalKeys(ctx context.Context, params Params, gateway *securityv1.Gateway) error {
+func ExternalKeys(ctx context.Context, params Params) error {
+	gateway := params.Instance
 	keySecretMap := []util.GraphmanKey{}
-	//bundleBytes := []byte{}
 	var bundleBytes []byte
 
 	name := gateway.Name
@@ -70,13 +43,7 @@ func reconcileExternalKeys(ctx context.Context, params Params, gateway *security
 
 			secret, err := getGatewaySecret(ctx, params, externalKey.Name)
 			if err != nil {
-				if k8serrors.IsNotFound(err) {
-					params.Log.Info("secret not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "external key ref", externalKey.Name)
-					continue
-				} else {
-					params.Log.Info("can't retrieve secret", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
-					continue
-				}
+				return err
 			}
 
 			usageType := ""
@@ -97,13 +64,13 @@ func reconcileExternalKeys(ctx context.Context, params Params, gateway *security
 
 		}
 
-		if len(keySecretMap) > 0 {
-			bundleBytes, err = util.ConvertX509ToGraphmanBundle(keySecretMap)
-			if err != nil {
-				return err
-			}
-		} else {
+		if len(keySecretMap) <= 0 {
 			return nil
+		}
+
+		bundleBytes, err = util.ConvertX509ToGraphmanBundle(keySecretMap)
+		if err != nil {
+			return err
 		}
 
 		sort.Slice(keySecretMap, func(i, j int) bool {
@@ -122,7 +89,7 @@ func reconcileExternalKeys(ctx context.Context, params Params, gateway *security
 		annotation := "security.brcmlabs.com/external-key-" + externalKey.Name
 
 		if !gateway.Spec.App.Management.Database.Enabled {
-			err = ReconcileEphemeralGateway(ctx, params, "external keys", *podList, gateway, gwSecret, "", annotation, sha1Sum, false, bundleBytes)
+			err = ReconcileEphemeralGateway(ctx, params, "external keys", *podList, gateway, gwSecret, "", annotation, sha1Sum, false, externalKey.Name, bundleBytes)
 			if err != nil {
 				return err
 			}

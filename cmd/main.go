@@ -17,8 +17,10 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
+	"os/signal"
 	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -93,6 +95,12 @@ func main() {
 
 	if err != nil {
 		setupLog.Error(err, "failed to determine if webhook should be enabled")
+	}
+
+	otelEnabled, err := util.GetOtelEnabled()
+
+	if err != nil {
+		setupLog.Error(err, "failed to determine if Otel should be enabled")
 	}
 
 	options := ctrl.Options{
@@ -175,6 +183,28 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Repository")
 			os.Exit(1)
 		}
+	}
+
+	if otelEnabled {
+		collectorUrl, err := util.GetOtelCollectorUrl()
+		if err != nil {
+			setupLog.Error(err, "unable to retrieve otel collector url")
+			os.Exit(1)
+		}
+
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer cancel()
+
+		meterShutdown, err := util.InitOTelProvider(collectorUrl, ctx)
+		if err != nil {
+			setupLog.Error(err, "error in starting otel context")
+		}
+		defer func() {
+			if err := meterShutdown(ctx); err != nil {
+				setupLog.Error(err, "failed to shutdown otel provider")
+			}
+		}()
+
 	}
 
 	//+kubebuilder:scaffold:builder

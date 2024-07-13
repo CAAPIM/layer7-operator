@@ -80,7 +80,7 @@ func applyOtkPolicies(ctx context.Context, params Params, gateway *securityv1.Ga
 		if err != nil {
 			return err
 		}
-		err = ReconcileEphemeralGateway(ctx, params, "otk policies", *podList, gateway, gwSecret, "", annotation, sha1Sum, false, bundle)
+		err = ReconcileEphemeralGateway(ctx, params, "otk policies", *podList, gateway, gwSecret, "", annotation, sha1Sum, false, "otk policies", bundle)
 		if err != nil {
 			return err
 		}

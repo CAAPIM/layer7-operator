@@ -232,7 +232,7 @@ docker-push: ## Push docker image with the manager.
 
 .PHONY: docker-build-push
 docker-build-push: dockerfile #test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} -f operator.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}" --push .
+	$(CONTAINER_TOOL) build -t ${IMG} -f operator.Dockerfile --push --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg AUTHOR="layer7" --build-arg TITLE="layer7-operator" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}"  .
 
 # PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
@@ -247,7 +247,7 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > cross.Dockerfile
 	- $(CONTAINER_TOOL) buildx create --name xplatform-builder
 	$(CONTAINER_TOOL) buildx use xplatform-builder
-	- $(CONTAINER_TOOL) buildx build  --platform=$(PLATFORMS) --tag ${IMG} -f cross.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}"  .
+	- $(CONTAINER_TOOL) buildx build  --platform=$(PLATFORMS) --tag ${IMG} -f cross.Dockerfile --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${IMAGE_TAG}" --build-arg CREATED="${CREATED}"  . --push
 	- $(CONTAINER_TOOL) buildx rm xplatform-builder
 
 ##@ Deployment

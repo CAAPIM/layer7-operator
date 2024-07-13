@@ -8,43 +8,12 @@ import (
 	"sort"
 	"strings"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 )
 
-func syncExternalSecrets(ctx context.Context, params Params) error {
-	gateway := &securityv1.Gateway{}
-	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gateway)
-	if err != nil && k8serrors.IsNotFound(err) {
-		params.Log.Error(err, "gateway not found", "Name", params.Instance.Name, "namespace", params.Instance.Namespace)
-		_ = s.RemoveByTag(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-external-secrets")
-		return nil
-	}
-
-	cntr := 0
-	for _, externalSecret := range gateway.Spec.App.ExternalSecrets {
-		if externalSecret.Enabled {
-			cntr++
-		}
-	}
-	if cntr == 0 {
-		_ = s.RemoveByTag(params.Instance.Name + "-" + params.Instance.Namespace + "-sync-external-secrets")
-		return nil
-	}
-
-	err = applyExternalSecrets(ctx, params, gateway)
-	if err != nil {
-		params.Log.Info("failed to reconcile external secrets", "Name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
-	}
-
-	return nil
-}
-
-func applyExternalSecrets(ctx context.Context, params Params, gateway *securityv1.Gateway) error {
-
+func ExternalSecrets(ctx context.Context, params Params) error {
+	gateway := params.Instance
 	name := gateway.Name
 	if gateway.Spec.App.Management.SecretName != "" {
 		name = gateway.Spec.App.Management.SecretName
@@ -68,7 +37,6 @@ func applyExternalSecrets(ctx context.Context, params Params, gateway *securityv
 	for _, es := range gateway.Spec.App.ExternalSecrets {
 		opaqueSecretMap := []util.GraphmanSecret{}
 		if es.Enabled {
-
 			secret, err := getGatewaySecret(ctx, params, es.Name)
 			if err != nil {
 				return err
@@ -139,7 +107,7 @@ func applyExternalSecrets(ctx context.Context, params Params, gateway *securityv
 		annotation := "security.brcmlabs.com/external-secret-" + es.Name
 
 		if !gateway.Spec.App.Management.Database.Enabled {
-			err = ReconcileEphemeralGateway(ctx, params, "external secrets", *podList, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, bundleBytes)
+			err = ReconcileEphemeralGateway(ctx, params, "external secrets", *podList, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, es.Name, bundleBytes)
 			if err != nil {
 				return err
 			}

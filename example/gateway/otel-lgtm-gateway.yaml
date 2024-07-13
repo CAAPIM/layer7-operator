@@ -287,9 +287,6 @@ spec:
         port: 8443
         targetPort: 8443
         protocol: TCP
-      - name: monitoring
-        port: 8889
-        protocol: TCP
     ingress:
       enabled: true
       ingressClassName: nginx

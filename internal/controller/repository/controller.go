@@ -18,11 +18,17 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/repository/reconcile"
+	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-logr/logr"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,9 +46,19 @@ type RepositoryReconciler struct {
 	muTasks  sync.Mutex
 }
 
-func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+type ReconcileOperations struct {
+	Run  func(context.Context, reconcile.Params) error
+	Name string
+}
 
+func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	start := time.Now()
 	log := r.Log.WithValues("repository", req.NamespacedName)
+
+	ops := []ReconcileOperations{
+		{reconcile.Secret, "secrets"},
+		{reconcile.ScheduledJobs, "scheduled jobs"},
+	}
 
 	l7repository := &securityv1.Repository{}
 
@@ -62,15 +78,16 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Instance: l7repository,
 	}
 
-	err = reconcile.Secret(ctx, params)
-	if err != nil {
-		return ctrl.Result{}, err
+	for _, op := range ops {
+		err = op.Run(ctx, params)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("failed to reconcile %s", op.Name))
+			_ = captureMetrics(ctx, params, start, l7repository, req.NamespacedName.Namespace)
+			return ctrl.Result{}, err
+		}
 	}
 
-	err = reconcile.ScheduledJobs(ctx, params)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	_ = captureMetrics(ctx, params, start, l7repository, req.NamespacedName.Namespace)
 
 	return ctrl.Result{}, nil
 }
@@ -81,5 +98,55 @@ func (r *RepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&securityv1.Repository{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{})
+
 	return builder.Complete(r)
+}
+
+func captureMetrics(ctx context.Context, params reconcile.Params, start time.Time, repository *securityv1.Repository, namespace string) error {
+
+	otelEnabled, err := util.GetOtelEnabled()
+	if err != nil {
+		params.Log.Info("could not determine if OTel is enabled")
+
+	}
+
+	if !otelEnabled {
+		return nil
+	}
+
+	otelMetricPrefix, err := util.GetOtelMetricPrefix()
+	if err != nil {
+		params.Log.Info("could not determine otel metric prefix")
+		return err
+	}
+
+	if otelMetricPrefix == "" {
+		otelMetricPrefix = "layer7_"
+	}
+
+	hostname, err := util.GetHostname()
+	if err != nil {
+		params.Log.Error(err, "failed to retrieve operator hostname")
+		return err
+	}
+	if err != nil {
+		params.Log.Error(err, "failed to retrieve operator namespace")
+		return err
+	}
+
+	meter := otel.Meter("layer7-operator-repository-controller-metrics")
+	reconcileLatency, err := meter.Float64Histogram(otelMetricPrefix+"operator_repo_reconciler_latency",
+		metric.WithDescription("repository controller reconcile latency"), metric.WithUnit("ms"))
+	if err != nil {
+		return err
+	}
+
+	duration := time.Since(start)
+	reconcileLatency.Record(ctx, duration.Seconds(),
+		metric.WithAttributes(
+			attribute.String("pod", hostname),
+			attribute.String("namespace", namespace),
+		))
+
+	return nil
 }

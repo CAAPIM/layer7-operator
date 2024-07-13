@@ -13,12 +13,19 @@ func NewService(gw *securityv1.Gateway) *corev1.Service {
 	ports := []corev1.ServicePort{}
 
 	for p := range gw.Spec.App.Service.Ports {
-		ports = append(ports, corev1.ServicePort{
+
+		port := corev1.ServicePort{
 			Name:       gw.Spec.App.Service.Ports[p].Name,
 			Port:       gw.Spec.App.Service.Ports[p].Port,
 			TargetPort: intstr.FromString(gw.Spec.App.Service.Ports[p].Name),
 			Protocol:   corev1.Protocol(gw.Spec.App.Service.Ports[p].Protocol),
-		})
+		}
+
+		if gw.Spec.App.Service.Type == corev1.ServiceTypeNodePort && gw.Spec.App.Service.Ports[p].NodePort != 0 {
+			port.NodePort = gw.Spec.App.Service.Ports[p].NodePort
+		}
+
+		ports = append(ports, port)
 	}
 
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
@@ -107,12 +114,19 @@ func NewManagementService(gw *securityv1.Gateway) *corev1.Service {
 	ports := []corev1.ServicePort{}
 
 	for p := range gw.Spec.App.Management.Service.Ports {
-		ports = append(ports, corev1.ServicePort{
+
+		port := corev1.ServicePort{
 			Name:       gw.Spec.App.Management.Service.Ports[p].Name,
 			Port:       gw.Spec.App.Management.Service.Ports[p].Port,
 			TargetPort: intstr.FromString(gw.Spec.App.Management.Service.Ports[p].Name),
 			Protocol:   corev1.Protocol(gw.Spec.App.Management.Service.Ports[p].Protocol),
-		})
+		}
+
+		if gw.Spec.App.Management.Service.Type == corev1.ServiceTypeNodePort && gw.Spec.App.Management.Service.Ports[p].NodePort != 0 {
+			port.NodePort = gw.Spec.App.Management.Service.Ports[p].NodePort
+		}
+
+		ports = append(ports, port)
 	}
 
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)

@@ -22,6 +22,11 @@ spec:
     autoscaling:
       enabled: false
     bundle: []
+    # externalSecrets:
+    #   - name: test
+    #     enabled: true
+    #     description: test secret
+    #     variableReferencable: true
     repositoryReferences:
       - name: l7-gw-myframework
         enabled: true

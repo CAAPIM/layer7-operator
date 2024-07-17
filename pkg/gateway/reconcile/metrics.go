@@ -77,8 +77,8 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 	duration := time.Since(start)
 	graphmanApplyLatency.Record(ctx, duration.Seconds(),
 		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
 			attribute.String("gateway_namespace", gateway.Namespace),
 			attribute.String("gateway_pod", podName),
 			attribute.String("bundle_type", bundleType),
@@ -87,8 +87,8 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 
 	graphmanRequestTotal.Add(ctx, 1,
 		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
 			attribute.String("gateway_namespace", gateway.Namespace),
 			attribute.String("gateway_name", gateway.Name),
 			attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
@@ -96,8 +96,8 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 	if hasError {
 		graphmanRequestFailure.Add(ctx, 1,
 			metric.WithAttributes(
-				attribute.String("pod", hostname),
-				attribute.String("namespace", operatorNamespace),
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
 				attribute.String("gateway_namespace", gateway.Namespace),
 				attribute.String("sha1sum", sha1sum),
 				attribute.String("bundle_type", bundleType),
@@ -109,8 +109,8 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 	} else {
 		graphmanRequestSuccess.Add(ctx, 1,
 			metric.WithAttributes(
-				attribute.String("pod", hostname),
-				attribute.String("namespace", operatorNamespace),
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
 				attribute.String("gateway_namespace", gateway.Namespace),
 				attribute.String("sha1sum", sha1sum),
 				attribute.String("bundle_type", bundleType),

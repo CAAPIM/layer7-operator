@@ -144,8 +144,8 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 	duration := time.Since(start)
 	reconcileLatency.Record(ctx, duration.Seconds(),
 		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", namespace),
+			attribute.String("k8s.namespace.name", namespace),
+			attribute.String("k8s.pod.name", hostname),
 		))
 
 	return nil

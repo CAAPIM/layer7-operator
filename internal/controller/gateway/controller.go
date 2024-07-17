@@ -108,12 +108,12 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		err = op.Run(ctx, params)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("failed to reconcile %s", op.Name))
-			_ = captureMetrics(ctx, params, start, true)
+			_ = captureMetrics(ctx, params, start, true, op.Name)
 			return ctrl.Result{}, err
 		}
 	}
 
-	_ = captureMetrics(ctx, params, start, false)
+	_ = captureMetrics(ctx, params, start, false, "")
 
 	return ctrl.Result{RequeueAfter: 12 * time.Hour}, nil
 }
@@ -189,7 +189,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return builder.Complete(r)
 }
 
-func captureMetrics(ctx context.Context, params reconcile.Params, start time.Time, hasError bool) error {
+func captureMetrics(ctx context.Context, params reconcile.Params, start time.Time, hasError bool, opName string) error {
 
 	gateway := params.Instance
 	operatorNamespace, err := util.GetOperatorNamespace()
@@ -253,19 +253,7 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 		return err
 	}
 
-	gatewayRepoRefs, err := meter.Int64Gauge(otelMetricPrefix+"operator_gw_repository_references",
-		metric.WithDescription("operator managed gateway repository references"))
-	if err != nil {
-		return err
-	}
-
-	gatewaySecretRefs, err := meter.Int64Gauge(otelMetricPrefix+"operator_gw_secret_references",
-		metric.WithDescription("operator managed gateway repository references"))
-	if err != nil {
-		return err
-	}
-
-	gatewayKeyRefs, err := meter.Int64Gauge(otelMetricPrefix+"operator_gw_key_references",
+	gatewayExternalRefs, err := meter.Int64Gauge(otelMetricPrefix+"operator_gw_external_references",
 		metric.WithDescription("operator managed gateway repository references"))
 	if err != nil {
 		return err
@@ -274,38 +262,29 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 	duration := time.Since(start)
 	reconcileLatency.Record(ctx, duration.Seconds(),
 		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
 		))
 
-	gatewayRepoRefs.Record(ctx, int64(len(gateway.Spec.App.RepositoryReferences)),
+	externalRefs := len(gateway.Spec.App.RepositoryReferences) + len(gateway.Spec.App.ExternalSecrets) + len(gateway.Spec.App.ExternalKeys)
+
+	gatewayExternalRefs.Record(ctx, int64(externalRefs),
 		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
 			attribute.String("gateway_namespace", gateway.Namespace),
 			attribute.String("gateway_name", gateway.Name),
-			attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
-
-	gatewaySecretRefs.Record(ctx, int64(len(gateway.Spec.App.ExternalSecrets)),
-		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
-			attribute.String("gateway_namespace", gateway.Namespace),
+			attribute.Int("repository_references", len(gateway.Spec.App.RepositoryReferences)),
+			attribute.Int("external_keys", len(gateway.Spec.App.ExternalKeys)),
+			attribute.Int("external_secrets", len(gateway.Spec.App.ExternalSecrets)),
 			attribute.String("gateway_name", gateway.Name),
-			attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
-
-	gatewayKeyRefs.Record(ctx, int64(len(gateway.Spec.App.ExternalKeys)),
-		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
-			attribute.String("gateway_namespace", gateway.Namespace),
 			attribute.String("gateway_name", gateway.Name),
 			attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
 
 	gatewayReconcileTotal.Add(ctx, 1,
 		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
 			attribute.String("gateway_namespace", gateway.Namespace),
 			attribute.String("gateway_name", gateway.Name),
 			attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
@@ -313,16 +292,17 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 	if hasError {
 		gatewayReconcileFailure.Add(ctx, 1,
 			metric.WithAttributes(
-				attribute.String("pod", hostname),
-				attribute.String("namespace", operatorNamespace),
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
+				attribute.String("operation", opName),
 				attribute.String("gateway_namespace", gateway.Namespace),
 				attribute.String("gateway_name", gateway.Name),
 				attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
 	} else {
 		gatewayReconcileSuccess.Add(ctx, 1,
 			metric.WithAttributes(
-				attribute.String("pod", hostname),
-				attribute.String("namespace", operatorNamespace),
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
 				attribute.String("gateway_namespace", gateway.Namespace),
 				attribute.String("gateway_name", gateway.Name),
 				attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))

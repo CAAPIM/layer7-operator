@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 30,
   "links": [],
   "panels": [
     {
@@ -79,7 +78,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^repository_references$/",
           "values": false
         },
         "showPercentChange": false,
@@ -93,8 +92,10 @@
             "type": "prometheus",
             "uid": "mimir"
           },
-          "editorMode": "code",
-          "expr": "layer7_operator_gw_repository_references{pod=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "layer7_operator_gw_external_references{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "format": "table",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -102,6 +103,14 @@
         }
       ],
       "title": "Repository References",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -148,7 +157,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^external_keys$/",
           "values": false
         },
         "showPercentChange": false,
@@ -163,7 +172,8 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "layer7_operator_gw_key_references{pod=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "expr": "layer7_operator_gw_external_references{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "format": "table",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -171,6 +181,12 @@
         }
       ],
       "title": "External Key References",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        }
+      ],
       "type": "stat"
     },
     {
@@ -218,7 +234,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^external_secrets$/",
           "values": false
         },
         "showPercentChange": false,
@@ -233,7 +249,9 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "layer7_operator_gw_secret_references{pod=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "exemplar": false,
+          "expr": "layer7_operator_gw_external_references{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "format": "table",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -241,6 +259,12 @@
         }
       ],
       "title": "External Secret References",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        }
+      ],
       "type": "stat"
     },
     {
@@ -306,7 +330,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "layer7_operator_gw_reconciler_latency_milliseconds_bucket{pod=\"$operatorPod\",namespace=\"$operatorNamespace\"}",
+          "expr": "layer7_operator_gw_reconciler_latency_milliseconds_bucket{k8s_pod_name=\"$operatorPod\",k8s_namespace_name=\"$operatorNamespace\"}",
           "instant": false,
           "legendFormat": "{{le}}",
           "range": true,
@@ -376,7 +400,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "layer7_operator_gw_reconcile_total{pod=\"$operatorPod\",gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "expr": "layer7_operator_gw_reconcile_total{k8s_pod_name=\"$operatorPod\",gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -446,7 +470,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "layer7_operator_gw_reconcile_failure_total{pod=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "expr": "layer7_operator_gw_reconcile_failure_total{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -516,7 +540,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "layer7_operator_gw_reconcile_success_total{pod=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
+          "expr": "layer7_operator_gw_reconcile_success_total{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"}",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -626,7 +650,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "layer7_operator_repo_reconciler_latency_milliseconds_bucket{pod=\"$operatorPod\",namespace=\"$operatorNamespace\"}",
+          "expr": "layer7_operator_repo_reconciler_latency_milliseconds_bucket{k8s_pod_name=\"$operatorPod\",k8s_namespace_name=\"$operatorNamespace\"}",
           "instant": false,
           "legendFormat": "{{le}}",
           "range": true,
@@ -711,7 +735,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "layer7_operator_graphman_request_total{pod=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"}",
+          "expr": "layer7_operator_graphman_request_total{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"}",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -782,7 +806,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(layer7_operator_graphman_request_failure_total{pod=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"})",
+          "expr": "sum(layer7_operator_graphman_request_failure_total{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"})",
           "instant": true,
           "legendFormat": "__auto",
           "range": false,
@@ -852,7 +876,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "sum(layer7_operator_graphman_request_success_total{pod=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"})",
+          "expr": "sum(layer7_operator_graphman_request_success_total{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"})",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -923,7 +947,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "avg(layer7_operator_graphman_latency_milliseconds_sum{pod=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"})",
+          "expr": "avg(layer7_operator_graphman_latency_milliseconds_sum{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\",gateway_namespace=\"$gatewayNamespace\"})",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -1019,7 +1043,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(layer7_operator_graphman_latency_milliseconds_bucket{gateway_name=\"$gateway\", pod=\"$operatorPod\", gateway_namespace=\"$gatewayNamespace\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(layer7_operator_graphman_latency_milliseconds_bucket{gateway_name=\"$gateway\", k8s_pod_name=\"$operatorPod\", gateway_namespace=\"$gatewayNamespace\"}[$__rate_interval])) by (le))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -1109,7 +1133,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "layer7_operator_graphman_request_success_total{pod=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"}",
+          "expr": "layer7_operator_graphman_request_success_total{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1131,8 +1155,8 @@
               "gateway_namespace",
               "gateway_version",
               "name",
-              "namespace",
-              "pod",
+              "k8s_namespace_name",
+              "k8s_pod_name",
               "sha1sum"
             ],
             "mode": "columns"
@@ -1148,11 +1172,9 @@
               "bundle_type": false,
               "gateway_namespace": true,
               "gateway_version": false,
-              "name": false,
-              "namespace": true,
-              "pod": true,
-              "{__name__=\"layer7_operator_graphman_request_success_total\", bundle_type=\"repository\", gateway_namespace=\"default\", gateway_version=\"11.1.00\", name=\"ssg\", namespace=\"default\", pod=\"layer7-operator-controller-manager-7c6659d858-gjkkv\", sha1sum=\"e3d192873ebe02c4c37f7c8f5e69f840db213857\"}": true,
-              "{__name__=\"layer7_operator_graphman_request_success_total\", bundle_type=\"ssg\", gateway_namespace=\"default\", gateway_version=\"11.1.00\", name=\"ssg\", namespace=\"default\", pod=\"layer7-operator-controller-manager-577848ffc5-7b9bq\", sha1sum=\"5087200158a2c4c53b162c6330719dd35b223aea\"}": true
+              "k8s_namespace_name": true,
+              "k8s_pod_name": true,
+              "name": false
             },
             "includeByName": {},
             "indexByName": {
@@ -1166,8 +1188,8 @@
               "gateway_namespace": 4,
               "gateway_pod": 2,
               "gateway_version": 5,
-              "namespace": 6,
-              "pod": 7,
+              "k8s_namespace_name": 6,
+              "k8s_pod_name": 7,
               "sha1sum": 10
             },
             "renameByName": {
@@ -1178,9 +1200,9 @@
               "gateway_namespace": "Gateway Namespace",
               "gateway_pod": "Gateway Pod",
               "gateway_version": "Gateway Version",
-              "name": "Gateway Name",
-              "namespace": "Operator Namespace",
-              "pod": ""
+              "k8s_namespace_name": "Operator Namespace",
+              "k8s_pod_name": "",
+              "name": "Gateway Name"
             }
           }
         },
@@ -1336,7 +1358,7 @@
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "layer7_operator_graphman_request_failure_total{pod=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"}",
+          "expr": "layer7_operator_graphman_request_failure_total{k8s_pod_name=\"$operatorPod\", gateway_name=\"$gateway\", gateway_namespace=\"$gatewayNamespace\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1358,8 +1380,8 @@
               "gateway_namespace",
               "gateway_version",
               "name",
-              "namespace",
-              "pod",
+              "k8s_namespace_name",
+              "k8s_pod_name",
               "sha1sum"
             ],
             "mode": "columns"
@@ -1375,11 +1397,9 @@
               "bundle_type": false,
               "gateway_namespace": true,
               "gateway_version": false,
-              "name": false,
-              "namespace": true,
-              "pod": true,
-              "{__name__=\"layer7_operator_graphman_request_success_total\", bundle_type=\"repository\", gateway_namespace=\"default\", gateway_version=\"11.1.00\", name=\"ssg\", namespace=\"default\", pod=\"layer7-operator-controller-manager-7c6659d858-gjkkv\", sha1sum=\"e3d192873ebe02c4c37f7c8f5e69f840db213857\"}": true,
-              "{__name__=\"layer7_operator_graphman_request_success_total\", bundle_type=\"ssg\", gateway_namespace=\"default\", gateway_version=\"11.1.00\", name=\"ssg\", namespace=\"default\", pod=\"layer7-operator-controller-manager-577848ffc5-7b9bq\", sha1sum=\"5087200158a2c4c53b162c6330719dd35b223aea\"}": true
+              "k8s_namespace_name": true,
+              "k8s_pod_name": true,
+              "name": false
             },
             "includeByName": {},
             "indexByName": {
@@ -1393,8 +1413,8 @@
               "gateway_namespace": 4,
               "gateway_pod": 2,
               "gateway_version": 5,
-              "namespace": 6,
-              "pod": 7,
+              "k8s_namespace_name": 6,
+              "k8s_pod_name": 7,
               "sha1sum": 10
             },
             "renameByName": {
@@ -1405,8 +1425,8 @@
               "gateway_namespace": "Gateway Namespace",
               "gateway_pod": "Gateway Pod",
               "gateway_version": "Gateway Version",
+              "k8s_namespace_name": "",
               "name": "Gateway Name",
-              "namespace": "",
               "sha1sum": ""
             }
           }
@@ -1495,7 +1515,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "sum(layer7_operator_repository_sync_total{pod=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"})",
+          "expr": "sum(layer7_operator_repository_sync_total{k8s_pod_name=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"})",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -1561,7 +1581,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "sum(layer7_operator_repository_sync_failure_total{pod=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"})",
+          "expr": "sum(layer7_operator_repository_sync_failure_total{k8s_pod_name=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"})",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -1627,7 +1647,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "sum(layer7_operator_repository_sync_success_total{pod=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"})",
+          "expr": "sum(layer7_operator_repository_sync_success_total{k8s_pod_name=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"})",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -1702,7 +1722,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "layer7_operator_repository_sync_latency_milliseconds_bucket{pod=\"$operatorPod\", namespace=\"$operatorNamespace\"}",
+          "expr": "layer7_operator_repository_sync_latency_milliseconds_bucket{k8s_pod_name=\"$operatorPod\", k8s_namespace_name=\"$operatorNamespace\"}",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -1792,7 +1812,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "layer7_operator_repository_sync_success_total{namespace=\"$operatorNamespace\", pod=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"}",
+          "expr": "layer7_operator_repository_sync_success_total{k8s_namespace_name=\"$operatorNamespace\", k8s_pod_name=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1814,8 +1834,8 @@
               "gateway_namespace",
               "gateway_version",
               "name",
-              "namespace",
-              "pod",
+              "k8s_namespace_name",
+              "k8s_pod_name",
               "sha1sum"
             ],
             "mode": "columns"
@@ -1831,11 +1851,9 @@
               "bundle_type": false,
               "gateway_namespace": false,
               "gateway_version": false,
-              "name": false,
-              "namespace": true,
-              "pod": true,
-              "{__name__=\"layer7_operator_graphman_request_success_total\", bundle_type=\"repository\", gateway_namespace=\"default\", gateway_version=\"11.1.00\", name=\"ssg\", namespace=\"default\", pod=\"layer7-operator-controller-manager-7c6659d858-gjkkv\", sha1sum=\"e3d192873ebe02c4c37f7c8f5e69f840db213857\"}": true,
-              "{__name__=\"layer7_operator_graphman_request_success_total\", bundle_type=\"ssg\", gateway_namespace=\"default\", gateway_version=\"11.1.00\", name=\"ssg\", namespace=\"default\", pod=\"layer7-operator-controller-manager-577848ffc5-7b9bq\", sha1sum=\"5087200158a2c4c53b162c6330719dd35b223aea\"}": true
+              "k8s_namespace_name": true,
+              "k8s_pod_name": true,
+              "name": false
             },
             "includeByName": {},
             "indexByName": {
@@ -1843,8 +1861,8 @@
               "Value": 6,
               "__name__": 5,
               "commit_id": 8,
-              "namespace": 1,
-              "pod": 4,
+              "k8s_namespace_name": 1,
+              "k8s_pod_name": 4,
               "repository_name": 2,
               "repository_namespace": 3,
               "repository_type": 7
@@ -1857,9 +1875,9 @@
               "gateway_namespace": "Gateway Namespace",
               "gateway_pod": "Gateway Pod",
               "gateway_version": "Gateway Version",
+              "k8s_namespace_name": "Operator Namespace",
+              "k8s_pod_name": "",
               "name": "Gateway Name",
-              "namespace": "Operator Namespace",
-              "pod": "",
               "repository_name": "Repository Name",
               "repository_namespace": "Repository Namespace",
               "repository_type": "Repository Type"
@@ -1946,7 +1964,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "layer7_operator_repository_sync_failure_total{namespace=\"$operatorNamespace\", pod=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"}",
+          "expr": "layer7_operator_repository_sync_failure_total{k8s_namespace_name=\"$operatorNamespace\", k8s_pod_name=\"$operatorPod\", repository_namespace=\"$repositoryNamespace\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1968,8 +1986,8 @@
               "gateway_namespace",
               "gateway_version",
               "name",
-              "namespace",
-              "pod",
+              "k8s_namespace_name",
+              "k8s_pod_name",
               "sha1sum"
             ],
             "mode": "columns"
@@ -1985,11 +2003,9 @@
               "bundle_type": false,
               "gateway_namespace": false,
               "gateway_version": false,
-              "name": false,
-              "namespace": true,
-              "pod": true,
-              "{__name__=\"layer7_operator_graphman_request_success_total\", bundle_type=\"repository\", gateway_namespace=\"default\", gateway_version=\"11.1.00\", name=\"ssg\", namespace=\"default\", pod=\"layer7-operator-controller-manager-7c6659d858-gjkkv\", sha1sum=\"e3d192873ebe02c4c37f7c8f5e69f840db213857\"}": true,
-              "{__name__=\"layer7_operator_graphman_request_success_total\", bundle_type=\"ssg\", gateway_namespace=\"default\", gateway_version=\"11.1.00\", name=\"ssg\", namespace=\"default\", pod=\"layer7-operator-controller-manager-577848ffc5-7b9bq\", sha1sum=\"5087200158a2c4c53b162c6330719dd35b223aea\"}": true
+              "k8s_namespace_name": true,
+              "k8s_pod_name": true,
+              "name": false
             },
             "includeByName": {},
             "indexByName": {
@@ -1997,8 +2013,8 @@
               "Value": 6,
               "__name__": 5,
               "commit_id": 8,
-              "namespace": 1,
-              "pod": 4,
+              "k8s_namespace_name": 1,
+              "k8s_pod_name": 4,
               "repository_name": 2,
               "repository_namespace": 3,
               "repository_type": 7
@@ -2011,9 +2027,9 @@
               "gateway_namespace": "Gateway Namespace",
               "gateway_pod": "Gateway Pod",
               "gateway_version": "Gateway Version",
+              "k8s_namespace_name": "Operator Namespace",
+              "k8s_pod_name": "",
               "name": "Gateway Name",
-              "namespace": "Operator Namespace",
-              "pod": "",
               "repository_name": "Repository Name",
               "repository_namespace": "Repository Namespace",
               "repository_type": "Repository Type"
@@ -2039,7 +2055,7 @@
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "layer7_operator_gw_repository_references{}",
+        "definition": "layer7_operator_gw_external_references{}",
         "hide": 0,
         "includeAll": false,
         "label": "Namespace",
@@ -2048,7 +2064,7 @@
         "options": [],
         "query": {
           "qryType": 4,
-          "query": "layer7_operator_gw_repository_references{}",
+          "query": "layer7_operator_gw_external_references{}",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
@@ -2060,14 +2076,14 @@
       {
         "current": {
           "selected": false,
-          "text": "layer7-operator-controller-manager-97cd5db8-cd2s4",
-          "value": "layer7-operator-controller-manager-97cd5db8-cd2s4"
+          "text": "layer7-operator-controller-manager-59d5b96ff7-v8594",
+          "value": "layer7-operator-controller-manager-59d5b96ff7-v8594"
         },
         "datasource": {
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "layer7_operator_gw_repository_references{namespace=\"$operatorNamespace\"}",
+        "definition": "layer7_operator_gw_external_references{k8s_namespace_name=\"$operatorNamespace\"}",
         "hide": 0,
         "includeAll": false,
         "label": "Pod",
@@ -2076,11 +2092,11 @@
         "options": [],
         "query": {
           "qryType": 4,
-          "query": "layer7_operator_gw_repository_references{namespace=\"$operatorNamespace\"}",
+          "query": "layer7_operator_gw_external_references{k8s_namespace_name=\"$operatorNamespace\"}",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
-        "regex": "/.*pod=\"([^\"]*)\"/",
+        "regex": "/.*k8s_pod_name=\"([^\"]*)\"/",
         "skipUrlSync": false,
         "sort": 0,
         "type": "query"
@@ -2095,7 +2111,7 @@
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "layer7_operator_gw_repository_references{pod=\"$operatorPod\"}",
+        "definition": "layer7_operator_gw_external_references{k8s_pod_name=\"$operatorPod\"}",
         "hide": 0,
         "includeAll": false,
         "label": "Gateway",
@@ -2104,7 +2120,7 @@
         "options": [],
         "query": {
           "qryType": 4,
-          "query": "layer7_operator_gw_repository_references{pod=\"$operatorPod\"}",
+          "query": "layer7_operator_gw_external_references{k8s_pod_name=\"$operatorPod\"}",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
@@ -2123,7 +2139,7 @@
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "layer7_operator_gw_repository_references{pod=\"$operatorPod\",gateway_name=\"$gateway\"}",
+        "definition": "layer7_operator_gw_external_references{k8s_pod_name=\"$operatorPod\",gateway_name=\"$gateway\"}",
         "hide": 0,
         "includeAll": false,
         "label": "Gateway Namespace",
@@ -2132,7 +2148,7 @@
         "options": [],
         "query": {
           "qryType": 4,
-          "query": "layer7_operator_gw_repository_references{pod=\"$operatorPod\",gateway_name=\"$gateway\"}",
+          "query": "layer7_operator_gw_external_references{k8s_pod_name=\"$operatorPod\",gateway_name=\"$gateway\"}",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
@@ -2151,7 +2167,7 @@
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "layer7_operator_repository_sync_total{pod=\"$operatorPod\"}",
+        "definition": "layer7_operator_repository_sync_total{k8s_pod_name=\"$operatorPod\"}",
         "hide": 0,
         "includeAll": false,
         "label": "Repository Namespace",
@@ -2160,7 +2176,7 @@
         "options": [],
         "query": {
           "qryType": 4,
-          "query": "layer7_operator_repository_sync_total{pod=\"$operatorPod\"}",
+          "query": "layer7_operator_repository_sync_total{k8s_pod_name=\"$operatorPod\"}",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
@@ -2172,13 +2188,13 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Layer7 Operator",
   "uid": "cdrfpkaizi0w0b",
-  "version": 59,
+  "version": 1,
   "weekStart": ""
 }

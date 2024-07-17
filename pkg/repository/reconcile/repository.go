@@ -191,6 +191,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		if err != nil {
 			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 			params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
+			return nil
 		}
 		params.Log.Info("reconciled", "name", repository.Name, "namespace", repository.Namespace, "commit", commit)
 	}
@@ -311,21 +312,21 @@ func captureRepositorySyncMetrics(ctx context.Context, params Params, start time
 	duration := time.Since(start)
 	repoSyncLatency.Record(ctx, duration.Seconds(),
 		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
 			attribute.String("repository_namespace", gateway.Namespace)))
 
 	repoSyncTotal.Add(ctx, 1,
 		metric.WithAttributes(
-			attribute.String("pod", hostname),
-			attribute.String("namespace", operatorNamespace),
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
 			attribute.String("repository_namespace", gateway.Namespace)))
 
 	if hasError {
 		repoSyncFailure.Add(ctx, 1,
 			metric.WithAttributes(
-				attribute.String("pod", hostname),
-				attribute.String("namespace", operatorNamespace),
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
 				attribute.String("repository_namespace", gateway.Namespace),
 				attribute.String("repository_type", params.Instance.Spec.Type),
 				attribute.String("repository_name", params.Instance.Name),
@@ -333,8 +334,8 @@ func captureRepositorySyncMetrics(ctx context.Context, params Params, start time
 	} else {
 		repoSyncSuccess.Add(ctx, 1,
 			metric.WithAttributes(
-				attribute.String("pod", hostname),
-				attribute.String("namespace", operatorNamespace),
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
 				attribute.String("repository_namespace", gateway.Namespace),
 				attribute.String("repository_type", params.Instance.Spec.Type),
 				attribute.String("repository_name", params.Instance.Name),

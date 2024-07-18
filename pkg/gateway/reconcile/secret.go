@@ -14,7 +14,6 @@ import (
 )
 
 func Secrets(ctx context.Context, params Params) error {
-
 	desiredSecrets := []*corev1.Secret{}
 
 	if params.Instance.Spec.App.Management.SecretName == "" {

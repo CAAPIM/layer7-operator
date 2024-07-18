@@ -32,8 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-/// TODO: refactor
-
 // L7PortalReconciler reconciles a Gateway object
 type L7PortalReconciler struct {
 	client.Client

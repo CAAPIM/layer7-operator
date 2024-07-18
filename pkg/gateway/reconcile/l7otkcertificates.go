@@ -102,7 +102,7 @@ func applyOtkCertificates(ctx context.Context, params Params, gateway *securityv
 		if err != nil {
 			return err
 		}
-		err = ReconcileEphemeralGateway(ctx, params, "otk certificates", *podList, gateway, gwSecret, "", annotation, sha1Sum, true, bundleBytes)
+		err = ReconcileEphemeralGateway(ctx, params, "otk certificates", *podList, gateway, gwSecret, "", annotation, sha1Sum, true, "otk certificates", bundleBytes)
 		if err != nil {
 			return err
 		}

@@ -36,7 +36,7 @@ func ScheduledJobs(ctx context.Context, params Params) error {
 
 func registerJobs(ctx context.Context, params Params) {
 	s.TagsUnique()
-	repoSyncInterval := 5
+	repoSyncInterval := 10
 
 	if params.Instance.Spec.RepositorySyncConfig.IntervalSeconds != 0 {
 		repoSyncInterval = params.Instance.Spec.RepositorySyncConfig.IntervalSeconds

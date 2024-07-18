@@ -13,9 +13,7 @@ var s = gocron.NewScheduler(time.Local)
 var syncCache = util.NewSyncCache(3 * time.Second)
 
 func Jobs(ctx context.Context, params Params) error {
-
 	registerJobs(ctx, params)
-
 	for _, j := range s.Jobs() {
 		for _, t := range j.Tags() {
 			params.Log.V(2).Info("starting job", "job", t, "namespace", params.Instance.Namespace)
@@ -28,7 +26,6 @@ func Jobs(ctx context.Context, params Params) error {
 	if !s.IsRunning() {
 		s.StartAsync()
 	}
-
 	return nil
 }
 

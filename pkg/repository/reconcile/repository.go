@@ -10,6 +10,9 @@ import (
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-git/go-git/v5"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,9 +40,9 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	repoStatus := repository.Status
 	if !repository.Spec.Enabled {
-		params.Log.Info("repository not enabled", "name", repository.Name, "namespace", repository.Namespace)
 		return nil
 	}
+	start := time.Now()
 
 	if repository.Spec.Auth != (securityv1.RepositoryAuth{}) && repository.Spec.Auth.Type != securityv1.RepositoryAuthTypeNone {
 
@@ -112,6 +115,7 @@ func syncRepository(ctx context.Context, params Params) error {
 				if err != nil {
 					params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 				}
+				_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 				return nil
 			}
 			params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
@@ -123,6 +127,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			if err != nil {
 				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 			}
+			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 			return nil
 		}
 		fileURL, _ := url.Parse(repository.Spec.Endpoint)
@@ -135,6 +140,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 		}
 		storageSecretName = repository.Name + "-repository-" + folderName
+
 	case "git":
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
@@ -150,6 +156,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			if err != nil {
 				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 			}
+			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 			return nil
 		}
 	default:
@@ -182,11 +189,13 @@ func syncRepository(ctx context.Context, params Params) error {
 		repository.Status = repoStatus
 		err = params.Client.Status().Update(ctx, &repository)
 		if err != nil {
+			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 			params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
+			return nil
 		}
 		params.Log.Info("reconciled", "name", repository.Name, "namespace", repository.Namespace, "commit", commit)
 	}
-
+	_ = captureRepositorySyncMetrics(ctx, params, start, commit, false)
 	return nil
 }
 
@@ -234,6 +243,104 @@ func setRepoStatus(ctx context.Context, params Params, patch []byte) error {
 		return err
 	}
 	params.Log.Info("repository status has been updated", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+
+	return nil
+}
+
+func captureRepositorySyncMetrics(ctx context.Context, params Params, start time.Time, commitId string, hasError bool) error {
+	operatorNamespace, err := util.GetOperatorNamespace()
+	if err != nil {
+		params.Log.Info("could not determine operator namespace")
+		return err
+	}
+	gateway := params.Instance
+	otelEnabled, err := util.GetOtelEnabled()
+	if err != nil {
+		params.Log.Info("could not determine if OTel is enabled")
+		return err
+	}
+
+	if !otelEnabled {
+		return nil
+	}
+
+	otelMetricPrefix, err := util.GetOtelMetricPrefix()
+	if err != nil {
+		params.Log.Info("could not determine otel metric prefix")
+		return err
+	}
+
+	if otelMetricPrefix == "" {
+		otelMetricPrefix = "layer7_"
+	}
+
+	hostname, err := util.GetHostname()
+	if err != nil {
+		params.Log.Error(err, "failed to retrieve operator hostname")
+		return err
+	}
+	if err != nil {
+		params.Log.Error(err, "failed to retrieve operator namespace")
+		return err
+	}
+
+	meter := otel.Meter("layer7-operator-repository-sync-metrics")
+	repoSyncLatency, err := meter.Float64Histogram(otelMetricPrefix+"operator_repository_sync_latency",
+		metric.WithDescription("repository sync latency"), metric.WithUnit("ms"))
+	if err != nil {
+		return err
+	}
+
+	repoSyncSuccess, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_success",
+		metric.WithDescription("graphman request success"))
+	if err != nil {
+		return err
+	}
+
+	repoSyncFailure, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_failure",
+		metric.WithDescription("graphman request failure"))
+	if err != nil {
+		return err
+	}
+
+	repoSyncTotal, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_total",
+		metric.WithDescription("graphman request total"))
+	if err != nil {
+		return err
+	}
+
+	duration := time.Since(start)
+	repoSyncLatency.Record(ctx, duration.Seconds(),
+		metric.WithAttributes(
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
+			attribute.String("repository_namespace", gateway.Namespace)))
+
+	repoSyncTotal.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
+			attribute.String("repository_namespace", gateway.Namespace)))
+
+	if hasError {
+		repoSyncFailure.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
+				attribute.String("repository_namespace", gateway.Namespace),
+				attribute.String("repository_type", params.Instance.Spec.Type),
+				attribute.String("repository_name", params.Instance.Name),
+				attribute.String("commit_id", commitId)))
+	} else {
+		repoSyncSuccess.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
+				attribute.String("repository_namespace", gateway.Namespace),
+				attribute.String("repository_type", params.Instance.Spec.Type),
+				attribute.String("repository_name", params.Instance.Name),
+				attribute.String("commit_id", commitId)))
+	}
 
 	return nil
 }

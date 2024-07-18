@@ -590,6 +590,7 @@ type Ports struct {
 	TargetPort int32 `json:"targetPort,omitempty"`
 	// Protocol
 	Protocol string `json:"protocol,omitempty"`
+	NodePort int32  `json:"nodePort,omitempty"`
 }
 
 // Bundle A Restman or Graphman bundle

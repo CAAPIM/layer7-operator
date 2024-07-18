@@ -12,7 +12,7 @@ pipeline {
         IMAGE_TAG_BASE = "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_PROJECT}/${IMAGE_NAME}"
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
         DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
-        def CREATED = sh(script: "echo `date`", returnStdout: true).trim()
+        def CREATED = sh(script: "echo `date -u +%Y-%m-%dT%H:%M:%SZ`", returnStdout: true).trim() 
         def YEAR = sh(script: "echo `date +%Y`", returnStdout: true).trim()
         VERSION = "${env.BRANCH_NAME}"    
         COPYRIGHT = "Copyright ${YEAR} Broadcom Inc. and/or its subsidiaries. All Rights Reserved."

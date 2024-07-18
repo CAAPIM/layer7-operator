@@ -61,6 +61,12 @@ spec:
           value: ""
         - name: NO_PROXY
           value: ""
+        - name: ENABLE_OTEL
+          value: "false"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: localhost:4317
+        - name: OTEL_METRIC_PREFIX
+          value: layer7_
         image: docker.io/layer7api/layer7-operator:main
         imagePullPolicy: IfNotPresent
         livenessProbe:

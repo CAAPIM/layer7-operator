@@ -1,0 +1,42 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: layer7-operator
+spec:
+  mode: deployment
+  image: otel/opentelemetry-collector-contrib:0.97.0
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+    exporters:
+      debug:
+        verbosity: basic
+      prometheusremotewrite:
+        endpoint: http://mimir-nginx.grafana-loki.svc.cluster.local/api/v1/push
+    service:
+      telemetry:
+        logs:
+          level: "debug"
+        metrics:
+          address: "0.0.0.0:8888"
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [prometheusremotewrite, debug]
+        logs: 
+          receivers: [otlp]
+          exporters: [debug]
+    extensions:
+      health_check:
+      pprof:
+        endpoint: 0.0.0.0:1777
+      zpages:
+        endpoint: 0.0.0.0:55679

@@ -2,6 +2,7 @@ package reconcile
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -74,7 +75,6 @@ func GatewayLicense(ctx context.Context, params Params) error {
 }
 
 func ManagementPod(ctx context.Context, params Params) error {
-
 	podList, err := getGatewayPods(ctx, params)
 
 	if err != nil {
@@ -106,7 +106,7 @@ func ManagementPod(ctx context.Context, params Params) error {
 	return nil
 }
 
-func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, podList corev1.PodList, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, bundle []byte) error {
+func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, podList corev1.PodList, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
 
 	graphmanPort := 9443
 
@@ -149,19 +149,20 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 			}
 
 			if syncRequest.Attempts > 0 {
-				params.Log.V(2).Info("request has been attempted in the last 30 seconds, backing off", "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+				params.Log.V(2).Info("request has been attempted in the last 3 seconds, backing off", "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 				tryRequest = false
 			}
 
 			if tryRequest {
-				syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(30*time.Second).Unix())
-
+				syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
+				start := time.Now()
 				params.Log.V(2).Info("applying "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 				err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase, bundle)
 				if err != nil {
+					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, kind, name, sha1Sum, true)
 					return err
 				}
-
+				_ = captureGraphmanMetrics(ctx, params, start, pod.Name, kind, name, sha1Sum, false)
 				params.Log.Info("applied "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 
 				if err := params.Client.Patch(context.Background(), &podList.Items[i],
@@ -170,7 +171,6 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 					return err
 				}
 			}
-
 		}
 	}
 
@@ -205,10 +205,11 @@ func ReconcileDBGateway(ctx context.Context, params Params, kind string, gateway
 		}
 
 		if syncRequest.Attempts > 0 {
-			params.Log.V(2).Info("request has been attempted in the last 30 seconds, backing off", "hash", sha1Sum, "Name", gateway.Name, "Namespace", gateway.Namespace)
-			return nil
+			params.Log.V(2).Info("request has been attempted in the last 3 seconds, backing off", "hash", sha1Sum, "Name", gateway.Name, "Namespace", gateway.Namespace)
+			return errors.New("request has been attempted in the last 3 seconds, backing off")
+
 		}
-		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(30*time.Second).Unix())
+		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 
 		endpoint := gateway.Name + "." + gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(graphmanPort) + "/graphman"
 		if gateway.Spec.App.Management.Service.Enabled {
@@ -218,6 +219,7 @@ func ReconcileDBGateway(ctx context.Context, params Params, kind string, gateway
 
 		err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase, bundle)
 		if err != nil {
+			params.Log.Info("failed to apply latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
 			return err
 		}
 		params.Log.Info("applied latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)

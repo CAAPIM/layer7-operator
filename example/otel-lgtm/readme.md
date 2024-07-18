@@ -128,12 +128,13 @@ ingress:
 
 ## Guide
 * [Quickstart](#quickstart)
-    * [Using an existing Kubernetes Cluster](#existing-kubernetes-cluster)
     * [Using Kind](#kind)
+    * [Using an existing Kubernetes Cluster](#existing-kubernetes-cluster)
 * [Deploy the Prometheus Stack](#deploy-the-prometheus-stack)
 * [Deploy the Grafana Stack](#deploy-the-grafana-stack)
 * [Deploy the OpenTelemetry Operator](#deploy-the-opentelemetry-operator)
 * [Create an OpenTelemetryCollector](#create-an-opentelemetry-collector)
+* [Deploy the Layer7 Operator](#deploy-the-layer7-operator)
 * [Verify Deployment](#verify-deployment)
 * [Test your Gateway](#test-your-gateway-deployment)
 * [Uninstall](#uninstall)
@@ -167,12 +168,12 @@ nodes:
 
 ### Kind
 ```
-make kind-cluster otel-lgtm-example-kind
+make kind-cluster enable-otel-l7operator otel-lgtm-example-kind
 ```
 
 ### Existing Kubernetes Cluster
 ```
-make otel-lgtm-example
+make enable-otel-l7operator otel-lgtm-example 
 ```
 if you don't have an ingress controller you can deploy nginx with the following
 ```
@@ -181,6 +182,14 @@ make nginx
 if you are using kind
 ```
 make nginx-kind
+```
+
+#### Enabling OTel Metrics for the Layer7 Operator
+The following command enables Open Telemetry metrics for the layer7 operator. You can read more about this configuration [here](./layer7-operator/readme.md)
+
+This command is run above, you do not need to run it again
+```
+make enable-otel-l7operator
 ```
 
 ### [Now verify everything is working as expected](#verify-deployment)
@@ -298,6 +307,10 @@ This step will deploy the Layer7 Operator and all of its resources in namespaced
 ```
 kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
 ```
+
+#### Open Telemetry Support
+The Layer7 Operator has basic support for OpenTelemetry Metrics, if you wish to enable this head [here](./layer7-operator/readme.md#layer7-operator-metrics-otel) to deploy the Operator with OTel enabled.
+
 
 #### Verify the Operator is up and running
 ```

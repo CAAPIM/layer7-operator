@@ -9,4 +9,5 @@ configMapGenerator:
   - name: layer7-gateway-dashboard
     files:
       - "./layer7-gateway-dashboard.json"
+      - "./layer7-operator-dashboard.json"
 

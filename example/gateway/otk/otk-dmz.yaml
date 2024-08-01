@@ -148,7 +148,7 @@ spec:
         com.l7tech.server.extension.sharedClusterInfoProvider=ssgdb
         # By default, FIPS module will block an RSA modulus from being used for encryption if it has been used for
         # signing, or visa-versa. Set true to disable this default behaviour and remain backwards compatible.
-        com.safelogic.cryptocomply.rsa.allow_multi_use=true
+        com.l7tech.org.bouncycastle.rsa.allow_multi_use=true
         # Specifies the type of Trust Store (JKS/PKCS12) provided by AdoptOpenJDK that is used by Gateway.
         # Must be set correctly when Gateway is running in FIPS mode. If not specified it will default to PKCS12.
         javax.net.ssl.trustStoreType=jks

@@ -123,6 +123,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).For(&securityv1.Gateway{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.Secret{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&networkingv1.Ingress{}).
 		Owns(&appsv1.Deployment{}).

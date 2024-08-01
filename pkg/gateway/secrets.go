@@ -4,7 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"regexp"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
@@ -13,7 +13,7 @@ import (
 )
 
 // NewSecret
-func NewSecret(gw *securityv1.Gateway, name string) *corev1.Secret {
+func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 
 	data := make(map[string][]byte)
 	dataCheckSum := ""
@@ -27,6 +27,16 @@ func NewSecret(gw *securityv1.Gateway, name string) *corev1.Secret {
 			data["SSG_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Management.Database.Password)
 			data["SSG_DATABASE_USER"] = []byte(gw.Spec.App.Management.Database.Username)
 		}
+	case gw.Name + "-node-properties":
+		nodeProperties := fmt.Sprintf("node.cluster.pass=%s\nadmin.user=%s\nadmin.pass=%s\n", gw.Spec.App.Management.Cluster.Password, gw.Spec.App.Management.Username, gw.Spec.App.Management.Password)
+		if gw.Spec.App.Management.Database.Enabled {
+			nodeProperties = fmt.Sprintf("%sl7.mysql.connection.url=%s\nnode.db.config.main.user=%s\nnode.db.config.main.pass=%s", nodeProperties, gw.Spec.App.Management.Database.JDBCUrl, gw.Spec.App.Management.Database.Username, gw.Spec.App.Management.Database.Password)
+		} else {
+			nodeProperties = fmt.Sprintf("%snode.db.type=%s\nnode.db.config.main.user=%s", nodeProperties, "derby", "gateway")
+
+		}
+		data["node.properties"] = []byte(nodeProperties)
+
 	case gw.Name + "-otk-db-credentials":
 		if gw.Spec.App.Otk.Database.Auth.GatewayUser != (securityv1.OtkDatabaseAuthCredentials{}) {
 			data["OTK_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.GatewayUser.Username)
@@ -40,66 +50,171 @@ func NewSecret(gw *securityv1.Gateway, name string) *corev1.Secret {
 			data["OTK_RO_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Username)
 			data["OTK_RO_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Password)
 		}
-	case gw.Name + "-redis-properties":
-		redisConfig := ""
-		auth := ""
-		tlsConfig := ""
-		publicCrt := ""
-		username := ""
-		password := ""
+
+	case gw.Name + "-shared-state-client-configuration":
 		redisGroupName := "l7GW"
+		sentinelMasterSet := "mymaster"
 		commandTimeout := 5000
+		connectTimeout := 10000
 
-		if gw.Spec.App.Redis.GroupName != "" {
-			redisGroupName = gw.Spec.App.Redis.GroupName
+		if gw.Spec.App.Redis.Default.Ssl.Enabled {
+			if gw.Spec.App.Redis.Default.Ssl.Crt != "" && gw.Spec.App.Redis.Default.Ssl.ExistingSecretName == "" {
+				data["redis.crt"] = []byte(gw.Spec.App.Redis.Default.Ssl.Crt)
+				gw.Spec.App.Redis.Default.Ssl.Crt = "redis.crt"
+			}
+			if gw.Spec.App.Redis.Default.Ssl.ExistingSecretName != "" {
+				gw.Spec.App.Redis.Default.Ssl.Crt = "redis.crt"
+			}
+		} else {
+			gw.Spec.App.Redis.Default.Ssl = securityv1.RedisSsl{}
 		}
 
-		if gw.Spec.App.Redis.CommandTimeout != 0 {
-			commandTimeout = gw.Spec.App.Redis.CommandTimeout
+		redisConfigs := []util.RedisClientConfig{}
+		defaultRedisConfig := util.RedisClientConfig{}
+
+		gw.Spec.App.Redis.Default.Name = "default"
+		defaultRedisBytes, err := json.Marshal(gw.Spec.App.Redis.Default)
+
+		if err != nil {
+			return nil, err
 		}
 
-		if gw.Spec.App.Redis.Tls.Enabled {
-			tlsConfig = fmt.Sprintf("redis.ssl.cert=redis.crt\nredis.ssl.verifypeer=%v", gw.Spec.App.Redis.Tls.VerifyPeer)
-			if gw.Spec.App.Redis.Tls.Crt != "" {
-				publicCrt = gw.Spec.App.Redis.Tls.Crt
-				data["redis.crt"] = []byte(publicCrt)
+		err = json.Unmarshal(defaultRedisBytes, &defaultRedisConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		if gw.Spec.App.Redis.Default.GroupName == "" {
+			defaultRedisConfig.KeyPrefixGroupName = redisGroupName
+		}
+
+		if gw.Spec.App.Redis.Default.CommandTimeout == 0 {
+			defaultRedisConfig.CommandTimeout = commandTimeout
+		}
+
+		if gw.Spec.App.Redis.Default.ConnectTimeout == 0 {
+			defaultRedisConfig.ConnectTimeout = connectTimeout
+		}
+
+		if gw.Spec.App.Redis.Default.Auth.Enabled {
+			if gw.Spec.App.Redis.Default.Auth.Username != "" {
+				defaultRedisConfig.Username = gw.Spec.App.Redis.Default.Auth.Username
+			}
+
+			if gw.Spec.App.Redis.Default.Auth.PasswordEncoded != "" && gw.Spec.App.Redis.Default.Auth.PasswordPlainText != "" {
+				return nil, fmt.Errorf("invalid redis configuration for %s provide one password type", gw.Spec.App.Redis.Default.Name)
+			}
+			if gw.Spec.App.Redis.Default.Auth.PasswordEncoded != "" {
+				defaultRedisConfig.EncodedPassword = gw.Spec.App.Redis.Default.Auth.PasswordEncoded
+			}
+			if gw.Spec.App.Redis.Default.Auth.PasswordPlainText != "" {
+				defaultRedisConfig.Password = gw.Spec.App.Redis.Default.Auth.PasswordPlainText
 			}
 		}
 
-		switch strings.ToLower(string(gw.Spec.App.Redis.Type)) {
-
-		case string(securityv1.RedisTypeStandalone):
-			if gw.Spec.App.Redis.Auth.Enabled {
-				if gw.Spec.App.Redis.Auth.Username != "" {
-					username = "redis.standalone.username=" + gw.Spec.App.Redis.Auth.Username
-				}
-				if gw.Spec.App.Redis.Auth.PasswordPlainText != "" {
-					password = "redis.standalone.password=" + gw.Spec.App.Redis.Auth.PasswordPlainText
-				}
-				if gw.Spec.App.Redis.Auth.PasswordEncoded != "" {
-					password = "redis.standalone.encodedPassword=" + gw.Spec.App.Redis.Auth.PasswordEncoded
-				}
-				auth = fmt.Sprintf("%s\n%s", username, password)
+		if len(gw.Spec.App.Redis.Default.Sentinel.Nodes) > 0 {
+			defaultRedisConfig.Sentinel.Master = gw.Spec.App.Redis.Default.Sentinel.MasterSet
+			if gw.Spec.App.Redis.Default.Sentinel.MasterSet == "" {
+				defaultRedisConfig.Sentinel.Master = sentinelMasterSet
 			}
-			redisConfig = fmt.Sprintf("redis.type=%s\nredis.standalone.hostname=%s\nredis.standalone.port=%d\nredis.key.prefix.grpname=%s\nredis.commandTimeout=%d\n%s\n%s", gw.Spec.App.Redis.Type, gw.Spec.App.Redis.Standalone.Hostname, gw.Spec.App.Redis.Standalone.Port, redisGroupName, commandTimeout, tlsConfig, auth)
-		case string(securityv1.RedisTypeSentinel):
-			if gw.Spec.App.Redis.Auth.Enabled {
-				if gw.Spec.App.Redis.Auth.Username != "" {
-					username = "redis.sentinel.username=" + gw.Spec.App.Redis.Auth.Username
-				}
-				if gw.Spec.App.Redis.Auth.PasswordPlainText != "" {
-					password = "redis.sentinel.password=" + gw.Spec.App.Redis.Auth.PasswordPlainText
-				}
-				if gw.Spec.App.Redis.Auth.PasswordEncoded != "" {
-					password = "redis.sentinel.encodedPassword=" + gw.Spec.App.Redis.Auth.PasswordEncoded
-				}
-				auth = fmt.Sprintf("%s\n%s", username, password)
-			}
-			nodes := strings.Join(gw.Spec.App.Redis.Sentinel.Nodes, ",")
-
-			redisConfig = fmt.Sprintf("redis.type=%s\nredis.sentinel.master=%s\nredis.sentinel.nodes=%s\nredis.key.prefix.grpname=%s\nredis.commandTimeout=%d\nredis.ssl=%v\n%s\n%s", gw.Spec.App.Redis.Type, gw.Spec.App.Redis.Sentinel.MasterSet, nodes, redisGroupName, commandTimeout, gw.Spec.App.Redis.Tls.Enabled, tlsConfig, auth)
 		}
-		data["redis.properties"] = []byte(redisConfig)
+
+		redisConfigs = append(redisConfigs, defaultRedisConfig)
+
+		if len(gw.Spec.App.Redis.AdditionalConfigs) > 0 {
+			for _, rc := range gw.Spec.App.Redis.AdditionalConfigs {
+				if rc.Enabled {
+					if rc.Ssl.Enabled {
+						if rc.Ssl.Crt != "" && rc.Ssl.ExistingSecretName == "" {
+							data[rc.Name+"-redis.crt"] = []byte(rc.Ssl.Crt)
+							rc.Ssl.Crt = rc.Name + "-redis.crt"
+						}
+						if rc.Ssl.ExistingSecretName != "" {
+							rc.Ssl.Crt = rc.Name + "-redis.crt"
+						}
+					} else {
+						rc.Ssl = securityv1.RedisSsl{}
+					}
+					redisConfig := util.RedisClientConfig{}
+					redisBytes, err := json.Marshal(rc)
+					if err != nil {
+						return nil, err
+					}
+					err = json.Unmarshal(redisBytes, &redisConfig)
+					if err != nil {
+						return nil, err
+					}
+					if rc.GroupName == "" {
+						redisConfig.KeyPrefixGroupName = redisGroupName
+					}
+
+					if rc.CommandTimeout == 0 {
+						redisConfig.CommandTimeout = commandTimeout
+					}
+
+					if rc.ConnectTimeout == 0 {
+						redisConfig.ConnectTimeout = connectTimeout
+					}
+
+					if rc.Auth.Enabled {
+						if rc.Auth.Username != "" {
+							redisConfig.Username = rc.Auth.Username
+						}
+
+						if rc.Auth.PasswordEncoded != "" && rc.Auth.PasswordPlainText != "" {
+							return nil, fmt.Errorf("invalid redis configuration for %s provide one password type", rc.Name)
+						}
+						if rc.Auth.PasswordEncoded != "" {
+							redisConfig.EncodedPassword = rc.Auth.PasswordEncoded
+						}
+						if rc.Auth.PasswordPlainText != "" {
+							redisConfig.Password = rc.Auth.PasswordPlainText
+						}
+					}
+
+					switch rc.Type {
+					case securityv1.RedisTypeSentinel:
+						if len(rc.Sentinel.Nodes) == 0 {
+							return nil, fmt.Errorf("redis %s sentinel requires an array of nodes that contain host and port", rc.Name)
+						}
+						for i, node := range rc.Sentinel.Nodes {
+							if node.Host == "" || node.Port == 0 {
+								return nil, fmt.Errorf("redis %s sentinel node %d requires host and port to be set", rc.Name, i)
+							}
+						}
+					case securityv1.RedisTypeStandalone:
+						if rc.Standalone.Host == "" || rc.Standalone.Port == 0 {
+							return nil, fmt.Errorf("redis %s standalone requires host and port to be set", rc.Name)
+						}
+					default:
+						return nil, fmt.Errorf("redis %s requires a type, valid options are sentinel or standalone", rc.Name)
+					}
+
+					if len(rc.Sentinel.Nodes) > 0 {
+						redisConfig.Sentinel.Master = rc.Sentinel.MasterSet
+						if rc.Sentinel.MasterSet == "" {
+							redisConfig.Sentinel.Master = sentinelMasterSet
+						}
+					}
+
+					redisConfigs = append(redisConfigs, redisConfig)
+				}
+			}
+		}
+		sharedStateClientBytes, err := util.GenerateSharedStateClientConfig(string(util.SharedStateClientConfigTypeRedis), redisConfigs, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		ssc := string(sharedStateClientBytes)
+		re1 := regexp.MustCompile(`(?m)(password:)\s(.*)`)
+		re2 := regexp.MustCompile(`(?m)(encodedPassword:)\s(.*)`)
+		sub1 := "password: \"$2\""
+		sub2 := "encodedPassword: \"$2\""
+		ssc = re1.ReplaceAllString(ssc, sub1)
+		ssc = re2.ReplaceAllString(ssc, sub2)
+		data["sharedstate_client.yaml"] = []byte(ssc)
+		//data["sharedstate_client.yaml"] = sharedStateClientBytes
 	}
 
 	if dataCheckSum == "" {
@@ -125,7 +240,7 @@ func NewSecret(gw *securityv1.Gateway, name string) *corev1.Secret {
 		Data: data,
 	}
 
-	return secret
+	return secret, nil
 }
 
 func NewOtkCertificateSecret(gw *securityv1.Gateway, name string, data map[string][]byte) *corev1.Secret {

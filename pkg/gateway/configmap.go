@@ -33,8 +33,16 @@ type RepositoryConfig struct {
 func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 	javaArgs := strings.Join(gw.Spec.App.Java.ExtraArgs, " ")
 	data := make(map[string]string)
-	jvmHeap := setJVMHeapSize(gw)
+	jvmHeap := setJVMHeapSize(gw, "", gw.Spec.App.Java.JVMHeap.Percentage)
 	dataCheckSum := ""
+	disklessConfig := "true"
+	if gw.Spec.App.Management.DisklessConfig.Disabled {
+		disklessConfig = "false"
+	}
+	liquibaseLogLevel := "off"
+	if gw.Spec.App.Management.Database.LiquibaseLogLevel != "" {
+		liquibaseLogLevel = string(gw.Spec.App.Management.Database.LiquibaseLogLevel)
+	}
 	switch name {
 	case gw.Name + "-system":
 		data["system.properties"] = gw.Spec.App.System.Properties
@@ -42,11 +50,19 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["ACCEPT_LICENSE"] = strconv.FormatBool(gw.Spec.License.Accept)
 		data["SSG_CLUSTER_HOST"] = gw.Spec.App.Management.Cluster.Hostname
 		data["SSG_JVM_HEAP"] = jvmHeap
+		data["LIQUIBASE_LOG_LEVEL"] = liquibaseLogLevel
 		data["EXTRA_JAVA_ARGS"] = javaArgs
-
+		data["DISKLESS_CONFIG"] = disklessConfig
 		if gw.Spec.App.PreStopScript.Enabled {
 			f, _ := os.ReadFile("./graceful-shutdown.sh")
 			data["graceful-shutdown"] = string(f)
+		}
+
+		if (gw.Spec.App.Java.JVMHeap.MinPercentage != 0 && gw.Spec.App.Java.JVMHeap.MaxPercentage != 0) || (gw.Spec.App.Java.JVMHeap.MinDefault != "" && gw.Spec.App.Java.JVMHeap.MaxDefault != "") {
+			minJvmHeap := setJVMHeapSize(gw, "min", gw.Spec.App.Java.JVMHeap.MinPercentage)
+			maxJvmHeap := setJVMHeapSize(gw, "max", gw.Spec.App.Java.JVMHeap.MaxPercentage)
+			data["SSG_JVM_MIN_HEAP"] = minJvmHeap
+			data["SSG_JVM_MAX_HEAP"] = maxJvmHeap
 		}
 
 		if gw.Spec.App.AutoMountServiceAccountToken {
@@ -64,7 +80,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			f, _ := os.ReadFile("./003-parse-custom-files.sh")
 			data["003-parse-custom-files"] = string(f)
 		}
-		if gw.Spec.App.Management.Database.Enabled {
+		if gw.Spec.App.Management.Database.Enabled && !gw.Spec.App.Management.DisklessConfig.Disabled {
 			data["SSG_DATABASE_JDBC_URL"] = gw.Spec.App.Management.Database.JDBCUrl
 		}
 
@@ -283,23 +299,50 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 	return cmap
 }
 
-func setJVMHeapSize(gw *securityv1.Gateway) string {
+func setJVMHeapSize(gw *securityv1.Gateway, heapType string, percentage int) string {
 	var jvmHeap string
 	memLimit := gw.Spec.App.Resources.Limits.Memory()
 
-	if gw.Spec.App.Java.JVMHeap.Calculate && memLimit.IsZero() && gw.Spec.App.Java.JVMHeap.Default != "" {
-		jvmHeap = gw.Spec.App.Java.JVMHeap.Default
+	switch heapType {
+	case "min":
+		if gw.Spec.App.Java.JVMHeap.Calculate && memLimit.IsZero() && gw.Spec.App.Java.JVMHeap.MinDefault != "" {
+			jvmHeap = gw.Spec.App.Java.JVMHeap.MinDefault
+		}
+	case "max":
+		if gw.Spec.App.Java.JVMHeap.Calculate && memLimit.IsZero() && gw.Spec.App.Java.JVMHeap.MaxDefault != "" {
+			jvmHeap = gw.Spec.App.Java.JVMHeap.MaxDefault
+		}
+	default:
+		if gw.Spec.App.Java.JVMHeap.Calculate && memLimit.IsZero() && gw.Spec.App.Java.JVMHeap.Default != "" {
+			jvmHeap = gw.Spec.App.Java.JVMHeap.Default
+		}
+
 	}
 
-	if gw.Spec.App.Java.JVMHeap.Calculate && !memLimit.IsZero() {
+	if gw.Spec.App.Java.JVMHeap.Calculate && percentage != 0 && !memLimit.IsZero() {
 		memMB := float64(memLimit.Value()) * 0.00000095367432 //binary conversion
-		heapPercntg := float64(gw.Spec.App.Java.JVMHeap.Percentage) / 100.0
+		heapPercntg := float64(percentage) / 100.0
 		heapMb := strconv.FormatInt(int64(memMB*heapPercntg), 10)
 		jvmHeap = heapMb + "m"
 	}
-
 	if jvmHeap == "" {
-		jvmHeap = "2g"
+		switch heapType {
+		case "min":
+			jvmHeap = "1g"
+			if gw.Spec.App.Java.JVMHeap.MinDefault != "" {
+				jvmHeap = gw.Spec.App.Java.JVMHeap.MinDefault
+			}
+		case "max":
+			jvmHeap = "3g"
+			if gw.Spec.App.Java.JVMHeap.MaxDefault != "" {
+				jvmHeap = gw.Spec.App.Java.JVMHeap.MaxDefault
+			}
+		default:
+			jvmHeap = "3g"
+			if gw.Spec.App.Java.JVMHeap.Default != "" {
+				jvmHeap = gw.Spec.App.Java.JVMHeap.Default
+			}
+		}
 	}
 
 	return jvmHeap

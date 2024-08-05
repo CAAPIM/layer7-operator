@@ -4,7 +4,7 @@ metadata:
   name: ssg
 spec:
   app:
-    image: docker.io/caapim/gateway:11.1.00
+    image: docker.io/caapim/gateway:11.1.1
     management:
       cluster:
         hostname: gateway.brcmlabs.com
@@ -26,7 +26,7 @@ spec:
   license:
     accept: false
     secretName: gateway-license
-  version: 11.1.00
+  version: 11.1.1
 status: {}
 ---
 apiVersion: security.brcmlabs.com/v1

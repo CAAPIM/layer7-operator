@@ -135,6 +135,8 @@ type GatewayRepositoryStatus struct {
 	//StorageSecretName is used to mount existing repository bundles to the initContainer
 	//these will be less than 1mb in size
 	StorageSecretName string `json:"storageSecretName,omitempty"`
+	// RemoteName
+	RemoteName string `json:"remoteName,omitempty"`
 	// Branch of the Git repo
 	Branch string `json:"branch,omitempty"`
 	// Tag is the git tag in the Git repo
@@ -804,9 +806,12 @@ type BootstrapScript struct {
 //   - if using an existing database 2124 will not be modified
 type ListenPorts struct {
 	// Harden
-	Harden bool             `json:"harden,omitempty"`
-	Custom CustomListenPort `json:"custom,omitempty"`
-	Ports  []ListenPort     `json:"ports,omitempty"`
+	Harden bool `json:"harden,omitempty"`
+	// Refresh on Key Changes
+	// If harden is true, the auto generated port bundle will include the refreshOnKeyChanges advanced property set to true
+	RefreshOnKeyChanges bool             `json:"refreshOnKeyChanges,omitempty"`
+	Custom              CustomListenPort `json:"custom,omitempty"`
+	Ports               []ListenPort     `json:"ports,omitempty"`
 }
 
 // CustomListenPort - enable/disable custom listen ports

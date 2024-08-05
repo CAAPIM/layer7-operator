@@ -511,7 +511,7 @@ func BuildCWPBundle(cwps []securityv1.Property) ([]byte, string, error) {
 
 }
 
-func BuildDefaultListenPortBundle() ([]byte, string, error) {
+func BuildDefaultListenPortBundle(refreshOnKeyChanges bool) ([]byte, string, error) {
 	trafficId, _ := randToken(16)
 	managementId, _ := randToken(16)
 	plaintextId, _ := randToken(16)
@@ -520,24 +520,17 @@ func BuildDefaultListenPortBundle() ([]byte, string, error) {
 	cipherSuites := []string{
 		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
 		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
 		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
 		"TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
-		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
-		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
 		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
 		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
 		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
 		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
 		"TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
 		"TLS_AES_256_GCM_SHA384",
-		"TLS_AES_128_GCM_SHA256"}
+		"TLS_AES_128_GCM_SHA256",
+	}
 
 	tlsVersions := []string{"TLSv1.2", "TLSv1.3"}
 
@@ -607,6 +600,10 @@ func BuildDefaultListenPortBundle() ([]byte, string, error) {
 		},
 	}
 
+	if refreshOnKeyChanges {
+		managementPort.Resource.ListenPort.Properties.Property = append(managementPort.Resource.ListenPort.Properties.Property, Property{Key: "refreshOnKeyChanges", StringValue: strconv.FormatBool(refreshOnKeyChanges)})
+	}
+
 	items = append(items, managementPort)
 
 	trafficPort := Item{
@@ -645,6 +642,10 @@ func BuildDefaultListenPortBundle() ([]byte, string, error) {
 				},
 			},
 		},
+	}
+
+	if refreshOnKeyChanges {
+		trafficPort.Resource.ListenPort.Properties.Property = append(trafficPort.Resource.ListenPort.Properties.Property, Property{Key: "refreshOnKeyChanges", StringValue: strconv.FormatBool(refreshOnKeyChanges)})
 	}
 
 	items = append(items, trafficPort)

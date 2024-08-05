@@ -92,12 +92,12 @@ containerSecurityContext: {}
 image:
   registry: docker.io
   repository: caapim/layer7-operator
-  tag: v1.0.6
+  tag: v1.0.7
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
   ##
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   ## Optionally specify an array of imagePullSecrets.
   ## Secrets must be manually created in the namespace.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
@@ -131,6 +131,18 @@ args:
 - --leader-elect
 - --zap-log-level=info
 - --zap-time-encoding=rfc3339nano
+
+
+## Layer7 Operator OTel Configuration
+## OTel
+##
+otel:
+  ## @param otel.enabled [default: false] Enable OpenTelemetry Metrics for the Layer7 Operator
+  ## @param otel.otlpEndpoint [default: localhost:4317] OTel Collector GRPC endpoint
+  ## @param otel.metricPrefix [default: layer7_] OTel metric prefix that will be prepended to each metric emitted from the Layer7 Operator
+  enabled: false
+  otlpEndpoint: localhost:4317
+  metricPrefix: layer7_
 
 ## @section RBAC Proxy Parameters
 ## RBAC Proxy

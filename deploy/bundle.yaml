@@ -3232,6 +3232,11 @@ spec:
                               type: object
                           type: object
                         type: array
+                      refreshOnKeyChanges:
+                        description: |-
+                          Refresh on Key Changes
+                          If harden is true, the auto generated port bundle wi
+                        type: boolean
                     type: object
                   livenessProbe:
                     description: Probe describes a health check to be performed against
@@ -6288,6 +6293,9 @@ spec:
                       type: string
                     name:
                       description: Name of the Repository Reference
+                      type: string
+                    remoteName:
+                      description: RemoteName
                       type: string
                     secretName:
                       description: SecretName is used to mount the correct repository

@@ -59,10 +59,10 @@ func (sc *SyncCache) cleanupLoop(interval time.Duration) {
 	}
 }
 
-func (lc *SyncCache) stopCleanup() {
-	close(lc.stop)
-	lc.wg.Wait()
-}
+// func (lc *SyncCache) stopCleanup() {
+// 	close(lc.stop)
+// 	lc.wg.Wait()
+// }
 
 func (sc *SyncCache) Update(sr SyncRequest, expiryTimestamp int64) {
 	sc.mu.Lock()

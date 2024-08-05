@@ -111,7 +111,7 @@ func applyOtkCertificates(ctx context.Context, params Params, gateway *securityv
 		if err != nil {
 			return err
 		}
-		err = ReconcileDBGateway(ctx, params, "otk certificates", gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, bundleBytes)
+		err = ReconcileDBGateway(ctx, params, "otk certificates", gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, "otk certificates", bundleBytes)
 		if err != nil {
 			return err
 		}

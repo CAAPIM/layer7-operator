@@ -3,13 +3,13 @@ kind: Gateway
 metadata:
   name: otk-ssg-internal
 spec:
-  version: "11.1.00"
+  version: "11.1.1"
   license:
     accept: false
     secretName: gateway-license
   app:
     replicas: 2
-    image: docker.io/caapim/gateway:11.1.00
+    image: docker.io/caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
     updateStrategy:
       type: rollingUpdate

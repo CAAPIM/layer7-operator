@@ -1,7 +1,7 @@
 # Layer7 Gateway Operator
 The Layer7 Gateway Operator, built using the [Operator SDK](https://github.com/operator-framework/operator-sdk) covers all aspects of deploying, maintaining and upgrading API Gateways in Kubernetes.
 
-##### Note: The Operator examples currently use ***Gateway 11.1.00*** as a base.
+##### Note: The Operator examples currently use ***Gateway 11.1.1*** as a base.
 
 ## [Getting Started](https://github.com/CAAPIM/layer7-operator/wiki/Getting-Started)
 ## [Additional Documentation](https://github.com/CAAPIM/layer7-operator/wiki)

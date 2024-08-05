@@ -27,6 +27,8 @@ type RepositoryConfig struct {
 	Branch         string `json:"branch"`
 	Auth           string `json:"auth"`
 	LocalReference string `json:"localReference,omitempty"`
+	Tag            string `json:"tag,omitempty"`
+	RemoteName     string `json:"remoteName,omitempty"`
 }
 
 // NewConfigMap
@@ -96,8 +98,11 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		var bundle []byte
 
 		if !gw.Spec.App.ListenPorts.Custom.Enabled {
-			bundle, dataCheckSum, _ = util.BuildDefaultListenPortBundle()
-
+			refreshOnKeyChanges := false
+			if gw.Spec.App.ListenPorts.RefreshOnKeyChanges {
+				refreshOnKeyChanges = true
+			}
+			bundle, dataCheckSum, _ = util.BuildDefaultListenPortBundle(refreshOnKeyChanges)
 		} else {
 			bundle, dataCheckSum, _ = util.BuildCustomListenPortBundle(gw)
 		}
@@ -116,10 +121,12 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 					})
 				} else {
 					initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
-						Name:     gw.Status.RepositoryStatus[i].Name,
-						Endpoint: gw.Status.RepositoryStatus[i].Endpoint,
-						Branch:   gw.Status.RepositoryStatus[i].Branch,
-						Auth:     "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
+						Name:       gw.Status.RepositoryStatus[i].Name,
+						Endpoint:   gw.Status.RepositoryStatus[i].Endpoint,
+						Branch:     gw.Status.RepositoryStatus[i].Branch,
+						RemoteName: gw.Status.RepositoryStatus[i].RemoteName,
+						Tag:        gw.Status.RepositoryStatus[i].Tag,
+						Auth:       "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
 					})
 				}
 

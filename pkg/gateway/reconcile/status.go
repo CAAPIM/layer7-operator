@@ -70,6 +70,11 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			newRepoStatus.Branch = repository.Spec.Branch
 		}
 
+		newRepoStatus.RemoteName = "origin"
+		if repository.Spec.RemoteName != "" {
+			newRepoStatus.RemoteName = repository.Spec.RemoteName
+		}
+
 		gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, newRepoStatus)
 	}
 

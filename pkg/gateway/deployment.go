@@ -709,7 +709,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		h.Write([]byte(commits))
 		commits = fmt.Sprintf("%x", h.Sum(nil))
 
-		graphmanInitContainerImage := "docker.io/layer7api/graphman-static-init:1.0.1"
+		graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.2"
 		graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
 		graphmanInitContainerSecurityContext := corev1.SecurityContext{}
 

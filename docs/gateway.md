@@ -8730,6 +8730,14 @@ Harden applies the following changes, setting ports overrides this flag.
           <br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>refreshOnKeyChanges</b></td>
+        <td>boolean</td>
+        <td>
+          Refresh on Key Changes
+If harden is true, the auto generated port bundle will include the refreshOnKeyChanges advanced property set to true<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -17626,6 +17634,13 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         <td>string</td>
         <td>
           Name of the Repository Reference<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>remoteName</b></td>
+        <td>string</td>
+        <td>
+          RemoteName<br/>
         </td>
         <td>false</td>
       </tr><tr>

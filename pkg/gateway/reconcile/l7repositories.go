@@ -91,6 +91,23 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
 	}
 
+	name := params.Instance.Name
+	if gateway.Spec.App.Management.DisklessConfig.Disabled {
+		name = gateway.Name + "-node-properties"
+	}
+	if gateway.Spec.App.Management.SecretName != "" {
+		name = gateway.Spec.App.Management.SecretName
+	}
+	gwSecret, err := getGatewaySecret(ctx, params, name)
+	if err != nil {
+		return err
+	}
+
+	username, password := parseGatewaySecret(gwSecret)
+	if username == "" || password == "" {
+		return fmt.Errorf("could not retrieve gateway credentials for %s", repository.Name)
+	}
+
 	podList, err := getGatewayPods(ctx, params)
 	if err != nil {
 		return err
@@ -181,18 +198,9 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 
 				if tryRequest {
 					syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
-					name := gateway.Name
-					if gateway.Spec.App.Management.SecretName != "" {
-						name = gateway.Spec.App.Management.SecretName
-					}
-					gwSecret, err := getGatewaySecret(ctx, params, name)
-
-					if err != nil {
-						return err
-					}
 					start := time.Now()
 					params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-					err = util.ApplyToGraphmanTarget(gitPath, singleton, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
+					err = util.ApplyToGraphmanTarget(gitPath, singleton, username, password, endpoint, graphmanEncryptionPassphrase)
 					if err != nil {
 						params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 						_ = captureGraphmanMetrics(ctx, params, start, pod.Name, "repository", repoRef.Name, latestCommit, true)
@@ -221,6 +229,24 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 
 	if params.Instance.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
 		graphmanPort = params.Instance.Spec.App.Management.Graphman.DynamicSyncPort
+	}
+
+	name := params.Instance.Name
+	if gateway.Spec.App.Management.DisklessConfig.Disabled {
+		name = gateway.Name + "-node-properties"
+	}
+	if gateway.Spec.App.Management.SecretName != "" {
+		name = gateway.Spec.App.Management.SecretName
+	}
+	gwSecret, err := getGatewaySecret(ctx, params, name)
+
+	if err != nil {
+		return err
+	}
+
+	username, password := parseGatewaySecret(gwSecret)
+	if username == "" || password == "" {
+		return fmt.Errorf("could not retrieve gateway credentials for %s", repository.Name)
 	}
 
 	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, commit)
@@ -277,22 +303,17 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 
 		if tryRequest {
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
-			name := params.Instance.Name
-			if params.Instance.Spec.App.Management.SecretName != "" {
-				name = params.Instance.Spec.App.Management.SecretName
-			}
-			gwSecret, err := getGatewaySecret(ctx, params, name)
-
-			if err != nil {
-				return err
-			}
+			start := time.Now()
 			params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-			err = util.ApplyToGraphmanTarget(gitPath, true, string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase)
+			err = util.ApplyToGraphmanTarget(gitPath, true, username, password, endpoint, graphmanEncryptionPassphrase)
 			if err != nil {
 				params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+				_ = captureGraphmanMetrics(ctx, params, start, gatewayDeployment.Name, "repository", repoRef.Name, commit, true)
+
 				return err
 			}
 			params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+			_ = captureGraphmanMetrics(ctx, params, start, gatewayDeployment.Name, "repository", repoRef.Name, commit, false)
 
 			if err := params.Client.Patch(context.Background(), &gatewayDeployment,
 				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {

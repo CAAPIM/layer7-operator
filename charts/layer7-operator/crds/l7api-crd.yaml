@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: l7apis.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -20,14 +20,12 @@ spec:
         description: L7Api is the Schema for the l7apis API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: APIVersion defines the versioned schema of this representation
+              of an object
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: Kind is a string value representing the REST resource this
+              object represent
             type: string
           metadata:
             type: object
@@ -35,18 +33,18 @@ spec:
             properties:
               deploymentTags:
                 description: DeploymentTags target Gateway deployments that this API
-                  should be published to
+                  should be published
                 items:
                   type: string
                 type: array
               graphmanBundle:
-                description: GraphmanBundle associated with this API currently limited
-                  to Service and Fragments auto generated when PortalMeta is set and
-                  PortalPublished is true
+                description: |-
+                  GraphmanBundle associated with this API
+                  currently limited to Service and Fr
                 type: string
               l7Portal:
                 description: L7Portal is the L7Portal that this API is associated
-                  with when Portal Published is true
+                  with when Portal Publi
                 type: string
               portalMeta:
                 description: PortalMeta is reserved for the API Developer Portal
@@ -132,8 +130,7 @@ spec:
                     checksum:
                       type: string
                     deployment:
-                      description: 'Phase       corev1.PodPhase `json:"phase,omitempty"`
-                        Reason: Success/Failed to sync because of x'
+                      description: Phase       corev1.
                       type: string
                     lastUpdated:
                       description: Ready       bool            `json:"ready,omitempty"`

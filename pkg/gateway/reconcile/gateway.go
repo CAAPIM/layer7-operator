@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -52,13 +53,25 @@ func getGatewaySecret(ctx context.Context, params Params, name string) (*corev1.
 
 	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: params.Instance.Namespace}, gwSecret)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			if err != nil {
-				return gwSecret, err
-			}
-		}
+		return gwSecret, err
 	}
 	return gwSecret, nil
+}
+
+func parseGatewaySecret(gwSecret *corev1.Secret) (string, string) {
+	var username string
+	var password string
+	if string(gwSecret.Data["node.properties"]) != "" {
+		usernameRe := regexp.MustCompile(`(?m)(admin.user=)(.*)`)
+		passwordRe := regexp.MustCompile(`(?m)(admin.pass=)(.*)`)
+		username = usernameRe.FindStringSubmatch(string(gwSecret.Data["node.properties"]))[2]
+		password = passwordRe.FindStringSubmatch(string(gwSecret.Data["node.properties"]))[2]
+	} else {
+		username = string(gwSecret.Data["SSG_ADMIN_USERNAME"])
+		password = string(gwSecret.Data["SSG_ADMIN_PASSWORD"])
+	}
+	return username, password
+
 }
 
 func GatewayLicense(ctx context.Context, params Params) error {
@@ -114,6 +127,12 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
 	}
 
+	username, password := parseGatewaySecret(gwSecret)
+
+	if username == "" || password == "" {
+		return fmt.Errorf("could not retrieve gateway credentials for %s", name)
+	}
+
 	for i, pod := range podList.Items {
 		currentSha1Sum := pod.ObjectMeta.Annotations[annotation]
 
@@ -157,8 +176,9 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 				syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 				start := time.Now()
 				params.Log.V(2).Info("applying "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-				err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase, bundle)
+				err = util.ApplyGraphmanBundle(username, password, endpoint, graphmanEncryptionPassphrase, bundle)
 				if err != nil {
+					params.Log.Info("failed to apply "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, kind, name, sha1Sum, true)
 					return err
 				}
@@ -178,11 +198,16 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 
 }
 
-func ReconcileDBGateway(ctx context.Context, params Params, kind string, gatewayDeployment appsv1.Deployment, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, bundle []byte) error {
+func ReconcileDBGateway(ctx context.Context, params Params, kind string, gatewayDeployment appsv1.Deployment, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
 	graphmanPort := 9443
 
 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
 		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
+	}
+
+	username, password := parseGatewaySecret(gwSecret)
+	if username == "" || password == "" {
+		return fmt.Errorf("could not retrieve gateway credentials for %s", name)
 	}
 
 	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", annotation, sha1Sum)
@@ -215,15 +240,17 @@ func ReconcileDBGateway(ctx context.Context, params Params, kind string, gateway
 		if gateway.Spec.App.Management.Service.Enabled {
 			endpoint = gateway.Name + "-management-service." + gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(graphmanPort) + "/graphman"
 		}
+		start := time.Now()
 		params.Log.V(2).Info("applying latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
 
-		err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, graphmanEncryptionPassphrase, bundle)
+		err = util.ApplyGraphmanBundle(username, password, endpoint, graphmanEncryptionPassphrase, bundle)
 		if err != nil {
-			params.Log.Info("failed to apply latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
+			params.Log.Info("failed to apply "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
+			_ = captureGraphmanMetrics(ctx, params, start, gateway.Name, kind, name, sha1Sum, true)
 			return err
 		}
 		params.Log.Info("applied latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
-
+		_ = captureGraphmanMetrics(ctx, params, start, gateway.Name, kind, name, sha1Sum, false)
 		if err := params.Client.Patch(context.Background(), &gatewayDeployment,
 			client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 			params.Log.Error(err, "Failed to update deployment annotations", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)

@@ -135,6 +135,8 @@ type GatewayRepositoryStatus struct {
 	//StorageSecretName is used to mount existing repository bundles to the initContainer
 	//these will be less than 1mb in size
 	StorageSecretName string `json:"storageSecretName,omitempty"`
+	// RemoteName
+	RemoteName string `json:"remoteName,omitempty"`
 	// Branch of the Git repo
 	Branch string `json:"branch,omitempty"`
 	// Tag is the git tag in the Git repo
@@ -209,7 +211,7 @@ type App struct {
 	// ServiceAccount to use for the Gateway Deployment
 	ServiceAccount            ServiceAccount                    `json:"serviceAccount,omitempty"`
 	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
-	Redis                     Redis                             `json:"redis,omitempty"`
+	Redis                     RedisConfigurations               `json:"redis,omitempty"`
 	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
 	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
 	PodSecurityContext        corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
@@ -328,57 +330,78 @@ const (
 	RedisTypeSentinel   RedisType = "sentinel"
 )
 
-type Redis struct {
+type RedisConfigurations struct {
 	// Enable or disable a Redis integration
 	Enabled bool `json:"enabled,omitempty"`
 	// ExistingSecret mounts an existing secret containing redis configuration
 	// to the container gateway.
 	// The secret should contain a key called redis.properties and redis.crt if tls is enabled
 	ExistingSecret string `json:"existingSecret,omitempty"`
-	// Type of sentinel deployment
-	// valid options are standalone or sentinel
-	// standalone does not support auth or tls and should only be used in non-critical environments for development purposes
+	// CertSecrets provides a way to mount secrets that contains certificates for ssl/tls redis connections when using an existing secret.
+	CertSecrets       []RedisCerts         `json:"certs,omitempty"`
+	Default           RedisConfiguration   `json:"default,omitempty"`
+	AdditionalConfigs []RedisConfiguration `json:"additionalConfigs,omitempty"`
+}
+
+type RedisConfiguration struct {
+	// Enable or disable a Redis integration
+	Enabled bool `json:"enabled,omitempty"`
+	// Name of the Redis connection, used for additionalConfigs
+	Name string `json:"name,omitempty"`
+	// Redis Type
 	Type RedisType `json:"type,omitempty"`
 	// GroupName that should be used when connecting to Redis
 	GroupName string `json:"groupName,omitempty"`
 	// CommandTimeout for Redis commands
 	CommandTimeout int `json:"commandTimeout,omitempty"`
+	// ConnectTimeout for Redis commands
+	ConnectTimeout int `json:"connectTimeout,omitempty"`
+	// TestOnStart test redis connection on gateway start
+	TestOnStart bool `json:"testOnStart,omitempty"`
 	// Sentinel configuration
 	Sentinel RedisSentinel `json:"sentinel,omitempty"`
 	// Standalone configuration
-	Standalone RedisStandalone `json:"standalone,omitempty"`
+	Standalone RedisNode `json:"standalone,omitempty"`
 	// Auth if using sentinel or standalone (from Gateway v11.1.00)
 	Auth RedisAuth `json:"auth,omitempty"`
 	// TLS configuration if using sentinel or standalone (from Gateway v11.1.00)
-	Tls RedisTls `json:"tls,omitempty"`
+	Ssl RedisSsl `json:"ssl,omitempty"`
+	// AdditionalConfigs array of additional RedisConfigurations
 }
 
 type RedisSentinel struct {
-	MasterSet string   `json:"masterSet,omitempty"`
-	Nodes     []string `json:"nodes,omitempty"`
+	MasterSet string      `json:"masterSet,omitempty"`
+	Nodes     []RedisNode `json:"nodes,omitempty"`
 }
 
-type RedisStandalone struct {
-	Hostname string `json:"hostname,omitempty"`
-	Port     int    `json:"port,omitempty"`
+type RedisCerts struct {
+	// Enable or disable an additional mount for redis certificates
+	Enabled    bool   `json:"enabled,omitempty"`
+	SecretName string `json:"secretName,omitempty"`
+	// Key must match the crt that is defined in redis.existingSecret
+	Key string `json:"key,omitempty"`
+}
+
+type RedisNode struct {
+	Host string `json:"host,omitempty"`
+	Port int    `json:"port,omitempty"`
 }
 
 type RedisAuth struct {
 	// Enable or disable Redis auth
-	// Authentication is only available for Redis Sentinel
 	Enabled           bool   `json:"enabled,omitempty"`
 	Username          string `json:"username,omitempty"`
 	PasswordEncoded   string `json:"passwordEncoded,omitempty"`
 	PasswordPlainText string `json:"passwordPlaintext,omitempty"`
 }
 
-type RedisTls struct {
+type RedisSsl struct {
 	// If TLS is enabled on the Redis server set this to true
 	Enabled bool `json:"enabled,omitempty"`
 	// Reference an existing secret that contains a key called redis.crt with the redis public cert
-	ExistingSecret string `json:"existingSecret,omitempty"`
+	ExistingSecretName string `json:"existingSecretName,omitempty"`
 	// Change if using a different key. Defaults to redis.crt
-	ExistingSecretKey string `json:"key,omitempty"`
+	ExistingSecretKey string `json:"existingSecretKey,omitempty"`
 	// Crt in plaintext
 	Crt string `json:"crt,omitempty"`
 	// VerifyPeer
@@ -492,7 +515,9 @@ type Management struct {
 	// SecretName is reference to an existing secret that contains
 	// SSG_ADMIN_USERNAME, SSG_ADMIN_PASSWORD, SSG_CLUSTER_PASSPHRASE and optionally
 	// SSG_DATABASE_USER and SSG_DATABASE_PASSWORD for mysql backed gateway clusters
-	SecretName string `json:"secretName,omitempty"`
+	// SecretName can also be reference to a secret that contains a node.properties file
+	SecretName     string         `json:"secretName,omitempty"`
+	DisklessConfig DisklessConfig `json:"disklessConfig,omitempty"`
 	// Username is the Gateway Admin username
 	Username string `json:"username,omitempty"`
 	// Password is the Gateway Admin password
@@ -503,6 +528,14 @@ type Management struct {
 	Graphman Graphman `json:"graphman,omitempty"`
 	// Service is the Gateway Management Service
 	Service Service `json:"service,omitempty"`
+}
+
+type DisklessConfig struct {
+	// The Container Gateway uses diskless config by default
+	// Disabling it will switch the Gateway from using environment variables for Gateway Management configuration
+	// to a file called node.properties which can be mounted using an existing Kubernetes Secret or the secretstore csi driver.
+	Disabled bool `json:"disabled,omitempty"`
+	Csi      CSI  `json:"csi,omitempty"`
 }
 
 type Log struct {
@@ -519,6 +552,16 @@ type Cluster struct {
 	Hostname string `json:"hostname"`
 }
 
+type LiquibaseLogLevel string
+
+const (
+	LiquibaseLogLevelOff     LiquibaseLogLevel = "off"
+	LiquibaseLogLevelFine    LiquibaseLogLevel = "fine"
+	LiquibaseLogLevelInfo    LiquibaseLogLevel = "info"
+	LiquibaseLogLevelWarning LiquibaseLogLevel = "warning"
+	LiquibaseLogLevelSevere  LiquibaseLogLevel = "severe"
+)
+
 // Database configuration for the Gateway
 type Database struct {
 	// Enabled or disabled
@@ -529,6 +572,8 @@ type Database struct {
 	Username string `json:"username,omitempty"`
 	// Password MySQL - can be set in management.secretName
 	Password string `json:"password,omitempty"`
+	// LiquibaseLogLevel
+	LiquibaseLogLevel LiquibaseLogLevel `json:"liquibaseLogLevel,omitempty"`
 }
 
 // Restman is a Gateway Management interface that can be automatically provisioned.
@@ -609,15 +654,15 @@ type CSI struct {
 	// Driver is the secretstore csi driver
 	Driver string `json:"driver,omitempty"`
 	// ReadOnly
-	ReadOnly         bool `json:"readOnly,omitempty"`
-	VolumeAttributes `json:"volumeAttributes,omitempty"`
+	ReadOnly         bool              `json:"readOnly,omitempty"`
+	VolumeAttributes map[string]string `json:"volumeAttributes,omitempty"`
 }
 
 // VolumeAtttributes
-type VolumeAttributes struct {
-	//SecretProviderClass
-	SecretProviderClass string `json:"secretProviderClass,omitempty"`
-}
+// type VolumeAttributes struct {
+// 	//SecretProviderClass
+// 	SecretProviderClass string `json:"secretProviderClass,omitempty"`
+// }
 
 // ClusterProperties are key value pairs of additional cluster-wide properties you wish to bootstrap to your Gateway.
 type ClusterProperties struct {
@@ -761,9 +806,12 @@ type BootstrapScript struct {
 //   - if using an existing database 2124 will not be modified
 type ListenPorts struct {
 	// Harden
-	Harden bool             `json:"harden,omitempty"`
-	Custom CustomListenPort `json:"custom,omitempty"`
-	Ports  []ListenPort     `json:"ports,omitempty"`
+	Harden bool `json:"harden,omitempty"`
+	// Refresh on Key Changes
+	// If harden is true, the auto generated port bundle will include the refreshOnKeyChanges advanced property set to true
+	RefreshOnKeyChanges bool             `json:"refreshOnKeyChanges,omitempty"`
+	Custom              CustomListenPort `json:"custom,omitempty"`
+	Ports               []ListenPort     `json:"ports,omitempty"`
 }
 
 // CustomListenPort - enable/disable custom listen ports
@@ -995,11 +1043,20 @@ type JVMHeap struct {
 	// if resources are left unset this will be ignored
 	Calculate bool `json:"calculate,omitempty"`
 	// Percentage of requests.limits.memory to allocate to the jvm
-	// 50% is the default, should be no higher than 75%
+	// 75% is the default, it should be no lower than 50%
 	Percentage int `json:"percentage,omitempty"`
 	// Default Heap Size to use if calculate is false or requests.limits.memory is not set
-	// Set to 2g
+	// Set to 3g
 	Default string `json:"default,omitempty"`
+	// Default Min Heap Size to use if calculate is false or requests.limits.memory is not set
+	// Set to 1g
+	MinDefault string `json:"minDefault,omitempty"`
+	// Default Max Heap Size to use if calculate is false or requests.limits.memory is not set
+	// Set to 3g
+	MaxDefault string `json:"maxDefault,omitempty"`
+
+	MinPercentage int `json:"minPercentage,omitempty"`
+	MaxPercentage int `json:"maxPercentage,omitempty"`
 }
 
 func init() {

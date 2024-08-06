@@ -43,10 +43,6 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 		params.Log.Error(err, "failed to retrieve operator hostname")
 		return err
 	}
-	if err != nil {
-		params.Log.Error(err, "failed to retrieve operator namespace")
-		return err
-	}
 
 	meter := otel.Meter("layer7-operator-graphman-metrics")
 

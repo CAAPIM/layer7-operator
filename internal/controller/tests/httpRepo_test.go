@@ -22,8 +22,8 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
 			gatewayName         = "ssg-repo"
-			version             = "11.1.00"
-			image               = "docker.io/caapim/gateway:11.1.00"
+			version             = "11.1.1"
+			image               = "docker.io/caapim/gateway:11.1.1"
 			repoName            = "http-repo"
 		)
 
@@ -122,7 +122,7 @@ var _ = Describe("Gateway controller support for http repo", func() {
 							},
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
-								InitContainerImage: "docker.io/layer7api/graphman-static-init:1.0.1",
+								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.2",
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",

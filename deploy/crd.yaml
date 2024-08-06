@@ -1307,11 +1307,8 @@ spec:
                               description: ReadOnly
                               type: boolean
                             volumeAttributes:
-                              description: VolumeAtttributes
-                              properties:
-                                secretProviderClass:
-                                  description: SecretProviderClass
-                                  type: string
+                              additionalProperties:
+                                type: string
                               type: object
                           type: object
                         name:
@@ -2947,6 +2944,18 @@ spec:
                             description: Default Heap Size to use if calculate is
                               false or requests.limits.
                             type: string
+                          maxDefault:
+                            description: Default Max Heap Size to use if calculate
+                              is false or requests.limits.
+                            type: string
+                          maxPercentage:
+                            type: integer
+                          minDefault:
+                            description: Default Min Heap Size to use if calculate
+                              is false or requests.limits.
+                            type: string
+                          minPercentage:
+                            type: integer
                           percentage:
                             description: Percentage of requests.limits.
                             type: integer
@@ -3223,6 +3232,11 @@ spec:
                               type: object
                           type: object
                         type: array
+                      refreshOnKeyChanges:
+                        description: |-
+                          Refresh on Key Changes
+                          If harden is true, the auto generated port bundle wi
+                        type: boolean
                     type: object
                   livenessProbe:
                     description: Probe describes a health check to be performed against
@@ -3381,12 +3395,37 @@ spec:
                           jdbcUrl:
                             description: JDBCUrl for the Gateway
                             type: string
+                          liquibaseLogLevel:
+                            description: LiquibaseLogLevel
+                            type: string
                           password:
                             description: Password MySQL - can be set in management.secretName
                             type: string
                           username:
                             description: Username MySQL - can be set in management.secretName
                             type: string
+                        type: object
+                      disklessConfig:
+                        properties:
+                          csi:
+                            description: CSI volume configuration
+                            properties:
+                              driver:
+                                description: Driver is the secretstore csi driver
+                                type: string
+                              readOnly:
+                                description: ReadOnly
+                                type: boolean
+                              volumeAttributes:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                            type: object
+                          disabled:
+                            description: |-
+                              The Container Gateway uses diskless config by default
+                              Disabling it will swi
+                            type: boolean
                         type: object
                       graphman:
                         description: Graphman is a GraphQL Gateway Management interface
@@ -4475,82 +4514,204 @@ spec:
                     type: object
                   redis:
                     properties:
-                      auth:
-                        description: Auth if using sentinel or standalone (from Gateway
-                          v11.1.00)
+                      additionalConfigs:
+                        items:
+                          properties:
+                            auth:
+                              description: Auth if using sentinel or standalone (from
+                                Gateway v11.1.00)
+                              properties:
+                                enabled:
+                                  description: Enable or disable Redis auth
+                                  type: boolean
+                                passwordEncoded:
+                                  type: string
+                                passwordPlaintext:
+                                  type: string
+                                username:
+                                  type: string
+                              type: object
+                            commandTimeout:
+                              description: CommandTimeout for Redis commands
+                              type: integer
+                            connectTimeout:
+                              description: ConnectTimeout for Redis commands
+                              type: integer
+                            enabled:
+                              description: Enable or disable a Redis integration
+                              type: boolean
+                            groupName:
+                              description: GroupName that should be used when connecting
+                                to Redis
+                              type: string
+                            name:
+                              description: Name of the Redis connection, used for
+                                additionalConfigs
+                              type: string
+                            sentinel:
+                              description: Sentinel configuration
+                              properties:
+                                masterSet:
+                                  type: string
+                                nodes:
+                                  items:
+                                    properties:
+                                      host:
+                                        type: string
+                                      port:
+                                        type: integer
+                                    type: object
+                                  type: array
+                              type: object
+                            ssl:
+                              description: TLS configuration if using sentinel or
+                                standalone (from Gateway v11.1.00)
+                              properties:
+                                crt:
+                                  description: Crt in plaintext
+                                  type: string
+                                enabled:
+                                  description: If TLS is enabled on the Redis server
+                                    set this to true
+                                  type: boolean
+                                existingSecretKey:
+                                  description: Change if using a different key. Defaults
+                                    to redis.crt
+                                  type: string
+                                existingSecretName:
+                                  description: Reference an existing secret that contains
+                                    a key called redis.
+                                  type: string
+                                verifyPeer:
+                                  description: VerifyPeer
+                                  type: boolean
+                              type: object
+                            standalone:
+                              description: Standalone configuration
+                              properties:
+                                host:
+                                  type: string
+                                port:
+                                  type: integer
+                              type: object
+                            testOnStart:
+                              description: TestOnStart test redis connection on gateway
+                                start
+                              type: boolean
+                            type:
+                              description: Redis Type
+                              type: string
+                          type: object
+                        type: array
+                      certs:
+                        description: 'CertSecrets provides a way to mount secrets
+                          that contains certificates for '
+                        items:
+                          properties:
+                            enabled:
+                              description: Enable or disable an additional mount for
+                                redis certificates
+                              type: boolean
+                            key:
+                              description: Key must match the crt that is defined
+                                in redis.existingSecret
+                              type: string
+                            secretName:
+                              type: string
+                          type: object
+                        type: array
+                      default:
                         properties:
+                          auth:
+                            description: Auth if using sentinel or standalone (from
+                              Gateway v11.1.00)
+                            properties:
+                              enabled:
+                                description: Enable or disable Redis auth
+                                type: boolean
+                              passwordEncoded:
+                                type: string
+                              passwordPlaintext:
+                                type: string
+                              username:
+                                type: string
+                            type: object
+                          commandTimeout:
+                            description: CommandTimeout for Redis commands
+                            type: integer
+                          connectTimeout:
+                            description: ConnectTimeout for Redis commands
+                            type: integer
                           enabled:
-                            description: |-
-                              Enable or disable Redis auth
-                              Authentication is only available for Redis Sen
+                            description: Enable or disable a Redis integration
                             type: boolean
-                          passwordEncoded:
+                          groupName:
+                            description: GroupName that should be used when connecting
+                              to Redis
                             type: string
-                          passwordPlaintext:
+                          name:
+                            description: Name of the Redis connection, used for additionalConfigs
                             type: string
-                          username:
+                          sentinel:
+                            description: Sentinel configuration
+                            properties:
+                              masterSet:
+                                type: string
+                              nodes:
+                                items:
+                                  properties:
+                                    host:
+                                      type: string
+                                    port:
+                                      type: integer
+                                  type: object
+                                type: array
+                            type: object
+                          ssl:
+                            description: TLS configuration if using sentinel or standalone
+                              (from Gateway v11.1.00)
+                            properties:
+                              crt:
+                                description: Crt in plaintext
+                                type: string
+                              enabled:
+                                description: If TLS is enabled on the Redis server
+                                  set this to true
+                                type: boolean
+                              existingSecretKey:
+                                description: Change if using a different key. Defaults
+                                  to redis.crt
+                                type: string
+                              existingSecretName:
+                                description: Reference an existing secret that contains
+                                  a key called redis.
+                                type: string
+                              verifyPeer:
+                                description: VerifyPeer
+                                type: boolean
+                            type: object
+                          standalone:
+                            description: Standalone configuration
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                type: integer
+                            type: object
+                          testOnStart:
+                            description: TestOnStart test redis connection on gateway
+                              start
+                            type: boolean
+                          type:
+                            description: Redis Type
                             type: string
                         type: object
-                      commandTimeout:
-                        description: CommandTimeout for Redis commands
-                        type: integer
                       enabled:
                         description: Enable or disable a Redis integration
                         type: boolean
                       existingSecret:
                         description: "ExistingSecret mounts an existing secret containing
                           redis configuration\nto "
-                        type: string
-                      groupName:
-                        description: GroupName that should be used when connecting
-                          to Redis
-                        type: string
-                      sentinel:
-                        description: Sentinel configuration
-                        properties:
-                          masterSet:
-                            type: string
-                          nodes:
-                            items:
-                              type: string
-                            type: array
-                        type: object
-                      standalone:
-                        description: Standalone configuration
-                        properties:
-                          hostname:
-                            type: string
-                          port:
-                            type: integer
-                        type: object
-                      tls:
-                        description: TLS configuration if using sentinel or standalone
-                          (from Gateway v11.1.00)
-                        properties:
-                          crt:
-                            description: Crt in plaintext
-                            type: string
-                          enabled:
-                            description: If TLS is enabled on the Redis server set
-                              this to true
-                            type: boolean
-                          existingSecret:
-                            description: Reference an existing secret that contains
-                              a key called redis.
-                            type: string
-                          key:
-                            description: Change if using a different key. Defaults
-                              to redis.crt
-                            type: string
-                          verifyPeer:
-                            description: VerifyPeer
-                            type: boolean
-                        type: object
-                      type:
-                        description: |-
-                          Type of sentinel deployment
-                          valid options are standalone or sentinel
-                          standa
                         type: string
                     type: object
                   replicas:
@@ -6132,6 +6293,9 @@ spec:
                       type: string
                     name:
                       description: Name of the Repository Reference
+                      type: string
+                    remoteName:
+                      description: RemoteName
                       type: string
                     secretName:
                       description: SecretName is used to mount the correct repository

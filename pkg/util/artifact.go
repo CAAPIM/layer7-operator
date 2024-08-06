@@ -28,6 +28,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 	if err != nil {
 		return "", err
 	}
+	folderName := ""
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
 	fileName := "/tmp/" + name + "-" + namespace + "-" + segments[len(segments)-1]
@@ -47,7 +48,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 		return "", fmt.Errorf("unsupported file type %s", ext)
 	}
 
-	folderName := strings.ReplaceAll(fileName, "."+ext, "")
+	folderName = strings.ReplaceAll(fileName, "."+ext, "")
 	if strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
 		folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 	}
@@ -57,7 +58,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 	// If the downloaded file and corresponding uncompressed folder does not represent a valid graphman bundle
 	// it will be removed allowing for additional attempts to retrieve the file.
 	if existingFolder && sha1sum != "" && !forceUpdate {
-		err = validateGraphmanBundle(fileName, folderName, name)
+		err = validateGraphmanBundle(fileName, folderName)
 		if err != nil {
 			return "", err
 		}
@@ -90,7 +91,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 
 	switch ext {
 	case "zip":
-		folderName := strings.ReplaceAll(fileName, "."+ext, "")
+		folderName = strings.ReplaceAll(fileName, "."+ext, "")
 		f, _ := os.Open(fileName)
 		defer f.Close()
 		err = Unzip(fileName, folderName)
@@ -99,7 +100,6 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 		}
 	case "gz":
 		gz := false
-		folderName := strings.ReplaceAll(fileName, "."+ext, "")
 		f, _ := os.Open(fileName)
 		defer f.Close()
 		if strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
@@ -147,7 +147,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 		folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 	}
 
-	err = validateGraphmanBundle(fileName, folderName, name)
+	err = validateGraphmanBundle(fileName, folderName)
 	if err != nil {
 		return "", err
 	}
@@ -178,7 +178,7 @@ func existingFolder(folderName string) bool {
 	return folderExists != nil
 }
 
-func validateGraphmanBundle(fileName string, folderName string, repoName string) error {
+func validateGraphmanBundle(fileName string, folderName string) error {
 	bundle := graphman.Bundle{}
 	if _, err := os.Stat(folderName); err != nil {
 		return nil
@@ -196,13 +196,13 @@ func validateGraphmanBundle(fileName string, folderName string, repoName string)
 		if !d.IsDir() {
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
-			if ext == "json" {
-				sbb := bundleBytes
+			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") && !strings.Contains(strings.ToLower(d.Name()), "bundle-properties.json") {
+				//sbb := bundleBytes
 				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
 					return err
 				}
-				sbb, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 				if err != nil {
 					return nil
 				}

@@ -21,7 +21,7 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.7/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
@@ -186,7 +186,7 @@ uninstall:
 	-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 	-kubectl delete ns observability
 	-kubectl delete ns monitoring
-	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.6/bundle.yaml
+	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.7/bundle.yaml
 
 uninstall-kind:
 	kind delete cluster --name layer7

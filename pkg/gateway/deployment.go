@@ -55,11 +55,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		}
 	}
 
-	secretName := gw.Name
-	if gw.Spec.App.Management.SecretName != "" {
-		secretName = gw.Spec.App.Management.SecretName
-	}
-
 	livenessProbe := corev1.Probe{
 
 		ProbeHandler: corev1.ProbeHandler{
@@ -215,46 +210,109 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	if gw.Spec.App.Redis.Enabled {
-
-		secretName := gw.Name + "-redis-properties"
-
+		secretName := gw.Name + "-shared-state-client-configuration"
 		if gw.Spec.App.Redis.ExistingSecret != "" {
-			secretName = gw.Name + "-redis-properties"
+			secretName = gw.Spec.App.Redis.ExistingSecret
 		}
 
-		items := []corev1.KeyToPath{{Key: "redis.properties", Path: "redis.properties"}}
+		items := []corev1.KeyToPath{{Key: "sharedstate_client.yaml", Path: "sharedstate_client.yaml"}}
 
-		if gw.Spec.App.Redis.Tls.Enabled {
-			if gw.Spec.App.Redis.Tls.ExistingSecret != "" && gw.Spec.App.Redis.ExistingSecret == "" {
+		if gw.Spec.App.Redis.ExistingSecret == "" {
+			if gw.Spec.App.Redis.Default.Ssl.Enabled {
+				certSecretName := secretName
+				if gw.Spec.App.Redis.Default.Ssl.ExistingSecretName != "" {
+					certSecretName = gw.Spec.App.Redis.Default.Ssl.ExistingSecretName
+				}
 				key := "redis.crt"
-				if gw.Spec.App.Redis.Tls.ExistingSecretKey != "" {
-					key = gw.Spec.App.Redis.Tls.ExistingSecretKey
+				if gw.Spec.App.Redis.Default.Ssl.ExistingSecretKey != "" {
+					key = gw.Spec.App.Redis.Default.Ssl.ExistingSecretKey
+				}
+
+				volumes = append(volumes, corev1.Volume{
+					Name: "default-redis-ssl",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: certSecretName,
+							Optional:   &optional,
+							Items: []corev1.KeyToPath{{
+								Key:  key,
+								Path: "redis.crt",
+							}},
+						},
+					},
+				})
+				volumeMounts = append(volumeMounts, corev1.VolumeMount{
+					Name:      "default-redis-ssl",
+					MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/redis.crt",
+					SubPath:   "redis.crt",
+				})
+
+			}
+
+			for _, ac := range gw.Spec.App.Redis.AdditionalConfigs {
+				if ac.Enabled && ac.Ssl.Enabled {
+					certSecretName := secretName
+					if ac.Ssl.ExistingSecretKey != "" {
+						certSecretName = ac.Ssl.ExistingSecretName
+					}
+					key := ac.Name + "-redis.crt"
+					if ac.Ssl.ExistingSecretKey != "" {
+						key = ac.Ssl.ExistingSecretKey
+					}
 					volumes = append(volumes, corev1.Volume{
-						Name: "redis-tls",
+						Name: ac.Name + "redis-ssl",
 						VolumeSource: corev1.VolumeSource{
 							Secret: &corev1.SecretVolumeSource{
-								SecretName: gw.Spec.App.Redis.Tls.ExistingSecret,
+								SecretName: certSecretName,
 								Optional:   &optional,
 								Items: []corev1.KeyToPath{{
 									Key:  key,
-									Path: "redis.crt",
+									Path: ac.Name + "-redis.crt",
 								}},
 							},
 						},
 					})
 					volumeMounts = append(volumeMounts, corev1.VolumeMount{
-						Name:      "redis-tls",
-						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/assertions/RedisSharedStateProviderAssertion/redis.crt",
-						SubPath:   "redis.crt",
+						Name:      ac.Name + "redis-ssl",
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/" + ac.Name + "-redis.crt",
+						SubPath:   ac.Name + "-redis.crt",
 					})
 				}
-			} else {
-				items = append(items, corev1.KeyToPath{Key: "redis.crt", Path: "redis.crt"})
+			}
+
+		} else {
+			for i, certSecret := range gw.Spec.App.Redis.CertSecrets {
+				if certSecret.Enabled {
+					volumes = append(volumes, corev1.Volume{
+						Name: "redis-ssl-" + strconv.Itoa(i),
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: certSecret.SecretName,
+								Optional:   &optional,
+								Items: []corev1.KeyToPath{{
+									Key:  certSecret.Key,
+									Path: certSecret.Key,
+								}},
+							},
+						},
+					})
+					volumeMounts = append(volumeMounts, corev1.VolumeMount{
+						Name:      "redis-ssl-" + strconv.Itoa(i),
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/" + certSecret.Key,
+						SubPath:   certSecret.Key,
+					})
+				}
 			}
 		}
 
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "sharedstate-client-config",
+			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/sharedstate_client.yaml",
+			SubPath:   "sharedstate_client.yaml",
+		})
+
 		volumes = append(volumes, corev1.Volume{
-			Name: "redis-properties",
+			Name: "sharedstate-client-config",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: secretName,
@@ -264,10 +322,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			},
 		})
 
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      "redis-properties",
-			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/assertions/RedisSharedStateProviderAssertion/",
-		})
 	}
 
 	if gw.Spec.App.Log.Override {
@@ -452,8 +506,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				Name:      gw.Spec.App.Bundle[v].Name,
 				MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/" + baseFolder,
 			})
-
-			if gw.Spec.App.Bundle[v].CSI == (securityv1.CSI{}) {
+			if reflect.DeepEqual(gw.Spec.App.Bundle[v].CSI, securityv1.CSI{}) {
 				volumes = append(volumes, corev1.Volume{
 					Name: gw.Spec.App.Bundle[v].Name,
 					VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
@@ -465,7 +518,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				vs := corev1.CSIVolumeSource{
 					Driver:           gw.Spec.App.Bundle[v].CSI.Driver,
 					ReadOnly:         &gw.Spec.App.Bundle[v].CSI.ReadOnly,
-					VolumeAttributes: map[string]string{"secretProviderClass": gw.Spec.App.Bundle[v].CSI.VolumeAttributes.SecretProviderClass},
+					VolumeAttributes: gw.Spec.App.Bundle[v].CSI.VolumeAttributes,
 				}
 				volumes = append(volumes, corev1.Volume{
 					Name:         gw.Spec.App.Bundle[v].Name,
@@ -656,7 +709,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		h.Write([]byte(commits))
 		commits = fmt.Sprintf("%x", h.Sum(nil))
 
-		graphmanInitContainerImage := "docker.io/layer7api/graphman-static-init:1.0.1"
+		graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.2"
 		graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
 		graphmanInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -922,6 +975,13 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	if !reflect.DeepEqual(gw.Spec.App.PodSecurityContext, corev1.PodSecurityContext{}) {
 		podSecurityContext = gw.Spec.App.PodSecurityContext
 	}
+	gatewaySecretName := gw.Name
+	if gw.Spec.App.Management.DisklessConfig.Disabled {
+		gatewaySecretName = gw.Name + "-node-properties"
+	}
+	if gw.Spec.App.Management.SecretName != "" {
+		gatewaySecretName = gw.Spec.App.Management.SecretName
+	}
 
 	gateway := corev1.Container{
 		Image:                    image,
@@ -935,19 +995,52 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				ConfigMapRef: &corev1.ConfigMapEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
 				}},
-
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-				}},
 		},
 		Ports:          ports,
-		VolumeMounts:   volumeMounts,
 		LivenessProbe:  &livenessProbe,
 		ReadinessProbe: &readinessProbe,
 		Resources:      resources,
 		Lifecycle:      &lifecycleHooks,
 	}
+
+	secretRef := corev1.SecretEnvSource{}
+	if !gw.Spec.App.Management.DisklessConfig.Disabled {
+		secretRef = corev1.SecretEnvSource{
+			LocalObjectReference: corev1.LocalObjectReference{Name: gatewaySecretName},
+		}
+		gateway.EnvFrom = append(gateway.EnvFrom, corev1.EnvFromSource{SecretRef: &secretRef})
+	} else {
+		vs := corev1.VolumeSource{}
+
+		if !reflect.DeepEqual(gw.Spec.App.Management.DisklessConfig.Csi, securityv1.CSI{}) {
+
+			vs = corev1.VolumeSource{CSI: &corev1.CSIVolumeSource{
+				Driver:           gw.Spec.App.Management.DisklessConfig.Csi.Driver,
+				ReadOnly:         &gw.Spec.App.Management.DisklessConfig.Csi.ReadOnly,
+				VolumeAttributes: gw.Spec.App.Management.DisklessConfig.Csi.VolumeAttributes,
+			}}
+		} else {
+			vs = corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+				SecretName:  gatewaySecretName,
+				DefaultMode: &defaultMode,
+				Optional:    &optional,
+			}}
+		}
+
+		volumes = append(volumes, corev1.Volume{
+			Name:         gw.Name + "-node-properties",
+			VolumeSource: vs,
+		})
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      gw.Name + "-node-properties",
+			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/conf/node.properties",
+			SubPath:   "node.properties",
+		})
+
+	}
+
+	gateway.VolumeMounts = volumeMounts
 
 	sidecars := []corev1.Container{}
 

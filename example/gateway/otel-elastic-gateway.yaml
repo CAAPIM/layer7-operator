@@ -3,7 +3,7 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "11.1.00"
+  version: "11.1.1"
   license:
     accept: false
     secretName: gateway-license
@@ -13,7 +13,7 @@ spec:
       instrumentation.opentelemetry.io/inject-java: "true"
       instrumentation.opentelemetry.io/container-names: "gateway"
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.00
+    image: docker.io/caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
     updateStrategy:
       type: rollingUpdate
@@ -105,7 +105,7 @@ spec:
       ## Reserved for future use
       graphman:
         enabled: true
-        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
       cluster:
         hostname: gateway.brcmlabs.com
       database:
@@ -269,7 +269,7 @@ spec:
         com.l7tech.server.extension.sharedClusterInfoProvider=ssgdb
         # By default, FIPS module will block an RSA modulus from being used for encryption if it has been used for
         # signing, or visa-versa. Set true to disable this default behaviour and remain backwards compatible.
-        com.safelogic.cryptocomply.rsa.allow_multi_use=true
+        com.l7tech.org.bouncycastle.rsa.allow_multi_use=true
         # Specifies the type of Trust Store (JKS/PKCS12) provided by AdoptOpenJDK that is used by Gateway.
         # Must be set correctly when Gateway is running in FIPS mode. If not specified it will default to PKCS12.
         javax.net.ssl.trustStoreType=jks

@@ -30,6 +30,9 @@ mutation deleteKeys($keys: [String!]!) {
   }
 }
 
+mutation installBundleGeneric {
+    installBundleEntities {summary}
+}
 
 mutation installBundle (
     $activeConnectors: [ActiveConnectorInput!]!=[],
@@ -59,6 +62,7 @@ mutation installBundle (
     $jmsDestinations:[JmsDestinationInput!]!=[],
     $keys: [KeyInput!]!=[],
     $ldaps:[LdapInput!]!=[],
+    $roles: [RoleInput!]!=[],
     $listenPorts: [ListenPortInput!]!=[],
     $passwordPolicies:[PasswordPolicyInput!]!=[],
     $policies: [L7PolicyInput!]!=[],
@@ -77,7 +81,10 @@ mutation installBundle (
     $services: [L7ServiceInput!]!=[],
     $soapServices:[SoapServiceInput!]!=[],
     $trustedCerts:[TrustedCertInput!]!=[],
-    $webApiServices: [WebApiServiceInput!]!=[]) {
+    $webApiServices: [WebApiServiceInput!]!=[],
+    $genericEntities: [GenericEntityInput!]!=[]
+    $auditConfigurations: [AuditConfigurationInput!]!=[]
+    ) {
     setServerModuleFiles(input: $serverModuleFiles){detailedStatus {action status description source {name value} target {name value}}}
     setClusterProperties (input: $clusterProperties){detailedStatus {action status description source {name value} target {name value}}}
     setServiceResolutionConfigs (input: $serviceResolutionConfigs){detailedStatus {action status description source {name value} target {name value}}}
@@ -123,6 +130,9 @@ mutation installBundle (
     setActiveConnectors (input: $activeConnectors){detailedStatus {action status description source {name value} target {name value}}}
     setScheduledTasks (input: $scheduledTasks){detailedStatus {action status description source {name value} target {name value}}}
     setLogSinks(input: $logSinks){detailedStatus {action status description source {name value} target {name value}}}
+    setGenericEntities(input: $genericEntities){detailedStatus {action status description source {name value} target {name value}}}
+    setRoles (input: $roles) {detailedStatus {action status description source {name value} target {name value}}}
+    setAuditConfigurations(input: $auditConfigurations){detailedStatus {action status description source {name value} target {name value}}}
     # Keys must be mutated at the end
     setKeys (input: $keys) {detailedStatus {action status description source {name value} target {name value}}}
 }

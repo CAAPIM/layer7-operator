@@ -23,4 +23,7 @@ data:
   HTTP_PROXY: {{ .Values.proxy.httpProxy | quote }}
   HTTPS_PROXY: {{ .Values.proxy.httpsProxy | quote }}
   NO_PROXY: {{ .Values.proxy.noProxy | quote }}
+  ENABLE_OTEL: {{ default "false" .Values.otel.enabled | quote }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ default "localhost:4317" .Values.otel.otlpEndpoint | quote }}
+  OTEL_METRIC_PREFIX: {{ default "layer7_" .Values.otel.metricPrefix | quote }}
   KUBERNETES_CLUSTER_DOMAIN: {{ .Values.clusterDomain | quote }}

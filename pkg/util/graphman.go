@@ -93,7 +93,7 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 	bundle := graphman.Bundle{}
 
 	for _, key := range keys {
-
+		//TODO: revisit this
 		crtStrings := strings.SplitAfter(string(key.Crt), "-----END CERTIFICATE-----")
 		crtStrings = crtStrings[:len(crtStrings)-1]
 		crtsX509 := []x509.Certificate{}
@@ -238,13 +238,13 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 		if !d.IsDir() {
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
-			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") {
-				sbb := bundleBytes
+			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") && !strings.Contains(strings.ToLower(d.Name()), "bundle-properties.json") {
+				//sbb := bundleBytes
 				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
 					return err
 				}
-				sbb, err = graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 				if err != nil {
 					return nil
 				}
@@ -253,10 +253,6 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 		}
 		return nil
 	})
-
-	if err != nil {
-		return nil, err
-	}
 
 	// if the bundle is still empty after parsing all of the directory files
 	// return an error

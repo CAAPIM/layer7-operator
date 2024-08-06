@@ -20,7 +20,7 @@ func TestBuildCWPBundle(t *testing.T) {
 }
 
 func TestBuildDefaultListenPortBundle(t *testing.T) {
-	bundleBytes, sha1, err := BuildDefaultListenPortBundle()
+	bundleBytes, sha1, err := BuildDefaultListenPortBundle(true)
 	if err != nil {
 		t.Errorf("Error getting default listen port bundle")
 	}

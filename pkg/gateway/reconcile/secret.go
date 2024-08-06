@@ -17,15 +17,32 @@ func Secrets(ctx context.Context, params Params) error {
 	desiredSecrets := []*corev1.Secret{}
 
 	if params.Instance.Spec.App.Management.SecretName == "" {
-		desiredSecrets = append(desiredSecrets, gateway.NewSecret(params.Instance, params.Instance.Name))
+		secretName := params.Instance.Name
+		if params.Instance.Spec.App.Management.DisklessConfig.Disabled {
+			secretName = params.Instance.Name + "-node-properties"
+		}
+
+		desiredSecret, err := gateway.NewSecret(params.Instance, secretName)
+		if err != nil {
+			return err
+		}
+		desiredSecrets = append(desiredSecrets, desiredSecret)
 	}
 
 	if params.Instance.Spec.App.Otk.Enabled && params.Instance.Spec.App.Otk.Database.Auth != (securityv1.OtkDatabaseAuth{}) && params.Instance.Spec.App.Otk.Database.Auth.ExistingSecret == "" {
-		desiredSecrets = append(desiredSecrets, gateway.NewSecret(params.Instance, params.Instance.Name+"-otk-db-credentials"))
+		desiredSecret, err := gateway.NewSecret(params.Instance, params.Instance.Name+"-otk-db-credentials")
+		if err != nil {
+			return err
+		}
+		desiredSecrets = append(desiredSecrets, desiredSecret)
 	}
 
 	if params.Instance.Spec.App.Redis.Enabled && params.Instance.Spec.App.Redis.ExistingSecret == "" {
-		desiredSecrets = append(desiredSecrets, gateway.NewSecret(params.Instance, params.Instance.Name+"-redis-properties"))
+		desiredSecret, err := gateway.NewSecret(params.Instance, params.Instance.Name+"-shared-state-client-configuration")
+		if err != nil {
+			return err
+		}
+		desiredSecrets = append(desiredSecrets, desiredSecret)
 	}
 
 	if err := reconcileSecrets(ctx, params, desiredSecrets); err != nil {

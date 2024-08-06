@@ -14,7 +14,13 @@ import (
 
 func ExternalSecrets(ctx context.Context, params Params) error {
 	gateway := params.Instance
+	// if len(gateway.Spec.App.ExternalSecrets) == 0 {
+	// 	return nil
+	// }
 	name := gateway.Name
+	if gateway.Spec.App.Management.DisklessConfig.Disabled {
+		name = gateway.Name + "-node-properties"
+	}
 	if gateway.Spec.App.Management.SecretName != "" {
 		name = gateway.Spec.App.Management.SecretName
 	}
@@ -112,7 +118,7 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 				return err
 			}
 		} else {
-			err = ReconcileDBGateway(ctx, params, "external secrets", gatewayDeployment, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, bundleBytes)
+			err = ReconcileDBGateway(ctx, params, "external secrets", gatewayDeployment, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, es.Name, bundleBytes)
 			if err != nil {
 				return err
 			}

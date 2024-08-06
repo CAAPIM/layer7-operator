@@ -89,7 +89,7 @@ func applyOtkPolicies(ctx context.Context, params Params, gateway *securityv1.Ga
 		if err != nil {
 			return err
 		}
-		err = ReconcileDBGateway(ctx, params, "otk policies", gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, bundle)
+		err = ReconcileDBGateway(ctx, params, "otk policies", gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, "otk policies", bundle)
 		if err != nil {
 			return err
 		}

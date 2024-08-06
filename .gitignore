@@ -30,6 +30,7 @@ operator.Dockerfile
 mysql-values.yaml
 example/tls.*
 portal-gateway.yaml
+redis-gateway.yaml
 deploy.sh
 .dockerconfigjson
 dev

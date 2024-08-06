@@ -3567,37 +3567,10 @@ ConfigMap ConfigMap `json:"configMap,omitempty"`
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappbundleindexcsivolumeattributes">volumeAttributes</a></b></td>
-        <td>object</td>
+        <td><b>volumeAttributes</b></td>
+        <td>map[string]string</td>
         <td>
-          VolumeAtttributes<br/>
-        </td>
-        <td>false</td>
-      </tr></tbody>
-</table>
-
-
-### Gateway.spec.app.bundle[index].csi.volumeAttributes
-<sup><sup>[↩ Parent](#gatewayspecappbundleindexcsi)</sup></sup>
-
-
-
-VolumeAtttributes
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody><tr>
-        <td><b>secretProviderClass</b></td>
-        <td>string</td>
-        <td>
-          SecretProviderClass<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8113,7 +8086,37 @@ if resources are left unset this will be ignored<br/>
         <td>string</td>
         <td>
           Default Heap Size to use if calculate is false or requests.limits.memory is not set
-Set to 2g<br/>
+Set to 3g<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxDefault</b></td>
+        <td>string</td>
+        <td>
+          Default Max Heap Size to use if calculate is false or requests.limits.memory is not set
+Set to 3g<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxPercentage</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>minDefault</b></td>
+        <td>string</td>
+        <td>
+          Default Min Heap Size to use if calculate is false or requests.limits.memory is not set
+Set to 1g<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>minPercentage</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8121,7 +8124,7 @@ Set to 2g<br/>
         <td>integer</td>
         <td>
           Percentage of requests.limits.memory to allocate to the jvm
-50% is the default, should be no higher than 75%<br/>
+75% is the default, it should be no lower than 50%<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8725,6 +8728,14 @@ Harden applies the following changes, setting ports overrides this flag.
         <td>[]object</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>refreshOnKeyChanges</b></td>
+        <td>boolean</td>
+        <td>
+          Refresh on Key Changes
+If harden is true, the auto generated port bundle will include the refreshOnKeyChanges advanced property set to true<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9354,6 +9365,13 @@ Management defines configuration for Gateway Managment.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementdisklessconfig">disklessConfig</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappmanagementgraphman">graphman</a></b></td>
         <td>object</td>
         <td>
@@ -9381,7 +9399,8 @@ The initContainer image is required for bootstrapping graphman bundles defined b
         <td>
           SecretName is reference to an existing secret that contains
 SSG_ADMIN_USERNAME, SSG_ADMIN_PASSWORD, SSG_CLUSTER_PASSPHRASE and optionally
-SSG_DATABASE_USER and SSG_DATABASE_PASSWORD for mysql backed gateway clusters<br/>
+SSG_DATABASE_USER and SSG_DATABASE_PASSWORD for mysql backed gateway clusters
+SecretName can also be reference to a secret that contains a node.properties file<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9467,6 +9486,13 @@ Database configuration for the Gateway
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>liquibaseLogLevel</b></td>
+        <td>string</td>
+        <td>
+          LiquibaseLogLevel<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>password</b></td>
         <td>string</td>
         <td>
@@ -9478,6 +9504,83 @@ Database configuration for the Gateway
         <td>string</td>
         <td>
           Username MySQL - can be set in management.secretName<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.disklessConfig
+<sup><sup>[↩ Parent](#gatewayspecappmanagement)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappmanagementdisklessconfigcsi">csi</a></b></td>
+        <td>object</td>
+        <td>
+          CSI volume configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>disabled</b></td>
+        <td>boolean</td>
+        <td>
+          The Container Gateway uses diskless config by default
+Disabling it will switch the Gateway from using environment variables for Gateway Management configuration
+to a file called node.properties which can be mounted using an existing Kubernetes Secret or the secretstore csi driver.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.disklessConfig.csi
+<sup><sup>[↩ Parent](#gatewayspecappmanagementdisklessconfig)</sup></sup>
+
+
+
+CSI volume configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>driver</b></td>
+        <td>string</td>
+        <td>
+          Driver is the secretstore csi driver<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>readOnly</b></td>
+        <td>boolean</td>
+        <td>
+          ReadOnly<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>volumeAttributes</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12553,17 +12656,24 @@ Name must be an IANA_SVC_NAME.<br/>
         </tr>
     </thead>
     <tbody><tr>
-        <td><b><a href="#gatewayspecappredisauth">auth</a></b></td>
-        <td>object</td>
+        <td><b><a href="#gatewayspecappredisadditionalconfigsindex">additionalConfigs</a></b></td>
+        <td>[]object</td>
         <td>
-          Auth if using sentinel or standalone (from Gateway v11.1.00)<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>commandTimeout</b></td>
-        <td>integer</td>
+        <td><b><a href="#gatewayspecapprediscertsindex">certs</a></b></td>
+        <td>[]object</td>
         <td>
-          CommandTimeout for Redis commands<br/>
+          CertSecrets provides a way to mount secrets that contains certificates for ssl/tls redis connections when using an existing secret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredisdefault">default</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12582,6 +12692,54 @@ to the container gateway.
 The secret should contain a key called redis.properties and redis.crt if tls is enabled<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.additionalConfigs[index]
+<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappredisadditionalconfigsindexauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Auth if using sentinel or standalone (from Gateway v11.1.00)<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>commandTimeout</b></td>
+        <td>integer</td>
+        <td>
+          CommandTimeout for Redis commands<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>connectTimeout</b></td>
+        <td>integer</td>
+        <td>
+          ConnectTimeout for Redis commands<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable a Redis integration<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>groupName</b></td>
         <td>string</td>
@@ -12590,41 +12748,53 @@ The secret should contain a key called redis.properties and redis.crt if tls is 
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappredissentinel">sentinel</a></b></td>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the Redis connection, used for additionalConfigs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredisadditionalconfigsindexsentinel">sentinel</a></b></td>
         <td>object</td>
         <td>
           Sentinel configuration<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappredisstandalone">standalone</a></b></td>
-        <td>object</td>
-        <td>
-          Standalone configuration<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b><a href="#gatewayspecappredistls">tls</a></b></td>
+        <td><b><a href="#gatewayspecappredisadditionalconfigsindexssl">ssl</a></b></td>
         <td>object</td>
         <td>
           TLS configuration if using sentinel or standalone (from Gateway v11.1.00)<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappredisadditionalconfigsindexstandalone">standalone</a></b></td>
+        <td>object</td>
+        <td>
+          Standalone configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>testOnStart</b></td>
+        <td>boolean</td>
+        <td>
+          TestOnStart test redis connection on gateway start<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          Type of sentinel deployment
-valid options are standalone or sentinel
-standalone does not support auth or tls and should only be used in non-critical environments for development purposes<br/>
+          Redis Type<br/>
         </td>
         <td>false</td>
       </tr></tbody>
 </table>
 
 
-### Gateway.spec.app.redis.auth
-<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+### Gateway.spec.app.redis.additionalConfigs[index].auth
+<sup><sup>[↩ Parent](#gatewayspecappredisadditionalconfigsindex)</sup></sup>
 
 
 
@@ -12643,8 +12813,7 @@ Auth if using sentinel or standalone (from Gateway v11.1.00)
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          Enable or disable Redis auth
-Authentication is only available for Redis Sentinel<br/>
+          Enable or disable Redis auth<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12672,8 +12841,8 @@ Authentication is only available for Redis Sentinel<br/>
 </table>
 
 
-### Gateway.spec.app.redis.sentinel
-<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+### Gateway.spec.app.redis.additionalConfigs[index].sentinel
+<sup><sup>[↩ Parent](#gatewayspecappredisadditionalconfigsindex)</sup></sup>
 
 
 
@@ -12696,8 +12865,8 @@ Sentinel configuration
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>nodes</b></td>
-        <td>[]string</td>
+        <td><b><a href="#gatewayspecappredisadditionalconfigsindexsentinelnodesindex">nodes</a></b></td>
+        <td>[]object</td>
         <td>
           <br/>
         </td>
@@ -12706,12 +12875,12 @@ Sentinel configuration
 </table>
 
 
-### Gateway.spec.app.redis.standalone
-<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+### Gateway.spec.app.redis.additionalConfigs[index].sentinel.nodes[index]
+<sup><sup>[↩ Parent](#gatewayspecappredisadditionalconfigsindexsentinel)</sup></sup>
 
 
 
-Standalone configuration
+
 
 <table>
     <thead>
@@ -12723,7 +12892,7 @@ Standalone configuration
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>hostname</b></td>
+        <td><b>host</b></td>
         <td>string</td>
         <td>
           <br/>
@@ -12740,8 +12909,8 @@ Standalone configuration
 </table>
 
 
-### Gateway.spec.app.redis.tls
-<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+### Gateway.spec.app.redis.additionalConfigs[index].ssl
+<sup><sup>[↩ Parent](#gatewayspecappredisadditionalconfigsindex)</sup></sup>
 
 
 
@@ -12771,17 +12940,17 @@ TLS configuration if using sentinel or standalone (from Gateway v11.1.00)
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>existingSecret</b></td>
-        <td>string</td>
-        <td>
-          Reference an existing secret that contains a key called redis.crt with the redis public cert<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>key</b></td>
+        <td><b>existingSecretKey</b></td>
         <td>string</td>
         <td>
           Change if using a different key. Defaults to redis.crt<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecretName</b></td>
+        <td>string</td>
+        <td>
+          Reference an existing secret that contains a key called redis.crt with the redis public cert<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12789,6 +12958,383 @@ TLS configuration if using sentinel or standalone (from Gateway v11.1.00)
         <td>boolean</td>
         <td>
           VerifyPeer<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.additionalConfigs[index].standalone
+<sup><sup>[↩ Parent](#gatewayspecappredisadditionalconfigsindex)</sup></sup>
+
+
+
+Standalone configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.certs[index]
+<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable an additional mount for redis certificates<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          Key must match the crt that is defined in redis.existingSecret<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>secretName</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.default
+<sup><sup>[↩ Parent](#gatewayspecappredis)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappredisdefaultauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Auth if using sentinel or standalone (from Gateway v11.1.00)<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>commandTimeout</b></td>
+        <td>integer</td>
+        <td>
+          CommandTimeout for Redis commands<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>connectTimeout</b></td>
+        <td>integer</td>
+        <td>
+          ConnectTimeout for Redis commands<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable a Redis integration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>groupName</b></td>
+        <td>string</td>
+        <td>
+          GroupName that should be used when connecting to Redis<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the Redis connection, used for additionalConfigs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredisdefaultsentinel">sentinel</a></b></td>
+        <td>object</td>
+        <td>
+          Sentinel configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredisdefaultssl">ssl</a></b></td>
+        <td>object</td>
+        <td>
+          TLS configuration if using sentinel or standalone (from Gateway v11.1.00)<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredisdefaultstandalone">standalone</a></b></td>
+        <td>object</td>
+        <td>
+          Standalone configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>testOnStart</b></td>
+        <td>boolean</td>
+        <td>
+          TestOnStart test redis connection on gateway start<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Redis Type<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.default.auth
+<sup><sup>[↩ Parent](#gatewayspecappredisdefault)</sup></sup>
+
+
+
+Auth if using sentinel or standalone (from Gateway v11.1.00)
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable Redis auth<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordEncoded</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordPlaintext</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.default.sentinel
+<sup><sup>[↩ Parent](#gatewayspecappredisdefault)</sup></sup>
+
+
+
+Sentinel configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>masterSet</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappredisdefaultsentinelnodesindex">nodes</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.default.sentinel.nodes[index]
+<sup><sup>[↩ Parent](#gatewayspecappredisdefaultsentinel)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.default.ssl
+<sup><sup>[↩ Parent](#gatewayspecappredisdefault)</sup></sup>
+
+
+
+TLS configuration if using sentinel or standalone (from Gateway v11.1.00)
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>crt</b></td>
+        <td>string</td>
+        <td>
+          Crt in plaintext<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          If TLS is enabled on the Redis server set this to true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecretKey</b></td>
+        <td>string</td>
+        <td>
+          Change if using a different key. Defaults to redis.crt<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecretName</b></td>
+        <td>string</td>
+        <td>
+          Reference an existing secret that contains a key called redis.crt with the redis public cert<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>verifyPeer</b></td>
+        <td>boolean</td>
+        <td>
+          VerifyPeer<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.redis.default.standalone
+<sup><sup>[↩ Parent](#gatewayspecappredisdefault)</sup></sup>
+
+
+
+Standalone configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -17088,6 +17634,13 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         <td>string</td>
         <td>
           Name of the Repository Reference<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>remoteName</b></td>
+        <td>string</td>
+        <td>
+          RemoteName<br/>
         </td>
         <td>false</td>
       </tr><tr>

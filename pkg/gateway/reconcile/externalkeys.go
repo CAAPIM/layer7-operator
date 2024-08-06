@@ -15,10 +15,16 @@ import (
 
 func ExternalKeys(ctx context.Context, params Params) error {
 	gateway := params.Instance
+	if len(gateway.Spec.App.ExternalKeys) == 0 {
+		return nil
+	}
 	keySecretMap := []util.GraphmanKey{}
 	var bundleBytes []byte
 
 	name := gateway.Name
+	if gateway.Spec.App.Management.DisklessConfig.Disabled {
+		name = gateway.Name + "-node-properties"
+	}
 	if gateway.Spec.App.Management.SecretName != "" {
 		name = gateway.Spec.App.Management.SecretName
 	}
@@ -94,7 +100,7 @@ func ExternalKeys(ctx context.Context, params Params) error {
 				return err
 			}
 		} else {
-			err = ReconcileDBGateway(ctx, params, "external keys", gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, bundleBytes)
+			err = ReconcileDBGateway(ctx, params, "external keys", gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, externalKey.Name, bundleBytes)
 			if err != nil {
 				return err
 			}

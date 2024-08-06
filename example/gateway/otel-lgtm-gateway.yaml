@@ -102,7 +102,7 @@ spec:
       ## Reserved for future use
       graphman:
         enabled: true
-        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
       cluster:
         hostname: gateway.brcmlabs.com
       database:

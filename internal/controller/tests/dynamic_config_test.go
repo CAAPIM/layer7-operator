@@ -123,7 +123,7 @@ var _ = Describe("Gateway controller", func() {
 							},
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
-								InitContainerImage: "docker.io/layer7api/graphman-static-init:1.0.1",
+								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.2",
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",

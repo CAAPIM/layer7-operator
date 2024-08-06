@@ -110,7 +110,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community
-  name: layer7-operator.v1.0.6
+  name: layer7-operator.v1.0.7
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -638,7 +638,7 @@ spec:
                 - name: HTTP_PROXY
                 - name: HTTPS_PROXY
                 - name: NO_PROXY
-                image: docker.io/caapim/layer7-operator:1.0.6
+                image: docker.io/caapim/layer7-operator:v1.0.7
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -749,7 +749,7 @@ spec:
   provider:
     name: Broadcom
     url: https://www.broadcom.com/
-  version: 1.0.6
+  version: 1.0.7
   webhookdefinitions:
   - admissionReviewVersions:
     - v1

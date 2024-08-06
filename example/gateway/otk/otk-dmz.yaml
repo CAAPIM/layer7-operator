@@ -96,7 +96,7 @@ spec:
         enabled: false
       graphman:
         enabled: true
-        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
         dynamicSyncPort: 9443
       cluster:
         #password: 7layer

@@ -113,7 +113,7 @@ spec:
         enabled: false
       graphman:
         enabled: true
-        initContainerImage: docker.io/layer7api/graphman-static-init:1.0.1
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
         # initContainerSecurityContext:
         #   runAsNonRoot: true
         #   runAsUser: 1000670001

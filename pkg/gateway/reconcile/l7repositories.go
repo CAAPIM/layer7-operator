@@ -12,6 +12,7 @@ import (
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -84,7 +85,7 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 func applyEphemeral(ctx context.Context, params Params, repository *securityv1.Repository, repoRef securityv1.RepositoryReference, commit string) error {
 	gateway := params.Instance
-
+	secretBundle := []byte{}
 	graphmanPort := 9443
 
 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
@@ -166,7 +167,8 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 
 				gitPath := "/tmp/" + repoRef.Name + "-" + gateway.Namespace + "-" + ext + "/" + repoRef.Directories[d]
 
-				if strings.ToLower(repository.Spec.Type) == "http" {
+				switch strings.ToLower(repository.Spec.Type) {
+				case "http":
 					fileURL, err := url.Parse(repository.Spec.Endpoint)
 					if err != nil {
 						log.Fatal(err)
@@ -180,6 +182,9 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 						folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 					}
 					gitPath = "/tmp/" + repository.Name + "-" + gateway.Namespace + "-" + folderName
+				case "local":
+					gitPath = ""
+					secretBundle, err = readLocalReference(ctx, repository, params)
 
 				}
 
@@ -200,7 +205,7 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 					syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 					start := time.Now()
 					params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-					err = util.ApplyToGraphmanTarget(gitPath, singleton, username, password, endpoint, graphmanEncryptionPassphrase)
+					err = util.ApplyToGraphmanTarget(gitPath, secretBundle, singleton, username, password, endpoint, graphmanEncryptionPassphrase)
 					if err != nil {
 						params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 						_ = captureGraphmanMetrics(ctx, params, start, pod.Name, "repository", repoRef.Name, latestCommit, true)
@@ -305,7 +310,7 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 			start := time.Now()
 			params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-			err = util.ApplyToGraphmanTarget(gitPath, true, username, password, endpoint, graphmanEncryptionPassphrase)
+			err = util.ApplyToGraphmanTarget(gitPath, nil, true, username, password, endpoint, graphmanEncryptionPassphrase)
 			if err != nil {
 				params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 				_ = captureGraphmanMetrics(ctx, params, start, gatewayDeployment.Name, "repository", repoRef.Name, commit, true)
@@ -324,4 +329,23 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 	}
 
 	return nil
+}
+
+func readLocalReference(ctx context.Context, repository *securityv1.Repository, params Params) ([]byte, error) {
+	if repository.Spec.LocalReference.SecretName == "" {
+		return nil, fmt.Errorf("%s localReference secret name must be set", repository.Name)
+	}
+
+	localReference := &corev1.Secret{}
+	err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Spec.LocalReference.SecretName, Namespace: repository.Namespace}, localReference)
+	if err != nil {
+		return nil, err
+	}
+
+	bundleBytes, err := util.ConcatBundles(localReference.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return bundleBytes, nil
 }

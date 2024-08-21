@@ -8812,7 +8812,7 @@ ListenPort is translated into a Restman Bundle
         <td>false</td>
       </tr><tr>
         <td><b>port</b></td>
-        <td>string</td>
+        <td>integer</td>
         <td>
           Port<br/>
         </td>

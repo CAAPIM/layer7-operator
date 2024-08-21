@@ -23,6 +23,7 @@ func Deployment(ctx context.Context, params Params) error {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, currentDeployment)
 
 	if err != nil && k8serrors.IsNotFound(err) {
+
 		if err = params.Client.Create(ctx, desiredDeployment); err != nil {
 			return fmt.Errorf("failed creating deployment: %w", err)
 		}

@@ -174,7 +174,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: "service-account-token-script",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "load-service-account-token.sh",
 						Key:  "load-service-account-token"},
@@ -329,7 +329,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: "log-override-config",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "log-override.properties",
 						Key:  "log-override-properties"},
@@ -417,7 +417,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: gw.Name + "-graceful-shutdown",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "graceful-shutdown.sh",
 						Key:  "graceful-shutdown"},
@@ -438,7 +438,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: gw.Name + "-parse-custom-files-script",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "003-parse-custom-files.sh",
 						Key:  "003-parse-custom-files"},
@@ -460,7 +460,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: "hazelcast-client",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "hazelcast-client.xml",
 						Key:  "hazelcast-client.xml"},

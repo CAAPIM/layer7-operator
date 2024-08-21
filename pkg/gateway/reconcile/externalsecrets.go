@@ -14,9 +14,9 @@ import (
 
 func ExternalSecrets(ctx context.Context, params Params) error {
 	gateway := params.Instance
-	// if len(gateway.Spec.App.ExternalSecrets) == 0 {
-	// 	return nil
-	// }
+	if len(gateway.Spec.App.ExternalSecrets) == 0 {
+		return nil
+	}
 	name := gateway.Name
 	if gateway.Spec.App.Management.DisklessConfig.Disabled {
 		name = gateway.Name + "-node-properties"

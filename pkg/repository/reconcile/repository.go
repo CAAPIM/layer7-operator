@@ -159,6 +159,8 @@ func syncRepository(ctx context.Context, params Params) error {
 			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 			return nil
 		}
+	case "local":
+		return nil
 	default:
 		params.Log.Info("repository type not set", "name", repository.Name, "namespace", repository.Namespace)
 		return nil
@@ -238,7 +240,7 @@ func setRepoStatus(ctx context.Context, params Params, patch []byte) error {
 		return nil
 	}
 
-	if err := params.Client.Status().Patch(context.Background(), params.Instance,
+	if err := params.Client.Status().Patch(ctx, params.Instance,
 		client.RawPatch(types.JSONPatchType, patch)); err != nil {
 		return err
 	}

@@ -45,11 +45,16 @@ type GraphmanOtkConfig struct {
 	InternalGatewayReference string `json:"internalGatewayReference,omitempty"`
 }
 
-func ApplyToGraphmanTarget(path string, singleton bool, username string, password string, target string, encpass string) error {
+func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, username string, password string, target string, encpass string) error {
 	bundle := graphman.Bundle{}
+
 	bundleBytes, err := BuildAndValidateBundle(path)
 	if err != nil {
 		return err
+	}
+
+	if bundleBytes == nil && len(secretBundle) > 0 {
+		bundleBytes = secretBundle
 	}
 
 	if !singleton {
@@ -220,7 +225,25 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func ConcatBundles(bundleMap map[string][]byte) ([]byte, error) {
+	var combinedBundle []byte
+
+	for _, bundle := range bundleMap {
+		newBundle, err := graphman.ConcatBundle(combinedBundle, bundle)
+		if err != nil {
+			return nil, err
+		}
+		combinedBundle = newBundle
+	}
+
+	return combinedBundle, nil
+
+}
+
 func BuildAndValidateBundle(path string) ([]byte, error) {
+	if path == "" {
+		return nil, nil
+	}
 	bundle := graphman.Bundle{}
 	if _, err := os.Stat(path); err != nil {
 		return nil, err

@@ -58,6 +58,16 @@ func getGatewaySecret(ctx context.Context, params Params, name string) (*corev1.
 	return gwSecret, nil
 }
 
+func getGatewayConfigMap(ctx context.Context, params Params, name string) (*corev1.ConfigMap, error) {
+	gwConfigmap := &corev1.ConfigMap{}
+
+	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: params.Instance.Namespace}, gwConfigmap)
+	if err != nil {
+		return gwConfigmap, err
+	}
+	return gwConfigmap, nil
+}
+
 func parseGatewaySecret(gwSecret *corev1.Secret) (string, string) {
 	var username string
 	var password string
@@ -190,6 +200,15 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 					params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
 					return err
 				}
+			}
+		}
+
+		// if the Gateway is not ready then cluster properties have already been applied via bootsrap
+		if (!ready && kind == "cluster properties") || (!ready && kind == "listen ports") {
+			if err := params.Client.Patch(context.Background(), &podList.Items[i],
+				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
+				params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
+				return err
 			}
 		}
 	}

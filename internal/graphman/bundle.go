@@ -302,6 +302,10 @@ func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
 	srcBundle := Bundle{}
 	destBundle := Bundle{}
 
+	if len(src) == 0 {
+		src = []byte("{}")
+	}
+
 	err := json.Unmarshal(dest, &destBundle)
 	if err != nil {
 		return nil, err

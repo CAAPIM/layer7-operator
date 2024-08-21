@@ -48,7 +48,7 @@ func TestBuildCustomListenPortBundle(t *testing.T) {
 	port.Name = "custom1"
 	port.Enabled = true
 	port.Protocol = "http"
-	port.Port = "9090"
+	port.Port = 9090
 	gateway.Spec.App.ListenPorts.Ports = []securityv1.ListenPort{port}
 
 	bundleBytes, sha1, err := BuildCustomListenPortBundle(&gateway)

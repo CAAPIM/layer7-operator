@@ -33,11 +33,11 @@ type RepositorySpec struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// Endoint - Git repository endpoint
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Endpoint"
-	Endpoint string `json:"endpoint"`
-	// Type of Repository - Git or HTTP
+	Endpoint string `json:"endpoint,omitempty"`
+	// Type of Repository - Git, HTTP, Local
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Type"
 	Type string `json:"type,omitempty"`
-	// LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
+	// LocalReference lets the Repository controller use a local Kubernetes Secret as a repository source
 	// This is not currently implemented
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="LocalReference"
 	LocalReference LocalReference `json:"localReference,omitempty"`
@@ -86,8 +86,7 @@ type RepositoryList struct {
 }
 
 type LocalReference struct {
-	SecretName    string `json:"secretName,omitempty"`
-	ConfigMapName string `json:"configMapName,omitempty"`
+	SecretName string `json:"secretName,omitempty"`
 }
 
 // RepositorySyncConfig

@@ -829,8 +829,8 @@ type ListenPort struct {
 	// Protocol
 	Protocol string `json:"protocol,omitempty"`
 	// Port
-	Port string `json:"port,omitempty"`
-	Tls  Tls    `json:"tls,omitempty"`
+	Port int `json:"port,omitempty"`
+	Tls  Tls `json:"tls,omitempty"`
 	// ManagementFeatures that should be available on this port
 	// - Published service message input
 	// - Administrative access

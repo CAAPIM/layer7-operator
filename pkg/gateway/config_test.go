@@ -279,7 +279,7 @@ func TestCustomListenPortBundle(t *testing.T) {
 					},
 					Ports: []securityv1.ListenPort{{
 						Name:     "custom1",
-						Port:     "9090",
+						Port:     9090,
 						Protocol: "http",
 						Enabled:  true,
 					}},

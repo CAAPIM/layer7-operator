@@ -3183,7 +3183,7 @@ spec:
                               type: string
                             port:
                               description: Port
-                              type: string
+                              type: integer
                             properties:
                               items:
                                 description: Property is a simple k/v pair

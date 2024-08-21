@@ -18,7 +18,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -85,6 +84,8 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.ConfigMaps, "configMaps"},
 		{reconcile.Deployment, "deployment"},
 		{reconcile.ManagementPod, "management pod"},
+		{reconcile.ClusterProperties, "cluster properties"},
+		{reconcile.ListenPorts, "listen ports"},
 		{reconcile.ExternalRepository, "repository references"},
 		{reconcile.ExternalSecrets, "external secrets"},
 		{reconcile.ExternalKeys, "external keys"},
@@ -107,7 +108,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for _, op := range ops {
 		err = op.Run(ctx, params)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("failed to reconcile %s", op.Name))
 			_ = captureMetrics(ctx, params, start, true, op.Name)
 			return ctrl.Result{}, err
 		}

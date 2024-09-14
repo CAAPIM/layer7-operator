@@ -128,7 +128,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 						Auth:       "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
 					})
 				}
-
 			}
 		}
 		initContainerStaticConfigBytes, _ := json.Marshal(initContainerStaticConfig)
@@ -171,7 +170,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 
 			if gw.Spec.App.Otk.Database.Sql.JDBCDriverClass != "" {
 				data["OTK_JDBC_DRIVER_CLASS"] = string(gw.Spec.App.Otk.Database.Sql.JDBCDriverClass)
-
 			}
 
 		case securityv1.OtkDatabaseTypeCassandra:

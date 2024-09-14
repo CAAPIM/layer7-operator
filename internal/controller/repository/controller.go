@@ -32,7 +32,9 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -104,7 +106,13 @@ func (r *RepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{})
 
-	builder.WatchesMetadata(&corev1.Secret{},
+	s := &metav1.PartialObjectMetadata{}
+	s.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "secret",
+	})
+	builder.WatchesMetadata(s,
 		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []creconcile.Request {
 			repoList := &securityv1.RepositoryList{}
 			listOpts := []client.ListOption{

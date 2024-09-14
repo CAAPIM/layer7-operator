@@ -59,5 +59,4 @@ func TestBuildCustomListenPortBundle(t *testing.T) {
 	if !strings.Contains(bundle, "9090") {
 		t.Errorf("bundle %s, sha1 %s, expected key %s", bundle, sha1, "9090")
 	}
-
 }

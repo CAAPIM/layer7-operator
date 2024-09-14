@@ -53,7 +53,7 @@ spec:
         enabled: true
       ports:
         - name: Default HTTPS (8443)
-          port: "8443"
+          port: 8443
           enabled: true
           protocol: HTTPS
           managementFeatures:

@@ -91,6 +91,6 @@ spec:
           items:
           - key: hazelcast-client.xml
             path: hazelcast-client.xml
-          name: ssg
+          name: ssg-gateway-files
         name: hazelcast-client
 

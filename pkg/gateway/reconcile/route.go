@@ -16,11 +16,9 @@ import (
 
 func Route(ctx context.Context, params Params) error {
 
-	//Potentially delete the route if it exists.
-	if !params.Instance.Spec.App.Ingress.Enabled || strings.ToLower(params.Platform) != "openshift" || strings.ToLower(params.Instance.Spec.App.Ingress.Type) != "route" {
+	if strings.ToLower(params.Instance.Spec.App.Ingress.Type) == "ingress" {
 		return nil
 	}
-
 	desiredRoute := gateway.NewRoute(params.Instance)
 	currentRoute := routev1.Route{}
 
@@ -29,6 +27,19 @@ func Route(ctx context.Context, params Params) error {
 	}
 
 	err := params.Client.Get(ctx, types.NamespacedName{Name: desiredRoute.Name, Namespace: params.Instance.Namespace}, &currentRoute)
+
+	if !params.Instance.Spec.App.Ingress.Enabled && !k8serrors.IsNotFound(err) && controllerutil.HasControllerReference(&currentRoute) {
+		if err := params.Client.Delete(ctx, &currentRoute); err != nil {
+			return err
+		}
+		params.Log.Info("removed route", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		return nil
+	}
+
+	if !params.Instance.Spec.App.Ingress.Enabled || strings.ToLower(params.Platform) != "openshift" || strings.ToLower(params.Instance.Spec.App.Ingress.Type) != "route" {
+		return nil
+	}
+
 	if err != nil && k8serrors.IsNotFound(err) {
 		if err = params.Client.Create(ctx, &desiredRoute); err != nil {
 			return err

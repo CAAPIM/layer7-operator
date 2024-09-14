@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -171,7 +170,7 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 				case "http":
 					fileURL, err := url.Parse(repository.Spec.Endpoint)
 					if err != nil {
-						log.Fatal(err)
+						return err
 					}
 					path := fileURL.Path
 					segments := strings.Split(path, "/")
@@ -185,6 +184,9 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 				case "local":
 					gitPath = ""
 					secretBundle, err = readLocalReference(ctx, repository, params)
+					if err != nil {
+						return err
+					}
 
 				}
 

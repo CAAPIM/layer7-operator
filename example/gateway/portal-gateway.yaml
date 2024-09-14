@@ -68,11 +68,18 @@ spec:
     bundle: []
     repositoryReferences:
       - name: local-reference-repository
-        enabled: true
+        enabled: false
         type: dynamic
         encryption:
           existingSecret: graphman-encryption-secret
           key: APIS_ENCRYPTION_PASSPHRASE
+      - name: oom-repo
+        enabled: false
+        type: dynamic
+        encryption:
+          passphrase: mydemo123
+          # existingSecret: graphman-encryption-secret
+          # key: APIS_ENCRYPTION_PASSPHRASE
     portalReference:
       enabled: false
       portalName: dev-portal
@@ -123,6 +130,8 @@ spec:
     cwp:
       enabled: true
       properties:
+        - name: kevintest
+          value: kevinvalue123
         - name: cwptest
           value: myclusterprop123
         - name: io.httpsHostAllowWildcard

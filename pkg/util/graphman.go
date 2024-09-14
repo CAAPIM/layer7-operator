@@ -201,7 +201,6 @@ func RemoveL7API(username string, password string, target string, apiName string
 }
 
 func CompressGraphmanBundle(path string) ([]byte, error) {
-
 	bundleBytes, err := BuildAndValidateBundle(path)
 	if err != nil {
 		return nil, err
@@ -218,11 +217,14 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 		return nil, err
 	}
 	if buf.Len() > 900000 {
+		buf.Reset()
 		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size")
-
 	}
 
-	return buf.Bytes(), nil
+	compressedBundle := buf.Bytes()
+	buf.Reset()
+
+	return compressedBundle, nil
 }
 
 func ConcatBundles(bundleMap map[string][]byte) ([]byte, error) {

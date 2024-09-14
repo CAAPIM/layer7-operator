@@ -226,13 +226,13 @@ func TestCWPPropertiesConfigMap(t *testing.T) {
 	}
 
 	configMap := NewConfigMap(&gateway, gateway.Name+"-cwp-bundle")
-	cwpBundle := configMap.Data["cwp.bundle"]
+	cwpBundle := configMap.Data["cwp.json"]
 
-	if !strings.Contains(configMap.Data["cwp.bundle"], expectedCwpName) {
+	if !strings.Contains(configMap.Data["cwp.json"], expectedCwpName) {
 		t.Errorf("cwpBundle %s should contain property %s", cwpBundle, expectedCwpName)
 	}
 
-	if !strings.Contains(configMap.Data["cwp.bundle"], expectedCwpValue) {
+	if !strings.Contains(configMap.Data["cwp.json"], expectedCwpValue) {
 		t.Errorf("cwpBundle %s should contain property %s", cwpBundle, expectedCwpValue)
 	}
 }
@@ -254,7 +254,7 @@ func TestDefaultListenPortBundle(t *testing.T) {
 	}
 
 	configMap := NewConfigMap(&gateway, gateway.Name+"-listen-port-bundle")
-	listenPortBundle := configMap.Data["listen-ports.bundle"]
+	listenPortBundle := configMap.Data["listen-ports.json"]
 	if !strings.Contains(listenPortBundle, "8080") {
 		t.Errorf("listenPortBundle %s should contain port %s", listenPortBundle, "8080")
 	}
@@ -289,7 +289,7 @@ func TestCustomListenPortBundle(t *testing.T) {
 	}
 
 	configMap := NewConfigMap(&gateway, gateway.Name+"-listen-port-bundle")
-	listenPortBundle := configMap.Data["listen-ports.bundle"]
+	listenPortBundle := configMap.Data["listen-ports.json"]
 	if !strings.Contains(listenPortBundle, "9090") {
 		t.Errorf("listenPortBundle %s should contain port %s", listenPortBundle, "9090")
 	}

@@ -91,6 +91,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.ExternalRepository, "repository references"},
 		{reconcile.ExternalSecrets, "external secrets"},
 		{reconcile.ExternalKeys, "external keys"},
+		{reconcile.ExternalCerts, "external certs"},
 	}
 
 	if gw.Spec.App.Otk.Enabled {
@@ -190,6 +191,11 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					}
 				}
 				for _, keyRef := range gateway.Spec.App.ExternalKeys {
+					if keyRef.Name == a.GetName() {
+						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
+					}
+				}
+				for _, keyRef := range gateway.Spec.App.ExternalCerts {
 					if keyRef.Name == a.GetName() {
 						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
 					}
@@ -323,6 +329,5 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 				attribute.String("gateway_name", gateway.Name),
 				attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
 	}
-
 	return nil
 }

@@ -1546,6 +1546,28 @@ spec:
                           type: object
                         type: array
                     type: object
+                  externalCerts:
+                    items:
+                      description: ExternalCert is a reference to an existing TLS
+                        or Opaque Secret in Kubernet
+                      properties:
+                        enabled:
+                          description: Enabled or disabled
+                          type: boolean
+                        name:
+                          description: Name of the Secret which already exists in
+                            Kubernetes
+                          type: string
+                        revocationCheckPolicyType:
+                          type: string
+                        trustedFor:
+                          items:
+                            type: string
+                          type: array
+                        verifyHostname:
+                          type: boolean
+                      type: object
+                    type: array
                   externalKeys:
                     items:
                       description: |-
@@ -1571,10 +1593,6 @@ spec:
                           type: string
                       type: object
                     type: array
-                  externalKeysSyncIntervalSeconds:
-                    description: ExternalKeysSyncIntervalSeconds is the period of
-                      time between attempts to a
-                    type: integer
                   externalSecrets:
                     items:
                       description: |-
@@ -1615,10 +1633,6 @@ spec:
                           type: boolean
                       type: object
                     type: array
-                  externalSecretsSyncIntervalSeconds:
-                    description: ExternalSecretsSyncIntervalSeconds is the period
-                      of time between attempts t
-                    type: integer
                   hazelcast:
                     properties:
                       endpoint:
@@ -4728,6 +4742,8 @@ spec:
                     format: int32
                     type: integer
                   repositoryReferences:
+                    description: RepositorySyncIntervalSeconds is the period of time
+                      between attempts to app
                     items:
                       description: 'RepositoryReference is reference to a Git repository
                         or HTTP endpoint that '
@@ -4803,10 +4819,6 @@ spec:
                       - enabled
                       type: object
                     type: array
-                  repositorySyncIntervalSeconds:
-                    description: RepositorySyncIntervalSeconds is the period of time
-                      between attempts to app
-                    type: integer
                   resources:
                     description: PodResources
                     properties:

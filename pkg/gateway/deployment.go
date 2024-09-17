@@ -187,7 +187,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: "service-account-token-template",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "update-service-account-token.xml",
 						Key:  "service-account-token-template"},

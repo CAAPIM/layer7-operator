@@ -80,6 +80,14 @@ spec:
           passphrase: mydemo123
           # existingSecret: graphman-encryption-secret
           # key: APIS_ENCRYPTION_PASSPHRASE
+    externalCerts:
+      -  name: cert-secret
+         enabled: true
+         verifyHostname: false
+         trustedFor:
+           - SSL
+           - SIGNING_SERVER_CERTS
+         revocationCheckPolicyType: USE_DEFAULT
     portalReference:
       enabled: false
       portalName: dev-portal

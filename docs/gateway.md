@@ -198,6 +198,13 @@ are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappexternalcertsindex">externalCerts</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappexternalkeysindex">externalKeys</a></b></td>
         <td>[]object</td>
         <td>
@@ -205,24 +212,10 @@ are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>externalKeysSyncIntervalSeconds</b></td>
-        <td>integer</td>
-        <td>
-          ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b><a href="#gatewayspecappexternalsecretsindex">externalSecrets</a></b></td>
         <td>[]object</td>
         <td>
           <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>externalSecretsSyncIntervalSeconds</b></td>
-        <td>integer</td>
-        <td>
-          ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -433,14 +426,12 @@ alive or ready to receive traffic.<br/>
         <td><b><a href="#gatewayspecapprepositoryreferencesindex">repositoryReferences</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>repositorySyncIntervalSeconds</b></td>
-        <td>integer</td>
-        <td>
-          RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.<br/>
+          RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.
+RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
+ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.
+ExternalSecretsSyncIntervalSeconds int `json:"externalSecretsSyncIntervalSeconds,omitempty"`
+ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.
+ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncIntervalSeconds,omitempty"`<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4253,6 +4244,64 @@ Property is a simple k/v pair
         <td>string</td>
         <td>
           Value<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.externalCerts[index]
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+ExternalCert is a reference to an existing TLS or Opaque Secret in Kubernetes
+The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+dynamically keeping any referenced trusted certs up-to-date.
+You can bring in external secrets using tools like cert-manager
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the Secret which already exists in Kubernetes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>revocationCheckPolicyType</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>trustedFor</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>verifyHostname</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>

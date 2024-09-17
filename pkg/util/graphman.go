@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/sha1"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -38,6 +39,15 @@ type GraphmanKey struct {
 	Port      string `json:"port,omitempty"`
 	Alias     string `json:"alias,omitempty"`
 	UsageType string `json:"usageType,omitempty"`
+}
+
+type GraphmanCert struct {
+	Name                      string   `json:"name,omitempty"`
+	Crt                       string   `json:"crt,omitempty"`
+	TrustedFor                []string `json:"trustedFor,omitempty"`
+	VerifyHostname            bool     `json:"verifyHostname,omitempty"`
+	RevocationCheckPolicyType string   `json:"revocationCheckPolicyType,omitempty"`
+	TrustAnchor               bool     `json:"trustAnchor,omitempty"`
 }
 
 type GraphmanOtkConfig struct {
@@ -137,6 +147,42 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 
 		bundle.Keys = append(bundle.Keys, &gmanKey)
 
+	}
+
+	bundleBytes, _ := json.Marshal(bundle)
+	return bundleBytes, nil
+}
+
+func ConvertCertsToGraphmanBundle(certs []GraphmanCert) ([]byte, error) {
+	bundle := graphman.Bundle{}
+
+	// parse through certs
+	// give the cert a decent name.. not key value (cn potentially)
+	// if a cert contains multiple certs, split them
+
+	for _, cert := range certs {
+		//TODO: revisit this
+		crtStrings := strings.SplitAfter(string(cert.Crt), "-----END CERTIFICATE-----")
+		crtStrings = crtStrings[:len(crtStrings)-1]
+		for crt := range crtStrings {
+			b, _ := pem.Decode([]byte(crtStrings[crt]))
+			crtX509, _ := x509.ParseCertificate(b.Bytes)
+
+			tf := []graphman.TrustedForType{}
+			for _, v := range cert.TrustedFor {
+				tf = append(tf, graphman.TrustedForType(v))
+			}
+
+			gmanCert := graphman.TrustedCertInput{
+				Name:                      crtX509.Subject.CommonName,
+				CertBase64:                base64.StdEncoding.EncodeToString([]byte(crtStrings[crt])),
+				VerifyHostname:            cert.VerifyHostname,
+				TrustAnchor:               cert.TrustAnchor,
+				TrustedFor:                tf,
+				RevocationCheckPolicyType: graphman.PolicyUsageType(cert.RevocationCheckPolicyType),
+			}
+			bundle.TrustedCerts = append(bundle.TrustedCerts, &gmanCert)
+		}
 	}
 
 	bundleBytes, _ := json.Marshal(bundle)

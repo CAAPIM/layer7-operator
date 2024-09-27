@@ -1550,8 +1550,12 @@ spec:
                           description: Name of the Secret which already exists in
                             Kubernetes
                           type: string
+                        revocationCheckPolicyName:
+                          type: string
                         revocationCheckPolicyType:
                           type: string
+                        trustAnchor:
+                          type: boolean
                         trustedFor:
                           items:
                             type: string
@@ -4835,6 +4839,10 @@ spec:
                           pairs.
                         type: object
                     type: object
+                  restartOnConfigChange:
+                    description: RestartOnConfigChange restarts the Gateway if the
+                      default configmaps are up
+                    type: boolean
                   service:
                     description: Service
                     properties:
@@ -6270,6 +6278,37 @@ spec:
               image:
                 description: Image of the Gateway
                 type: string
+              lastAppliedClusterProperties:
+                description: LastAppliedClusterProperties
+                items:
+                  type: string
+                type: array
+              lastAppliedExternalCerts:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedExternalCerts
+                type: object
+              lastAppliedExternalKeys:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedExternalKeys
+                type: object
+              lastAppliedExternalSecrets:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedExternalSecrets
+                type: object
+              lastAppliedListenPorts:
+                description: LastAppliedClusterProperties
+                items:
+                  type: string
+                type: array
               managementPod:
                 description: Management Pod is a Gateway with a special annotation
                   is used as a selector

@@ -3,13 +3,13 @@ package reconcile
 import (
 	"context"
 	"crypto/sha1"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -80,12 +80,13 @@ func localReferenceShaSum(ctx context.Context, repository securityv1.Repository,
 		return "", err
 	}
 
-	bundleBytes, err := util.ConcatBundles(localReference.Data)
-	if err != nil {
-		return "", err
-	}
+	// bundleBytes, err := util.ConcatBundles(localReference.Data)
+	// if err != nil {
+	// 	return "", err
+	// }
+	dataBytes, _ := json.Marshal(&localReference.Data)
 	h := sha1.New()
-	h.Write(bundleBytes)
+	h.Write(dataBytes)
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 
 	return sha1Sum, nil

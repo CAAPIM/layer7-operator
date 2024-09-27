@@ -442,6 +442,13 @@ ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncInt
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>restartOnConfigChange</b></td>
+        <td>boolean</td>
+        <td>
+          RestartOnConfigChange restarts the Gateway if the default configmaps are updated<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappservice">service</a></b></td>
         <td>object</td>
         <td>
@@ -4284,8 +4291,22 @@ You can bring in external secrets using tools like cert-manager
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>revocationCheckPolicyName</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>revocationCheckPolicyType</b></td>
         <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>trustAnchor</b></td>
+        <td>boolean</td>
         <td>
           <br/>
         </td>
@@ -17419,6 +17440,41 @@ GatewayStatus defines the observed state of Gateways
         <td>string</td>
         <td>
           Image of the Gateway<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedClusterProperties</b></td>
+        <td>[]string</td>
+        <td>
+          LastAppliedClusterProperties<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedExternalCerts</b></td>
+        <td>map[string][]string</td>
+        <td>
+          LastAppliedExternalCerts<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedExternalKeys</b></td>
+        <td>map[string][]string</td>
+        <td>
+          LastAppliedExternalKeys<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedExternalSecrets</b></td>
+        <td>map[string][]string</td>
+        <td>
+          LastAppliedExternalSecrets<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedListenPorts</b></td>
+        <td>[]string</td>
+        <td>
+          LastAppliedClusterProperties<br/>
         </td>
         <td>false</td>
       </tr><tr>

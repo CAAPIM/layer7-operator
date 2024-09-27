@@ -9,6 +9,9 @@ spec:
     secretName: gateway-license
   app:
     replicas: 1
+    restartOnConfigChange: true
+    labels:
+      foo: bar
     image: caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
     updateStrategy:
@@ -68,26 +71,42 @@ spec:
     bundle: []
     repositoryReferences:
       - name: local-reference-repository
-        enabled: false
+        enabled: true
         type: dynamic
         encryption:
           existingSecret: graphman-encryption-secret
           key: APIS_ENCRYPTION_PASSPHRASE
-      - name: oom-repo
-        enabled: false
+      - name: l7-gw-myapis
+        enabled: true
         type: dynamic
         encryption:
-          passphrase: mydemo123
+          passphrase: 7layer
           # existingSecret: graphman-encryption-secret
           # key: APIS_ENCRYPTION_PASSPHRASE
     externalCerts:
       -  name: cert-secret
-         enabled: true
+         enabled: false
          verifyHostname: false
          trustedFor:
            - SSL
            - SIGNING_SERVER_CERTS
          revocationCheckPolicyType: USE_DEFAULT
+    externalKeys:
+      - name: brcmlabs
+        alias: bla
+        enabled: false
+      - name: brcmlabs123
+        alias: test123
+        enabled: true
+    externalSecrets:
+      - name: testssg-gateway-otkdb-secret
+        enabled: false
+        variableReferencable: true
+        description: testssg-gateway-otkdb-secret
+      - name: testssg-mysql
+        enabled: true
+        variableReferencable: true
+        description: testssg-mysql
     portalReference:
       enabled: false
       portalName: dev-portal
@@ -130,18 +149,105 @@ spec:
       - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true
       - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
     listenPorts:
-      harden: true
+      harden: false
       refreshOnKeyChanges: false
       custom:
+        enabled: true
+      ports:
+      - name: Default HTTPS (8443)
+        port: 8443
+        enabled: true
+        protocol: HTTPS
+        managementFeatures:
+        - Published service message input
+        properties:
+        - name: server
+          value: A
+        tls:
+          enabled: true
+          #privateKey: 00000000000000000000000000000002:ssl
+          clientAuthentication: OPTIONAL
+          versions:
+          - TLSv1.2
+          - TLSv1.3
+          useCipherSuitesOrder: true
+          cipherSuites:
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+      - name: Default HTTPS (9443)
+        port: 9443
+        enabled: true
+        protocol: HTTPS
+        managementFeatures:
+        - Published service message input
+        - Administrative access
+        - Browser-based administration
+        - Built-in services
+        properties: []
+        # - name: server
+        #   value: B
+        tls:
+          enabled: true
+        # privateKey: 00000000000000000000000000000002:ssl
+          clientAuthentication: Optional
+          versions:
+          - TLSv1.2
+          - TLSv1.3
+          useCipherSuitesOrder: true
+          cipherSuites:
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+      - name: Default HTTP (8080)
+        port: 8080
         enabled: false
-      ports: []
+        protocol: HTTP
+        managementFeatures:
+        - Published service message input
+        tls:
+          enabled: false
     cwp:
       enabled: true
       properties:
-        - name: kevintest
-          value: kevinvalue123
-        - name: cwptest
-          value: myclusterprop123
+        - name: abc123
+          value: def
+        # - name: abc1
+        #   value: def1
         - name: io.httpsHostAllowWildcard
           value: "true"
         - name: log.levels
@@ -176,7 +282,7 @@ spec:
         # com.l7tech.server.extension.sharedRateLimiterProvider=redis
         # com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
         # com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
-        # com.l7tech.external.assertions.keyvaluestore.storeIdPrefix=""
+        # com.l7tech.external.assertions.keyvaluestore.storeIdPrefix="12345678"
     service:
       # annotations:
       type: ClusterIP
@@ -190,9 +296,10 @@ spec:
         targetPort: 9443
         protocol: TCP
     ingress:
-      enabled: false
+      enabled: true
       ingressClassName: nginx
       annotations:
+        cert-manager.io/cluster-issuer: "brcmlabs-issuer"
         nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
         # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
       tls:

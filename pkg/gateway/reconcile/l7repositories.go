@@ -19,11 +19,7 @@ import (
 
 func ExternalRepository(ctx context.Context, params Params) error {
 	gateway := params.Instance
-	for _, repoRef := range gateway.Spec.App.RepositoryReferences {
-		if !repoRef.Enabled {
-			return nil
-		}
-	}
+
 	for _, repoRef := range gateway.Spec.App.RepositoryReferences {
 		if repoRef.Enabled {
 			err := reconcileDynamicRepository(ctx, params, repoRef)
@@ -217,7 +213,7 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 					params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, "repository", repoRef.Name, latestCommit, false)
 
-					if err := params.Client.Patch(context.Background(), &podList.Items[i],
+					if err := params.Client.Patch(ctx, &podList.Items[i],
 						client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 						params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
 						return err
@@ -322,7 +318,7 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 			params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 			_ = captureGraphmanMetrics(ctx, params, start, gatewayDeployment.Name, "repository", repoRef.Name, commit, false)
 
-			if err := params.Client.Patch(context.Background(), &gatewayDeployment,
+			if err := params.Client.Patch(ctx, &gatewayDeployment,
 				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 				params.Log.Error(err, "Failed to update deployment annotations", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
 				return err

@@ -95,15 +95,15 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["cwp.json"] = string(bundle)
 	case gw.Name + "-listen-port-bundle":
 		var bundle []byte
+		refreshOnKeyChanges := false
 
+		if gw.Spec.App.ListenPorts.RefreshOnKeyChanges {
+			refreshOnKeyChanges = true
+		}
 		if !gw.Spec.App.ListenPorts.Custom.Enabled {
-			refreshOnKeyChanges := false
-			if gw.Spec.App.ListenPorts.RefreshOnKeyChanges {
-				refreshOnKeyChanges = true
-			}
 			bundle, dataCheckSum, _ = util.BuildDefaultListenPortBundle(refreshOnKeyChanges)
 		} else {
-			bundle, dataCheckSum, _ = util.BuildCustomListenPortBundle(gw)
+			bundle, dataCheckSum, _ = util.BuildCustomListenPortBundle(gw, refreshOnKeyChanges)
 		}
 		data["listen-ports.json"] = string(bundle)
 	case gw.Name + "-repository-init-config":

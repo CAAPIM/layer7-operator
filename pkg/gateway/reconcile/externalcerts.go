@@ -3,21 +3,26 @@ package reconcile
 import (
 	"context"
 	"crypto/sha1"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
-	"sort"
 	"strings"
 
+	"github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/caapim/layer7-operator/pkg/util"
 )
 
 func ExternalCerts(ctx context.Context, params Params) error {
 	gateway := params.Instance
 	if len(gateway.Spec.App.ExternalCerts) == 0 {
-		return nil
+		for _, v := range gateway.Status.LastAppliedExternalCerts {
+			if len(v) != 0 {
+				continue
+			}
+			return nil
+		}
 	}
-	certSecretMap := []util.GraphmanCert{}
-	var bundleBytes []byte
 
 	name := gateway.Name
 	if gateway.Spec.App.Management.DisklessConfig.Disabled {
@@ -42,58 +47,110 @@ func ExternalCerts(ctx context.Context, params Params) error {
 		return err
 	}
 
-	for _, externalCert := range gateway.Spec.App.ExternalCerts {
-		if externalCert.Enabled {
+	for k, v := range gateway.Status.LastAppliedExternalCerts {
+		found := false
+		notFound := []string{}
 
-			secret, err := getGatewaySecret(ctx, params, externalCert.Name)
+		for _, ec := range gateway.Spec.App.ExternalCerts {
+			if k == ec.Name {
+				found = true
+			}
+		}
+		if !found {
+			notFound = append(notFound, v...)
+			bundleBytes, err := util.ConvertCertsToGraphmanBundle(nil, notFound)
 			if err != nil {
 				return err
 			}
 
+			annotation := "security.brcmlabs.com/external-certs-" + k
+			if !gateway.Spec.App.Management.Database.Enabled {
+				err = ReconcileEphemeralGateway(ctx, params, "external certs", *podList, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
+				if err != nil {
+					return err
+				}
+			} else {
+				err = ReconcileDBGateway(ctx, params, "external certs", gatewayDeployment, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	for _, externalCert := range gateway.Spec.App.ExternalCerts {
+		var sha1Sum string
+
+		certSecretMap := []util.GraphmanCert{}
+		if externalCert.Enabled {
+			secret, err := getGatewaySecret(ctx, params, externalCert.Name)
+			if err != nil {
+				return err
+			}
 			for _, v := range secret.Data {
 				if !strings.Contains(string(v), "-----BEGIN CERTIFICATE-----") {
 					continue
 				}
 
 				trustedFor := []string{}
-
 				for i := range externalCert.TrustedFor {
 					trustedFor = append(trustedFor, string(externalCert.TrustedFor[i]))
 				}
 
-				graphmanCert := util.GraphmanCert{
-					Name:                      externalCert.Name,
-					Crt:                       string(v),
-					VerifyHostname:            externalCert.VerifyHostname,
-					RevocationCheckPolicyType: string(externalCert.RevocationCheckPolicyType),
-					TrustedFor:                trustedFor,
+				crtStrings := strings.SplitAfter(string(v), "-----END CERTIFICATE-----")
+				crtStrings = crtStrings[:len(crtStrings)-1]
+				for crt := range crtStrings {
+					b, _ := pem.Decode([]byte(crtStrings[crt]))
+					crtX509, _ := x509.ParseCertificate(b.Bytes)
+
+					revocationCheckPolicyType := string(graphman.PolicyUsageTypeUseDefault)
+					if externalCert.RevocationCheckPolicyType == "" {
+						revocationCheckPolicyType = string(graphman.PolicyUsageType(externalCert.RevocationCheckPolicyType))
+					}
+
+					gmanCert := util.GraphmanCert{
+						Name:                      crtX509.Subject.CommonName,
+						Crt:                       crtStrings[crt],
+						VerifyHostname:            externalCert.VerifyHostname,
+						TrustAnchor:               externalCert.TrustAnchor,
+						TrustedFor:                trustedFor,
+						RevocationCheckPolicyType: revocationCheckPolicyType,
+						RevocationCheckPolicyName: externalCert.RevocationCheckPolicyName,
+					}
+					certSecretMap = append(certSecretMap, gmanCert)
 				}
 
-				certSecretMap = append(certSecretMap, graphmanCert)
+			}
+
+			dataBytes, _ := json.Marshal(&secret.Data)
+			h := sha1.New()
+			h.Write(dataBytes)
+			sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
+		}
+
+		notFound := []string{}
+		if gateway.Status.LastAppliedExternalCerts != nil && gateway.Status.LastAppliedExternalCerts[externalCert.Name] != nil {
+			for _, appliedCert := range gateway.Status.LastAppliedExternalCerts[externalCert.Name] {
+				found := false
+				for _, desiredCert := range certSecretMap {
+					if strings.Split(appliedCert, "-")[0] == desiredCert.Name {
+						found = true
+					}
+				}
+				if !found {
+					notFound = append(notFound, appliedCert)
+				}
 			}
 		}
 
-		if len(certSecretMap) <= 0 {
-			return nil
+		if len(certSecretMap) < 1 && len(notFound) < 1 {
+			continue
 		}
 
-		bundleBytes, err = util.ConvertCertsToGraphmanBundle(certSecretMap)
+		bundleBytes, err := util.ConvertCertsToGraphmanBundle(certSecretMap, notFound)
 		if err != nil {
 			return err
 		}
-
-		sort.Slice(certSecretMap, func(i, j int) bool {
-			return certSecretMap[i].Name < certSecretMap[j].Name
-		})
-
-		keySecretMapBytes, err := json.Marshal(certSecretMap)
-
-		if err != nil {
-			return err
-		}
-		h := sha1.New()
-		h.Write(keySecretMapBytes)
-		sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 
 		annotation := "security.brcmlabs.com/external-certs-" + externalCert.Name
 

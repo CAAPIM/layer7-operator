@@ -498,7 +498,7 @@ func BuildDefaultListenPortBundle(refreshOnKeyChanges bool) ([]byte, string, err
 	return bundleBytes, sha1Sum, nil
 }
 
-func BuildCustomListenPortBundle(gw *securityv1.Gateway) ([]byte, string, error) {
+func BuildCustomListenPortBundle(gw *securityv1.Gateway, refreshOnKeyChanges bool) ([]byte, string, error) {
 	bundle := graphman.Bundle{}
 	privateKey := "00000000000000000000000000000002:ssl"
 	clientAuthentication := graphman.ListenPortClientAuthOptional
@@ -518,9 +518,8 @@ func BuildCustomListenPortBundle(gw *securityv1.Gateway) ([]byte, string, error)
 		}
 
 		if port.Tls.Enabled {
-
 			if port.Tls.ClientAuthentication != "" {
-				clientAuthentication = graphman.ListenPortClientAuth(port.Tls.ClientAuthentication)
+				clientAuthentication = graphman.ListenPortClientAuth(strings.ToUpper(port.Tls.ClientAuthentication))
 			}
 
 			newPort.TlsSettings = &graphman.ListenPortTlsSettingsInput{
@@ -528,33 +527,41 @@ func BuildCustomListenPortBundle(gw *securityv1.Gateway) ([]byte, string, error)
 				CipherSuites:         port.Tls.CipherSuites,
 				UseCipherSuitesOrder: port.Tls.UseCipherSuitesOrder,
 				TlsVersions:          port.Tls.Versions,
+				KeystoreId:           strings.Split(privateKey, ":")[0],
+				KeyAlias:             strings.Split(privateKey, ":")[1],
 			}
 
+			hasRefreshOnKeyChangeProp := false
 			for _, prop := range port.Properties {
+				if prop.Name == "refreshOnKeyChanges" {
+					hasRefreshOnKeyChangeProp = true
+				}
 				newPort.Properties = append(newPort.Properties, &graphman.EntityPropertyInput{
 					Name:  prop.Name,
 					Value: prop.Value,
 				})
 			}
 
-			newPort.TlsSettings = &graphman.ListenPortTlsSettingsInput{
-				KeystoreId: strings.Split(privateKey, ":")[0],
-				KeyAlias:   strings.Split(privateKey, ":")[1],
+			if refreshOnKeyChanges && !hasRefreshOnKeyChangeProp {
+				refreshOnKeyChangesProp := &graphman.EntityPropertyInput{
+					Name:  "refreshOnKeyChanges",
+					Value: "true",
+				}
+				newPort.Properties = append(newPort.Properties, refreshOnKeyChangesProp)
 			}
 
 			if port.Tls.PrivateKey != "" {
-				newPort.TlsSettings = &graphman.ListenPortTlsSettingsInput{
-					KeystoreId: strings.Split(port.Tls.PrivateKey, ":")[0],
-					KeyAlias:   strings.Split(port.Tls.PrivateKey, ":")[1],
-				}
+				newPort.TlsSettings.KeystoreId = strings.Split(port.Tls.PrivateKey, ":")[0]
+				newPort.TlsSettings.KeyAlias = strings.Split(port.Tls.PrivateKey, ":")[1]
 			}
 		}
 		bundle.ListenPorts = append(bundle.ListenPorts, &newPort)
 	}
-	bundleBytes, err := xml.Marshal(bundle)
+	bundleBytes, err := json.Marshal(bundle)
 	if err != nil {
 		return nil, "", err
 	}
+
 	h := sha1.New()
 	h.Write(bundleBytes)
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))

@@ -2,13 +2,16 @@ package reconcile
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	"github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,6 +19,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+type MappingSource struct {
+	Name           string `json:"name,omitempty"`
+	Alias          string `json:"alias,omitempty"`
+	KeystoreId     string `json:"keystoreId,omitempty"`
+	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
+}
 
 // GetGatewayPods returns the pods in a Gateway Deployment
 func getGatewayPods(ctx context.Context, params Params) (*corev1.PodList, error) {
@@ -84,6 +94,17 @@ func parseGatewaySecret(gwSecret *corev1.Secret) (string, string) {
 
 }
 
+// HardenGraphmanService adds required mutual TLS to the Gateway's GraphQL Management API (Graphman)
+// This process also creates a user (PKI) and restricts Graphman to that user effectively locking remote Gateway management to
+// the Layer7 Operator only.
+// This feature is intended for Ephemeral Gateways, while it will work for MySQL backed Gateways we strongly recommend you supply your own
+// PKI Pair as losing this means you will need to update the user in Policy Manager as no remote interaction will be available.
+func HardenGraphmanService(ctx context.Context, params Params) error {
+	// potentially bootstrap this...
+	return nil
+
+}
+
 func GatewayLicense(ctx context.Context, params Params) error {
 	gatewayLicense := &corev1.Secret{}
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Spec.License.SecretName, Namespace: params.Instance.Namespace}, gatewayLicense)
@@ -116,12 +137,11 @@ func ManagementPod(ctx context.Context, params Params) error {
 	for p := range podList.Items {
 		if podList.Items[p].Status.Phase == "Running" && podList.Items[p].DeletionTimestamp == nil && !tagged {
 			patch := []byte(`{"metadata":{"labels":{"management-access": "leader"}}}`)
-			if err := params.Client.Patch(context.Background(), &podList.Items[p],
+			if err := params.Client.Patch(ctx, &podList.Items[p],
 				client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
 				params.Log.Error(err, "failed to update pod label", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 				return err
 			}
-
 			params.Log.V(2).Info("new leader elected", "name", params.Instance.Name, "pod", podList.Items[p].Name, "namespace", params.Instance.Namespace)
 			tagged = true
 		}
@@ -142,6 +162,8 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 	if username == "" || password == "" {
 		return fmt.Errorf("could not retrieve gateway credentials for %s", name)
 	}
+
+	updateStatus := false
 
 	for i, pod := range podList.Items {
 		currentSha1Sum := pod.ObjectMeta.Annotations[annotation]
@@ -168,9 +190,10 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 		}
 
 		if update && ready {
+			updateStatus = true
 			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"
 
-			requestCacheEntry := pod.Name + "-" + gateway.Name + "-" + sha1Sum
+			requestCacheEntry := pod.Name + "-" + gateway.Name + "-" + name + "-" + sha1Sum
 			syncRequest, err := syncCache.Read(requestCacheEntry)
 			tryRequest := true
 			if err != nil {
@@ -195,21 +218,29 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 				_ = captureGraphmanMetrics(ctx, params, start, pod.Name, kind, name, sha1Sum, false)
 				params.Log.Info("applied "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 
-				if err := params.Client.Patch(context.Background(), &podList.Items[i],
+				if err := params.Client.Patch(ctx, &podList.Items[i],
 					client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 					params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
 					return err
 				}
+
 			}
 		}
 
-		// if the Gateway is not ready then cluster properties have already been applied via bootsrap
+		// if the Gateway is not ready then cluster properties and listenPorts have already been applied via bootsrap
 		if (!ready && kind == "cluster properties") || (!ready && kind == "listen ports") {
-			if err := params.Client.Patch(context.Background(), &podList.Items[i],
+			if err := params.Client.Patch(ctx, &podList.Items[i],
 				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 				params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
 				return err
 			}
+		}
+	}
+
+	if updateStatus {
+		err := updateEntityStatus(ctx, kind, name, bundle, params)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -218,6 +249,8 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 }
 
 func ReconcileDBGateway(ctx context.Context, params Params, kind string, gatewayDeployment appsv1.Deployment, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
+
+	// TODO: Make sure status updates happen here too for CWPs, listen ports, keys, certs, etc..
 	graphmanPort := 9443
 
 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
@@ -242,7 +275,7 @@ func ReconcileDBGateway(ctx context.Context, params Params, kind string, gateway
 	}
 
 	if ready {
-		requestCacheEntry := gatewayDeployment.Name + "-" + sha1Sum
+		requestCacheEntry := gatewayDeployment.Name + "-" + name + "-" + sha1Sum
 		syncRequest, err := syncCache.Read(requestCacheEntry)
 		if err != nil {
 			params.Log.V(2).Info("request has not been attempted or cache was flushed", "action", "sync "+kind, "Name", gateway.Name, "Namespace", gateway.Namespace)
@@ -268,14 +301,248 @@ func ReconcileDBGateway(ctx context.Context, params Params, kind string, gateway
 			_ = captureGraphmanMetrics(ctx, params, start, gateway.Name, kind, name, sha1Sum, true)
 			return err
 		}
+
 		params.Log.Info("applied latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
 		_ = captureGraphmanMetrics(ctx, params, start, gateway.Name, kind, name, sha1Sum, false)
-		if err := params.Client.Patch(context.Background(), &gatewayDeployment,
+
+		err = updateEntityStatus(ctx, kind, name, bundle, params)
+		if err != nil {
+			return err
+		}
+
+		if err := params.Client.Patch(ctx, &gatewayDeployment,
 			client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 			params.Log.Error(err, "Failed to update deployment annotations", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
 			return err
 		}
 	}
 	return nil
+}
 
+func updateEntityStatus(ctx context.Context, kind string, name string, bundleBytes []byte, params Params) error {
+	switch kind {
+	case "cluster properties":
+		bundle := graphman.Bundle{}
+		err := json.Unmarshal(bundleBytes, &bundle)
+		if err != nil {
+			return err
+		}
+		clusterProps := []string{}
+		if params.Instance.Status.LastAppliedClusterProperties == nil {
+			for _, cwp := range params.Instance.Spec.App.ClusterProperties.Properties {
+				clusterProps = append(clusterProps, cwp.Name)
+			}
+		} else {
+			for _, appliedCwp := range bundle.ClusterProperties {
+				mappingSource := MappingSource{}
+				found := false
+				for _, cwp := range params.Instance.Status.LastAppliedClusterProperties {
+					if cwp == appliedCwp.Name {
+						for _, mapping := range bundle.Properties.Mappings.ClusterProperties {
+							sourceBytes, err := json.Marshal(mapping.Source)
+							if err != nil {
+								return err
+							}
+							err = json.Unmarshal(sourceBytes, &mappingSource)
+							if err != nil {
+								return err
+							}
+							if appliedCwp.Name == mappingSource.Name && mapping.Action == graphman.MappingActionDelete {
+								found = true
+								continue
+							}
+						}
+					}
+				}
+				if !found {
+					clusterProps = append(clusterProps, appliedCwp.Name)
+				}
+			}
+		}
+		params.Instance.Status.LastAppliedClusterProperties = clusterProps
+		if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
+			return fmt.Errorf("failed to update cluster properties status: %w", err)
+		}
+	case "listen ports":
+		bundle := graphman.Bundle{}
+		err := json.Unmarshal(bundleBytes, &bundle)
+		if err != nil {
+			return err
+		}
+		listenPorts := []string{}
+		if params.Instance.Status.LastAppliedListenPorts == nil {
+			for _, listenPort := range params.Instance.Spec.App.ListenPorts.Ports {
+				listenPorts = append(listenPorts, listenPort.Name)
+			}
+		} else {
+			for _, appliedListenPort := range bundle.ListenPorts {
+				mappingSource := MappingSource{}
+				found := false
+				for _, lp := range params.Instance.Status.LastAppliedListenPorts {
+					if lp == appliedListenPort.Name {
+						for _, mapping := range bundle.Properties.Mappings.ListenPorts {
+							sourceBytes, err := json.Marshal(mapping.Source)
+							if err != nil {
+								return err
+							}
+							err = json.Unmarshal(sourceBytes, &mappingSource)
+							if err != nil {
+								return err
+							}
+							if appliedListenPort.Name == mappingSource.Name && mapping.Action == graphman.MappingActionDelete {
+								found = true
+								continue
+							}
+						}
+					}
+				}
+				if !found {
+					listenPorts = append(listenPorts, appliedListenPort.Name)
+				}
+			}
+		}
+		params.Instance.Status.LastAppliedListenPorts = listenPorts
+		if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
+			return fmt.Errorf("failed to update listenPort status: %w", err)
+		}
+	case "external secrets":
+		bundle := graphman.Bundle{}
+		err := json.Unmarshal(bundleBytes, &bundle)
+		if err != nil {
+			return err
+		}
+		secrets := []string{}
+		if params.Instance.Status.LastAppliedExternalSecrets == nil {
+			for _, secret := range bundle.Secrets {
+				secrets = append(secrets, secret.Name)
+			}
+		} else {
+			for _, appliedSecret := range bundle.Secrets {
+				mappingSource := MappingSource{}
+				found := false
+				for _, secret := range params.Instance.Status.LastAppliedExternalSecrets[name] {
+					if bundle.Properties != nil && secret == appliedSecret.Name {
+						for _, mapping := range bundle.Properties.Mappings.Secrets {
+							sourceBytes, err := json.Marshal(mapping.Source)
+							if err != nil {
+								return err
+							}
+							err = json.Unmarshal(sourceBytes, &mappingSource)
+							if err != nil {
+								return err
+							}
+							if appliedSecret.Name == mappingSource.Name && mapping.Action == graphman.MappingActionDelete {
+								found = true
+							}
+						}
+					}
+				}
+				if !found {
+					secrets = append(secrets, appliedSecret.Name)
+				}
+			}
+		}
+		if params.Instance.Status.LastAppliedExternalSecrets == nil {
+			params.Instance.Status.LastAppliedExternalSecrets = map[string][]string{}
+		}
+
+		params.Instance.Status.LastAppliedExternalSecrets[name] = secrets
+		if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
+			return fmt.Errorf("failed to update external secret status: %w", err)
+		}
+	case "external keys":
+		bundle := graphman.Bundle{}
+
+		err := json.Unmarshal(bundleBytes, &bundle)
+		if err != nil {
+			return err
+		}
+		keys := []string{}
+		if params.Instance.Status.LastAppliedExternalKeys == nil {
+			for _, key := range bundle.Keys {
+				keys = append(keys, key.Alias)
+			}
+		} else {
+			for _, appliedKey := range bundle.Keys {
+				mappingSource := MappingSource{}
+				found := false
+				for _, key := range params.Instance.Status.LastAppliedExternalKeys[name] {
+					if bundle.Properties != nil && key == appliedKey.Alias {
+						for _, mapping := range bundle.Properties.Mappings.Keys {
+							sourceBytes, err := json.Marshal(mapping.Source)
+							if err != nil {
+								return err
+							}
+							err = json.Unmarshal(sourceBytes, &mappingSource)
+							if err != nil {
+								return err
+							}
+							if appliedKey.Alias == mappingSource.Alias && mapping.Action == graphman.MappingActionDelete {
+								found = true
+							}
+						}
+					}
+				}
+				if !found {
+					keys = append(keys, appliedKey.Alias)
+				}
+			}
+		}
+		if params.Instance.Status.LastAppliedExternalKeys == nil {
+			params.Instance.Status.LastAppliedExternalKeys = map[string][]string{}
+		}
+
+		params.Instance.Status.LastAppliedExternalKeys[name] = keys
+		if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
+			return fmt.Errorf("failed to update external key status: %w", err)
+		}
+	case "external certs":
+		bundle := graphman.Bundle{}
+
+		err := json.Unmarshal(bundleBytes, &bundle)
+		if err != nil {
+			return err
+		}
+		certs := []string{}
+		if params.Instance.Status.LastAppliedExternalCerts == nil {
+			for _, cert := range bundle.TrustedCerts {
+				certs = append(certs, cert.Name+"-"+cert.ThumbprintSha1)
+			}
+		} else {
+			for _, appliedCert := range bundle.TrustedCerts {
+				mappingSource := MappingSource{}
+				found := false
+				for _, cert := range params.Instance.Status.LastAppliedExternalCerts[name] {
+					if bundle.Properties != nil && strings.Split(cert, "-")[0] == appliedCert.Name {
+						for _, mapping := range bundle.Properties.Mappings.TrustedCerts {
+							sourceBytes, err := json.Marshal(mapping.Source)
+							if err != nil {
+								return err
+							}
+							err = json.Unmarshal(sourceBytes, &mappingSource)
+							if err != nil {
+								return err
+							}
+							if appliedCert.ThumbprintSha1 == mappingSource.ThumbprintSha1 && mapping.Action == graphman.MappingActionDelete {
+								found = true
+							}
+						}
+					}
+				}
+				if !found {
+					certs = append(certs, appliedCert.Name+"-"+appliedCert.ThumbprintSha1)
+				}
+			}
+		}
+		if params.Instance.Status.LastAppliedExternalCerts == nil {
+			params.Instance.Status.LastAppliedExternalCerts = map[string][]string{}
+		}
+
+		params.Instance.Status.LastAppliedExternalCerts[name] = certs
+		if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
+			return fmt.Errorf("failed to update external cert status: %w", err)
+		}
+	}
+
+	return nil
 }

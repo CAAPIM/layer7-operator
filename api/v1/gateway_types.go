@@ -107,6 +107,16 @@ type GatewayStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:displayName="PortalSyncStatus"
 	PortalSyncStatus PortalSyncStatus `json:"PortalSyncStatus,omitempty"`
+	// LastAppliedClusterProperties
+	LastAppliedClusterProperties []string `json:"lastAppliedClusterProperties,omitempty"`
+	// LastAppliedClusterProperties
+	LastAppliedListenPorts []string `json:"lastAppliedListenPorts,omitempty"`
+	// LastAppliedExternalKeys
+	LastAppliedExternalKeys map[string][]string `json:"lastAppliedExternalKeys,omitempty"`
+	// LastAppliedExternalSecrets
+	LastAppliedExternalSecrets map[string][]string `json:"lastAppliedExternalSecrets,omitempty"`
+	// LastAppliedExternalCerts
+	LastAppliedExternalCerts map[string][]string `json:"lastAppliedExternalCerts,omitempty"`
 }
 
 // GatewayState tracks the status of Gateway Resources
@@ -173,12 +183,14 @@ type App struct {
 	// Labels for Operator managed resources
 	Labels map[string]string `json:"labels,omitempty"`
 	// PodLabels for the Gateway Deployment
-	PodLabels         map[string]string `json:"podLabels,omitempty"`
-	ClusterProperties ClusterProperties `json:"cwp,omitempty"`
-	Java              Java              `json:"java,omitempty"`
-	Management        Management        `json:"management,omitempty"`
-	Log               Log               `json:"log,omitempty"`
-	System            System            `json:"system,omitempty"`
+	PodLabels map[string]string `json:"podLabels,omitempty"`
+	// RestartOnConfigChange restarts the Gateway if the default configmaps are updated
+	RestartOnConfigChange bool              `json:"restartOnConfigChange,omitempty"`
+	ClusterProperties     ClusterProperties `json:"cwp,omitempty"`
+	Java                  Java              `json:"java,omitempty"`
+	Management            Management        `json:"management,omitempty"`
+	Log                   Log               `json:"log,omitempty"`
+	System                System            `json:"system,omitempty"`
 	// AutoMountServiceAccountToken optionally adds the Gateway Container's Kubernetes Service Account Token to Stored Passwords
 	AutoMountServiceAccountToken bool           `json:"autoMountServiceAccountToken,omitempty"`
 	UpdateStrategy               UpdateStrategy `json:"updateStrategy,omitempty"`
@@ -778,7 +790,9 @@ type ExternalCert struct {
 	Name                      string                    `json:"name,omitempty"`
 	VerifyHostname            bool                      `json:"verifyHostname,omitempty"`
 	TrustedFor                []TrustedFor              `json:"trustedFor,omitempty"`
+	TrustAnchor               bool                      `json:"trustAnchor,omitempty"`
 	RevocationCheckPolicyType RevocationCheckPolicyType `json:"revocationCheckPolicyType,omitempty"`
+	RevocationCheckPolicyName string                    `json:"revocationCheckPolicyName,omitempty"`
 }
 
 // ExternalKey is a reference to an existing TLS Secret in Kubernetes

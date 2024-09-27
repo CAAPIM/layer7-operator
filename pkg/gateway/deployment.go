@@ -1082,7 +1082,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: ls,
+				MatchLabels: util.DefaultLabels(gw.Name, nil),
 			},
 			Replicas:                &gw.Spec.App.Replicas,
 			Strategy:                strategy,

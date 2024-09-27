@@ -3,18 +3,24 @@ package util
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/fs"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
 )
@@ -47,12 +53,20 @@ type GraphmanCert struct {
 	TrustedFor                []string `json:"trustedFor,omitempty"`
 	VerifyHostname            bool     `json:"verifyHostname,omitempty"`
 	RevocationCheckPolicyType string   `json:"revocationCheckPolicyType,omitempty"`
+	RevocationCheckPolicyName string   `json:"revocationCheckPolicyName,omitempty"`
 	TrustAnchor               bool     `json:"trustAnchor,omitempty"`
 }
 
 type GraphmanOtkConfig struct {
 	Type                     string `json:"type,omitempty"`
 	InternalGatewayReference string `json:"internalGatewayReference,omitempty"`
+}
+
+type MappingSource struct {
+	Name           string `json:"name,omitempty"`
+	Alias          string `json:"alias,omitempty"`
+	KeystoreId     string `json:"keystoreId,omitempty"`
+	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
 }
 
 func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, username string, password string, target string, encpass string) error {
@@ -104,11 +118,10 @@ func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, use
 	return nil
 }
 
-func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
+func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte, error) {
 	bundle := graphman.Bundle{}
 
 	for _, key := range keys {
-		//TODO: revisit this
 		crtStrings := strings.SplitAfter(string(key.Crt), "-----END CERTIFICATE-----")
 		crtStrings = crtStrings[:len(crtStrings)-1]
 		crtsX509 := []x509.Certificate{}
@@ -146,51 +159,109 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey) ([]byte, error) {
 		}
 
 		bundle.Keys = append(bundle.Keys, &gmanKey)
+	}
 
+	for _, nf := range notFound {
+		key, cert, err := createDummyKey()
+		if err != nil {
+			return nil, err
+		}
+		bundle.Keys = append(bundle.Keys, &graphman.KeyInput{
+			Alias:     nf,
+			Pem:       key,
+			CertChain: cert,
+			//UsageTypes: []graphman.KeyUsageType{graphman.KeyUsageTypeSsl},
+			KeystoreId: "00000000000000000000000000000002",
+		})
+		mappingSource := MappingSource{Alias: nf, KeystoreId: "00000000000000000000000000000002"}
+		if bundle.Properties == nil {
+			bundle.Properties = &graphman.BundleProperties{}
+		}
+		bundle.Properties.Mappings.Keys = append(bundle.Properties.Mappings.Keys, &graphman.MappingInstructionInput{
+			Action: graphman.MappingActionDelete,
+			Source: mappingSource,
+		})
 	}
 
 	bundleBytes, _ := json.Marshal(bundle)
 	return bundleBytes, nil
 }
 
-func ConvertCertsToGraphmanBundle(certs []GraphmanCert) ([]byte, error) {
+func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]byte, error) {
 	bundle := graphman.Bundle{}
-
-	// parse through certs
-	// give the cert a decent name.. not key value (cn potentially)
-	// if a cert contains multiple certs, split them
 
 	for _, cert := range certs {
-		//TODO: revisit this
-		crtStrings := strings.SplitAfter(string(cert.Crt), "-----END CERTIFICATE-----")
-		crtStrings = crtStrings[:len(crtStrings)-1]
-		for crt := range crtStrings {
-			b, _ := pem.Decode([]byte(crtStrings[crt]))
-			crtX509, _ := x509.ParseCertificate(b.Bytes)
+		// crtStrings := strings.SplitAfter(string(cert.Crt), "-----END CERTIFICATE-----")
+		// crtStrings = crtStrings[:len(crtStrings)-1]
+		// for crt := range crtStrings {
+		b, _ := pem.Decode([]byte(cert.Crt))
+		crtX509, _ := x509.ParseCertificate(b.Bytes)
 
-			tf := []graphman.TrustedForType{}
-			for _, v := range cert.TrustedFor {
-				tf = append(tf, graphman.TrustedForType(v))
-			}
-
-			gmanCert := graphman.TrustedCertInput{
-				Name:                      crtX509.Subject.CommonName,
-				CertBase64:                base64.StdEncoding.EncodeToString([]byte(crtStrings[crt])),
-				VerifyHostname:            cert.VerifyHostname,
-				TrustAnchor:               cert.TrustAnchor,
-				TrustedFor:                tf,
-				RevocationCheckPolicyType: graphman.PolicyUsageType(cert.RevocationCheckPolicyType),
-			}
-			bundle.TrustedCerts = append(bundle.TrustedCerts, &gmanCert)
+		tf := []graphman.TrustedForType{}
+		for _, v := range cert.TrustedFor {
+			tf = append(tf, graphman.TrustedForType(v))
 		}
+		revocationCheckPolicyType := graphman.PolicyUsageTypeUseDefault
+		if cert.RevocationCheckPolicyType == "" {
+			revocationCheckPolicyType = graphman.PolicyUsageType(cert.RevocationCheckPolicyType)
+		}
+
+		sha1Thumbprint, err := getSha1Thumbprint(crtX509.Raw)
+		if err != nil {
+			return nil, err
+		}
+		gmanCert := graphman.TrustedCertInput{
+			Name:                      cert.Name,
+			CertBase64:                base64.StdEncoding.EncodeToString([]byte(cert.Crt)),
+			VerifyHostname:            cert.VerifyHostname,
+			ThumbprintSha1:            sha1Thumbprint,
+			TrustAnchor:               cert.TrustAnchor,
+			TrustedFor:                tf,
+			RevocationCheckPolicyType: revocationCheckPolicyType,
+		}
+
+		if cert.RevocationCheckPolicyType == string(graphman.PolicyUsageTypeSpecified) {
+			if cert.RevocationCheckPolicyName != "" {
+				gmanCert.RevocationCheckPolicyName = cert.RevocationCheckPolicyName
+			} else {
+				gmanCert.RevocationCheckPolicyType = graphman.PolicyUsageTypeUseDefault
+			}
+		}
+		bundle.TrustedCerts = append(bundle.TrustedCerts, &gmanCert)
+		//	}
 	}
 
+	for _, nf := range notFound {
+		_, cert, err := createDummyKey()
+		if err != nil {
+			return nil, err
+		}
+
+		bundle.TrustedCerts = append(bundle.TrustedCerts, &graphman.TrustedCertInput{
+			Name:                      strings.Split(nf, "-")[0],
+			ThumbprintSha1:            strings.Split(nf, "-")[1],
+			CertBase64:                base64.StdEncoding.EncodeToString([]byte(cert)),
+			VerifyHostname:            true,
+			TrustAnchor:               false,
+			TrustedFor:                []graphman.TrustedForType{graphman.TrustedForTypeSsl},
+			RevocationCheckPolicyType: graphman.PolicyUsageTypeUseDefault,
+		})
+		mappingSource := MappingSource{ThumbprintSha1: strings.Split(nf, "-")[1]}
+		if bundle.Properties == nil {
+			bundle.Properties = &graphman.BundleProperties{}
+		}
+		bundle.Properties.Mappings.TrustedCerts = append(bundle.Properties.Mappings.TrustedCerts, &graphman.MappingInstructionInput{
+			Action: graphman.MappingActionDelete,
+			Source: mappingSource,
+		})
+	}
 	bundleBytes, _ := json.Marshal(bundle)
 	return bundleBytes, nil
 }
 
-func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) {
+func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret, notFound []string) ([]byte, error) {
 	bundle := graphman.Bundle{}
+
 	for _, secret := range secrets {
 		description := "layer7 operator managed secret"
 		if secret.Description != "" {
@@ -220,12 +291,28 @@ func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret) ([]byte, error) 
 		})
 	}
 
+	for _, nf := range notFound {
+		bundle.Secrets = append(bundle.Secrets, &graphman.SecretInput{
+			Name:                 nf,
+			SecretType:           graphman.SecretTypePassword,
+			VariableReferencable: false,
+			Secret:               "DELETED",
+		})
+		mappingSource := MappingSource{Name: nf}
+		if bundle.Properties == nil {
+			bundle.Properties = &graphman.BundleProperties{}
+		}
+		bundle.Properties.Mappings.Secrets = append(bundle.Properties.Mappings.Secrets, &graphman.MappingInstructionInput{
+			Action: graphman.MappingActionDelete,
+			Source: mappingSource,
+		})
+	}
+
 	bundleBytes, err := json.Marshal(bundle)
 
 	if err != nil {
 		return nil, err
 	}
-
 	return bundleBytes, nil
 }
 
@@ -421,13 +508,75 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 	enc.SetEscapeHTML(false)
 	enc.Encode(&bundle)
 
-	//bundleBytes, _ := json.Marshal(bundle)
 	h := sha1.New()
 	h.Write(bundleBytes.Bytes())
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 	bundleCheckSum := sha1Sum
 
 	return bundleBytes.Bytes(), bundleCheckSum, nil
+}
+
+func createDummyKey() (string, string, error) {
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return "", "", err
+	}
+	caCert := &x509.Certificate{
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+		SerialNumber:          serialNumber,
+		Subject: pkix.Name{
+			Organization: []string{"Layer7"},
+		},
+		SignatureAlgorithm: x509.SHA256WithRSA,
+		NotBefore:          time.Now(),
+		NotAfter:           time.Now().AddDate(10, 0, 0),
+		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+	}
+
+	pk, err := rsa.GenerateKey(rand.Reader, 1024)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	certDer, err := x509.CreateCertificate(rand.Reader, caCert, caCert, &pk.PublicKey, pk)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	pkBytes, err := x509.MarshalPKCS8PrivateKey(pk)
+	if err != nil {
+		return "", "", err
+	}
+
+	pkPem := pem.EncodeToMemory(&pem.Block{
+		Type: "RSA PRIVATE KEY", Bytes: pkBytes,
+	})
+
+	b := pem.Block{Type: "CERTIFICATE", Bytes: certDer}
+	crtPem := pem.EncodeToMemory(&b)
+
+	//pkiSecretData := map[string][]byte{"tls.key": pkPem, "tls.crt": crtPem}
+
+	return string(pkPem), string(crtPem), nil
+}
+
+func getSha1Thumbprint(rawCert []byte) (string, error) {
+	fingerprint := sha1.Sum(rawCert)
+	var buf bytes.Buffer
+	for _, f := range fingerprint {
+		fmt.Fprintf(&buf, "%02X", f)
+	}
+	hexDump, err := hex.DecodeString(buf.String())
+	if err != nil {
+		return "", err
+	}
+	buf.Reset()
+	return base64.StdEncoding.EncodeToString(hexDump), nil
 }
 
 // Reserved for future use.

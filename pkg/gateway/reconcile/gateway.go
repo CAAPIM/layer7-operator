@@ -150,7 +150,6 @@ func ManagementPod(ctx context.Context, params Params) error {
 }
 
 func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, podList corev1.PodList, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
-
 	graphmanPort := 9443
 
 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {

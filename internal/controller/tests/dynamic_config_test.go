@@ -12,6 +12,7 @@ import (
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -148,11 +149,16 @@ var _ = Describe("Gateway controller", func() {
 					return false
 				}
 
-				for _, pod := range gateway.Status.Gateway {
-					if pod.Ready == false {
-						return false
-					}
+				deployment := appsv1.Deployment{}
+
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: gatewayName, Namespace: gateway.Namespace}, &deployment); err != nil {
+					return false
 				}
+
+				if deployment.Status.Replicas != deployment.Status.ReadyReplicas {
+					return false
+				}
+
 				return true
 
 			}).WithTimeout(time.Second * 180).Should(BeTrue())

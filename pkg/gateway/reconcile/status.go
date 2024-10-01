@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -21,15 +20,8 @@ func GatewayStatus(ctx context.Context, params Params) error {
 	dep, err := getGatewayDeployment(ctx, params)
 	if err != nil || k8serrors.IsNotFound(err) {
 		params.Log.V(2).Info("deployment hasn't been created yet", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-
 	} else {
 		gatewayStatus.Replicas = dep.Status.Replicas
-		gatewayStatus.Ready = dep.Status.ReadyReplicas
-		gatewayStatus.State = corev1.PodInitialized
-	}
-
-	if dep.Status.ReadyReplicas == dep.Status.Replicas {
-		gatewayStatus.State = corev1.PodReady
 	}
 
 	for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
@@ -74,39 +66,18 @@ func GatewayStatus(ctx context.Context, params Params) error {
 		if repository.Spec.RemoteName != "" {
 			newRepoStatus.RemoteName = repository.Spec.RemoteName
 		}
-
 		gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, newRepoStatus)
 	}
 
-	gatewayStatus.Conditions = dep.Status.Conditions
 	podList, err := getGatewayPods(ctx, params)
-
 	if err != nil {
 		return err
 	}
 
-	ready := false
 	for _, p := range podList.Items {
-		for _, cs := range p.Status.ContainerStatuses {
-			if cs.Image == params.Instance.Spec.App.Image {
-				ready = cs.Ready
-			}
-		}
-
 		if p.ObjectMeta.Labels["management-access"] == "leader" {
 			gatewayStatus.ManagementPod = p.Name
 		}
-
-		gatewayState := securityv1.GatewayState{
-			Name:  p.Name,
-			Phase: p.Status.Phase,
-			Ready: ready,
-		}
-
-		if p.Status.Phase == corev1.PodRunning {
-			gatewayState.StartTime = p.Status.StartTime.String()
-		}
-		gatewayStatus.Gateway = append(gatewayStatus.Gateway, gatewayState)
 	}
 
 	if !reflect.DeepEqual(gatewayStatus, params.Instance.Status) {
@@ -116,6 +87,8 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			params.Log.V(2).Info("failed to update gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
 			return err
 		}
+		params.Log.V(2).Info("updated gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+
 	}
 	return nil
 }

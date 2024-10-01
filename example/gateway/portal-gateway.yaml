@@ -8,7 +8,7 @@ spec:
     accept: true
     secretName: gateway-license
   app:
-    replicas: 1
+    replicas: 3
     restartOnConfigChange: true
     labels:
       foo: bar
@@ -85,7 +85,7 @@ spec:
           # key: APIS_ENCRYPTION_PASSPHRASE
     externalCerts:
       -  name: cert-secret
-         enabled: false
+         enabled: true
          verifyHostname: false
          trustedFor:
            - SSL
@@ -150,7 +150,7 @@ spec:
       - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
     listenPorts:
       harden: false
-      refreshOnKeyChanges: false
+      refreshOnKeyChanges: true
       custom:
         enabled: true
       ports:

@@ -237,7 +237,7 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 		}
 	}
 
-	if updateStatus {
+	if updateStatus || (!updateStatus && kind == "cluster properties") || (!updateStatus && kind == "listen ports") {
 		err := updateEntityStatus(ctx, kind, name, bundle, params)
 		if err != nil {
 			return err
@@ -245,11 +245,9 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 	}
 
 	return nil
-
 }
 
 func ReconcileDBGateway(ctx context.Context, params Params, kind string, gatewayDeployment appsv1.Deployment, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
-
 	// TODO: Make sure status updates happen here too for CWPs, listen ports, keys, certs, etc..
 	graphmanPort := 9443
 
@@ -349,7 +347,6 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 							}
 							if appliedCwp.Name == mappingSource.Name && mapping.Action == graphman.MappingActionDelete {
 								found = true
-								continue
 							}
 						}
 					}
@@ -391,7 +388,6 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 							}
 							if appliedListenPort.Name == mappingSource.Name && mapping.Action == graphman.MappingActionDelete {
 								found = true
-								continue
 							}
 						}
 					}

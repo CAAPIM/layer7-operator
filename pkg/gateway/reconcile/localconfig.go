@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/caapim/layer7-operator/internal/graphman"
+	"github.com/caapim/layer7-operator/pkg/util"
 )
 
 func ClusterProperties(ctx context.Context, params Params) error {
@@ -146,15 +147,28 @@ func ListenPorts(ctx context.Context, params Params) error {
 	}
 
 	if gateway.Spec.App.ListenPorts.Custom.Enabled {
-		cm, err := getGatewayConfigMap(ctx, params, params.Instance.Name+"-listen-port-bundle")
-		if err != nil {
-			return err
-		}
-
 		annotation := "security.brcmlabs.com/" + params.Instance.Name + "-listen-port-bundle"
 
+		refreshOnKeyChanges := false
+		dataCheckSum := ""
+		var bundleBytes []byte
+		if params.Instance.Spec.App.ListenPorts.RefreshOnKeyChanges {
+			refreshOnKeyChanges = true
+		}
+		if !params.Instance.Spec.App.ListenPorts.Custom.Enabled {
+			bundleBytes, dataCheckSum, err = util.BuildDefaultListenPortBundle(refreshOnKeyChanges)
+			if err != nil {
+				return err
+			}
+		} else {
+			bundleBytes, dataCheckSum, err = util.BuildCustomListenPortBundle(params.Instance, refreshOnKeyChanges)
+			if err != nil {
+				return err
+			}
+		}
+
 		bundle := graphman.Bundle{}
-		err = json.Unmarshal([]byte(cm.Data["listen-ports.json"]), &bundle)
+		err = json.Unmarshal(bundleBytes, &bundle)
 		if err != nil {
 			return err
 		}
@@ -165,14 +179,15 @@ func ListenPorts(ctx context.Context, params Params) error {
 		}
 
 		notFound := []string{}
-
 		if !cleanUpDbbacked {
 			for _, slistenPort := range params.Instance.Status.LastAppliedListenPorts {
 				found := false
 				for _, listenPort := range bundle.ListenPorts {
+					if listenPort.Name == slistenPort {
+						found = true
+					}
 					// anti-lockout
-					// if the management port is excluded from the bundle, don't delete it
-					if listenPort.Name == slistenPort || listenPort.Port == grapmanDynamicSyncPort {
+					if listenPort.Name == slistenPort && listenPort.Port == grapmanDynamicSyncPort {
 						found = true
 					}
 				}
@@ -213,12 +228,12 @@ func ListenPorts(ctx context.Context, params Params) error {
 			if err != nil {
 				return err
 			}
-			err = ReconcileEphemeralGateway(ctx, params, "listen ports", *podList, gateway, gwSecret, "", annotation, cm.ObjectMeta.Annotations["checksum/data"], false, "listen ports", bundleBytes)
+			err = ReconcileEphemeralGateway(ctx, params, "listen ports", *podList, gateway, gwSecret, "", annotation, dataCheckSum, false, "listen ports", bundleBytes)
 			if err != nil {
 				return err
 			}
 		} else {
-			err = ReconcileDBGateway(ctx, params, "listen ports", gatewayDeployment, gateway, gwSecret, "", annotation, cm.ObjectMeta.Annotations["checksum/data"], false, "listen ports", bundleBytes)
+			err = ReconcileDBGateway(ctx, params, "listen ports", gatewayDeployment, gateway, gwSecret, "", annotation, dataCheckSum, false, "listen ports", bundleBytes)
 			if err != nil {
 				return err
 			}

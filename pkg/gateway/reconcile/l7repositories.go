@@ -29,7 +29,6 @@ func ExternalRepository(ctx context.Context, params Params) error {
 			}
 		}
 	}
-
 	return nil
 }
 

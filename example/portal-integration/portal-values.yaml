@@ -31,18 +31,18 @@ ingress:
     - portal
 
 image:
-  dispatcher: dispatcher:Layer7Operator-5.2.3
-  pssg: pssg:5.2.3
-  apim: ingress:5.2.3
-  enterprise: portal-enterprise:5.2.3
-  data: portal-data:Layer7Operator-5.2.3
-  tps: tenant-provisioning-service:5.2.3
-  analytics: analytics-server:5.2.3
-  authenticator: authenticator:5.2.3
-  dbUpgrade: db-upgrade-portal:Layer7Operator-5.2.3
-  rbacUpgrade: db-upgrade-rbac:5.2.3
-  upgradeVerify: upgrade-verify:5.2.3
-  tlsManager: tls-automator:5.2.3
+  dispatcher: dispatcher:Layer7Operator-develop
+  pssg: pssg:5.3
+  apim: ingress:5.3
+  enterprise: portal-enterprise:5.3
+  data: portal-data:Layer7Operator-develop
+  tps: tenant-provisioning-service:5.3
+  analytics: analytics-server:5.3
+  authenticator: authenticator:5.3
+  dbUpgrade: db-upgrade-portal:Layer7Operator-develop
+  rbacUpgrade: db-upgrade-rbac:5.3
+  upgradeVerify: upgrade-verify:5.3
+  tlsManager: tls-automator:5.3
 
 rabbitmq:
   enabled: true

@@ -76,7 +76,7 @@ ssg-7b7694d995-qptbj                                  1/1     Running   0       
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.8/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
@@ -110,10 +110,11 @@ The Repository Controller keeps tracks the latest available commit, where it's s
 ```
 kubectl get repositories
 
-NAME                    AGE
-l7-gw-myapis            10s
-l7-gw-myframework       10s
-l7-gw-mysubscriptions   10s
+NAME                         AGE
+l7-gw-myapis                 10s
+l7-gw-myframework            10s
+l7-gw-mysubscriptions        10s
+local-reference-repository   10s
 
 kubectl get repository l7-gw-myapis -oyaml
 ...
@@ -123,6 +124,23 @@ status:
   storageSecretName: l7-gw-myapis-repository
   updated: 2023-04-04 02:53:53.298060678 +0000 UTC m=+752.481758238
   vendor: Github
+```
+
+##### Local Reference Repositories
+The local-reference-repository above uses a Kubernetes Secret as its source of truth. This removes external dependencies and therefore a potential single point of failure. Kubernetes Secrets are limited to 1MB in size.
+
+The Layer7 Operator watches the secret `local-repo-secret` and updates Gateways that reference this repository if it changes.
+```
+apiVersion: security.brcmlabs.com/v1
+kind: Repository
+metadata:
+  name: local-reference-repository
+spec:
+  enabled: true
+  localReference:
+    secretName: local-repo-secret
+  type: local
+  auth: {}
 ```
 
 ### Create a Gateway
@@ -381,6 +399,112 @@ password: 7layer
 gateway: localhost:9443
 ```
 
+### Automated Features
+The Layer7 Operator will automatically manage the following configured entities for you when you update them. The [advanced-gateway](../gateway/advanced-gateway.yaml) has been configured with examples for these, keys are not currently included.
+
+- Cluster-Wide Properties
+These are defined in your Gateway CR spec. Adding, removing or updating one of these values will automatically update your Gateways with no restarts required.
+```
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  ...
+  app:
+    cwp:
+      enabled: true
+      properties:
+        - name: abc
+          value: def
+        - name: io.httpsHostAllowWildcard
+          value: "true"
+```
+- Application Listen Ports
+These are defined in your Gateway CR spec. Adding, removing or updating one of these values will automatically update your Gateways with no restarts required.
+
+```
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  ...
+  app:
+```
+- External Certs
+These are defined in your Gateway CR spec. External Certs reference existing Kubernetes Secrets, the Operator watches these secrets and will automatically
+- Update your Gateways if a referenced secret changes
+- Update your Gateways if the CR spec changes
+
+```
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  ...
+  app:
+    externalCerts:
+    - name: multi-cert-secret
+      enabled: true
+      trustAnchor: false
+      trustedFor:
+      - "SSL"
+      - "SIGNING_SERVER_CERTS"
+    # verifyHostname: true
+    - name: single-cert-secret
+      enabled: true
+      trustAnchor: true
+      trustedFor:
+      - "SSL"
+      - "SIGNING_SERVER_CERTS"
+    # verifyHostname: true
+```
+- External Keys
+These are defined in your Gateway CR spec. External Keys reference existing Kubernetes Secrets, the Operator watches these secrets and will automatically
+- Update your Gateways if a referenced secret changes
+- Update your Gateways if the CR spec changes
+```
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  ...
+  app:
+    externalKeys:
+    - name: brcmlabs
+      alias: test
+      keyUsageType: SSL
+      enabled: true
+```
+- External Secrets
+These are defined in your Gateway CR spec. External Secrets reference existing Kubernetes Secrets, the Operator watches these secrets and will automatically
+- Update your Gateways if a referenced secret changes
+- Update your Gateways if the CR spec changes
+```
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  ...
+  app:
+    externalSecrets:
+    - name: multi-ext-secret
+      enabled: true
+      description: k8s secret that contains multiple values
+      variableReferencable: true
+      encryption: {}
+    - name: single-ext-secret
+      enabled: true
+      description: k8s secret that contains a single value
+      variableReferencable: true
+      encryption: {}
+  ...
+```
+
 ### Remove Kind Cluster
 If you used the Quickstart option and deployed Kind, all you will need to do is remove the Kind Cluster.
 
@@ -407,5 +531,5 @@ kubectl delete -k ./example/repositories/
 
 ### Uninstall the Operator
 ```
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.5/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.8/bundle.yaml
 ```

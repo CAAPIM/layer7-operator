@@ -191,9 +191,6 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 	bundle := graphman.Bundle{}
 
 	for _, cert := range certs {
-		// crtStrings := strings.SplitAfter(string(cert.Crt), "-----END CERTIFICATE-----")
-		// crtStrings = crtStrings[:len(crtStrings)-1]
-		// for crt := range crtStrings {
 		b, _ := pem.Decode([]byte(cert.Crt))
 		crtX509, _ := x509.ParseCertificate(b.Bytes)
 
@@ -228,7 +225,6 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 			}
 		}
 		bundle.TrustedCerts = append(bundle.TrustedCerts, &gmanCert)
-		//	}
 	}
 
 	for _, nf := range notFound {
@@ -363,12 +359,21 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 func ConcatBundles(bundleMap map[string][]byte) ([]byte, error) {
 	var combinedBundle []byte
 
-	for _, bundle := range bundleMap {
-		newBundle, err := graphman.ConcatBundle(combinedBundle, bundle)
-		if err != nil {
-			return nil, err
+	for k, bundle := range bundleMap {
+		if strings.HasSuffix(k, ".json") {
+			newBundle, err := graphman.ConcatBundle(combinedBundle, bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle = newBundle
 		}
-		combinedBundle = newBundle
+		if k == "bundle-properties.json" {
+			newBundle, err := graphman.AddMappings(combinedBundle, bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle = newBundle
+		}
 	}
 
 	return combinedBundle, nil

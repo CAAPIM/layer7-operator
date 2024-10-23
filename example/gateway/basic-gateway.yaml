@@ -46,6 +46,10 @@ spec:
         encryption:
           existingSecret: graphman-encryption-secret
           key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+      - name: local-reference-repository
+        enabled: true
+        type: dynamic
+        encryption: {}
     bootstrap:
       script:
         enabled: false

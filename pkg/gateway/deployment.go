@@ -752,8 +752,8 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		portalInitContainerVolumeMounts := []corev1.VolumeMount{}
 		portalInitContainerVolumeMounts = append(portalInitContainerVolumeMounts, corev1.VolumeMount{
 			Name:      gw.Name + "-portal-init-config",
-			MountPath: "/portal/config.json",
-			SubPath:   "config.json",
+			MountPath: "/portal/config.gz",
+			SubPath:   "config.gz",
 		})
 
 		volumes = append(volumes, corev1.Volume{
@@ -766,7 +766,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				Optional:    &optional,
 				Items: []corev1.KeyToPath{{
 					Key:  "apis",
-					Path: "config.json",
+					Path: "config.gz",
 				}},
 			}},
 		})
@@ -784,7 +784,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 		volumeMounts = append(volumeMounts, portalInitContainerVolumeMounts...)
 
-		portalInitContainerImage := "docker.io/layer7api/portal-bulk-init:0.0.1"
+		portalInitContainerImage := "docker.io/caapim/portal-bulk-sync:0.0.1"
 		portalInitContainerImagePullPolicy := corev1.PullIfNotPresent
 		portalInitContainerSecurityContext := corev1.SecurityContext{}
 

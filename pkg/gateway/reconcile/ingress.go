@@ -15,7 +15,6 @@ import (
 )
 
 func Ingress(ctx context.Context, params Params) error {
-	//Potentially delete the ingress if it exists.
 	if strings.ToLower(params.Instance.Spec.App.Ingress.Type) == "route" {
 		return nil
 	}

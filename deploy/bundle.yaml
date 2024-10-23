@@ -6410,6 +6410,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: L7ApiSpec defines the desired state of L7Api
             properties:
               deploymentTags:
                 description: DeploymentTags target Gateway deployments that this API
@@ -7056,20 +7057,6 @@ rules:
   - l7apis/status
   verbs:
   - get
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7apis
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7apis/status
-  verbs:
-  - get
   - patch
   - update
 - apiGroups:
@@ -7083,20 +7070,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7portals/status
-  verbs:
-  - get
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7portals
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - security.brcmlabs.com

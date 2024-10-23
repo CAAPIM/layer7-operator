@@ -6410,6 +6410,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: L7ApiSpec defines the desired state of L7Api
             properties:
               deploymentTags:
                 description: DeploymentTags target Gateway deployments that this API

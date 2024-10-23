@@ -8,6 +8,9 @@ spec:
     accept: true
     secretName: gateway-license
   app:
+    pdb:
+      enabled: false
+      minAvailable: 2
     replicas: 3
     restartOnConfigChange: true
     labels:
@@ -52,64 +55,65 @@ spec:
               value: 100
               periodSeconds: 15
     redis:
-      enabled: false
+      enabled: true
       default:
         auth:
-          enabled: false
-          username: admin
-          passwordPlaintext: password!£$^%^!!!
+          enabled: true
+          #username: admin
+          passwordPlaintext: 7layer
           #passwordEncoded: esfksepofksepofksopef12312po3%$(%$($))
         type: standalone
         standalone:
-          host: standalone-redis-master
-          port: 6379
+          host: 192.168.1.10
+          port: 30036
         ssl:
           enabled: false
           existingSecretName: redis-ssl-cert
           existingSecretKey: redis.crt
           verifyPeer: true
     bundle: []
-    repositoryReferences:
-      - name: local-reference-repository
-        enabled: true
-        type: dynamic
-        encryption:
-          existingSecret: graphman-encryption-secret
-          key: APIS_ENCRYPTION_PASSPHRASE
-      - name: l7-gw-myapis
-        enabled: true
-        type: dynamic
-        encryption:
-          passphrase: 7layer
+    repositoryReferences: []
+      # - name: local-reference-repository
+      #   enabled: true
+      #   type: dynamic
+      #   encryption:
+      #     existingSecret: graphman-encryption-secret
+      #     key: APIS_ENCRYPTION_PASSPHRASE
+      # - name: l7-gw-myapis
+      #   enabled: false
+      #   type: dynamic
+      #   encryption:
+      #     passphrase: 7layer
           # existingSecret: graphman-encryption-secret
           # key: APIS_ENCRYPTION_PASSPHRASE
-    externalCerts:
-      -  name: cert-secret
-         enabled: true
-         verifyHostname: false
-         trustedFor:
-           - SSL
-           - SIGNING_SERVER_CERTS
-         revocationCheckPolicyType: USE_DEFAULT
-    externalKeys:
-      - name: brcmlabs
-        alias: bla
-        enabled: false
-      - name: brcmlabs123
-        alias: test123
-        enabled: true
-    externalSecrets:
-      - name: testssg-gateway-otkdb-secret
-        enabled: false
-        variableReferencable: true
-        description: testssg-gateway-otkdb-secret
-      - name: testssg-mysql
-        enabled: true
-        variableReferencable: true
-        description: testssg-mysql
+    externalCerts: []
+      # -  name: cert-secret
+      #    enabled: true
+      #    verifyHostname: false
+      #    trustedFor:
+      #      - SSL
+      #      - SIGNING_SERVER_CERTS
+      #    revocationCheckPolicyType: USE_DEFAULT
+    externalKeys: []
+      # - name: brcmlabs
+      #   alias: bla
+      #   enabled: false
+      # - name: brcmlabs123
+      #   alias: test123
+      #   enabled: true
+    externalSecrets: []
+      # - name: testssg-gateway-otkdb-secret
+      #   enabled: false
+      #   variableReferencable: true
+      #   description: testssg-gateway-otkdb-secret
+      # - name: testssg-mysql
+      #   enabled: true
+      #   variableReferencable: true
+      #   description: testssg-mysql
     portalReference:
-      enabled: false
-      portalName: dev-portal
+      enabled: true
+      portalName: k8s-g2c-agent
+      initContainerImage: harbor.sutraone.com/portal/bulk-sync-operator:latest
       initContainerImagePullPolicy: Always
     bootstrap:
       script:
@@ -256,9 +260,25 @@ spec:
             com.l7tech.server.policy.variable.ServerVariables.level = SEVERE
             com.l7tech.external.assertions.odata.server.producer.jdbc.GenerateSqlQuery.level = SEVERE
             com.l7tech.server.policy.assertion.ServerSetVariableAssertion.level = SEVERE
-            com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion = SEVERE
+            com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion.level = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
+        - name: otel.enabled
+          value: "true"
+        - name: otel.serviceMetricEnabled
+          value: "true"
+        - name: otel.traceEnabled
+          value: "true"
+        - name: otel.metricPrefix
+          value: l7_
+        - name: otel.traceConfig
+          value: |
+            {
+              "services": [
+                {"resolutionPath": ".*"}
+              ]
+            }
+
     system:
       properties: |-
         # Default Gateway system properties
@@ -277,10 +297,10 @@ spec:
         # Additional properties go here
         org.apache.xml.security.ignoreLineBreaks=true
         # Redis configuration - uncomment to use Redis
-        # com.l7tech.server.extension.sharedKeyValueStoreProvider=redis
-        # com.l7tech.server.extension.sharedCounterProvider=redis
-        # com.l7tech.server.extension.sharedRateLimiterProvider=redis
-        # com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
+        com.l7tech.server.extension.sharedKeyValueStoreProvider=redis
+        com.l7tech.server.extension.sharedCounterProvider=redis
+        com.l7tech.server.extension.sharedRateLimiterProvider=redis
+        com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
         # com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
         # com.l7tech.external.assertions.keyvaluestore.storeIdPrefix="12345678"
     service:

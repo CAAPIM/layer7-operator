@@ -21,9 +21,6 @@ import (
 )
 
 // L7ApiSpec defines the desired state of L7Api
-
-/// TODO: Include internal/templategen API definition
-
 type L7ApiSpec struct {
 	// ServiceUrl on the API Gateway
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ServiceUrl"

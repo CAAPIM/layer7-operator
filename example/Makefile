@@ -21,7 +21,8 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.7/bundle.yaml
+#kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.7/bundle.yaml
+	kubectl apply -f ../deploy/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 

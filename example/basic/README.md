@@ -59,7 +59,7 @@ ssg-64ccd9dd48-bqstf                                  1/1     Running   0       
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.7/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.8/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
@@ -71,11 +71,16 @@ layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0       
 ```
 
 ### Create Repositories
-This example ships with 3 pre-configured Graphman repositories. The repository controller is responsible for synchronising these with the Operator and should always be created before Gateway resources that reference them to avoid race conditions. ***race conditions will be resolved automatically.***
+This example ships with 4 pre-configured Graphman repositories. The repository controller is responsible for synchronising these with the Operator and should always be created before Gateway resources that reference them to avoid race conditions. ***race conditions will be resolved automatically.***
 
-- [l7-gw-myframework](https://github.com/Gazza7205/l7GWMyFramework)
-- [l7-gw-mysubscriptions](https://github.com/Gazza7205/l7GWMySubscriptions)
-- [l7-gw-myapis](https://github.com/Gazza7205/l7GWMyAPIs)
+- Git Repositories
+  - [l7-gw-myframework](https://github.com/Gazza7205/l7GWMyFramework)
+  - [l7-gw-mysubscriptions](https://github.com/Gazza7205/l7GWMySubscriptions)
+  - [l7-gw-myapis](https://github.com/Gazza7205/l7GWMyAPIs)
+- Local Repository
+
+  ***Local Repositories eliminate the need for the repository controller to rely on an external service. This instead works with Kubernetes Secrets that contain graphman bundles.***
+  - [local-reference-repository](../base/resources/secrets/repository/local-repository.json)
 
 ```
 kubectl apply -k ./example/repositories
@@ -137,6 +142,10 @@ repositoryReferences:
     encryption:
       existingSecret: graphman-encryption-secret
       key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+  - name: local-reference-repository
+    enabled: true
+    type: dynamic
+    encryption: {}
 ```
 
 ##### View your new Gateway
@@ -313,5 +322,5 @@ kubectl delete -k ./example/repositories/
 
 ### Uninstall the Operator
 ```
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.7/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.8/bundle.yaml
 ```

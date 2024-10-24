@@ -7,7 +7,7 @@ import (
 
 func TestConvertOpaqueMapToGraphmanBundle(t *testing.T) {
 	secrets := []GraphmanSecret{{Name: "test1", Secret: "secret1"}, {Name: "test2", Secret: "secret2"}}
-	bundleBytes, err := ConvertOpaqueMapToGraphmanBundle(secrets)
+	bundleBytes, err := ConvertOpaqueMapToGraphmanBundle(secrets, []string{})
 	if err != nil {
 		t.Errorf("Error getting secret bundle")
 	}

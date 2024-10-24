@@ -1,8 +1,11 @@
 package reconcile
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"time"
 
@@ -56,7 +59,6 @@ func syncPortal(ctx context.Context, params Params) {
 	}
 
 	for _, f := range dInfo {
-
 		fBytes, err := os.ReadFile(portalTempDirectory + "/" + f.Name())
 		if err != nil {
 			params.Log.V(2).Info("failed to read portal api from temp storage", "name", l7Portal.Name, "summary file", f.Name(), "namespace", l7Portal.Namespace)
@@ -73,13 +75,33 @@ func syncPortal(ctx context.Context, params Params) {
 
 	portalApiBytes, err := json.Marshal(portalAPIs)
 	if err != nil {
-		params.Log.Info("failed to read api from temp storage directory", "name", l7Portal.Name, "namespace", l7Portal.Namespace)
+		params.Log.Info("failed to marshal api summary", "name", l7Portal.Name, "namespace", l7Portal.Namespace)
 		return
 	}
-	err = ConfigMap(ctx, params, portalApiBytes)
+
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	_, err = zw.Write(portalApiBytes)
+	if err != nil {
+		params.Log.Error(err, "failed to compress api summary")
+		return
+	}
+
+	if err := zw.Close(); err != nil {
+		params.Log.Error(err, "failed to compress api summary")
+		return
+	}
+	if buf.Len() > 900000 {
+		params.Log.Error(errors.New("this bundle would exceed the maximum Kubernetes secret size"), "failed to compress api summary")
+		return
+	}
+
+	err = ConfigMap(ctx, params, buf.Bytes())
 	if err != nil {
 		params.Log.Info("failed to reconcile configmap", "name", l7Portal.Name, "namespace", l7Portal.Namespace)
+		return
 	}
+	buf.Reset()
 
 }
 

@@ -86,6 +86,12 @@ func (r *L7ApiReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
+	err = reconcile.L7Portal(ctx, params)
+	if err != nil {
+		r.Log.Info("error reconciling L7Portal", "error", err.Error())
+		return ctrl.Result{}, err
+	}
+
 	err = reconcile.Gateway(ctx, params)
 	if err != nil {
 		r.Log.Info("error reconciling gateway", "error", err.Error())

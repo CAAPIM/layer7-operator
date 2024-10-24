@@ -92,7 +92,7 @@ containerSecurityContext: {}
 image:
   registry: docker.io
   repository: caapim/layer7-operator
-  tag: v1.0.7
+  tag: v1.0.8
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
@@ -117,10 +117,10 @@ image:
 resources:
   limits:
     cpu: 500m
-    memory: 100Mi
+    memory: 256Mi
   requests:
     cpu: 100m
-    memory: 20Mi
+    memory: 64Mi
 
 ## Layer7 Operator args
 ## @param args The arguments to pass to the Layer7 Operator Container. Setting --zap-log-level=10 will increase log verbosity

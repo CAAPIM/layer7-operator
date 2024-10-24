@@ -149,7 +149,7 @@ spec:
           items:
           - key: 003-parse-custom-files
             path: 003-parse-custom-files.sh
-          name: ssg
+          name: ssg-gateway-files
           optional: false
         name: ssg-parse-custom-files-script
       - name: config-override-secret

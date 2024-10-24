@@ -46,30 +46,8 @@ type CustomField struct {
 //go:generate go get -u github.com/valyala/quicktemplate/qtc
 //go:generate qtc -dir=
 func BuildTemplate(portalApi PortalAPI) string {
-
-	// Fragment: func FromApiFragmentTemplate(portalApi v1.PortalAPI)
-	// Service: func FromApiServiceTemplate(portalApi v1.PortalAPI)
-	// Restman: func FromRestmamTemplate(portalApi v1.PortalAPI, apiServiceXml string, apiFragmentXml string, isSoapApi string, wsdl string)
-
 	fragment := FromApiFragmentTemplate(portalApi)
 	service := FromApiServiceTemplate(portalApi)
 	restman := FromRestmamTemplate(portalApi, service, fragment, "false", "")
-
-	//sanitizedString := strings.ReplaceAll(restman, "\n", "")
-	//sanitizedString = strings.Trim(sanitizedString, " ")
-	//sanitizedString = stripSpaces(sanitizedString)
-	//fmt.Println(sanitizedString)
-
 	return restman
 }
-
-// func stripSpaces(str string) string {
-// 	return strings.Map(func(r rune) rune {
-// 		if unicode.IsSpace(r) {
-// 			// if the character is a space, drop it
-// 			return -1
-// 		}
-// 		// else keep it in the string
-// 		return r
-// 	}, str)
-// }

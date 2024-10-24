@@ -8,6 +8,11 @@ import (
 )
 
 func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
+
+	if !gw.Spec.App.Ingress.Enabled {
+		return nil
+	}
+
 	tls := gw.Spec.App.Ingress.TLS
 	rules := []networkingv1.IngressRule{}
 	ingressClassName := gw.Spec.App.Ingress.IngressClassName

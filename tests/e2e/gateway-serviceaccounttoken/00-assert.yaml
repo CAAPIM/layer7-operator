@@ -89,7 +89,7 @@ spec:
           items:
           - key: load-service-account-token
             path: load-service-account-token.sh
-          name: ssg
+          name: ssg-gateway-files
           optional: false
         name: service-account-token-script
       - configMap:
@@ -97,7 +97,7 @@ spec:
           items:
           - key: service-account-token-template
             path: update-service-account-token.xml
-          name: ssg
+          name: ssg-gateway-files
           optional: false
         name: service-account-token-template
       - configMap:

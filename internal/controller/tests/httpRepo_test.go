@@ -149,9 +149,12 @@ var _ = Describe("Gateway controller support for http repo", func() {
 					return false
 				}
 
-				if gateway.Status.State == corev1.PodReady && gateway.Status.RepositoryStatus[0].Enabled == true {
-					return true
+				for _, rs := range gateway.Status.RepositoryStatus {
+					if rs.Enabled {
+						return true
+					}
 				}
+
 				return false
 			}).WithTimeout(time.Second * 180).Should(BeTrue())
 

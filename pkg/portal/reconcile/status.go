@@ -1,9 +1,12 @@
 package reconcile
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"time"
 
 	"github.com/caapim/layer7-operator/internal/templategen"
@@ -22,9 +25,21 @@ func Status(ctx context.Context, params Params) error {
 
 	portalAPIs := []templategen.PortalAPI{}
 
-	portalSummaryBytes, err := base64.StdEncoding.DecodeString(summaryCm.Data["apis"])
+	portalSummaryGz, err := base64.StdEncoding.DecodeString(summaryCm.Data["apis"])
 	if err != nil {
 		params.Log.V(2).Info("failed to decode summary configmap", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		return err
+	}
+	tarStream := bytes.NewReader(portalSummaryGz)
+	gReader, err := gzip.NewReader(tarStream)
+	if err != nil {
+		params.Log.V(2).Info("failed to decompress summary configmap", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		return err
+	}
+
+	portalSummaryBytes, err := io.ReadAll(gReader)
+	if err != nil {
+		params.Log.V(2).Info("failed to read summary configmap", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		return err
 	}
 

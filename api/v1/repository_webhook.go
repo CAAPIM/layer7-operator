@@ -84,7 +84,9 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 		}
 
 		if r.Spec.Endpoint == "" {
-			return warnings, fmt.Errorf("please set a repository endpoint. name: %s ", r.Name)
+			if strings.ToLower(r.Spec.Type) != "local" {
+				return warnings, fmt.Errorf("please set a repository endpoint. name: %s ", r.Name)
+			}
 		}
 
 		switch strings.ToLower(r.Spec.Type) {
@@ -106,6 +108,10 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 					return warnings, fmt.Errorf("please set a valid auth type, valid options for HTTP refs are none and basic. name: %s ", r.Name)
 				}
 			}
+		case "local":
+			if r.Spec.LocalReference.SecretName == "" {
+				return warnings, fmt.Errorf("local repository type must reference an existing kubernetes secret. name: %s ", r.Name)
+			}
 		default:
 			return warnings, fmt.Errorf("please set a repository type, valid types are git and http. name: %s ", r.Name)
 		}
@@ -113,7 +119,9 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 		if r.Spec.Auth != (RepositoryAuth{}) {
 			switch strings.ToLower(string(r.Spec.Auth.Type)) {
 			case string(RepositoryAuthTypeNone):
-				warnings = append(warnings, "it is strongly recommend using authentication for your remote repository "+r.Name)
+				if strings.ToLower(r.Spec.Type) != "local" {
+					warnings = append(warnings, "it is strongly recommend using authentication for your remote repository "+r.Name)
+				}
 			case string(RepositoryAuthTypeBasic):
 				if r.Spec.Auth.ExistingSecretName == "" {
 					secret := r.Spec.Auth.Token

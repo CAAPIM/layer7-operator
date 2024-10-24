@@ -1539,6 +1539,32 @@ spec:
                           type: object
                         type: array
                     type: object
+                  externalCerts:
+                    items:
+                      description: ExternalCert is a reference to an existing TLS
+                        or Opaque Secret in Kubernet
+                      properties:
+                        enabled:
+                          description: Enabled or disabled
+                          type: boolean
+                        name:
+                          description: Name of the Secret which already exists in
+                            Kubernetes
+                          type: string
+                        revocationCheckPolicyName:
+                          type: string
+                        revocationCheckPolicyType:
+                          type: string
+                        trustAnchor:
+                          type: boolean
+                        trustedFor:
+                          items:
+                            type: string
+                          type: array
+                        verifyHostname:
+                          type: boolean
+                      type: object
+                    type: array
                   externalKeys:
                     items:
                       description: |-
@@ -1564,10 +1590,6 @@ spec:
                           type: string
                       type: object
                     type: array
-                  externalKeysSyncIntervalSeconds:
-                    description: ExternalKeysSyncIntervalSeconds is the period of
-                      time between attempts to a
-                    type: integer
                   externalSecrets:
                     items:
                       description: |-
@@ -1608,10 +1630,6 @@ spec:
                           type: boolean
                       type: object
                     type: array
-                  externalSecretsSyncIntervalSeconds:
-                    description: ExternalSecretsSyncIntervalSeconds is the period
-                      of time between attempts t
-                    type: integer
                   hazelcast:
                     properties:
                       endpoint:
@@ -3183,7 +3201,7 @@ spec:
                               type: string
                             port:
                               description: Port
-                              type: string
+                              type: integer
                             properties:
                               items:
                                 description: Property is a simple k/v pair
@@ -4721,6 +4739,8 @@ spec:
                     format: int32
                     type: integer
                   repositoryReferences:
+                    description: RepositorySyncIntervalSeconds is the period of time
+                      between attempts to app
                     items:
                       description: 'RepositoryReference is reference to a Git repository
                         or HTTP endpoint that '
@@ -4796,10 +4816,6 @@ spec:
                       - enabled
                       type: object
                     type: array
-                  repositorySyncIntervalSeconds:
-                    description: RepositorySyncIntervalSeconds is the period of time
-                      between attempts to app
-                    type: integer
                   resources:
                     description: PodResources
                     properties:
@@ -4824,6 +4840,10 @@ spec:
                           pairs.
                         type: object
                     type: object
+                  restartOnConfigChange:
+                    description: RestartOnConfigChange restarts the Gateway if the
+                      default configmaps are up
+                    type: boolean
                   service:
                     description: Service
                     properties:
@@ -6259,6 +6279,37 @@ spec:
               image:
                 description: Image of the Gateway
                 type: string
+              lastAppliedClusterProperties:
+                description: LastAppliedClusterProperties
+                items:
+                  type: string
+                type: array
+              lastAppliedExternalCerts:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedExternalCerts
+                type: object
+              lastAppliedExternalKeys:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedExternalKeys
+                type: object
+              lastAppliedExternalSecrets:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedExternalSecrets
+                type: object
+              lastAppliedListenPorts:
+                description: LastAppliedClusterProperties
+                items:
+                  type: string
+                type: array
               managementPod:
                 description: Management Pod is a Gateway with a special annotation
                   is used as a selector

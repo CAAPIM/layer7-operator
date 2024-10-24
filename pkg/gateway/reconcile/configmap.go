@@ -18,6 +18,7 @@ func ConfigMaps(ctx context.Context, params Params) error {
 		gateway.NewConfigMap(params.Instance, params.Instance.Name),
 		gateway.NewConfigMap(params.Instance, params.Instance.Name+"-system"),
 		gateway.NewConfigMap(params.Instance, params.Instance.Name+"-repository-init-config"),
+		gateway.NewConfigMap(params.Instance, params.Instance.Name+"-gateway-files"),
 	}
 
 	if params.Instance.Spec.App.ClusterProperties.Enabled {

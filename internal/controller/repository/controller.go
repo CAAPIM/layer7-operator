@@ -19,6 +19,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,10 +32,15 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	creconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // RepositoryReconciler reconciles a Repository object
@@ -57,6 +63,7 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	ops := []ReconcileOperations{
 		{reconcile.Secret, "secrets"},
+		{reconcile.LocalReference, "local repositories"},
 		{reconcile.ScheduledJobs, "scheduled jobs"},
 	}
 
@@ -82,12 +89,12 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		err = op.Run(ctx, params)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("failed to reconcile %s", op.Name))
-			_ = captureMetrics(ctx, params, start, l7repository, req.NamespacedName.Namespace)
+			_ = captureMetrics(ctx, params, start, req.NamespacedName.Namespace)
 			return ctrl.Result{}, err
 		}
 	}
 
-	_ = captureMetrics(ctx, params, start, l7repository, req.NamespacedName.Namespace)
+	_ = captureMetrics(ctx, params, start, req.NamespacedName.Namespace)
 
 	return ctrl.Result{}, nil
 }
@@ -99,15 +106,43 @@ func (r *RepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{})
 
+	s := &metav1.PartialObjectMetadata{}
+	s.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "secret",
+	})
+	builder.WatchesMetadata(s,
+		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []creconcile.Request {
+			repoList := &securityv1.RepositoryList{}
+			listOpts := []client.ListOption{
+				client.InNamespace(a.GetNamespace()),
+			}
+			err := r.List(ctx, repoList, listOpts...)
+
+			if err != nil {
+				if k8serrors.IsNotFound(err) {
+					return []creconcile.Request{}
+				}
+			}
+			req := []creconcile.Request{}
+			for _, repo := range repoList.Items {
+				if strings.ToLower(repo.Spec.Type) == "local" {
+					req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: repo.Namespace, Name: repo.Name}})
+				}
+			}
+			return req
+		}),
+	)
+
 	return builder.Complete(r)
 }
 
-func captureMetrics(ctx context.Context, params reconcile.Params, start time.Time, repository *securityv1.Repository, namespace string) error {
+func captureMetrics(ctx context.Context, params reconcile.Params, start time.Time, namespace string) error {
 
 	otelEnabled, err := util.GetOtelEnabled()
 	if err != nil {
 		params.Log.Info("could not determine if OTel is enabled")
-
 	}
 
 	if !otelEnabled {
@@ -127,10 +162,6 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 	hostname, err := util.GetHostname()
 	if err != nil {
 		params.Log.Error(err, "failed to retrieve operator hostname")
-		return err
-	}
-	if err != nil {
-		params.Log.Error(err, "failed to retrieve operator namespace")
 		return err
 	}
 

@@ -4,35 +4,17 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-
-	"github.com/caapim/layer7-operator/internal/templategen"
-	"github.com/caapim/layer7-operator/pkg/api"
 )
 
 func Status(ctx context.Context, params Params) error {
 	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
-		portalMeta := templategen.PortalAPI{}
-		portalMetaBytes, err := json.Marshal(params.Instance.Spec.PortalMeta)
-		if err != nil {
-			return err
-		}
-		err = json.Unmarshal(portalMetaBytes, &portalMeta)
-		if err != nil {
-			return err
-		}
+		traceId := params.Instance.Annotations["app.l7.traceId"]
 
-		policyXml := templategen.BuildTemplate(portalMeta)
-		_, sha1sum, err := api.ConvertPortalPolicyXmlToGraphman(policyXml)
-		if err != nil {
-			return err
-		}
-
-		if params.Instance.Status.Checksum != sha1sum {
+		if params.Instance.Status.Checksum != traceId {
 			params.Instance.Status.Ready = true
-			params.Instance.Status.Checksum = sha1sum
-			err = params.Client.Status().Update(ctx, params.Instance)
+			params.Instance.Status.Checksum = traceId
+			err := params.Client.Status().Update(ctx, params.Instance)
 			if err != nil {
 				params.Log.V(2).Info("failed to update api status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
 				return err

@@ -15,8 +15,8 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,71 +41,71 @@ type Repo struct {
 	Type         string
 }
 
-func createGatewayLicenseSecret(secret Secret) {
-	// Gateway licence
-	license, found := os.LookupEnv("LICENSE")
-	Expect(found).NotTo(BeFalse())
+// func createGatewayLicenseSecret(secret Secret) {
+// 	// Gateway licence
+// 	license, found := os.LookupEnv("LICENSE")
+// 	gomega.Expect(found).NotTo(gomega.BeFalse())
 
-	data := make(map[string][]byte)
-	data["license.xml"] = []byte(license)
-	gatewayLicense := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.Name,
-			Namespace: secret.Namespace,
-		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Secret",
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: data,
-	}
-	Expect(secret.Client.Create(secret.Ctx, &gatewayLicense)).Should(Succeed())
-}
+// 	data := make(map[string][]byte)
+// 	data["license.xml"] = []byte(license)
+// 	gatewayLicense := corev1.Secret{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      secret.Name,
+// 			Namespace: secret.Namespace,
+// 		},
+// 		TypeMeta: metav1.TypeMeta{
+// 			APIVersion: "v1",
+// 			Kind:       "Secret",
+// 		},
+// 		Type: corev1.SecretTypeOpaque,
+// 		Data: data,
+// 	}
+// 	gomega.Expect(secret.Client.Create(secret.Ctx, &gatewayLicense)).Should(gomega.Succeed())
+// }
 
-func createRepositorySecret(secret Secret) {
-	//Repository secret
-	ghUname, found := os.LookupEnv("TESTREPO_USER")
-	Expect(found).NotTo(BeFalse())
-	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
-	Expect(found).NotTo(BeFalse())
-	repSecretData := make(map[string][]byte)
+// func createRepositorySecret(secret Secret) {
+// 	//Repository secret
+// 	ghUname, found := os.LookupEnv("TESTREPO_USER")
+// 	gomega.Expect(found).NotTo(gomega.BeFalse())
+// 	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
+// 	gomega.Expect(found).NotTo(gomega.BeFalse())
+// 	repSecretData := make(map[string][]byte)
 
-	repSecretData["USERNAME"] = []byte(ghUname)
-	repSecretData["TOKEN"] = []byte(ghToken)
+// 	repSecretData["USERNAME"] = []byte(ghUname)
+// 	repSecretData["TOKEN"] = []byte(ghToken)
 
-	repSecret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.Name,
-			Namespace: secret.Namespace,
-		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Secret",
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: repSecretData,
-	}
-	Expect(secret.Client.Create(secret.Ctx, &repSecret)).Should(Succeed())
-}
+// 	repSecret := corev1.Secret{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      secret.Name,
+// 			Namespace: secret.Namespace,
+// 		},
+// 		TypeMeta: metav1.TypeMeta{
+// 			APIVersion: "v1",
+// 			Kind:       "Secret",
+// 		},
+// 		Type: corev1.SecretTypeOpaque,
+// 		Data: repSecretData,
+// 	}
+// 	gomega.Expect(secret.Client.Create(secret.Ctx, &repSecret)).Should(gomega.Succeed())
+// }
 
-func createGraphmanEncSecret(secret Secret) {
-	//Graphman enc secret
-	encSecretData := map[string][]byte{"FRAMEWORK_ENCRYPTION_PASSPHRASE": []byte("7layer")}
-	encSecret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.Name,
-			Namespace: secret.Namespace,
-		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Secret",
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: encSecretData,
-	}
-	Expect(secret.Client.Create(secret.Ctx, &encSecret)).Should(Succeed())
-}
+// func createGraphmanEncSecret(secret Secret) {
+// 	//Graphman enc secret
+// 	encSecretData := map[string][]byte{"FRAMEWORK_ENCRYPTION_PASSPHRASE": []byte("7layer")}
+// 	encSecret := corev1.Secret{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      secret.Name,
+// 			Namespace: secret.Namespace,
+// 		},
+// 		TypeMeta: metav1.TypeMeta{
+// 			APIVersion: "v1",
+// 			Kind:       "Secret",
+// 		},
+// 		Type: corev1.SecretTypeOpaque,
+// 		Data: encSecretData,
+// 	}
+// 	gomega.Expect(secret.Client.Create(secret.Ctx, &encSecret)).Should(gomega.Succeed())
+// }
 
 func createRepository(repo Repo) {
 	//Repository resource
@@ -125,33 +125,33 @@ func createRepository(repo Repo) {
 			},
 		},
 	}
-	Expect(repo.Client.Create(repo.Ctx, &repository)).Should(Succeed())
+	gomega.Expect(repo.Client.Create(repo.Ctx, &repository)).Should(gomega.Succeed())
 }
 
 func commitAndPushNewFile(repo Repo) string {
 	ghUname, found := os.LookupEnv("TESTREPO_USER")
-	Expect(found).NotTo(BeFalse())
+	gomega.Expect(found).NotTo(gomega.BeFalse())
 	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
-	Expect(found).NotTo(BeFalse())
+	gomega.Expect(found).NotTo(gomega.BeFalse())
 	token := string(ghToken)
 	username := string(ghUname)
 
 	gRepo, err := git.PlainOpen(repo.CheckoutPath)
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	w, err := gRepo.Worktree()
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	filename := filepath.Join(repo.CheckoutPath, "clusterProperties", "c.json")
 	err = os.WriteFile(filename, []byte("{\n  \"goid\": \"84449671abe2a5b143051dbdfdf5e5f4\",\n  \"name\": \"c\",\n  \"checksum\": \"b77d1a0eca5224e5a33453b8fa5ace8fcbb1ce4e\",\n  \"description\": \"c cwp\",\n  \"hiddenProperty\": false,\n  \"value\": \"c\"\n}"), 0644)
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	_, err = w.Add("clusterProperties/c.json")
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// We can verify the current status of the worktree using the method Status.
 	status, err := w.Status()
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	fmt.Println(status)
 
 	// Commits the current staging area to the repository, with the new file
@@ -163,11 +163,11 @@ func commitAndPushNewFile(repo Repo) string {
 			When:  time.Now(),
 		},
 	})
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// Prints the current HEAD to verify that all worked well.
 	obj, _ := gRepo.CommitObject(commitHash)
-	GinkgoWriter.Printf("Commit hash %s", obj.Hash)
+	ginkgo.GinkgoWriter.Printf("Commit hash %s", obj.Hash)
 
 	auth := &gitHttp.BasicAuth{
 		Username: username,
@@ -176,23 +176,23 @@ func commitAndPushNewFile(repo Repo) string {
 	err = gRepo.Push(&git.PushOptions{
 		Auth: auth,
 	})
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return commitHash.String()
 }
 
 func commitAndPushUpdatedFile(repo Repo) string {
 	ghUname, found := os.LookupEnv("TESTREPO_USER")
-	Expect(found).NotTo(BeFalse())
+	gomega.Expect(found).NotTo(gomega.BeFalse())
 	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
-	Expect(found).NotTo(BeFalse())
+	gomega.Expect(found).NotTo(gomega.BeFalse())
 	token := string(ghToken)
 	username := string(ghUname)
 
 	r, err := git.PlainOpen(repo.CheckoutPath)
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	w, err := r.Worktree()
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	filename := filepath.Join("/tmp/l7GWMyAPIs/tree/myApis/", "Rest Api 3-+api3.webapi.json")
 	os.Remove(filename)
@@ -201,7 +201,7 @@ func commitAndPushUpdatedFile(repo Repo) string {
 
 	// We can verify the current status of the worktree using the method Status.
 	status, err := w.Status()
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	fmt.Println(status)
 
 	// Commits the current staging area to the repository, with the new file
@@ -213,7 +213,7 @@ func commitAndPushUpdatedFile(repo Repo) string {
 			When:  time.Now(),
 		},
 	})
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// Prints the current HEAD to verify that all worked well.
 	obj, _ := r.CommitObject(commitHash)
@@ -226,7 +226,7 @@ func commitAndPushUpdatedFile(repo Repo) string {
 	err = r.Push(&git.PushOptions{
 		Auth: auth,
 	})
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return commitHash.String()
 }
 

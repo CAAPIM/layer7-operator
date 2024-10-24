@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -16,10 +15,15 @@ import (
 func ExternalKeys(ctx context.Context, params Params) error {
 	gateway := params.Instance
 	if len(gateway.Spec.App.ExternalKeys) == 0 {
-		return nil
+		for _, v := range gateway.Status.LastAppliedExternalKeys {
+			if len(v) != 0 {
+				continue
+			}
+			return nil
+		}
 	}
-	keySecretMap := []util.GraphmanKey{}
-	var bundleBytes []byte
+
+	//var bundleBytes []byte
 
 	name := gateway.Name
 	if gateway.Spec.App.Management.DisklessConfig.Disabled {
@@ -44,9 +48,41 @@ func ExternalKeys(ctx context.Context, params Params) error {
 		return err
 	}
 
-	for _, externalKey := range gateway.Spec.App.ExternalKeys {
-		if externalKey.Enabled {
+	for k, v := range gateway.Status.LastAppliedExternalKeys {
+		found := false
+		notFound := []string{}
 
+		for _, ek := range gateway.Spec.App.ExternalKeys {
+			if k == ek.Name {
+				found = true
+			}
+		}
+		if !found {
+			notFound = append(notFound, v...)
+			bundleBytes, err := util.ConvertX509ToGraphmanBundle(nil, notFound)
+			if err != nil {
+				return err
+			}
+
+			annotation := "security.brcmlabs.com/external-secret-" + k
+			if !gateway.Spec.App.Management.Database.Enabled {
+				err = ReconcileEphemeralGateway(ctx, params, "external keys", *podList, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
+				if err != nil {
+					return err
+				}
+			} else {
+				err = ReconcileDBGateway(ctx, params, "external keys", gatewayDeployment, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	for _, externalKey := range gateway.Spec.App.ExternalKeys {
+		var sha1Sum string
+		keySecretMap := []util.GraphmanKey{}
+		if externalKey.Enabled {
 			secret, err := getGatewaySecret(ctx, params, externalKey.Name)
 			if err != nil {
 				return err
@@ -68,29 +104,39 @@ func ExternalKeys(ctx context.Context, params Params) error {
 				})
 			}
 
+			dataBytes, _ := json.Marshal(&secret.Data)
+			h := sha1.New()
+			h.Write(dataBytes)
+			sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
 		}
 
-		if len(keySecretMap) <= 0 {
-			return nil
+		notFound := []string{}
+		if gateway.Status.LastAppliedExternalKeys != nil && gateway.Status.LastAppliedExternalKeys[externalKey.Name] != nil {
+			for _, appliedKey := range gateway.Status.LastAppliedExternalKeys[externalKey.Name] {
+				found := false
+				for _, desiredKey := range keySecretMap {
+					if appliedKey == desiredKey.Alias {
+						found = true
+					}
+				}
+				if !found {
+					notFound = append(notFound, appliedKey)
+				}
+			}
 		}
 
-		bundleBytes, err = util.ConvertX509ToGraphmanBundle(keySecretMap)
+		if len(keySecretMap) < 1 && len(notFound) < 1 {
+			continue
+		}
+
+		bundleBytes, err := util.ConvertX509ToGraphmanBundle(keySecretMap, notFound)
 		if err != nil {
 			return err
 		}
 
-		sort.Slice(keySecretMap, func(i, j int) bool {
-			return keySecretMap[i].Name < keySecretMap[j].Name
-		})
-
-		keySecretMapBytes, err := json.Marshal(keySecretMap)
-
-		if err != nil {
-			return err
+		if sha1Sum == "" {
+			sha1Sum = "deleted"
 		}
-		h := sha1.New()
-		h.Write(keySecretMapBytes)
-		sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 
 		annotation := "security.brcmlabs.com/external-key-" + externalKey.Name
 
@@ -105,8 +151,6 @@ func ExternalKeys(ctx context.Context, params Params) error {
 				return err
 			}
 		}
-
 	}
-
 	return nil
 }

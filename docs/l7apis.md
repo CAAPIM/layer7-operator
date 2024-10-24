@@ -53,7 +53,7 @@ L7Api is the Schema for the l7apis API
         <td><b><a href="#l7apispec">spec</a></b></td>
         <td>object</td>
         <td>
-          <br/>
+          L7ApiSpec defines the desired state of L7Api<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -72,7 +72,7 @@ L7Api is the Schema for the l7apis API
 
 
 
-
+L7ApiSpec defines the desired state of L7Api
 
 <table>
     <thead>

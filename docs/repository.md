@@ -84,13 +84,6 @@ Spec - Repository Spec
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>endpoint</b></td>
-        <td>string</td>
-        <td>
-          Endoint - Git repository endpoint<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
@@ -121,6 +114,13 @@ if branch and tag are both missing the entire repository will be cloned<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>endpoint</b></td>
+        <td>string</td>
+        <td>
+          Endoint - Git repository endpoint<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
@@ -131,7 +131,7 @@ if branch and tag are both missing the entire repository will be cloned<br/>
         <td><b><a href="#repositoryspeclocalreference">localReference</a></b></td>
         <td>object</td>
         <td>
-          LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
+          LocalReference lets the Repository controller use a local Kubernetes Secret as a repository source
 This is not currently implemented<br/>
         </td>
         <td>false</td>
@@ -161,7 +161,7 @@ tags do not change, once cloned this will not be checked for updates<br/>
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          Type of Repository - Git or HTTP<br/>
+          Type of Repository - Git, HTTP, Local<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -258,7 +258,7 @@ none, basic or ssh<br/>
 
 
 
-LocalReference lets the Repository controller use a local Kubernetes Configmap/Secret as a repository source
+LocalReference lets the Repository controller use a local Kubernetes Secret as a repository source
 This is not currently implemented
 
 <table>
@@ -271,13 +271,6 @@ This is not currently implemented
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>configMapName</b></td>
-        <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>secretName</b></td>
         <td>string</td>
         <td>

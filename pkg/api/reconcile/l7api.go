@@ -17,6 +17,7 @@ import (
 	"github.com/caapim/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -27,9 +28,12 @@ const portalTempDirectory = "/tmp/portalapis/"
 
 func Gateway(ctx context.Context, params Params) error {
 	graphmanPort := 9443
-	checksum := params.Instance.Annotations["checksum/bundle"]
+	checksum := params.Instance.Annotations["app.l7.traceId"]
 	tryRequest := true
-	isMarkedToBeDeleted := params.Instance.DeletionTimestamp != nil
+	isMarkedToBeDeleted := false
+	if params.Instance.DeletionTimestamp != nil {
+		isMarkedToBeDeleted = true
+	}
 	// going to need a mechanism to throw an error if sync doesn't fully complete without interrupting other updates.
 	updatedStatus := v1alpha1.L7ApiStatus{}
 
@@ -73,6 +77,11 @@ func Gateway(ctx context.Context, params Params) error {
 				portalMeta.LocationUrl = base64.StdEncoding.EncodeToString([]byte(portalMeta.LocationUrl))
 				portalMeta.SsgUrlBase64 = base64.StdEncoding.EncodeToString([]byte(portalMeta.SsgUrl))
 
+				portalMeta.ApiEnabled = false
+				if params.Instance.Spec.PortalMeta.ApiEnabled {
+					portalMeta.ApiEnabled = true
+				}
+
 				policyXml := templategen.BuildTemplate(portalMeta)
 				graphmanBundleBytes, _, err = api.ConvertPortalPolicyXmlToGraphman(policyXml)
 				if err != nil {
@@ -87,7 +96,6 @@ func Gateway(ctx context.Context, params Params) error {
 			}
 
 			for _, pod := range podList.Items {
-
 				for _, ds := range params.Instance.Status.Gateways {
 					if ds.Name == pod.Name && ds.Deployment == tag {
 						if ds.Checksum == checksum && !isMarkedToBeDeleted {
@@ -131,7 +139,6 @@ func Gateway(ctx context.Context, params Params) error {
 					}
 
 					if !isMarkedToBeDeleted {
-
 						params.Log.V(2).Info("applying api", "api", params.Instance.Name, "pod", pod.Name, "namespace", params.Instance.Namespace)
 						err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "", graphmanBundleBytes)
 						if err != nil {
@@ -147,14 +154,13 @@ func Gateway(ctx context.Context, params Params) error {
 									if ds.Name == us.Name && ds.Deployment == us.Deployment {
 										statusExists = true
 										updatedStatus.Gateways[i].Checksum = checksum
-										//updatedStatus.Gateways[i].Phase = pod.Status.Phase
 									}
 								}
 							}
 						}
 
 						if !statusExists {
-							updatedStatus.Gateways = append(updatedStatus.Gateways, v1alpha1.LinkedGatewayStatus{Checksum: checksum, Deployment: tag, Name: pod.Name}) // Phase: pod.Status.Phase, Ready: true})
+							updatedStatus.Gateways = append(updatedStatus.Gateways, v1alpha1.LinkedGatewayStatus{Checksum: checksum, Deployment: tag, Name: pod.Name})
 						}
 
 						if !reflect.DeepEqual(updatedStatus, params.Instance.Status) && !isMarkedToBeDeleted {
@@ -166,9 +172,9 @@ func Gateway(ctx context.Context, params Params) error {
 						}
 
 					} else {
-						if isMarkedToBeDeleted { // need to handle removal failure, currently logging only
+						if isMarkedToBeDeleted {
 							params.Log.V(2).Info("removing api", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-							err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.ServiceUrl+"*", params.Instance.Name+"-fragment")
+							err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl+"*", params.Instance.Spec.PortalMeta.Name+"-fragment")
 							if err != nil {
 								params.Log.Info("failed to remove api", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
 							}
@@ -189,7 +195,6 @@ func Gateway(ctx context.Context, params Params) error {
 	}
 
 	_ = finalizeL7Api(ctx, params)
-
 	return nil
 }
 
@@ -259,9 +264,7 @@ func getGatewaySecret(ctx context.Context, params Params, name string) (*corev1.
 	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: params.Instance.Namespace}, gwSecret)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			if err != nil {
-				return gwSecret, err
-			}
+			return gwSecret, err
 		}
 	}
 	return gwSecret, nil
@@ -276,6 +279,5 @@ func finalizeL7Api(ctx context.Context, params Params) error {
 			return err
 		}
 	}
-
 	return nil
 }

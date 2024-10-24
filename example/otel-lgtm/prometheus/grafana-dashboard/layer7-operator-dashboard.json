@@ -579,7 +579,7 @@
             "uid": "P982945308D3682D1"
           },
           "editorMode": "builder",
-          "expr": "{pod=\"$operatorPod\", namespace=\"$operatorNamespace\", container=\"manager\"} |= ``",
+          "expr": "{pod=\"$operatorPod\", k8s_namespace_name=\"$operatorNamespace\", container=\"manager\"} |= ``",
           "queryType": "range",
           "refId": "A"
         }
@@ -2068,7 +2068,7 @@
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
-        "regex": "/.*namespace=\"([^\"]*)\"/",
+        "regex": "/.*k8s_namespace_name=\"([^\"]*)\"/",
         "skipUrlSync": false,
         "sort": 0,
         "type": "query"

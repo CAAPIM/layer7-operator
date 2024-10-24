@@ -1,0 +1,10 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Repository
+metadata:
+  name: local-reference-repository
+spec:
+  enabled: true
+  localReference:
+    secretName: local-repo-secret
+  type: local
+  auth: {}

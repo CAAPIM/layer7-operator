@@ -29,9 +29,30 @@ secretGenerator:
 - name: global-bundle
   files:
     - ./resources/secrets/bundles/global-graphman-bundle.json
-# - name: graphman-portal-bootstrap-bundle
-#   files:
-#     - ./resources/secrets/bundles/portal-integration.json
+
+# Local Repository Secret
+- name: local-repo-secret
+  files:
+    - ./resources/secrets/repository/local-repository.json
+
+# Stored Passwords
+- name: multi-ext-secret
+  files:
+    - dbcredentials=./resources/secrets/secrets/multi/dbcredentials.json
+    - ./resources/secrets/secrets/multi/secret2
+    - secret3=./resources/secrets/secrets/multi/secret3.key
+- name: single-ext-secret
+  files:
+    - ./resources/secrets/secrets/single-secret
+
+# Trusted Certs
+- name: multi-cert-secret
+  files:
+    - ./resources/secrets/trustedcerts/digicert-chain.pem
+    - ./resources/secrets/trustedcerts/www.broadcom.com.pem
+- name: single-cert-secret
+  files:
+    - ./resources/secrets/trustedcerts/www.vmware.com.pem
 
 # Create a secret for the Ingress Resource
 # Uncomment this section to create your own certificate for the ingress controller.

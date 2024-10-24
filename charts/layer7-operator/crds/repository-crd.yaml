@@ -98,10 +98,8 @@ spec:
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
-                  Kubernetes Config
+                  Kubernetes Secret
                 properties:
-                  configMapName:
-                    type: string
                   secretName:
                     type: string
                 type: object
@@ -121,10 +119,8 @@ spec:
                 description: Tag - clone a specific tag.
                 type: string
               type:
-                description: Type of Repository - Git or HTTP
+                description: Type of Repository - Git, HTTP, Local
                 type: string
-            required:
-            - endpoint
             type: object
           status:
             description: Status - Repository Status

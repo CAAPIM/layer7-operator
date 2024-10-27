@@ -179,8 +179,6 @@ func existingFolder(folderName string) bool {
 }
 
 func validateGraphmanBundle(fileName string, folderName string) error {
-	///// Update this to include mappings
-
 	bundle := graphman.Bundle{}
 	if _, err := os.Stat(folderName); err != nil {
 		return nil

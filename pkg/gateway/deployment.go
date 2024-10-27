@@ -756,6 +756,8 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			SubPath:   "config.gz",
 		})
 
+		apiSummaryOptional := true
+
 		volumes = append(volumes, corev1.Volume{
 			Name: gw.Name + "-portal-init-config",
 			VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -763,7 +765,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 					Name: gw.Spec.App.PortalReference.PortalName + "-api-summary",
 				},
 				DefaultMode: &defaultMode,
-				Optional:    &optional,
+				Optional:    &apiSummaryOptional,
 				Items: []corev1.KeyToPath{{
 					Key:  "apis",
 					Path: "config.gz",

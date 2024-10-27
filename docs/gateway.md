@@ -17458,7 +17458,7 @@ GatewayStatus defines the observed state of Gateways
         <td>false</td>
       </tr><tr>
         <td><b>lastAppliedExternalKeys</b></td>
-        <td>map[string][]string</td>
+        <td>[]string</td>
         <td>
           LastAppliedExternalKeys<br/>
         </td>

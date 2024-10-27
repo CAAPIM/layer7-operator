@@ -196,30 +196,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - opentelemetry.io
-  resources:
-  - opentelemetrycollectors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - security.brcmlabs.com
   resources:
   - l7apis
@@ -237,20 +213,8 @@ rules:
   - l7apis/status
   verbs:
   - get
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7apis
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7apis/status
-  verbs:
-  - get
+  - patch
+  - update
 - apiGroups:
   - security.brcmlabs.com
   resources:
@@ -269,20 +233,8 @@ rules:
   - l7portals/status
   verbs:
   - get
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7portals
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7portals/status
-  verbs:
-  - get
+  - patch
+  - update
 - apiGroups:
   - route.openshift.io
   resources:

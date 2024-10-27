@@ -112,7 +112,7 @@ type GatewayStatus struct {
 	// LastAppliedClusterProperties
 	LastAppliedListenPorts []string `json:"lastAppliedListenPorts,omitempty"`
 	// LastAppliedExternalKeys
-	LastAppliedExternalKeys map[string][]string `json:"lastAppliedExternalKeys,omitempty"`
+	LastAppliedExternalKeys []string `json:"lastAppliedExternalKeys,omitempty"`
 	// LastAppliedExternalSecrets
 	LastAppliedExternalSecrets map[string][]string `json:"lastAppliedExternalSecrets,omitempty"`
 	// LastAppliedExternalCerts

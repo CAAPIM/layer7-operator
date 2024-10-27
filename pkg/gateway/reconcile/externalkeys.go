@@ -23,8 +23,6 @@ func ExternalKeys(ctx context.Context, params Params) error {
 		}
 	}
 
-	//var bundleBytes []byte
-
 	name := gateway.Name
 	if gateway.Spec.App.Management.DisklessConfig.Disabled {
 		name = gateway.Name + "-node-properties"
@@ -48,23 +46,23 @@ func ExternalKeys(ctx context.Context, params Params) error {
 		return err
 	}
 
-	for k, v := range gateway.Status.LastAppliedExternalKeys {
+	for _, k := range gateway.Status.LastAppliedExternalKeys {
 		found := false
 		notFound := []string{}
 
 		for _, ek := range gateway.Spec.App.ExternalKeys {
-			if k == ek.Name {
+			if k == ek.Alias {
 				found = true
 			}
 		}
 		if !found {
-			notFound = append(notFound, v...)
+			notFound = append(notFound, k)
 			bundleBytes, err := util.ConvertX509ToGraphmanBundle(nil, notFound)
 			if err != nil {
 				return err
 			}
 
-			annotation := "security.brcmlabs.com/external-secret-" + k
+			annotation := "security.brcmlabs.com/external-key-" + k
 			if !gateway.Spec.App.Management.Database.Enabled {
 				err = ReconcileEphemeralGateway(ctx, params, "external keys", *podList, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
 				if err != nil {
@@ -111,8 +109,8 @@ func ExternalKeys(ctx context.Context, params Params) error {
 		}
 
 		notFound := []string{}
-		if gateway.Status.LastAppliedExternalKeys != nil && gateway.Status.LastAppliedExternalKeys[externalKey.Name] != nil {
-			for _, appliedKey := range gateway.Status.LastAppliedExternalKeys[externalKey.Name] {
+		if gateway.Status.LastAppliedExternalKeys != nil {
+			for _, appliedKey := range gateway.Status.LastAppliedExternalKeys {
 				found := false
 				for _, desiredKey := range keySecretMap {
 					if appliedKey == desiredKey.Alias {
@@ -138,7 +136,7 @@ func ExternalKeys(ctx context.Context, params Params) error {
 			sha1Sum = "deleted"
 		}
 
-		annotation := "security.brcmlabs.com/external-key-" + externalKey.Name
+		annotation := "security.brcmlabs.com/external-key-" + externalKey.Alias
 
 		if !gateway.Spec.App.Management.Database.Enabled {
 			err = ReconcileEphemeralGateway(ctx, params, "external keys", *podList, gateway, gwSecret, "", annotation, sha1Sum, false, externalKey.Name, bundleBytes)

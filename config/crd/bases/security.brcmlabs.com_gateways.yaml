@@ -6292,12 +6292,10 @@ spec:
                 description: LastAppliedExternalCerts
                 type: object
               lastAppliedExternalKeys:
-                additionalProperties:
-                  items:
-                    type: string
-                  type: array
                 description: LastAppliedExternalKeys
-                type: object
+                items:
+                  type: string
+                type: array
               lastAppliedExternalSecrets:
                 additionalProperties:
                   items:

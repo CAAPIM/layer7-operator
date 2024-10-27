@@ -226,7 +226,7 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 
 func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Repository, repoRef securityv1.RepositoryReference, commit string) error {
 	gateway := params.Instance
-
+	secretBundle := []byte{}
 	graphmanPort := 9443
 
 	if params.Instance.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
@@ -291,6 +291,31 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 			ext = repository.Spec.Tag
 		}
 		gitPath := "/tmp/" + repoRef.Name + "-" + gateway.Namespace + "-" + ext + "/" + repoRef.Directories[d]
+
+		switch strings.ToLower(repository.Spec.Type) {
+		case "http":
+			fileURL, err := url.Parse(repository.Spec.Endpoint)
+			if err != nil {
+				return err
+			}
+			path := fileURL.Path
+			segments := strings.Split(path, "/")
+			fileName := segments[len(segments)-1]
+			ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+			folderName := strings.ReplaceAll(fileName, "."+ext, "")
+			if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+				folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+			}
+			gitPath = "/tmp/" + repository.Name + "-" + gateway.Namespace + "-" + folderName
+		case "local":
+			gitPath = ""
+			secretBundle, err = readLocalReference(ctx, repository, params)
+			if err != nil {
+				return err
+			}
+
+		}
+
 		requestCacheEntry := gatewayDeployment.Name + "-" + repoRef.Name + "-" + commit
 		syncRequest, err := syncCache.Read(requestCacheEntry)
 		tryRequest := true
@@ -307,7 +332,7 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 			start := time.Now()
 			params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-			err = util.ApplyToGraphmanTarget(gitPath, nil, true, username, password, endpoint, graphmanEncryptionPassphrase)
+			err = util.ApplyToGraphmanTarget(gitPath, secretBundle, true, username, password, endpoint, graphmanEncryptionPassphrase)
 			if err != nil {
 				params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 				_ = captureGraphmanMetrics(ctx, params, start, gatewayDeployment.Name, "repository", repoRef.Name, commit, true)

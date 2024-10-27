@@ -579,7 +579,7 @@
             "uid": "P982945308D3682D1"
           },
           "editorMode": "builder",
-          "expr": "{pod=\"$operatorPod\", k8s_namespace_name=\"$operatorNamespace\", container=\"manager\"} |= ``",
+          "expr": "{pod=\"$operatorPod\", namespace=\"$operatorNamespace\", container=\"manager\"} |= ``",
           "queryType": "range",
           "refId": "A"
         }

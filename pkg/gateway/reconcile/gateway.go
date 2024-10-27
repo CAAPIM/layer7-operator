@@ -120,7 +120,6 @@ func GatewayLicense(ctx context.Context, params Params) error {
 
 func ManagementPod(ctx context.Context, params Params) error {
 	podList, err := getGatewayPods(ctx, params)
-
 	if err != nil {
 		return err
 	}
@@ -132,7 +131,6 @@ func ManagementPod(ctx context.Context, params Params) error {
 			}
 		}
 	}
-
 	tagged := false
 	for p := range podList.Items {
 		if podList.Items[p].Status.Phase == "Running" && podList.Items[p].DeletionTimestamp == nil && !tagged {
@@ -461,7 +459,7 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 			for _, appliedKey := range bundle.Keys {
 				mappingSource := MappingSource{}
 				found := false
-				for _, key := range params.Instance.Status.LastAppliedExternalKeys[name] {
+				for _, key := range params.Instance.Status.LastAppliedExternalKeys {
 					if bundle.Properties != nil && key == appliedKey.Alias {
 						for _, mapping := range bundle.Properties.Mappings.Keys {
 							sourceBytes, err := json.Marshal(mapping.Source)
@@ -484,10 +482,10 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 			}
 		}
 		if params.Instance.Status.LastAppliedExternalKeys == nil {
-			params.Instance.Status.LastAppliedExternalKeys = map[string][]string{}
+			params.Instance.Status.LastAppliedExternalKeys = []string{}
 		}
 
-		params.Instance.Status.LastAppliedExternalKeys[name] = keys
+		params.Instance.Status.LastAppliedExternalKeys = keys
 		if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
 			return fmt.Errorf("failed to update external key status: %w", err)
 		}

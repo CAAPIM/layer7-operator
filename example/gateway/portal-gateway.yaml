@@ -5,16 +5,14 @@ metadata:
 spec:
   version: "11.1.1"
   license:
-    accept: true
+    accept: false
     secretName: gateway-license
   app:
     pdb:
       enabled: false
       minAvailable: 2
-    replicas: 3
+    replicas: 1
     restartOnConfigChange: true
-    labels:
-      foo: bar
     image: caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
     updateStrategy:
@@ -73,54 +71,20 @@ spec:
           verifyPeer: true
     bundle: []
     repositoryReferences: []
-      # - name: local-reference-repository
-      #   enabled: true
-      #   type: dynamic
-      #   encryption:
-      #     existingSecret: graphman-encryption-secret
-      #     key: APIS_ENCRYPTION_PASSPHRASE
-      # - name: l7-gw-myapis
-      #   enabled: false
-      #   type: dynamic
-      #   encryption:
-      #     passphrase: 7layer
-          # existingSecret: graphman-encryption-secret
-          # key: APIS_ENCRYPTION_PASSPHRASE
     externalCerts: []
-      # -  name: cert-secret
-      #    enabled: true
-      #    verifyHostname: false
-      #    trustedFor:
-      #      - SSL
-      #      - SIGNING_SERVER_CERTS
-      #    revocationCheckPolicyType: USE_DEFAULT
     externalKeys: []
-      # - name: brcmlabs
-      #   alias: bla
-      #   enabled: false
-      # - name: brcmlabs123
-      #   alias: test123
-      #   enabled: true
     externalSecrets: []
-      # - name: testssg-gateway-otkdb-secret
-      #   enabled: false
-      #   variableReferencable: true
-      #   description: testssg-gateway-otkdb-secret
-      # - name: testssg-mysql
-      #   enabled: true
-      #   variableReferencable: true
-      #   description: testssg-mysql
     portalReference:
       enabled: true
       portalName: k8s-g2c-agent
-      initContainerImage: harbor.sutraone.com/portal/bulk-sync-operator:latest
+      initContainerImage:  docker.io/layer7api/portal-bulk-sync-operator:0.0.1
       initContainerImagePullPolicy: Always
     bootstrap:
       script:
         enabled: true
     initContainers:
     - name: gateway-init
-      image: harbor.sutraone.com/operator/gateway-portal-init:1.0.1
+      image: docker.io/layer7api/gateway-portal-init:1.0.1
       imagePullPolicy: Always
       volumeMounts:
       - name: config-directory
@@ -169,7 +133,6 @@ spec:
           value: A
         tls:
           enabled: true
-          #privateKey: 00000000000000000000000000000002:ssl
           clientAuthentication: OPTIONAL
           versions:
           - TLSv1.2
@@ -206,11 +169,8 @@ spec:
         - Browser-based administration
         - Built-in services
         properties: []
-        # - name: server
-        #   value: B
         tls:
           enabled: true
-        # privateKey: 00000000000000000000000000000002:ssl
           clientAuthentication: Optional
           versions:
           - TLSv1.2
@@ -263,21 +223,6 @@ spec:
             com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion.level = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
-        - name: otel.enabled
-          value: "true"
-        - name: otel.serviceMetricEnabled
-          value: "true"
-        - name: otel.traceEnabled
-          value: "true"
-        - name: otel.metricPrefix
-          value: l7_
-        - name: otel.traceConfig
-          value: |
-            {
-              "services": [
-                {"resolutionPath": ".*"}
-              ]
-            }
 
     system:
       properties: |-
@@ -319,9 +264,7 @@ spec:
       enabled: true
       ingressClassName: nginx
       annotations:
-        cert-manager.io/cluster-issuer: "brcmlabs-issuer"
         nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
       tls:
       - hosts: 
         - gateway.brcmlabs.com

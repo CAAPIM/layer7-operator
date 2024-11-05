@@ -1,0 +1,141 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: portal-g2c-agent-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - gateways
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - gateways/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - gateways/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - repositories
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - repositories/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - repositories/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7apis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7apis/status
+  verbs:
+  - get
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7apis
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7apis/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7portals
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7portals/status
+  verbs:
+  - get
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7portals
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7portals/status
+  verbs:
+  - get
+  - patch
+  - update
+
+
+
+

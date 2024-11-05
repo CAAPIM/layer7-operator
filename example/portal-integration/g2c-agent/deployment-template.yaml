@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal-g2c-agent
+  labels:
+    app: portal-g2c-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portal-g2c-agent
+  template:
+    metadata:
+      labels:
+        app: portal-g2c-agent
+    spec:
+      serviceAccountName: portal-g2c-agent
+      hostAliases:
+      - ip: "10.96.228.133"
+        hostnames:
+        - "dev-portal-enroll.brcmlabs.com"
+        - "dev-portal-broker.brcmlabs.com"
+        - "dev-portal-ssg.brcmlabs.com"
+      containers:
+      - name: portal-g2c-agent
+        image: caapim/portal-g2c-agent:0.0.1
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 200m
+            memory: 50Mi
+        envFrom:
+        - configMapRef:
+            name: g2c-agent-configmap
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+          - name: tmp-dir
+            mountPath: /tmp/agent
+      volumes:
+      - name: tmp-dir
+        emptyDir: {}

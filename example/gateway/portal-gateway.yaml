@@ -57,18 +57,13 @@ spec:
       default:
         auth:
           enabled: true
-          #username: admin
           passwordPlaintext: 7layer
-          #passwordEncoded: esfksepofksepofksopef12312po3%$(%$($))
         type: standalone
         standalone:
-          host: 192.168.1.10
-          port: 30036
+          host: standalone-redis-master
+          port: 6379
         ssl:
           enabled: false
-          existingSecretName: redis-ssl-cert
-          existingSecretKey: redis.crt
-          verifyPeer: true
     bundle: []
     repositoryReferences: []
     externalCerts: []
@@ -76,15 +71,15 @@ spec:
     externalSecrets: []
     portalReference:
       enabled: true
-      portalName: k8s-g2c-agent
-      initContainerImage:  docker.io/layer7api/portal-bulk-sync-operator:0.0.1
+      portalName: example-k8
+      initContainerImage:  caapim/portal-bulk-sync:0.0.1
       initContainerImagePullPolicy: Always
     bootstrap:
       script:
         enabled: true
     initContainers:
     - name: gateway-init
-      image: docker.io/layer7api/gateway-portal-init:1.0.1
+      image: caapim/gateway-init-portal:0.0.1
       imagePullPolicy: Always
       volumeMounts:
       - name: config-directory
@@ -106,7 +101,7 @@ spec:
       jvmHeap:
         calculate: true
         percentage: 75
-        default: 4g
+        default: 3g
       extraArgs:
       - -Dcom.l7tech.server.audit.message.saveToInternal=false
       - -Dcom.l7tech.server.audit.admin.saveToInternal=false
@@ -210,8 +205,6 @@ spec:
       properties:
         - name: abc123
           value: def
-        # - name: abc1
-        #   value: def1
         - name: io.httpsHostAllowWildcard
           value: "true"
         - name: log.levels
@@ -246,8 +239,7 @@ spec:
         com.l7tech.server.extension.sharedCounterProvider=redis
         com.l7tech.server.extension.sharedRateLimiterProvider=redis
         com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
-        # com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
-        # com.l7tech.external.assertions.keyvaluestore.storeIdPrefix="12345678"
+        com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
     service:
       # annotations:
       type: ClusterIP

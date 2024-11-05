@@ -21,7 +21,7 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-    kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.0/bundle.yaml
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.0/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
@@ -35,6 +35,39 @@ advanced:
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
 
+portal-example: redis
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.0/bundle.yaml -n ${NAMESPACE}
+	@$(MAKE) --silent t=15 wait
+	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
+	kubectl apply -k ./base -n ${NAMESPACE}
+	kubectl apply -f ./gateway/portal-gateway.yaml -n ${NAMESPACE}
+	helm repo add layer7 https://caapim.github.io/apim-charts/
+	helm repo update
+	@echo "####################################################################################################################################"
+	@echo "Deploying the Layer7 API Developer Portal, this will take several minutes and complete when all components are ready."
+	@echo "####################################################################################################################################"
+	helm upgrade --install portal --set ingress.create=false --set-file portal.registryCredentials=./portal-integration/secrets/docker-secret.yaml -f ./portal-integration/portal-values.yaml layer7/portal -n ${NAMESPACE}
+	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app=apim
+	@$(MAKE) --silent t=15 wait
+	@echo "####################################################################################################################################"
+	@echo "Provisioning Portal Tenant"
+	@echo "####################################################################################################################################"
+	./portal-integration/create-tenant.sh -d ./portal-integration/enroll-payload.json -n ${NAMESPACE}
+
+# add nginx ip for portal domains so the agent can resolve them
+g2c-agent:
+	sed -e 's/ip:.*/ip: "$(shell kubectl get svc ingress-nginx-controller -n ingress-nginx -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
+	kubectl apply -k ./portal-integration/g2c-agent
+	echo "deploy g2cagent"
+
+# add function to generate agent config
+redis:
+	helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis -n ${NAMESPACE}
+	@$(MAKE) --silent t=15 wait
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis -n ${NAMESPACE}
+
+configure-nginx-ssl-passthrough:
+	kubectl -n ingress-nginx  get deployment ingress-nginx-controller -oyaml | sed -e "s/env:/\- \-\-enable\-ssl\-passthrough\n        env\:/g" | kubectl -n ingress-nginx apply -f -
 
 grafana-stack:
 	helm repo add grafana https://grafana.github.io/helm-charts

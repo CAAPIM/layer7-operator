@@ -2,8 +2,8 @@
 These examples cover a broader set of the features that the Layer7 Operator provides and serve as a starting point for implementing these in your own environments or just trying them out.
 
 ## Prerequisites
-- Kubernetes v1.25+
-- Gateway v10/11.x License
+- Kubernetes v1.29+
+- Gateway v11.x License
 - Ingress Controller (You can also expose Gateway Services as L4 LoadBalancers)
 - Accept the Gateway License
   - license.accept defaults to false in all of the [Gateway examples](./gateway/)
@@ -27,6 +27,9 @@ Gateways
 
 Open Telemetry Example
 - [Grafana LGTM Stack](./otel-lgtm/)
+
+Portal Integration Example
+- [Portal Integration](./portal-integration/)
 
 Other examples
 - [Elastic Stack](./otel-elastic)

@@ -55,58 +55,57 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["LIQUIBASE_LOG_LEVEL"] = liquibaseLogLevel
 		data["EXTRA_JAVA_ARGS"] = javaArgs
 		data["DISKLESS_CONFIG"] = disklessConfig
-		if gw.Spec.App.PreStopScript.Enabled {
-			f, _ := os.ReadFile("./graceful-shutdown.sh")
-			data["graceful-shutdown"] = string(f)
-		}
-
 		if (gw.Spec.App.Java.JVMHeap.MinPercentage != 0 && gw.Spec.App.Java.JVMHeap.MaxPercentage != 0) || (gw.Spec.App.Java.JVMHeap.MinDefault != "" && gw.Spec.App.Java.JVMHeap.MaxDefault != "") {
 			minJvmHeap := setJVMHeapSize(gw, "min", gw.Spec.App.Java.JVMHeap.MinPercentage)
 			maxJvmHeap := setJVMHeapSize(gw, "max", gw.Spec.App.Java.JVMHeap.MaxPercentage)
 			data["SSG_JVM_MIN_HEAP"] = minJvmHeap
 			data["SSG_JVM_MAX_HEAP"] = maxJvmHeap
 		}
-
+		if gw.Spec.App.Management.Database.Enabled && !gw.Spec.App.Management.DisklessConfig.Disabled {
+			data["SSG_DATABASE_JDBC_URL"] = gw.Spec.App.Management.Database.JDBCUrl
+		}
+		if gw.Spec.App.Hazelcast.External {
+			data["EXTRA_JAVA_ARGS"] = javaArgs + " -Dcom.l7tech.server.extension.sharedCounterProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedKeyValueStoreProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedClusterInfoProvider=externalhazelcast"
+		}
+	case gw.Name + "-gateway-files":
+		if gw.Spec.App.Bootstrap.Script.Enabled {
+			f, _ := os.ReadFile("./003-parse-custom-files.sh")
+			data["003-parse-custom-files"] = string(f)
+		}
+		if gw.Spec.App.PreStopScript.Enabled {
+			f, _ := os.ReadFile("./graceful-shutdown.sh")
+			data["graceful-shutdown"] = string(f)
+		}
 		if gw.Spec.App.AutoMountServiceAccountToken {
 			f, _ := os.ReadFile("./load-service-account-token.sh")
 			data["load-service-account-token"] = string(f)
 			f, _ = os.ReadFile("./update-service-account-token.xml")
 			data["service-account-token-template"] = string(f)
 		}
-
 		if gw.Spec.App.Log.Override {
 			data["log-override-properties"] = gw.Spec.App.Log.Properties
 		}
-
-		if gw.Spec.App.Bootstrap.Script.Enabled {
-			f, _ := os.ReadFile("./003-parse-custom-files.sh")
-			data["003-parse-custom-files"] = string(f)
-		}
-		if gw.Spec.App.Management.Database.Enabled && !gw.Spec.App.Management.DisklessConfig.Disabled {
-			data["SSG_DATABASE_JDBC_URL"] = gw.Spec.App.Management.Database.JDBCUrl
-		}
-
 		if gw.Spec.App.Hazelcast.External {
 			data["hazelcast-client.xml"] = `<hazelcast-client xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.hazelcast.com/schema/client-config http://www.hazelcast.com/schema/client-config/hazelcast-client-config-5.2.xsd" xmlns="http://www.hazelcast.com/schema/client-config"><instance-name>` + gw.Name + `-hazelcast-client</instance-name><network><cluster-members><address>` + gw.Spec.App.Hazelcast.Endpoint + `</address></cluster-members><redo-operation>true</redo-operation></network><connection-strategy async-start="false" reconnect-mode="ON"><connection-retry><cluster-connect-timeout-millis>-1</cluster-connect-timeout-millis></connection-retry></connection-strategy></hazelcast-client>`
-			data["EXTRA_JAVA_ARGS"] = javaArgs + " -Dcom.l7tech.server.extension.sharedCounterProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedKeyValueStoreProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedClusterInfoProvider=externalhazelcast"
 		}
+
 	case gw.Name + "-cwp-bundle":
 		var bundle []byte
 		bundle, dataCheckSum, _ = util.BuildCWPBundle(gw.Spec.App.ClusterProperties.Properties)
-		data["cwp.bundle"] = string(bundle)
+		data["cwp.json"] = string(bundle)
 	case gw.Name + "-listen-port-bundle":
 		var bundle []byte
+		refreshOnKeyChanges := false
 
+		if gw.Spec.App.ListenPorts.RefreshOnKeyChanges {
+			refreshOnKeyChanges = true
+		}
 		if !gw.Spec.App.ListenPorts.Custom.Enabled {
-			refreshOnKeyChanges := false
-			if gw.Spec.App.ListenPorts.RefreshOnKeyChanges {
-				refreshOnKeyChanges = true
-			}
 			bundle, dataCheckSum, _ = util.BuildDefaultListenPortBundle(refreshOnKeyChanges)
 		} else {
-			bundle, dataCheckSum, _ = util.BuildCustomListenPortBundle(gw)
+			bundle, dataCheckSum, _ = util.BuildCustomListenPortBundle(gw, refreshOnKeyChanges)
 		}
-		data["listen-ports.bundle"] = string(bundle)
+		data["listen-ports.json"] = string(bundle)
 	case gw.Name + "-repository-init-config":
 		initContainerStaticConfig := InitContainerStaticConfig{}
 		initContainerStaticConfig.Version = "1.0"
@@ -129,7 +128,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 						Auth:       "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
 					})
 				}
-
 			}
 		}
 		initContainerStaticConfigBytes, _ := json.Marshal(initContainerStaticConfig)
@@ -172,7 +170,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 
 			if gw.Spec.App.Otk.Database.Sql.JDBCDriverClass != "" {
 				data["OTK_JDBC_DRIVER_CLASS"] = string(gw.Spec.App.Otk.Database.Sql.JDBCDriverClass)
-
 			}
 
 		case securityv1.OtkDatabaseTypeCassandra:

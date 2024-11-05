@@ -198,6 +198,13 @@ are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappexternalcertsindex">externalCerts</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappexternalkeysindex">externalKeys</a></b></td>
         <td>[]object</td>
         <td>
@@ -205,24 +212,10 @@ are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>externalKeysSyncIntervalSeconds</b></td>
-        <td>integer</td>
-        <td>
-          ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b><a href="#gatewayspecappexternalsecretsindex">externalSecrets</a></b></td>
         <td>[]object</td>
         <td>
           <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>externalSecretsSyncIntervalSeconds</b></td>
-        <td>integer</td>
-        <td>
-          ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -433,14 +426,12 @@ alive or ready to receive traffic.<br/>
         <td><b><a href="#gatewayspecapprepositoryreferencesindex">repositoryReferences</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>repositorySyncIntervalSeconds</b></td>
-        <td>integer</td>
-        <td>
-          RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.<br/>
+          RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.
+RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
+ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.
+ExternalSecretsSyncIntervalSeconds int `json:"externalSecretsSyncIntervalSeconds,omitempty"`
+ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.
+ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncIntervalSeconds,omitempty"`<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -448,6 +439,13 @@ alive or ready to receive traffic.<br/>
         <td>object</td>
         <td>
           PodResources<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>restartOnConfigChange</b></td>
+        <td>boolean</td>
+        <td>
+          RestartOnConfigChange restarts the Gateway if the default configmaps are updated<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4253,6 +4251,78 @@ Property is a simple k/v pair
         <td>string</td>
         <td>
           Value<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.externalCerts[index]
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+ExternalCert is a reference to an existing TLS or Opaque Secret in Kubernetes
+The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+dynamically keeping any referenced trusted certs up-to-date.
+You can bring in external secrets using tools like cert-manager
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the Secret which already exists in Kubernetes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>revocationCheckPolicyName</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>revocationCheckPolicyType</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>trustAnchor</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>trustedFor</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>verifyHostname</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8812,7 +8882,7 @@ ListenPort is translated into a Restman Bundle
         <td>false</td>
       </tr><tr>
         <td><b>port</b></td>
-        <td>string</td>
+        <td>integer</td>
         <td>
           Port<br/>
         </td>
@@ -17370,6 +17440,41 @@ GatewayStatus defines the observed state of Gateways
         <td>string</td>
         <td>
           Image of the Gateway<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedClusterProperties</b></td>
+        <td>[]string</td>
+        <td>
+          LastAppliedClusterProperties<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedExternalCerts</b></td>
+        <td>map[string][]string</td>
+        <td>
+          LastAppliedExternalCerts<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedExternalKeys</b></td>
+        <td>[]string</td>
+        <td>
+          LastAppliedExternalKeys<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedExternalSecrets</b></td>
+        <td>map[string][]string</td>
+        <td>
+          LastAppliedExternalSecrets<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedListenPorts</b></td>
+        <td>[]string</td>
+        <td>
+          LastAppliedClusterProperties<br/>
         </td>
         <td>false</td>
       </tr><tr>

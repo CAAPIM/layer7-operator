@@ -1,0 +1,13 @@
+{
+    "adminEmail": "operatorexample@brcmlabs.com",
+    "auditLogLevel": "TRACE",
+    "multiclusterEnabled": true,
+    "noReplyEmail": "noreply@brcmlabs.com",
+    "performanceLogLevel": "ERROR",
+    "portalLogLevel": "INFO",
+    "portalName": "Operator Example",
+    "subdomain": "brcmlabs.com",
+    "tenantId": "portal",
+    "tenantType": "ON-PREM",
+    "termOfUse": "eula"
+}

@@ -41,7 +41,7 @@ func NewService(gw *securityv1.Gateway) *corev1.Service {
 			Kind:       "Service",
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: ls,
+			Selector: util.DefaultLabels(gw.Name, nil),
 			Ports:    ports,
 			Type:     gw.Spec.App.Service.Type,
 		},
@@ -132,22 +132,23 @@ func NewManagementService(gw *securityv1.Gateway) *corev1.Service {
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
 	mls := map[string]string{"management-access": "leader"}
 
-	for k, v := range mls {
-		ls[k] = v
-	}
+	// for k, v := range mls {
+	// 	ls[k] = v
+	// }
 
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        gw.Name + "-management-service",
 			Namespace:   gw.Namespace,
 			Annotations: gw.Spec.App.Management.Service.Annotations,
+			Labels:      ls,
 		},
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
 			Kind:       "Service",
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: ls,
+			Selector: util.DefaultLabels(gw.Name, mls),
 			Ports:    ports,
 			Type:     gw.Spec.App.Management.Service.Type,
 		},

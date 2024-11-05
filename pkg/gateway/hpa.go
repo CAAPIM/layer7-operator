@@ -9,6 +9,10 @@ import (
 
 func NewHPA(gw *securityv1.Gateway) *autoscalingv2.HorizontalPodAutoscaler {
 
+	if !gw.Spec.App.Autoscaling.Enabled {
+		return nil
+	}
+
 	behavior := &gw.Spec.App.Autoscaling.HPA.Behavior
 	selectPolicyDefault := autoscalingv2.ScalingPolicySelect("Max")
 

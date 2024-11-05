@@ -14,9 +14,7 @@ import (
 )
 
 func PodDisruptionBudget(ctx context.Context, params Params) error {
-	if !params.Instance.Spec.App.PodDisruptionBudget.Enabled {
-		return nil
-	}
+
 	desiredPdb := gateway.NewPDB(params.Instance)
 	currentPdb := &policyv1.PodDisruptionBudget{}
 
@@ -25,6 +23,18 @@ func PodDisruptionBudget(ctx context.Context, params Params) error {
 	}
 
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, currentPdb)
+
+	if !params.Instance.Spec.App.PodDisruptionBudget.Enabled && !k8serrors.IsNotFound(err) && controllerutil.HasControllerReference(currentPdb) {
+		if err := params.Client.Delete(ctx, currentPdb); err != nil {
+			return err
+		}
+		params.Log.Info("removed pdb", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		return nil
+	}
+
+	if !params.Instance.Spec.App.PodDisruptionBudget.Enabled {
+		return nil
+	}
 
 	if err != nil && k8serrors.IsNotFound(err) {
 		if err = params.Client.Create(ctx, desiredPdb); err != nil {

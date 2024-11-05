@@ -1,0 +1,1 @@
+## place registry credential as docker-secret.yaml here.

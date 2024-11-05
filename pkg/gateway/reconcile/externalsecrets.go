@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/caapim/layer7-operator/pkg/util"
@@ -14,9 +13,15 @@ import (
 
 func ExternalSecrets(ctx context.Context, params Params) error {
 	gateway := params.Instance
-	// if len(gateway.Spec.App.ExternalSecrets) == 0 {
-	// 	return nil
-	// }
+	if len(gateway.Spec.App.ExternalSecrets) == 0 {
+		for _, v := range gateway.Status.LastAppliedExternalSecrets {
+			if len(v) != 0 {
+				continue
+			}
+			return nil
+		}
+	}
+
 	name := gateway.Name
 	if gateway.Spec.App.Management.DisklessConfig.Disabled {
 		name = gateway.Name + "-node-properties"
@@ -40,7 +45,39 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 		return err
 	}
 
+	for k, v := range gateway.Status.LastAppliedExternalSecrets {
+		found := false
+		notFound := []string{}
+
+		for _, es := range gateway.Spec.App.ExternalSecrets {
+			if k == es.Name {
+				found = true
+			}
+		}
+		if !found {
+			notFound = append(notFound, v...)
+			bundleBytes, err := util.ConvertOpaqueMapToGraphmanBundle(nil, notFound)
+			if err != nil {
+				return err
+			}
+			annotation := "security.brcmlabs.com/external-secret-" + k
+			if !gateway.Spec.App.Management.Database.Enabled {
+				err = ReconcileEphemeralGateway(ctx, params, "external secrets", *podList, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
+				if err != nil {
+					return err
+				}
+			} else {
+				err = ReconcileDBGateway(ctx, params, "external secrets", gatewayDeployment, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+	}
+
 	for _, es := range gateway.Spec.App.ExternalSecrets {
+		var sha1Sum string
 		opaqueSecretMap := []util.GraphmanSecret{}
 		if es.Enabled {
 			secret, err := getGatewaySecret(ctx, params, es.Name)
@@ -58,8 +95,7 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 						VariableReferencable: es.VariableReferencable,
 					})
 				}
-			case corev1.SecretTypeBasicAuth:
-			case corev1.SecretTypeServiceAccountToken:
+			case corev1.SecretTypeServiceAccountToken, corev1.SecretTypeBasicAuth:
 				for k, v := range secret.Data {
 					opaqueSecretMap = append(opaqueSecretMap, util.GraphmanSecret{
 						Name:                 es.Name + "-" + k,
@@ -68,8 +104,7 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 						VariableReferencable: es.VariableReferencable,
 					})
 				}
-			case corev1.SecretTypeDockerConfigJson:
-			case corev1.SecretTypeDockercfg:
+			case corev1.SecretTypeDockercfg, corev1.SecretTypeDockerConfigJson:
 				for k, v := range secret.Data {
 					opaqueSecretMap = append(opaqueSecretMap, util.GraphmanSecret{
 						Name:                 es.Name + "-" + strings.Split(k, ".")[1],
@@ -81,33 +116,48 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 			default:
 				params.Log.V(2).Info("not a supported secret type", "secret name", es.Name, "secret type", secret.Type, "name", gateway.Name, "namespace", gateway.Namespace)
 			}
+
+			dataBytes, _ := json.Marshal(&secret.Data)
+			h := sha1.New()
+			h.Write(dataBytes)
+			sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
 		}
 
-		if len(opaqueSecretMap) < 1 {
+		notFound := []string{}
+		if gateway.Status.LastAppliedExternalSecrets != nil && gateway.Status.LastAppliedExternalSecrets[es.Name] != nil {
+
+			for _, appliedSecret := range gateway.Status.LastAppliedExternalSecrets[es.Name] {
+				found := false
+				for _, desiredSecret := range opaqueSecretMap {
+					if appliedSecret == desiredSecret.Name {
+						found = true
+					}
+				}
+				if !found {
+					notFound = append(notFound, appliedSecret)
+				}
+			}
+		}
+
+		if len(opaqueSecretMap) < 1 && len(notFound) < 1 {
 			continue
 		}
 
-		bundleBytes, err := util.ConvertOpaqueMapToGraphmanBundle(opaqueSecretMap)
+		bundleBytes, err := util.ConvertOpaqueMapToGraphmanBundle(opaqueSecretMap, notFound)
 		if err != nil {
 			return err
 		}
-		sort.Slice(opaqueSecretMap, func(i, j int) bool {
-			return opaqueSecretMap[i].Name < opaqueSecretMap[j].Name
-		})
 
-		opaqueSecretMapBytes, err := json.Marshal(opaqueSecretMap)
-		if err != nil {
-			return err
-		}
-		h := sha1.New()
-		h.Write(opaqueSecretMapBytes)
-		sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 		graphmanEncryptionPassphrase := es.Encryption.Passphrase
 		if es.Encryption.ExistingSecret != "" {
 			graphmanEncryptionPassphrase, err = getGraphmanEncryptionPassphrase(ctx, params, es.Encryption.ExistingSecret, es.Encryption.Key)
 			if err != nil {
 				return err
 			}
+		}
+
+		if sha1Sum == "" {
+			sha1Sum = "deleted"
 		}
 
 		annotation := "security.brcmlabs.com/external-secret-" + es.Name
@@ -123,8 +173,6 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 				return err
 			}
 		}
-
 	}
-
 	return nil
 }

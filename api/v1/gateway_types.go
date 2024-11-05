@@ -107,6 +107,16 @@ type GatewayStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:displayName="PortalSyncStatus"
 	PortalSyncStatus PortalSyncStatus `json:"PortalSyncStatus,omitempty"`
+	// LastAppliedClusterProperties
+	LastAppliedClusterProperties []string `json:"lastAppliedClusterProperties,omitempty"`
+	// LastAppliedClusterProperties
+	LastAppliedListenPorts []string `json:"lastAppliedListenPorts,omitempty"`
+	// LastAppliedExternalKeys
+	LastAppliedExternalKeys []string `json:"lastAppliedExternalKeys,omitempty"`
+	// LastAppliedExternalSecrets
+	LastAppliedExternalSecrets map[string][]string `json:"lastAppliedExternalSecrets,omitempty"`
+	// LastAppliedExternalCerts
+	LastAppliedExternalCerts map[string][]string `json:"lastAppliedExternalCerts,omitempty"`
 }
 
 // GatewayState tracks the status of Gateway Resources
@@ -173,12 +183,14 @@ type App struct {
 	// Labels for Operator managed resources
 	Labels map[string]string `json:"labels,omitempty"`
 	// PodLabels for the Gateway Deployment
-	PodLabels         map[string]string `json:"podLabels,omitempty"`
-	ClusterProperties ClusterProperties `json:"cwp,omitempty"`
-	Java              Java              `json:"java,omitempty"`
-	Management        Management        `json:"management,omitempty"`
-	Log               Log               `json:"log,omitempty"`
-	System            System            `json:"system,omitempty"`
+	PodLabels map[string]string `json:"podLabels,omitempty"`
+	// RestartOnConfigChange restarts the Gateway if the default configmaps are updated
+	RestartOnConfigChange bool              `json:"restartOnConfigChange,omitempty"`
+	ClusterProperties     ClusterProperties `json:"cwp,omitempty"`
+	Java                  Java              `json:"java,omitempty"`
+	Management            Management        `json:"management,omitempty"`
+	Log                   Log               `json:"log,omitempty"`
+	System                System            `json:"system,omitempty"`
 	// AutoMountServiceAccountToken optionally adds the Gateway Container's Kubernetes Service Account Token to Stored Passwords
 	AutoMountServiceAccountToken bool           `json:"autoMountServiceAccountToken,omitempty"`
 	UpdateStrategy               UpdateStrategy `json:"updateStrategy,omitempty"`
@@ -197,17 +209,17 @@ type App struct {
 	// This works inconjunction with repository references and only supports dynamic repository references.
 	SingletonExtraction bool `json:"singletonExtraction,omitempty"`
 	// RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.
-	RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
+	//RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
 	// ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.
-	ExternalSecretsSyncIntervalSeconds int `json:"externalSecretsSyncIntervalSeconds,omitempty"`
+	//ExternalSecretsSyncIntervalSeconds int `json:"externalSecretsSyncIntervalSeconds,omitempty"`
 	// ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.
-	ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncIntervalSeconds,omitempty"`
-	RepositoryReferences            []RepositoryReference `json:"repositoryReferences,omitempty"`
-	Ingress                         Ingress               `json:"ingress,omitempty"`
-	Sidecars                        []corev1.Container    `json:"sidecars,omitempty"`
-	InitContainers                  []corev1.Container    `json:"initContainers,omitempty"`
-	Resources                       PodResources          `json:"resources,omitempty"`
-	Autoscaling                     Autoscaling           `json:"autoscaling,omitempty"`
+	//ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncIntervalSeconds,omitempty"`
+	RepositoryReferences []RepositoryReference `json:"repositoryReferences,omitempty"`
+	Ingress              Ingress               `json:"ingress,omitempty"`
+	Sidecars             []corev1.Container    `json:"sidecars,omitempty"`
+	InitContainers       []corev1.Container    `json:"initContainers,omitempty"`
+	Resources            PodResources          `json:"resources,omitempty"`
+	Autoscaling          Autoscaling           `json:"autoscaling,omitempty"`
 	// ServiceAccount to use for the Gateway Deployment
 	ServiceAccount            ServiceAccount                    `json:"serviceAccount,omitempty"`
 	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
@@ -222,6 +234,7 @@ type App struct {
 	NodeSelector              map[string]string                 `json:"nodeSelector,omitempty"`
 	ExternalSecrets           []ExternalSecret                  `json:"externalSecrets,omitempty"`
 	ExternalKeys              []ExternalKey                     `json:"externalKeys,omitempty"`
+	ExternalCerts             []ExternalCert                    `json:"externalCerts,omitempty"`
 	LivenessProbe             corev1.Probe                      `json:"livenessProbe,omitempty"`
 	ReadinessProbe            corev1.Probe                      `json:"readinessProbe,omitempty"`
 	CustomConfig              CustomConfig                      `json:"customConfig,omitempty"`
@@ -748,6 +761,40 @@ type ExternalSecret struct {
 	VariableReferencable bool `json:"variableReferencable,omitempty"`
 }
 
+type TrustedFor string
+
+const (
+	TrustedForSsl                  TrustedFor = "SSL"
+	TrustedForSigningServerCerts   TrustedFor = "SIGNING_SERVER_CERTS"
+	TrustedForSigningClientCerts   TrustedFor = "SIGNING_CLIENT_CERTS"
+	TrustedForSamlIssuer           TrustedFor = "SAML_ISSUER"
+	TrustedForSamlAsstestingEntity TrustedFor = "SAML_ATTESTING_ENTITY"
+)
+
+type RevocationCheckPolicyType string
+
+const (
+	RevocationCheckPolicyTypeNone      RevocationCheckPolicyType = "NONE"
+	RevocationCheckPolicyTypeDefault   RevocationCheckPolicyType = "USE_DEFAULT"
+	RevocationCheckPolicyTypeSpecified RevocationCheckPolicyType = "SPECIFIED"
+)
+
+// ExternalCert is a reference to an existing TLS or Opaque Secret in Kubernetes
+// The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+// dynamically keeping any referenced trusted certs up-to-date.
+// You can bring in external secrets using tools like cert-manager
+type ExternalCert struct {
+	// Enabled or disabled
+	Enabled bool `json:"enabled,omitempty"`
+	// Name of the Secret which already exists in Kubernetes
+	Name                      string                    `json:"name,omitempty"`
+	VerifyHostname            bool                      `json:"verifyHostname,omitempty"`
+	TrustedFor                []TrustedFor              `json:"trustedFor,omitempty"`
+	TrustAnchor               bool                      `json:"trustAnchor,omitempty"`
+	RevocationCheckPolicyType RevocationCheckPolicyType `json:"revocationCheckPolicyType,omitempty"`
+	RevocationCheckPolicyName string                    `json:"revocationCheckPolicyName,omitempty"`
+}
+
 // ExternalKey is a reference to an existing TLS Secret in Kubernetes
 // The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
 // dynamically keeping any referenced keys up-to-date.
@@ -829,8 +876,8 @@ type ListenPort struct {
 	// Protocol
 	Protocol string `json:"protocol,omitempty"`
 	// Port
-	Port string `json:"port,omitempty"`
-	Tls  Tls    `json:"tls,omitempty"`
+	Port int `json:"port,omitempty"`
+	Tls  Tls `json:"tls,omitempty"`
 	// ManagementFeatures that should be available on this port
 	// - Published service message input
 	// - Administrative access

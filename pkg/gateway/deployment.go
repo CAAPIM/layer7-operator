@@ -174,7 +174,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: "service-account-token-script",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "load-service-account-token.sh",
 						Key:  "load-service-account-token"},
@@ -187,7 +187,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: "service-account-token-template",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "update-service-account-token.xml",
 						Key:  "service-account-token-template"},
@@ -329,7 +329,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: "log-override-config",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "log-override.properties",
 						Key:  "log-override-properties"},
@@ -417,7 +417,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: gw.Name + "-graceful-shutdown",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "graceful-shutdown.sh",
 						Key:  "graceful-shutdown"},
@@ -438,7 +438,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: gw.Name + "-parse-custom-files-script",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "003-parse-custom-files.sh",
 						Key:  "003-parse-custom-files"},
@@ -460,7 +460,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Name: "hazelcast-client",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
 					Items: []corev1.KeyToPath{{
 						Path: "hazelcast-client.xml",
 						Key:  "hazelcast-client.xml"},
@@ -752,9 +752,11 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		portalInitContainerVolumeMounts := []corev1.VolumeMount{}
 		portalInitContainerVolumeMounts = append(portalInitContainerVolumeMounts, corev1.VolumeMount{
 			Name:      gw.Name + "-portal-init-config",
-			MountPath: "/portal/config.json",
-			SubPath:   "config.json",
+			MountPath: "/portal/config.gz",
+			SubPath:   "config.gz",
 		})
+
+		apiSummaryOptional := true
 
 		volumes = append(volumes, corev1.Volume{
 			Name: gw.Name + "-portal-init-config",
@@ -763,10 +765,10 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 					Name: gw.Spec.App.PortalReference.PortalName + "-api-summary",
 				},
 				DefaultMode: &defaultMode,
-				Optional:    &optional,
+				Optional:    &apiSummaryOptional,
 				Items: []corev1.KeyToPath{{
 					Key:  "apis",
-					Path: "config.json",
+					Path: "config.gz",
 				}},
 			}},
 		})
@@ -784,7 +786,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 		volumeMounts = append(volumeMounts, portalInitContainerVolumeMounts...)
 
-		portalInitContainerImage := "docker.io/layer7api/portal-bulk-init:0.0.1"
+		portalInitContainerImage := "docker.io/caapim/portal-bulk-sync:0.0.1"
 		portalInitContainerImagePullPolicy := corev1.PullIfNotPresent
 		portalInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -1082,7 +1084,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: ls,
+				MatchLabels: util.DefaultLabels(gw.Name, nil),
 			},
 			Replicas:                &gw.Spec.App.Replicas,
 			Strategy:                strategy,

@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   creationTimestamp: null
   name: l7portals.security.brcmlabs.com
 spec:
@@ -21,14 +21,12 @@ spec:
         description: L7Portal is the Schema for the l7portals API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: APIVersion defines the versioned schema of this representation
+              of an object
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: Kind is a string value representing the REST resource this
+              object represent
             type: string
           metadata:
             type: object
@@ -49,7 +47,7 @@ spec:
                 type: object
               deploymentTags:
                 description: Deployment Tags - determines which Gateway deployments
-                  these APIs will be applied to
+                  these APIs will be a
                 items:
                   type: string
                 type: array
@@ -62,7 +60,7 @@ spec:
                 type: string
               enrollmentBundle:
                 description: EnrollmentBundle - allows a custom enrollment bundle
-                  to be set in the Portal CR
+                  to be set in the Porta
                 type: string
               labels:
                 additionalProperties:
@@ -74,7 +72,6 @@ spec:
                 type: string
               syncIntervalSeconds:
                 description: SyncIntervalSeconds how often the Portal CR is reconciled.
-                  Default is 10 seconds
                 type: integer
             type: object
           status:

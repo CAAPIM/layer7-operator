@@ -246,6 +246,13 @@ type BundleApplyError struct {
 	Error  DetailedStatus `json:"error,omitempty"`
 }
 
+type MappingSource struct {
+	Name           string `json:"name,omitempty"`
+	Alias          string `json:"alias,omitempty"`
+	KeystoreId     string `json:"keystoreId,omitempty"`
+	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
+}
+
 var entities = []string{
 	"clusterProperties",
 	"encassConfigs",
@@ -302,6 +309,10 @@ func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
 	srcBundle := Bundle{}
 	destBundle := Bundle{}
 
+	if len(src) == 0 {
+		return dest, nil
+	}
+
 	err := json.Unmarshal(dest, &destBundle)
 	if err != nil {
 		return nil, err
@@ -312,55 +323,34 @@ func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	destBundle.ActiveConnectors = append(destBundle.ActiveConnectors, srcBundle.ActiveConnectors...)
-	destBundle.BackgroundTasks = append(destBundle.BackgroundTasks, srcBundle.BackgroundTasks...)
-	destBundle.CassandraConnections = append(destBundle.CassandraConnections, srcBundle.CassandraConnections...)
-	destBundle.ClusterProperties = append(destBundle.ClusterProperties, srcBundle.ClusterProperties...)
-	destBundle.Dtds = append(destBundle.Dtds, srcBundle.Dtds...)
-	destBundle.EmailListeners = append(destBundle.EmailListeners, srcBundle.EmailListeners...)
-	destBundle.EncassConfigs = append(destBundle.EncassConfigs, srcBundle.EncassConfigs...)
-	destBundle.FipGroups = append(destBundle.FipGroups, srcBundle.FipGroups...)
-	destBundle.FipUsers = append(destBundle.FipUsers, srcBundle.FipUsers...)
-	destBundle.Fips = append(destBundle.Fips, srcBundle.Fips...)
-	destBundle.GlobalPolicies = append(destBundle.GlobalPolicies, srcBundle.GlobalPolicies...)
-	destBundle.InternalGroups = append(destBundle.InternalGroups, srcBundle.InternalGroups...)
-	destBundle.InternalSoapServices = append(destBundle.InternalSoapServices, srcBundle.InternalSoapServices...)
-	destBundle.InternalUsers = append(destBundle.InternalUsers, srcBundle.InternalUsers...)
-	destBundle.InternalWebApiServices = append(destBundle.InternalWebApiServices, srcBundle.InternalWebApiServices...)
-	destBundle.JdbcConnections = append(destBundle.JdbcConnections, srcBundle.JdbcConnections...)
-	destBundle.JmsDestinations = append(destBundle.JmsDestinations, srcBundle.JmsDestinations...)
-	destBundle.Keys = append(destBundle.Keys, srcBundle.Keys...)
-	destBundle.LdapIdps = append(destBundle.LdapIdps, srcBundle.LdapIdps...)
-	destBundle.ListenPorts = append(destBundle.ListenPorts, srcBundle.ListenPorts...)
-	destBundle.PolicyFragments = append(destBundle.PolicyFragments, srcBundle.PolicyFragments...)
-	destBundle.ScheduledTasks = append(destBundle.ScheduledTasks, srcBundle.ScheduledTasks...)
-	destBundle.Schemas = append(destBundle.Schemas, srcBundle.Schemas...)
-	destBundle.Secrets = append(destBundle.Secrets, srcBundle.Secrets...)
-	destBundle.ServerModuleFiles = append(destBundle.ServerModuleFiles, srcBundle.ServerModuleFiles...)
-	destBundle.SiteMinderConfigs = append(destBundle.SiteMinderConfigs, srcBundle.SiteMinderConfigs...)
-	destBundle.SoapServices = append(destBundle.SoapServices, srcBundle.InternalSoapServices...)
-	destBundle.TrustedCerts = append(destBundle.TrustedCerts, srcBundle.TrustedCerts...)
-	destBundle.WebApiServices = append(destBundle.WebApiServices, srcBundle.WebApiServices...)
-	destBundle.AdministrativeUserAccountProperties = append(destBundle.AdministrativeUserAccountProperties, srcBundle.AdministrativeUserAccountProperties...)
-	destBundle.PasswordPolicies = append(destBundle.PasswordPolicies, srcBundle.PasswordPolicies...)
-	destBundle.RevocationCheckPolicies = append(destBundle.RevocationCheckPolicies, srcBundle.RevocationCheckPolicies...)
-	destBundle.LogSinks = append(destBundle.LogSinks, srcBundle.LogSinks...)
-	destBundle.HttpConfigurations = append(destBundle.HttpConfigurations, srcBundle.HttpConfigurations...)
-	destBundle.CustomKeyValues = append(destBundle.CustomKeyValues, srcBundle.CustomKeyValues...)
-	destBundle.ServiceResolutionConfigs = append(destBundle.ServiceResolutionConfigs, srcBundle.ServiceResolutionConfigs...)
-	destBundle.Folders = append(destBundle.Folders, srcBundle.Folders...)
-	destBundle.FederatedIdps = append(destBundle.FederatedIdps, srcBundle.FederatedIdps...)
-	destBundle.FederatedGroups = append(destBundle.FederatedGroups, srcBundle.FederatedGroups...)
-	destBundle.FederatedUsers = append(destBundle.FederatedUsers, srcBundle.FederatedUsers...)
-	destBundle.InternalIdps = append(destBundle.InternalIdps, srcBundle.InternalIdps...)
-	destBundle.LdapIdps = append(destBundle.LdapIdps, srcBundle.LdapIdps...)
-	destBundle.SimpleLdapIdps = append(destBundle.SimpleLdapIdps, srcBundle.SimpleLdapIdps...)
-	destBundle.PolicyBackedIdps = append(destBundle.PolicyBackedIdps, srcBundle.PolicyBackedIdps...)
-	destBundle.Policies = append(destBundle.Policies, srcBundle.Policies...)
-	destBundle.Services = append(destBundle.Services, srcBundle.Services...)
-	destBundle.Roles = append(destBundle.Roles, srcBundle.Roles...)
-	destBundle.GenericEntities = append(destBundle.GenericEntities, srcBundle.GenericEntities...)
-	destBundle.AuditConfigurations = append(destBundle.AuditConfigurations, srcBundle.AuditConfigurations...)
+	destBundle = combineBundle(srcBundle, destBundle)
+
+	bundleBytes, err := json.Marshal(destBundle)
+	if err != nil {
+		return nil, err
+	}
+	return bundleBytes, nil
+}
+
+func AddMappings(src []byte, dest []byte) ([]byte, error) {
+	srcBundle := Bundle{}
+	destBundle := Bundle{}
+
+	if len(src) == 0 {
+		return dest, nil
+	}
+
+	err := json.Unmarshal(dest, &destBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(src, &srcBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	destBundle.Properties = srcBundle.Properties
 
 	bundleBytes, err := json.Marshal(destBundle)
 	if err != nil {
@@ -445,13 +435,11 @@ func parseEntity(path string) (string, bool) {
 			return e, true
 		}
 	}
-
 	return "", false
 }
 
 // readBundle unmarshals a JSON file in the specified Graphman directory into the working Bundle object.
 func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) {
-
 	ext := strings.Split(file, ".")[len(strings.Split(file, "."))-1]
 	if ext != "json" {
 		return *bundle, nil
@@ -892,6 +880,606 @@ func implodeBundle(path string) (Bundle, error) {
 		return bundle, err
 	}
 	return bundle, nil
+}
+
+func combineBundle(srcBundle Bundle, destBundle Bundle) Bundle {
+	for _, s := range srcBundle.ActiveConnectors {
+		found := false
+		for _, d := range destBundle.ActiveConnectors {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.ActiveConnectors = append(destBundle.ActiveConnectors, s)
+		}
+	}
+
+	for _, s := range srcBundle.BackgroundTasks {
+		found := false
+		for _, d := range destBundle.BackgroundTasks {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.BackgroundTasks = append(destBundle.BackgroundTasks, s)
+		}
+	}
+
+	for _, s := range srcBundle.CassandraConnections {
+		found := false
+		for _, d := range destBundle.CassandraConnections {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.CassandraConnections = append(destBundle.CassandraConnections, s)
+		}
+	}
+
+	for _, s := range srcBundle.ClusterProperties {
+		found := false
+		for _, d := range destBundle.ClusterProperties {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.ClusterProperties = append(destBundle.ClusterProperties, s)
+		}
+	}
+
+	for _, s := range srcBundle.Dtds {
+		found := false
+		for _, d := range destBundle.Dtds {
+			if s.PublicId == d.PublicId {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Dtds = append(destBundle.Dtds, s)
+		}
+	}
+
+	for _, s := range srcBundle.EmailListeners {
+		found := false
+		for _, d := range destBundle.EmailListeners {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.EmailListeners = append(destBundle.EmailListeners, s)
+		}
+	}
+
+	for _, s := range srcBundle.EncassConfigs {
+		found := false
+		for _, d := range destBundle.EncassConfigs {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.EncassConfigs = append(destBundle.EncassConfigs, s)
+		}
+	}
+
+	for _, s := range srcBundle.FipGroups {
+		found := false
+		for _, d := range destBundle.FipGroups {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.FipGroups = append(destBundle.FipGroups, s)
+		}
+	}
+
+	for _, s := range srcBundle.FipUsers {
+		found := false
+		for _, d := range destBundle.FipUsers {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.FipUsers = append(destBundle.FipUsers, s)
+		}
+	}
+
+	for _, s := range srcBundle.Fips {
+		found := false
+		for _, d := range destBundle.Fips {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Fips = append(destBundle.Fips, s)
+		}
+	}
+
+	for _, s := range srcBundle.GlobalPolicies {
+		found := false
+		for _, d := range destBundle.GlobalPolicies {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.GlobalPolicies = append(destBundle.GlobalPolicies, s)
+		}
+	}
+
+	for _, s := range srcBundle.InternalGroups {
+		found := false
+		for _, d := range destBundle.InternalGroups {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.InternalGroups = append(destBundle.InternalGroups, s)
+		}
+	}
+
+	for _, s := range srcBundle.InternalSoapServices {
+		found := false
+		for _, d := range destBundle.InternalSoapServices {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.InternalSoapServices = append(destBundle.InternalSoapServices, s)
+		}
+	}
+
+	for _, s := range srcBundle.InternalUsers {
+		found := false
+		for _, d := range destBundle.InternalUsers {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.InternalUsers = append(destBundle.InternalUsers, s)
+		}
+	}
+
+	for _, s := range srcBundle.InternalWebApiServices {
+		found := false
+		for _, d := range destBundle.InternalWebApiServices {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.InternalWebApiServices = append(destBundle.InternalWebApiServices, s)
+		}
+	}
+
+	for _, s := range srcBundle.JdbcConnections {
+		found := false
+		for _, d := range destBundle.JdbcConnections {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.JdbcConnections = append(destBundle.JdbcConnections, s)
+		}
+	}
+
+	for _, s := range srcBundle.JmsDestinations {
+		found := false
+		for _, d := range destBundle.JmsDestinations {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.JmsDestinations = append(destBundle.JmsDestinations, s)
+		}
+	}
+
+	for _, s := range srcBundle.Keys {
+		found := false
+		for _, d := range destBundle.Keys {
+			if s.Alias == d.Alias {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Keys = append(destBundle.Keys, s)
+		}
+	}
+
+	for _, s := range srcBundle.LdapIdps {
+		found := false
+		for _, d := range destBundle.LdapIdps {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.LdapIdps = append(destBundle.LdapIdps, s)
+		}
+	}
+
+	for _, s := range srcBundle.ListenPorts {
+		found := false
+		for _, d := range destBundle.ListenPorts {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.ListenPorts = append(destBundle.ListenPorts, s)
+		}
+	}
+
+	for _, s := range srcBundle.PolicyFragments {
+		found := false
+		for _, d := range destBundle.PolicyFragments {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.PolicyFragments = append(destBundle.PolicyFragments, s)
+		}
+	}
+
+	for _, s := range srcBundle.ScheduledTasks {
+		found := false
+		for _, d := range destBundle.ScheduledTasks {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.ScheduledTasks = append(destBundle.ScheduledTasks, s)
+		}
+	}
+
+	for _, s := range srcBundle.Schemas {
+		found := false
+		for _, d := range destBundle.Schemas {
+			if s.SystemId == d.SystemId {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Schemas = append(destBundle.Schemas, s)
+		}
+	}
+
+	for _, s := range srcBundle.Secrets {
+		found := false
+		for _, d := range destBundle.Secrets {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Secrets = append(destBundle.Secrets, s)
+		}
+	}
+
+	for _, s := range srcBundle.ServerModuleFiles {
+		found := false
+		for _, d := range destBundle.ServerModuleFiles {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.ServerModuleFiles = append(destBundle.ServerModuleFiles, s)
+		}
+	}
+
+	for _, s := range srcBundle.SiteMinderConfigs {
+		found := false
+		for _, d := range destBundle.SiteMinderConfigs {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.SiteMinderConfigs = append(destBundle.SiteMinderConfigs, s)
+		}
+	}
+
+	for _, s := range srcBundle.SoapServices {
+		found := false
+		for _, d := range destBundle.SoapServices {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.SoapServices = append(destBundle.SoapServices, s)
+		}
+	}
+
+	for _, s := range srcBundle.TrustedCerts {
+		found := false
+		for _, d := range destBundle.TrustedCerts {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.TrustedCerts = append(destBundle.TrustedCerts, s)
+		}
+	}
+
+	for _, s := range srcBundle.TrustedCerts {
+		found := false
+		for _, d := range destBundle.TrustedCerts {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.TrustedCerts = append(destBundle.TrustedCerts, s)
+		}
+	}
+
+	for _, s := range srcBundle.WebApiServices {
+		found := false
+		for _, d := range destBundle.WebApiServices {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.WebApiServices = append(destBundle.WebApiServices, s)
+		}
+	}
+
+	for _, s := range srcBundle.AdministrativeUserAccountProperties {
+		found := false
+		for _, d := range destBundle.AdministrativeUserAccountProperties {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.AdministrativeUserAccountProperties = append(destBundle.AdministrativeUserAccountProperties, s)
+		}
+	}
+
+	if len(destBundle.PasswordPolicies) == 0 {
+		destBundle.PasswordPolicies = append(destBundle.PasswordPolicies, srcBundle.PasswordPolicies...)
+	}
+
+	for _, s := range srcBundle.RevocationCheckPolicies {
+		found := false
+		for _, d := range destBundle.RevocationCheckPolicies {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.RevocationCheckPolicies = append(destBundle.RevocationCheckPolicies, s)
+		}
+	}
+
+	for _, s := range srcBundle.LogSinks {
+		found := false
+		for _, d := range destBundle.LogSinks {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.LogSinks = append(destBundle.LogSinks, s)
+		}
+	}
+
+	for _, s := range srcBundle.HttpConfigurations {
+		found := false
+		for _, d := range destBundle.HttpConfigurations {
+			if s.Host == d.Host {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.HttpConfigurations = append(destBundle.HttpConfigurations, s)
+		}
+	}
+
+	for _, s := range srcBundle.CustomKeyValues {
+		found := false
+		for _, d := range destBundle.CustomKeyValues {
+			if s.Key == d.Key {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.CustomKeyValues = append(destBundle.CustomKeyValues, s)
+		}
+	}
+
+	if len(destBundle.ServiceResolutionConfigs) == 0 {
+		destBundle.ServiceResolutionConfigs = append(destBundle.ServiceResolutionConfigs, srcBundle.ServiceResolutionConfigs...)
+	}
+
+	for _, s := range srcBundle.Folders {
+		found := false
+		for _, d := range destBundle.Folders {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Folders = append(destBundle.Folders, s)
+		}
+	}
+
+	for _, s := range srcBundle.FederatedIdps {
+		found := false
+		for _, d := range destBundle.FederatedIdps {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.FederatedIdps = append(destBundle.FederatedIdps, s)
+		}
+	}
+
+	for _, s := range srcBundle.FederatedGroups {
+		found := false
+		for _, d := range destBundle.FederatedGroups {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.FederatedGroups = append(destBundle.FederatedGroups, s)
+		}
+	}
+
+	for _, s := range srcBundle.FederatedUsers {
+		found := false
+		for _, d := range destBundle.FederatedUsers {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.FederatedUsers = append(destBundle.FederatedUsers, s)
+		}
+	}
+
+	for _, s := range srcBundle.FederatedUsers {
+		found := false
+		for _, d := range destBundle.FederatedUsers {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.FederatedUsers = append(destBundle.FederatedUsers, s)
+		}
+	}
+
+	for _, s := range srcBundle.InternalIdps {
+		found := false
+		for _, d := range destBundle.InternalIdps {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.InternalIdps = append(destBundle.InternalIdps, s)
+		}
+	}
+
+	for _, s := range srcBundle.LdapIdps {
+		found := false
+		for _, d := range destBundle.LdapIdps {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.LdapIdps = append(destBundle.LdapIdps, s)
+		}
+	}
+
+	for _, s := range srcBundle.SimpleLdapIdps {
+		found := false
+		for _, d := range destBundle.SimpleLdapIdps {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.SimpleLdapIdps = append(destBundle.SimpleLdapIdps, s)
+		}
+	}
+
+	for _, s := range srcBundle.PolicyBackedIdps {
+		found := false
+		for _, d := range destBundle.PolicyBackedIdps {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.PolicyBackedIdps = append(destBundle.PolicyBackedIdps, s)
+		}
+	}
+
+	for _, s := range srcBundle.Policies {
+		found := false
+		for _, d := range destBundle.Policies {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Policies = append(destBundle.Policies, s)
+		}
+	}
+
+	for _, s := range srcBundle.Services {
+		found := false
+		for _, d := range destBundle.Services {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Services = append(destBundle.Services, s)
+		}
+	}
+
+	for _, s := range srcBundle.Roles {
+		found := false
+		for _, d := range destBundle.Roles {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.Roles = append(destBundle.Roles, s)
+		}
+	}
+
+	for _, s := range srcBundle.GenericEntities {
+		found := false
+		for _, d := range destBundle.GenericEntities {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.GenericEntities = append(destBundle.GenericEntities, s)
+		}
+	}
+
+	for _, s := range srcBundle.AuditConfigurations {
+		found := false
+		for _, d := range destBundle.AuditConfigurations {
+			if s.Name == d.Name {
+				found = true
+			}
+		}
+		if !found {
+			destBundle.AuditConfigurations = append(destBundle.AuditConfigurations, s)
+		}
+	}
+
+	return destBundle
 }
 
 func installGenericBundle(

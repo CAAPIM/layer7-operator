@@ -1,0 +1,253 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Shipping API",
+    "description": "Shipments",
+    "termsOfService": "http://dev.ca.com",
+    "contact": {
+      "email": "gary.vermeulen@broadcom.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "1.0.11"
+  },
+  "servers": [
+    {
+      "url": "https://gateway.brcmlabs.com"
+    }
+  ],
+  "tags": [
+    {
+      "name": "shipping"
+    }
+  ],
+  "paths": {
+    "/api/v1/shipping": {
+      "get": {
+        "tags": [
+          "shipping"
+        ],
+        "summary": "shipping",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "consignments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "additionalServices": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id"
+                              ]
+                            }
+                          },
+                          "addressLine": {
+                            "type": "string"
+                          },
+                          "fromCountryCode": {
+                            "type": "string"
+                          },
+                          "fromPostalCode": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "number"
+                          },
+                          "packages": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "grossWeight": {
+                                  "type": "number"
+                                },
+                                "height": {
+                                  "type": "number"
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "length": {
+                                  "type": "number"
+                                },
+                                "width": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "grossWeight",
+                                "height",
+                                "id",
+                                "length",
+                                "width"
+                              ]
+                            }
+                          },
+                          "products": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "shippingDate": {
+                            "type": "object",
+                            "properties": {
+                              "day": {
+                                "type": "string"
+                              },
+                              "hour": {
+                                "type": "string"
+                              },
+                              "minute": {
+                                "type": "string"
+                              },
+                              "month": {
+                                "type": "string"
+                              },
+                              "year": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "toCountryCode": {
+                            "type": "string"
+                          },
+                          "toPostalCode": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "edi": {
+                      "type": "boolean"
+                    },
+                    "language": {
+                      "type": "string"
+                    },
+                    "numberOfAlternativeDeliveryDates": {
+                      "type": "number"
+                    },
+                    "postingAtPostOffice": {
+                      "type": "boolean"
+                    },
+                    "trace": {
+                      "type": "boolean"
+                    },
+                    "withExpectedDelivery": {
+                      "type": "boolean"
+                    },
+                    "withGuiInformation": {
+                      "type": "boolean"
+                    },
+                    "withPrice": {
+                      "type": "boolean"
+                    },
+                    "withUniqueAlternateDeliveryDates": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "example": {
+                  "consignments": [
+                    {
+                      "additionalServices": [
+                        {
+                          "id": "EVARSLING"
+                        },
+                        {
+                          "id": "POSTOPPKRAV"
+                        }
+                      ],
+                      "addressLine": "Testsvingen 2",
+                      "fromCountryCode": "NO",
+                      "fromPostalCode": "0015",
+                      "id": 101,
+                      "packages": [
+                        {
+                          "grossWeight": 50,
+                          "height": 10,
+                          "id": "10",
+                          "length": 10,
+                          "width": 10
+                        },
+                        {
+                          "grossWeight": 50,
+                          "height": 10,
+                          "id": "11",
+                          "length": 10,
+                          "width": 10
+                        },
+                        {
+                          "grossWeight": 50,
+                          "height": 10,
+                          "id": "12",
+                          "length": 11,
+                          "width": 10
+                        }
+                      ],
+                      "products": [
+                        {
+                          "id": "SERVICEPAKKE"
+                        }
+                      ],
+                      "shippingDate": {
+                        "day": "10",
+                        "hour": "10",
+                        "minute": "0",
+                        "month": "10",
+                        "year": "2016"
+                      },
+                      "toCountryCode": "NO",
+                      "toPostalCode": "5518"
+                    }
+                  ],
+                  "edi": true,
+                  "language": "no",
+                  "numberOfAlternativeDeliveryDates": 0,
+                  "postingAtPostOffice": true,
+                  "trace": true,
+                  "withExpectedDelivery": false,
+                  "withGuiInformation": true,
+                  "withPrice": true,
+                  "withUniqueAlternateDeliveryDates": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Sorry unable to perform operation."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

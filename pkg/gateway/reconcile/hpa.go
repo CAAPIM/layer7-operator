@@ -13,21 +13,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// / TODO: Should auto-delete if not used...
 func HorizontalPodAutoscaler(ctx context.Context, params Params) error {
+	desiredHpa := gateway.NewHPA(params.Instance)
+	currentHpa := &autoscalingv2.HorizontalPodAutoscaler{}
+
+	if desiredHpa != nil {
+		if err := controllerutil.SetControllerReference(params.Instance, desiredHpa, params.Scheme); err != nil {
+			return fmt.Errorf("failed to set controller reference: %w", err)
+		}
+	}
+
+	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, currentHpa)
+	if !params.Instance.Spec.App.Autoscaling.Enabled && !k8serrors.IsNotFound(err) && controllerutil.HasControllerReference(currentHpa) {
+		if err = params.Client.Delete(ctx, currentHpa); err != nil {
+			return err
+		}
+		params.Log.Info("removed horizontal pod autoscaler", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		return nil
+	}
 
 	if !params.Instance.Spec.App.Autoscaling.Enabled {
 		return nil
 	}
-
-	desiredHpa := gateway.NewHPA(params.Instance)
-	currentHpa := &autoscalingv2.HorizontalPodAutoscaler{}
-
-	if err := controllerutil.SetControllerReference(params.Instance, desiredHpa, params.Scheme); err != nil {
-		return fmt.Errorf("failed to set controller reference: %w", err)
-	}
-
-	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, currentHpa)
 
 	if err != nil && k8serrors.IsNotFound(err) {
 		if err = params.Client.Create(ctx, desiredHpa); err != nil {

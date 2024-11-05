@@ -1,16 +1,15 @@
 package util
 
 import (
-	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/hex"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"strconv"
 	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	"github.com/caapim/layer7-operator/internal/graphman"
 )
 
 type Bundle struct {
@@ -38,10 +37,8 @@ type Item struct {
 }
 
 type Resource struct {
-	ClusterProperty *ClusterProperty `xml:"l7:ClusterProperty,omitempty"`
-	ListenPort      *ListenPort      `xml:"l7:ListenPort,omitempty"`
-	Policy          *Policy          `xml:"l7:Policy,omitempty"`
-	Service         *Service         `xml:"l7:Service,omitempty"`
+	Policy  *Policy  `xml:"l7:Policy,omitempty"`
+	Service *Service `xml:"l7:Service,omitempty"`
 }
 
 type Policy struct {
@@ -143,12 +140,6 @@ type ServiceResource struct {
 	Type string `xml:"type,attr"`
 }
 
-type ClusterProperty struct {
-	ID    string `xml:"id,attr"`
-	Name  string `xml:"l7:Name"`
-	Value string `xml:"l7:Value"`
-}
-
 type Mappings struct {
 	Mapping []Mapping `xml:"l7:Mapping"`
 }
@@ -241,51 +232,6 @@ type EncapsulatedAssertion struct {
 	EncapsulatedAssertionConfigGuid PolicyStringValue `xml:"L7p:EncapsulatedAssertionConfigGuid"`
 	EncapsulatedAssertionConfigName PolicyStringValue `xml:"L7p:EncapsulatedAssertionConfigName"`
 	Parameters                      MappingProperties `xml:"L7p:Parameters"`
-}
-
-func randToken(n int) (string, error) {
-	bytes := make([]byte, n)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
-}
-
-type ListenPort struct {
-	ID              string          `xml:"id,attr"`
-	Name            string          `xml:"l7:Name"`
-	Enabled         string          `xml:"l7:Enabled"`
-	Protocol        string          `xml:"l7:Protocol"`
-	Port            string          `xml:"l7:Port"`
-	EnabledFeatures EnabledFeatures `xml:"l7:EnabledFeatures"`
-	TlsSettings     *TlsSettings    `xml:"l7:TlsSettings"`
-	Properties      Properties      `xml:"l7:Properties"`
-}
-
-type TlsSettings struct {
-	ClientAuthentication string              `xml:"l7:ClientAuthentication"`
-	PrivateKeyReference  PrivateKeyReference `xml:"l7:PrivateKeyReference"`
-	EnabledVersions      EnabledVersions     `xml:"l7:EnabledVersions"`
-	EnabledCipherSuites  EnabledCipherSuites `xml:"l7:EnabledCipherSuites"`
-	UseCipherSuitesOrder bool                `xml:"l7:UseCipherSuitesOrder"`
-	Properties           Properties          `xml:"l7:Properties"`
-}
-
-type PrivateKeyReference struct {
-	ID          string `xml:"id,attr"`
-	ResourceURI string `xml:"resourceUri,attr"`
-}
-
-type EnabledVersions struct {
-	StringValue []string `xml:"l7:StringValue"`
-}
-
-type EnabledCipherSuites struct {
-	StringValue []string `xml:"l7:StringValue"`
-}
-
-type EnabledFeatures struct {
-	StringValue []string `xml:"l7:StringValue"`
 }
 
 func BuildLayer7PolicyXml(name string, gatewayHost string, fipId string) ([]byte, error) {
@@ -442,80 +388,28 @@ func BuildLayer7PolicyXml(name string, gatewayHost string, fipId string) ([]byte
 }
 
 func BuildCWPBundle(cwps []securityv1.Property) ([]byte, string, error) {
-	refs := References{}
-	items := []Item{}
-	mapping := []Mapping{}
-	cwpIds := []string{}
+	bundle := graphman.Bundle{}
 
 	for _, cwp := range cwps {
-		randomId, err := randToken(16)
-		cwpIds = append(cwpIds, randomId)
-
-		if err != nil {
-			return nil, "", err
-		}
-
-		resource := Resource{ClusterProperty: &ClusterProperty{
-			ID:    randomId,
+		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
 			Name:  cwp.Name,
 			Value: cwp.Value,
-		}}
-		items = append(items, Item{Name: cwp.Name,
-			ID:       randomId,
-			Type:     "CLUSTER_PROPERTY",
-			Resource: resource,
 		})
-
-		properties := []Property{{
-			Key:         "MapBy",
-			StringValue: "name",
-		}, {
-			Key:         "MapTo",
-			StringValue: cwp.Name,
-		},
-		}
-
-		mapping = append(mapping, Mapping{
-			Action:     "NewOrUpdate",
-			SrcId:      randomId,
-			Type:       "CLUSTER_PROPERTY",
-			Properties: Properties{Property: properties},
-		})
-
-		refs.Item = items
 	}
 
-	mappings := Mappings{Mapping: mapping}
-
-	bundle := Bundle{
-		XMLNS:      "http://ns.l7tech.com/2010/04/gateway-management",
-		References: refs,
-		Mappings:   mappings,
-	}
-
-	bundleBytes, err := xml.Marshal(bundle)
+	bundleBytes, err := json.Marshal(bundle)
 	if err != nil {
 		return nil, "", err
 	}
 
-	bundleString := string(bundleBytes)
-	for _, cwpId := range cwpIds {
-		bundleString = strings.ReplaceAll(bundleString, cwpId, "")
-	}
-
 	h := sha1.New()
-	h.Write([]byte(bundleString))
+	h.Write(bundleBytes)
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
-
 	return bundleBytes, sha1Sum, nil
-
 }
 
 func BuildDefaultListenPortBundle(refreshOnKeyChanges bool) ([]byte, string, error) {
-	trafficId, _ := randToken(16)
-	managementId, _ := randToken(16)
-	plaintextId, _ := randToken(16)
-	portIds := []string{trafficId, managementId, plaintextId}
+	bundle := graphman.Bundle{}
 
 	cipherSuites := []string{
 		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
@@ -534,280 +428,142 @@ func BuildDefaultListenPortBundle(refreshOnKeyChanges bool) ([]byte, string, err
 
 	tlsVersions := []string{"TLSv1.2", "TLSv1.3"}
 
-	refs := References{}
-	items := []Item{}
-	mapping := []Mapping{}
-
-	plantextPort := Item{
-		Name: "Default HTTP (8080)",
-		ID:   plaintextId,
-		Type: "SSG_CONNECTOR",
-		Resource: Resource{
-			ListenPort: &ListenPort{
-				ID:       plaintextId,
-				Name:     "Default HTTP (8080)",
-				Enabled:  "false",
-				Protocol: "HTTP",
-				Port:     "8080",
-				EnabledFeatures: EnabledFeatures{
-					StringValue: []string{
-						"Published service message input",
-					}},
-			},
+	httpPort := &graphman.ListenPortInput{
+		Name:     "Default HTTP (8080)",
+		Enabled:  false,
+		Protocol: "HTTP",
+		Port:     8080,
+		EnabledFeatures: []graphman.ListenPortFeature{
+			"PUBLISHED_SERVICE_MESSAGE_INPUT",
 		},
 	}
 
-	items = append(items, plantextPort)
+	httpsPort := &graphman.ListenPortInput{
+		Name:     "Default HTTPS (8443)",
+		Enabled:  true,
+		Protocol: "HTTPS",
+		Port:     8443,
+		EnabledFeatures: []graphman.ListenPortFeature{
+			"PUBLISHED_SERVICE_MESSAGE_INPUT",
+		},
+		TlsSettings: &graphman.ListenPortTlsSettingsInput{
+			ClientAuthentication: graphman.ListenPortClientAuthOptional,
+			TlsVersions:          tlsVersions,
+			CipherSuites:         cipherSuites,
+			UseCipherSuitesOrder: true,
+		},
+	}
 
-	managementPort := Item{
-		Name: "Default HTTPS (9443)",
-		ID:   trafficId,
-		Type: "SSG_CONNECTOR",
-		Resource: Resource{
-			ListenPort: &ListenPort{
-				ID:       managementId,
-				Name:     "Default HTTPS (9443)",
-				Enabled:  "true",
-				Protocol: "HTTPS",
-				Port:     "9443",
-				EnabledFeatures: EnabledFeatures{
-					StringValue: []string{
-						"Published service message input",
-						"Administrative access",
-						"Browser-based administration",
-						"Built-in services",
-					}},
-				TlsSettings: &TlsSettings{
-					ClientAuthentication: "Optional",
-					PrivateKeyReference:  PrivateKeyReference{ID: "00000000000000000000000000000002:ssl", ResourceURI: "http://ns.l7tech.com/2010/04/gateway-management/privateKeys"},
-					EnabledVersions: EnabledVersions{
-						StringValue: tlsVersions,
-					},
-					EnabledCipherSuites: EnabledCipherSuites{
-						StringValue: cipherSuites,
-					},
-					UseCipherSuitesOrder: true,
-					Properties: Properties{
-						Property: []Property{
-							{
-								Key:          "usesTLS",
-								BooleanValue: true,
-							},
-						},
-					},
-				},
-			},
+	managementPort := &graphman.ListenPortInput{
+		Name:     "Default HTTPS (9443)",
+		Enabled:  true,
+		Protocol: "HTTPS",
+		Port:     9443,
+		EnabledFeatures: []graphman.ListenPortFeature{
+			"PUBLISHED_SERVICE_MESSAGE_INPUT",
+			"ADMINISTRATIVE_ACCESS",
+			"BROWSER_BASED_ADMINISTRATION",
+			"BUILT_IN_SERVICES",
+		},
+		TlsSettings: &graphman.ListenPortTlsSettingsInput{
+			ClientAuthentication: graphman.ListenPortClientAuthOptional,
+			TlsVersions:          tlsVersions,
+			CipherSuites:         cipherSuites,
+			UseCipherSuitesOrder: true,
 		},
 	}
 
 	if refreshOnKeyChanges {
-		managementPort.Resource.ListenPort.Properties.Property = append(managementPort.Resource.ListenPort.Properties.Property, Property{Key: "refreshOnKeyChanges", StringValue: strconv.FormatBool(refreshOnKeyChanges)})
+		refreshOnKeyChangesProp := &graphman.EntityPropertyInput{
+			Name:  "refreshOnKeyChanges",
+			Value: "true",
+		}
+		httpsPort.Properties = append(httpsPort.Properties, refreshOnKeyChangesProp)
+		managementPort.Properties = append(managementPort.Properties, refreshOnKeyChangesProp)
 	}
 
-	items = append(items, managementPort)
+	bundle.ListenPorts = append(bundle.ListenPorts, httpPort)
+	bundle.ListenPorts = append(bundle.ListenPorts, httpsPort)
+	bundle.ListenPorts = append(bundle.ListenPorts, managementPort)
 
-	trafficPort := Item{
-		Name: "Default HTTPS (8443)",
-		ID:   trafficId,
-		Type: "SSG_CONNECTOR",
-		Resource: Resource{
-			ListenPort: &ListenPort{
-				ID:       trafficId,
-				Name:     "Default HTTPS (8443)",
-				Enabled:  "true",
-				Protocol: "HTTPS",
-				Port:     "8443",
-				EnabledFeatures: EnabledFeatures{
-					StringValue: []string{
-						"Published service message input",
-					}},
-				TlsSettings: &TlsSettings{
-					ClientAuthentication: "Optional",
-					PrivateKeyReference:  PrivateKeyReference{ID: "00000000000000000000000000000002:ssl", ResourceURI: "http://ns.l7tech.com/2010/04/gateway-management/privateKeys"},
-					EnabledVersions: EnabledVersions{
-						StringValue: tlsVersions,
-					},
-					EnabledCipherSuites: EnabledCipherSuites{
-						StringValue: cipherSuites,
-					},
-					UseCipherSuitesOrder: true,
-					Properties: Properties{
-						Property: []Property{
-							{
-								Key:          "usesTLS",
-								BooleanValue: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if refreshOnKeyChanges {
-		trafficPort.Resource.ListenPort.Properties.Property = append(trafficPort.Resource.ListenPort.Properties.Property, Property{Key: "refreshOnKeyChanges", StringValue: strconv.FormatBool(refreshOnKeyChanges)})
-	}
-
-	items = append(items, trafficPort)
-
-	refs.Item = items
-
-	mapping = append(mapping, Mapping{
-		Action: "NewOrUpdate",
-		SrcId:  plaintextId,
-		Type:   "SSG_CONNECTOR",
-		Properties: Properties{Property: []Property{{
-			Key:         "MapBy",
-			StringValue: "name",
-		}, {
-			Key:         "MapTo",
-			StringValue: "Default HTTP (8080)",
-		},
-		}},
-	})
-
-	mapping = append(mapping, Mapping{
-		Action: "NewOrUpdate",
-		SrcId:  managementId,
-		Type:   "SSG_CONNECTOR",
-		Properties: Properties{Property: []Property{{
-			Key:         "MapBy",
-			StringValue: "name",
-		}, {
-			Key:         "MapTo",
-			StringValue: "Default HTTPS (9443)",
-		},
-		}},
-	})
-
-	mapping = append(mapping, Mapping{
-		Action: "NewOrUpdate",
-		SrcId:  trafficId,
-		Type:   "SSG_CONNECTOR",
-		Properties: Properties{Property: []Property{{
-			Key:         "MapBy",
-			StringValue: "name",
-		}, {
-			Key:         "MapTo",
-			StringValue: "Default HTTPS (8443)",
-		},
-		}},
-	})
-
-	mappings := Mappings{Mapping: mapping}
-
-	bundle := Bundle{
-		XMLNS:      "http://ns.l7tech.com/2010/04/gateway-management",
-		References: refs,
-		Mappings:   mappings,
-	}
-
-	bundleBytes, err := xml.Marshal(bundle)
+	bundleBytes, err := json.Marshal(bundle)
 	if err != nil {
 		return nil, "", err
 	}
 
-	bundleString := string(bundleBytes)
-	for _, portId := range portIds {
-		bundleString = strings.ReplaceAll(bundleString, portId, "")
-	}
-
 	h := sha1.New()
-	h.Write([]byte(bundleString))
+	h.Write(bundleBytes)
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 
 	return bundleBytes, sha1Sum, nil
 }
 
-func BuildCustomListenPortBundle(gw *securityv1.Gateway) ([]byte, string, error) {
-	refs := References{}
-	items := []Item{}
-	mapping := []Mapping{}
-	portIds := []string{}
-
+func BuildCustomListenPortBundle(gw *securityv1.Gateway, refreshOnKeyChanges bool) ([]byte, string, error) {
+	bundle := graphman.Bundle{}
+	privateKey := "00000000000000000000000000000002:ssl"
+	clientAuthentication := graphman.ListenPortClientAuthOptional
 	for _, port := range gw.Spec.App.ListenPorts.Ports {
-		portId, _ := randToken(16)
-		portIds = append(portIds, portId)
-		newPort := Item{
-			Name: port.Name,
-			ID:   portId,
-			Type: "SSG_CONNECTOR",
-			Resource: Resource{
-				ListenPort: &ListenPort{
-					ID:       portId,
-					Name:     port.Name,
-					Enabled:  strconv.FormatBool(port.Enabled),
-					Protocol: port.Protocol,
-					Port:     port.Port,
-					EnabledFeatures: EnabledFeatures{
-						StringValue: port.ManagementFeatures,
-					},
-				},
-			},
+		enabledFeatures := []graphman.ListenPortFeature{}
+		for i := range port.ManagementFeatures {
+			managementFeature := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(port.ManagementFeatures[i], " ", "_"), "-", "_"))
+			enabledFeatures = append(enabledFeatures, graphman.ListenPortFeature(managementFeature))
+		}
+
+		newPort := graphman.ListenPortInput{
+			Name:            port.Name,
+			Enabled:         port.Enabled,
+			Protocol:        port.Protocol,
+			Port:            port.Port,
+			EnabledFeatures: enabledFeatures,
 		}
 
 		if port.Tls.Enabled {
+			if port.Tls.ClientAuthentication != "" {
+				clientAuthentication = graphman.ListenPortClientAuth(strings.ToUpper(port.Tls.ClientAuthentication))
+			}
 
-			privateKey := "00000000000000000000000000000002:ssl"
+			newPort.TlsSettings = &graphman.ListenPortTlsSettingsInput{
+				ClientAuthentication: clientAuthentication,
+				CipherSuites:         port.Tls.CipherSuites,
+				UseCipherSuitesOrder: port.Tls.UseCipherSuitesOrder,
+				TlsVersions:          port.Tls.Versions,
+				KeystoreId:           strings.Split(privateKey, ":")[0],
+				KeyAlias:             strings.Split(privateKey, ":")[1],
+			}
+
+			hasRefreshOnKeyChangeProp := false
+			for _, prop := range port.Properties {
+				if prop.Name == "refreshOnKeyChanges" {
+					hasRefreshOnKeyChangeProp = true
+				}
+				newPort.Properties = append(newPort.Properties, &graphman.EntityPropertyInput{
+					Name:  prop.Name,
+					Value: prop.Value,
+				})
+			}
+
+			if refreshOnKeyChanges && !hasRefreshOnKeyChangeProp {
+				refreshOnKeyChangesProp := &graphman.EntityPropertyInput{
+					Name:  "refreshOnKeyChanges",
+					Value: "true",
+				}
+				newPort.Properties = append(newPort.Properties, refreshOnKeyChangesProp)
+			}
 
 			if port.Tls.PrivateKey != "" {
-				privateKey = port.Tls.PrivateKey
-			}
-			newPort.Resource.ListenPort.TlsSettings = &TlsSettings{
-				ClientAuthentication: port.Tls.ClientAuthentication,
-				PrivateKeyReference:  PrivateKeyReference{ID: privateKey, ResourceURI: "http://ns.l7tech.com/2010/04/gateway-management/privateKeys"},
-				EnabledVersions:      EnabledVersions{StringValue: port.Tls.Versions},
-				EnabledCipherSuites:  EnabledCipherSuites{StringValue: port.Tls.CipherSuites},
-				UseCipherSuitesOrder: port.Tls.UseCipherSuitesOrder,
-				Properties:           Properties{Property: []Property{{Key: "usesTLS", BooleanValue: port.Tls.Enabled}}},
+				newPort.TlsSettings.KeystoreId = strings.Split(port.Tls.PrivateKey, ":")[0]
+				newPort.TlsSettings.KeyAlias = strings.Split(port.Tls.PrivateKey, ":")[1]
 			}
 		}
-
-		if len(port.Properties) > 0 {
-			for _, property := range port.Properties {
-				newProp := Property{Key: property.Name, StringValue: property.Value}
-				newPort.Resource.ListenPort.Properties.Property = append(newPort.Resource.ListenPort.Properties.Property, newProp)
-			}
-
-		}
-		items = append(items, newPort)
-
-		mapping = append(mapping, Mapping{
-			Action: "NewOrUpdate",
-			SrcId:  portId,
-			Type:   "SSG_CONNECTOR",
-			Properties: Properties{Property: []Property{{
-				Key:         "MapBy",
-				StringValue: "name",
-			}, {
-				Key:         "MapTo",
-				StringValue: port.Name,
-			},
-			}},
-		})
+		bundle.ListenPorts = append(bundle.ListenPorts, &newPort)
 	}
-
-	refs.Item = items
-	mappings := Mappings{Mapping: mapping}
-
-	bundle := Bundle{
-		XMLNS:      "http://ns.l7tech.com/2010/04/gateway-management",
-		References: refs,
-		Mappings:   mappings,
-	}
-
-	bundleBytes, err := xml.Marshal(bundle)
+	bundleBytes, err := json.Marshal(bundle)
 	if err != nil {
 		return nil, "", err
 	}
 
-	bundleString := string(bundleBytes)
-	for _, portId := range portIds {
-		bundleString = strings.ReplaceAll(bundleString, portId, "")
-	}
-
 	h := sha1.New()
-	h.Write([]byte(bundleString))
+	h.Write(bundleBytes)
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 
 	return bundleBytes, sha1Sum, nil

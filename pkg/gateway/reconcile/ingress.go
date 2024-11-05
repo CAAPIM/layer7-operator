@@ -15,19 +15,32 @@ import (
 )
 
 func Ingress(ctx context.Context, params Params) error {
-	//Potentially delete the ingress if it exists.
-	if !params.Instance.Spec.App.Ingress.Enabled || strings.ToLower(params.Instance.Spec.App.Ingress.Type) == "route" {
+	if strings.ToLower(params.Instance.Spec.App.Ingress.Type) == "route" {
 		return nil
 	}
 
 	desiredIngress := gateway.NewIngress(params.Instance)
-	currentIngress := networkingv1.Ingress{}
+	currentIngress := &networkingv1.Ingress{}
 
-	if err := controllerutil.SetControllerReference(params.Instance, desiredIngress, params.Scheme); err != nil {
-		return fmt.Errorf("failed to set controller reference: %w", err)
+	if desiredIngress != nil {
+		if err := controllerutil.SetControllerReference(params.Instance, desiredIngress, params.Scheme); err != nil {
+			return fmt.Errorf("failed to set controller reference: %w", err)
+		}
+	}
+	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, currentIngress)
+
+	if !params.Instance.Spec.App.Ingress.Enabled && !k8serrors.IsNotFound(err) && controllerutil.HasControllerReference(currentIngress) {
+		if err := params.Client.Delete(ctx, currentIngress); err != nil {
+			return err
+		}
+		params.Log.Info("removed ingress", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		return nil
 	}
 
-	err := params.Client.Get(ctx, types.NamespacedName{Name: desiredIngress.Name, Namespace: params.Instance.Namespace}, &currentIngress)
+	if !params.Instance.Spec.App.Ingress.Enabled {
+		return nil
+	}
+
 	if err != nil && k8serrors.IsNotFound(err) {
 		if err = params.Client.Create(ctx, desiredIngress); err != nil {
 			return err
@@ -54,7 +67,7 @@ func Ingress(ctx context.Context, params Params) error {
 	updatedIngress.ObjectMeta.Annotations = desiredIngress.ObjectMeta.Annotations
 	updatedIngress.ObjectMeta.Labels = desiredIngress.ObjectMeta.Labels
 
-	patch := client.MergeFrom(&currentIngress)
+	patch := client.MergeFrom(currentIngress)
 	if err := params.Client.Patch(ctx, updatedIngress, patch); err != nil {
 		return err
 	}

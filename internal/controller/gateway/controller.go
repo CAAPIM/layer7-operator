@@ -18,7 +18,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -37,7 +36,9 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,9 +86,12 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.ConfigMaps, "configMaps"},
 		{reconcile.Deployment, "deployment"},
 		{reconcile.ManagementPod, "management pod"},
+		{reconcile.ClusterProperties, "cluster properties"},
+		{reconcile.ListenPorts, "listen ports"},
 		{reconcile.ExternalRepository, "repository references"},
 		{reconcile.ExternalSecrets, "external secrets"},
 		{reconcile.ExternalKeys, "external keys"},
+		{reconcile.ExternalCerts, "external certs"},
 	}
 
 	if gw.Spec.App.Otk.Enabled {
@@ -107,7 +111,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for _, op := range ops {
 		err = op.Run(ctx, params)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("failed to reconcile %s", op.Name))
 			_ = captureMetrics(ctx, params, start, true, op.Name)
 			return ctrl.Result{}, err
 		}
@@ -130,7 +133,14 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{})
 
-	builder.WatchesMetadata(&securityv1.Repository{},
+	repo := &metav1.PartialObjectMetadata{}
+	repo.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "security.brcmlabs.com",
+		Version: "v1",
+		Kind:    "repository",
+	})
+
+	builder.WatchesMetadata(repo,
 		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []creconcile.Request {
 			gatewayList := &securityv1.GatewayList{}
 			listOpts := []client.ListOption{
@@ -155,7 +165,13 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		}),
 	)
 
-	builder.WatchesMetadata(&corev1.Secret{},
+	s := &metav1.PartialObjectMetadata{}
+	s.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "secret",
+	})
+	builder.WatchesMetadata(s,
 		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []creconcile.Request {
 			gatewayList := &securityv1.GatewayList{}
 			listOpts := []client.ListOption{
@@ -175,6 +191,11 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					}
 				}
 				for _, keyRef := range gateway.Spec.App.ExternalKeys {
+					if keyRef.Name == a.GetName() {
+						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
+					}
+				}
+				for _, keyRef := range gateway.Spec.App.ExternalCerts {
 					if keyRef.Name == a.GetName() {
 						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
 					}
@@ -308,6 +329,5 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 				attribute.String("gateway_name", gateway.Name),
 				attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
 	}
-
 	return nil
 }

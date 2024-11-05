@@ -9,6 +9,7 @@ spec:
     secretName: gateway-license
   app:
     replicas: 1
+    restartOnConfigChange: true
     image: docker.io/caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
     serviceAccount:
@@ -77,11 +78,43 @@ spec:
         encryption:
           existingSecret: graphman-encryption-secret
           key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+      - name: local-reference-repository
+        enabled: true
+        type: dynamic
+        encryption: {}
     # externalKeys:
     #   - name: brcmlabs
     #     alias: test
     #     keyUsageType: SSL
     #     enabled: true
+    externalSecrets:
+    - name: multi-ext-secret
+      enabled: true
+      description: k8s secret that contains multiple values
+      variableReferencable: true
+      encryption: {}
+    - name: single-ext-secret
+      enabled: true
+      description: k8s secret that contains a single value
+      variableReferencable: true
+      encryption: {}
+    externalCerts:
+    - name: multi-cert-secret
+      enabled: true
+      trustAnchor: false
+      revocationCheckPolicyType: USE_DEFAULT
+      trustedFor:
+      - "SSL"
+      - "SIGNING_SERVER_CERTS"
+    # verifyHostname: true
+    - name: single-cert-secret
+      enabled: true
+      trustAnchor: true
+      revocationCheckPolicyType: USE_DEFAULT
+      trustedFor:
+      - "SSL"
+      - "SIGNING_SERVER_CERTS"
+    # verifyHostname: true
     bootstrap:
       script:
         enabled: true
@@ -159,11 +192,12 @@ spec:
     # - -Dcom.l7tech.server.log.console.extraCats=AUDIT,LOG,TRAFFIC
     listenPorts:
       harden: false
+      refreshOnKeyChanges: true
       custom:
         enabled: true
       ports:
       - name: Default HTTPS (8443)
-        port: "8443"
+        port: 8443
         enabled: true
         protocol: HTTPS
         managementFeatures:
@@ -204,7 +238,7 @@ spec:
           - TLS_AES_256_GCM_SHA384
           - TLS_AES_128_GCM_SHA256
       - name: Default HTTPS (9443)
-        port: "9443"
+        port: 9443
         enabled: true
         protocol: HTTPS
         managementFeatures:
@@ -245,7 +279,7 @@ spec:
           - TLS_AES_256_GCM_SHA384
           - TLS_AES_128_GCM_SHA256
       - name: Default HTTP (8080)
-        port: "8080"
+        port: 8080
         enabled: false
         protocol: HTTP
         managementFeatures:
@@ -258,6 +292,8 @@ spec:
     cwp:
       enabled: true
       properties:
+        - name: abc
+          value: def
         - name: io.httpsHostAllowWildcard
           value: "true"
         - name: log.levels

@@ -1538,6 +1538,32 @@ spec:
                           type: object
                         type: array
                     type: object
+                  externalCerts:
+                    items:
+                      description: ExternalCert is a reference to an existing TLS
+                        or Opaque Secret in Kubernet
+                      properties:
+                        enabled:
+                          description: Enabled or disabled
+                          type: boolean
+                        name:
+                          description: Name of the Secret which already exists in
+                            Kubernetes
+                          type: string
+                        revocationCheckPolicyName:
+                          type: string
+                        revocationCheckPolicyType:
+                          type: string
+                        trustAnchor:
+                          type: boolean
+                        trustedFor:
+                          items:
+                            type: string
+                          type: array
+                        verifyHostname:
+                          type: boolean
+                      type: object
+                    type: array
                   externalKeys:
                     items:
                       description: |-
@@ -1563,10 +1589,6 @@ spec:
                           type: string
                       type: object
                     type: array
-                  externalKeysSyncIntervalSeconds:
-                    description: ExternalKeysSyncIntervalSeconds is the period of
-                      time between attempts to a
-                    type: integer
                   externalSecrets:
                     items:
                       description: |-
@@ -1607,10 +1629,6 @@ spec:
                           type: boolean
                       type: object
                     type: array
-                  externalSecretsSyncIntervalSeconds:
-                    description: ExternalSecretsSyncIntervalSeconds is the period
-                      of time between attempts t
-                    type: integer
                   hazelcast:
                     properties:
                       endpoint:
@@ -3182,7 +3200,7 @@ spec:
                               type: string
                             port:
                               description: Port
-                              type: string
+                              type: integer
                             properties:
                               items:
                                 description: Property is a simple k/v pair
@@ -4720,6 +4738,8 @@ spec:
                     format: int32
                     type: integer
                   repositoryReferences:
+                    description: RepositorySyncIntervalSeconds is the period of time
+                      between attempts to app
                     items:
                       description: 'RepositoryReference is reference to a Git repository
                         or HTTP endpoint that '
@@ -4795,10 +4815,6 @@ spec:
                       - enabled
                       type: object
                     type: array
-                  repositorySyncIntervalSeconds:
-                    description: RepositorySyncIntervalSeconds is the period of time
-                      between attempts to app
-                    type: integer
                   resources:
                     description: PodResources
                     properties:
@@ -4823,6 +4839,10 @@ spec:
                           pairs.
                         type: object
                     type: object
+                  restartOnConfigChange:
+                    description: RestartOnConfigChange restarts the Gateway if the
+                      default configmaps are up
+                    type: boolean
                   service:
                     description: Service
                     properties:
@@ -6258,6 +6278,35 @@ spec:
               image:
                 description: Image of the Gateway
                 type: string
+              lastAppliedClusterProperties:
+                description: LastAppliedClusterProperties
+                items:
+                  type: string
+                type: array
+              lastAppliedExternalCerts:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedExternalCerts
+                type: object
+              lastAppliedExternalKeys:
+                description: LastAppliedExternalKeys
+                items:
+                  type: string
+                type: array
+              lastAppliedExternalSecrets:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedExternalSecrets
+                type: object
+              lastAppliedListenPorts:
+                description: LastAppliedClusterProperties
+                items:
+                  type: string
+                type: array
               managementPod:
                 description: Management Pod is a Gateway with a special annotation
                   is used as a selector
@@ -6359,6 +6408,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: L7ApiSpec defines the desired state of L7Api
             properties:
               deploymentTags:
                 description: DeploymentTags target Gateway deployments that this API
@@ -6701,10 +6751,8 @@ spec:
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
-                  Kubernetes Config
+                  Kubernetes Secret
                 properties:
-                  configMapName:
-                    type: string
                   secretName:
                     type: string
                 type: object
@@ -6724,10 +6772,8 @@ spec:
                 description: Tag - clone a specific tag.
                 type: string
               type:
-                description: Type of Repository - Git or HTTP
+                description: Type of Repository - Git, HTTP, Local
                 type: string
-            required:
-            - endpoint
             type: object
           status:
             description: Status - Repository Status
@@ -7009,20 +7055,6 @@ rules:
   - l7apis/status
   verbs:
   - get
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7apis
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7apis/status
-  verbs:
-  - get
   - patch
   - update
 - apiGroups:
@@ -7036,20 +7068,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7portals/status
-  verbs:
-  - get
-- apiGroups:
-  - security.brcmlabs.com
-  resources:
-  - l7portals
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - security.brcmlabs.com
@@ -7247,10 +7265,10 @@ spec:
         resources:
           limits:
             cpu: 500m
-            memory: 100Mi
+            memory: 256Mi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 64Mi
         securityContext:
           allowPrivilegeEscalation: false
       securityContext:

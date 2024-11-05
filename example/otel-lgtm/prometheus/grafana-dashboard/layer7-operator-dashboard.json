@@ -2068,7 +2068,7 @@
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
-        "regex": "/.*namespace=\"([^\"]*)\"/",
+        "regex": "/.*k8s_namespace_name=\"([^\"]*)\"/",
         "skipUrlSync": false,
         "sort": 0,
         "type": "query"

@@ -96,15 +96,14 @@ metadata:
             "enabled": true,
             "endpoint": "dev-ssg.brcmlabs.com",
             "enrollmentBundle": "",
-            "mode": "auto",
             "portalTenant": "portal"
           }
         }
       ]
     capabilities: Basic Install
     certified: "false"
-    containerImage: docker.io/caapim/layer7-operator:v1.0.5
-    createdAt: "2024-05-21T06:50:18Z"
+    containerImage: docker.io/caapim/layer7-operator:v1.0.7
+    createdAt: "2024-08-09T20:09:41Z"
     operatorframework.io/suggested-namespace: layer7-operator-system
     operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
@@ -638,6 +637,12 @@ spec:
                 - name: HTTP_PROXY
                 - name: HTTPS_PROXY
                 - name: NO_PROXY
+                - name: ENABLE_OTEL
+                  value: "false"
+                - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                  value: localhost:4317
+                - name: OTEL_METRIC_PREFIX
+                  value: layer7_
                 image: docker.io/caapim/layer7-operator:v1.0.7
                 imagePullPolicy: IfNotPresent
                 livenessProbe:

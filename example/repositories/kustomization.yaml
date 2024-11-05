@@ -4,4 +4,5 @@ resources:
   - ./framework-repository.yaml
   - ./subscriptions-repository.yaml
   - ./apis-repository.yaml
+  - ./local-reference-repository.yaml
   - ../base

@@ -152,6 +152,10 @@ func ExternalCerts(ctx context.Context, params Params) error {
 			return err
 		}
 
+		if sha1Sum == "" {
+			sha1Sum = "deleted"
+		}
+
 		annotation := "security.brcmlabs.com/external-certs-" + externalCert.Name
 
 		if !gateway.Spec.App.Management.Database.Enabled {

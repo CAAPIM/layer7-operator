@@ -69,7 +69,7 @@ KUBE_VERSION ?= 1.30
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
 GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.1
-GO_BUILD_IMG ?= golang:1.22
+GO_BUILD_IMG ?= golang:1.23
 DISTROLESS_IMG ?= gcr.io/distroless/static:nonroot
 GO_PROXY ?= ""
 

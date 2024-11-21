@@ -10,7 +10,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: gateways.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -1835,6 +1835,7 @@ spec:
                                                     format: int32
                                                     type: integer
                                                 type: object
+                                                x-kubernetes-map-type: atomic
                                             required:
                                             - name
                                             type: object
@@ -2272,6 +2273,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -2437,6 +2439,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -2568,6 +2571,10 @@ spec:
                                   name:
                                     description: Name must match the name of one entry
                                       in pod.spec.
+                                    type: string
+                                  request:
+                                    description: Request is the name chosen for a
+                                      request in the referenced claim.
                                     type: string
                                 required:
                                 - name
@@ -2760,6 +2767,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -3293,6 +3301,7 @@ spec:
                             format: int32
                             type: integer
                           service:
+                            default: ""
                             description: |
                               Service is the name of the service to place in the gRPC HealthCheckRequest
                             type: string
@@ -4199,13 +4208,18 @@ spec:
                         - type
                         type: object
                       supplementalGroups:
-                        description: A list of groups applied to the first process
-                          run in each container, in add
+                        description: |-
+                          A list of groups applied to the first process run in each container, in
+                          add
                         items:
                           format: int64
                           type: integer
                         type: array
                         x-kubernetes-list-type: atomic
+                      supplementalGroupsPolicy:
+                        description: Defines how supplemental groups of the first
+                          container processes are calcul
+                        type: string
                       sysctls:
                         description: Sysctls hold a list of namespaced sysctls used
                           for the pod.
@@ -4442,6 +4456,7 @@ spec:
                             format: int32
                             type: integer
                           service:
+                            default: ""
                             description: |
                               Service is the name of the service to place in the gRPC HealthCheckRequest
                             type: string
@@ -5354,6 +5369,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -5519,6 +5535,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -5650,6 +5667,10 @@ spec:
                                   name:
                                     description: Name must match the name of one entry
                                       in pod.spec.
+                                    type: string
+                                  request:
+                                    description: Request is the name chosen for a
+                                      request in the referenced claim.
                                     type: string
                                 required:
                                 - name
@@ -5842,6 +5863,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -6390,7 +6412,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: l7apis.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6541,7 +6563,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: l7portals.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6667,7 +6689,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: repositories.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com

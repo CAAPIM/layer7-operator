@@ -284,17 +284,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: metrics-reader
-rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: proxy-role
+  name: metrics-auth-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -308,6 +298,16 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -339,27 +339,12 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: proxy-rolebinding
+  name: metrics-auth-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: proxy-role
+  name: metrics-auth-role
 subjects:
 - kind: ServiceAccount
   name: controller-manager
   namespace: layer7-operator-system
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: controller-manager-metrics-service
-  namespace: layer7-operator-system
-spec:
-  ports:
-  - name: https
-    port: 8443
-    targetPort: https
-  selector:
-    control-plane: controller-manager

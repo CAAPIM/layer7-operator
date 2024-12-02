@@ -7115,7 +7115,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: layer7-operator-proxy-role
+  name: layer7-operator-metrics-auth-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -7157,14 +7157,15 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: layer7-operator-proxy-rolebinding
+  name: layer7-operator-metrics-auth-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: layer7-operator-proxy-role
+  name: layer7-operator-metrics-auth-role
 subjects:
 - kind: ServiceAccount
-  name: layer7-operator-controller-manager
+  name: controller-manager
+  namespace: system
 ---
 apiVersion: v1
 data:
@@ -7195,7 +7196,8 @@ spec:
   ports:
   - name: https
     port: 8443
-    targetPort: https
+    protocol: TCP
+    targetPort: 8443
   selector:
     app.kubernetes.io/name: layer7-operator
     control-plane: controller-manager
@@ -7221,33 +7223,8 @@ spec:
     spec:
       containers:
       - args:
-        - --secure-listen-address=0.0.0.0:8443
-        - --upstream=http://127.0.0.1:8080/
-        - --logtostderr=true
-        - --v=0
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
-        name: kube-rbac-proxy
-        ports:
-        - containerPort: 8443
-          name: https
-        resources:
-          limits:
-            cpu: 500m
-            memory: 128Mi
-          requests:
-            cpu: 5m
-            memory: 64Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-      - args:
-        - --health-probe-bind-address=:8081
-        - --metrics-bind-address=127.0.0.1:8080
+        - --metrics-bind-address=:8443
         - --leader-elect
-        - --zap-log-level=info
-        - --zap-time-encoding=rfc3339nano
         command:
         - /manager
         env:

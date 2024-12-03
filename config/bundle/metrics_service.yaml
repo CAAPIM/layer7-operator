@@ -9,7 +9,8 @@ spec:
   ports:
   - name: https
     port: 8443
-    targetPort: https
+    protocol: TCP
+    targetPort: 8443
   selector:
     control-plane: controller-manager
     app.kubernetes.io/name: layer7-operator

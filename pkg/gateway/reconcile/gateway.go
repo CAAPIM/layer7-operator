@@ -91,7 +91,6 @@ func parseGatewaySecret(gwSecret *corev1.Secret) (string, string) {
 		password = string(gwSecret.Data["SSG_ADMIN_PASSWORD"])
 	}
 	return username, password
-
 }
 
 // HardenGraphmanService adds required mutual TLS to the Gateway's GraphQL Management API (Graphman)

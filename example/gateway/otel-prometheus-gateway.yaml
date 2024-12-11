@@ -176,6 +176,7 @@ spec:
         protocol: TCP
       - name: monitoring
         port: 8889
+        targetPort: 8889
         protocol: TCP
     ingress:
       enabled: true

@@ -222,9 +222,9 @@ Portal Configured to use Redis
 ``` -->
 
 ### Deploy the Layer7 Operator
-This integration example uses v1.1.0 of the Layer7 Operator
+This integration example uses v1.1.1 of the Layer7 Operator
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.0/bundle.yaml -n ${NAMESPACE}
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml -n ${NAMESPACE}
 kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 ```
 
@@ -265,7 +265,7 @@ portal-ssg-7698bc565b-qrz5g   1/1     Running   0          2m45s
 ##### View the Operator logs
 In a separate terminal tab run the following command to tail the Layer7 Operator log
 ```
-kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
+kubectl logs -f -l app.kubernetes.io/name=layer7-operator
 ```
 
 ## Configure the Developer Portal
@@ -634,5 +634,5 @@ helm del portal
 kubectl delete statefulset portal-mysql
 kubectl delete pvc data-portal-mysql-0 data-rabbitmq-0
 helm del redis
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.0/bundle.yaml -n ${NAMESPACE}
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml -n ${NAMESPACE}
 ```

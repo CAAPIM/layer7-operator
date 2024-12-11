@@ -83,8 +83,8 @@ podSecurityContext: {}
 containerSecurityContext: {}
 
 ## Layer7 Operator Image
-## @param image.registry [default: REGISTRY_NAME] Layer7 Operator image registry
-## @param image.repository [default: REPOSITORY_NAME/layer7api] Layer7 Operator image repository
+## @param image.registry [default: docker.io] Layer7 Operator image registry
+## @param image.repository [default: caapim/layer7-operator] Layer7 Operator image repository
 ## @param image.tag Layer7 Operator image tag
 ## @param image.pullPolicy Layer7 Operator image pull policy
 ## @param image.pullSecrets Layer7 Operator image pull secrets
@@ -92,7 +92,7 @@ containerSecurityContext: {}
 image:
   registry: docker.io
   repository: caapim/layer7-operator
-  tag: v1.1.0
+  tag: v1.1.1
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
@@ -132,7 +132,6 @@ args:
 - --zap-log-level=info
 - --zap-time-encoding=rfc3339nano
 
-
 ## Layer7 Operator OTel Configuration
 ## OTel
 ##
@@ -143,63 +142,6 @@ otel:
   enabled: false
   otlpEndpoint: localhost:4317
   metricPrefix: layer7_
-
-## @section RBAC Proxy Parameters
-## RBAC Proxy
-rbacProxy:
-  ## @param rbacProxy.image.registry [default: REGISTRY_NAME] Layer7 Operator image registry
-  ## @param rbacProxy.image.repository [default: REPOSITORY_NAME/layer7api] Layer7 Operator image repository
-  ## @param rbacProxy.image.tag Layer7 Operator image tag
-  ## @param rbacProxy.image.pullPolicy Redis&reg; image pull policy
-  ## @param rbacProxy.image.pullSecrets Redis&reg; image pull secrets
-  ##
-  image:
-    registry: gcr.io
-    repository: kubebuilder/kube-rbac-proxy
-    tag: v0.13.1
-    ## Specify a imagePullPolicy
-    ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
-    ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
-    ##
-    pullPolicy: IfNotPresent
-    ## Optionally specify an array of imagePullSecrets.
-    ## Secrets must be manually created in the namespace.
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    ## e.g:
-    ## pullSecrets:
-    ##   - myRegistryKeySecretName
-    ##
-    pullSecrets: []
-  ## @param rbacProxy.args The arguments to pass to the RBAC Proxy Container.
-  ##
-  args:
-  - --secure-listen-address=0.0.0.0:8443
-  - --upstream=http://127.0.0.1:8080/
-  - --logtostderr=true
-  - --v=0
-  ## Configure RBAC Proxy Container Security Context
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
-  ## @param rbacProxy.containerSecurityContext.allowPrivilegeEscalation Is it possible to escalate the RBAC Proxy container privileges
-  ## @param rbacProxy.containerSecurityContext.capabilities.drop Set RBAC Proxy container Security Context capabilities to drop
-  containerSecurityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-      - ALL
-  ## RBAC Proxy resource requests and limits
-  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-  ## @param rbacProxy.resources.limits.cpu The cpu limits for the RBAC Proxy container
-  ## @param rbacProxy.resources.limits.memory The memory limits for the RBAC Proxy container
-  ## @param rbacProxy.resources.requests.cpu The cpu requests for the RBAC Proxy container
-  ## @param rbacProxy.resources.requests.memory The memory requests for RBAC Proxy container
-  ##
-  resources:
-    limits:
-      cpu: 500m
-      memory: 128Mi
-    requests:
-      cpu: 5m
-      memory: 64Mi
 
 ## @section Proxy Configuration
 ## Proxy Configuration

@@ -7276,7 +7276,6 @@ spec:
       - args:
         - --metrics-bind-address=:8443
         - --health-probe-bind-address=:8081
-        - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
         - --zap-log-level=info
         - --zap-time-encoding=rfc3339nano

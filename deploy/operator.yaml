@@ -38,6 +38,9 @@ spec:
       containers:
       - args:
         - --leader-elect
+        - --health-probe-bind-address=:8081
+        - --zap-log-level=info
+        - --zap-time-encoding=rfc3339nano
         command:
         - /manager
         env:

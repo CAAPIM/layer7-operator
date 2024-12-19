@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Namespace
 metadata:
   labels:
+    app.kubernetes.io/name: layer7-operator
     control-plane: controller-manager
   name: layer7-operator-system
 ---
@@ -10,7 +11,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: gateways.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -1835,6 +1836,7 @@ spec:
                                                     format: int32
                                                     type: integer
                                                 type: object
+                                                x-kubernetes-map-type: atomic
                                             required:
                                             - name
                                             type: object
@@ -2272,6 +2274,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -2437,6 +2440,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -2568,6 +2572,10 @@ spec:
                                   name:
                                     description: Name must match the name of one entry
                                       in pod.spec.
+                                    type: string
+                                  request:
+                                    description: Request is the name chosen for a
+                                      request in the referenced claim.
                                     type: string
                                 required:
                                 - name
@@ -2760,6 +2768,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -3293,6 +3302,7 @@ spec:
                             format: int32
                             type: integer
                           service:
+                            default: ""
                             description: |
                               Service is the name of the service to place in the gRPC HealthCheckRequest
                             type: string
@@ -4199,13 +4209,18 @@ spec:
                         - type
                         type: object
                       supplementalGroups:
-                        description: A list of groups applied to the first process
-                          run in each container, in add
+                        description: |-
+                          A list of groups applied to the first process run in each container, in
+                          add
                         items:
                           format: int64
                           type: integer
                         type: array
                         x-kubernetes-list-type: atomic
+                      supplementalGroupsPolicy:
+                        description: Defines how supplemental groups of the first
+                          container processes are calcul
+                        type: string
                       sysctls:
                         description: Sysctls hold a list of namespaced sysctls used
                           for the pod.
@@ -4442,6 +4457,7 @@ spec:
                             format: int32
                             type: integer
                           service:
+                            default: ""
                             description: |
                               Service is the name of the service to place in the gRPC HealthCheckRequest
                             type: string
@@ -5354,6 +5370,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -5519,6 +5536,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -5650,6 +5668,10 @@ spec:
                                   name:
                                     description: Name must match the name of one entry
                                       in pod.spec.
+                                    type: string
+                                  request:
+                                    description: Request is the name chosen for a
+                                      request in the referenced claim.
                                     type: string
                                 required:
                                 - name
@@ -5842,6 +5864,7 @@ spec:
                                   format: int32
                                   type: integer
                                 service:
+                                  default: ""
                                   description: |
                                     Service is the name of the service to place in the gRPC HealthCheckRequest
                                   type: string
@@ -6390,7 +6413,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: l7apis.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6541,7 +6564,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: l7portals.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6667,7 +6690,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: repositories.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -7106,17 +7129,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: layer7-operator-metrics-reader
-rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: layer7-operator-proxy-role
+  name: layer7-operator-metrics-auth-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -7130,6 +7143,16 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: layer7-operator-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -7161,11 +7184,11 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: layer7-operator-proxy-rolebinding
+  name: layer7-operator-metrics-auth-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: layer7-operator-proxy-role
+  name: layer7-operator-metrics-auth-role
 subjects:
 - kind: ServiceAccount
   name: layer7-operator-controller-manager
@@ -7194,6 +7217,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
+    app.kubernetes.io/name: layer7-operator
     control-plane: controller-manager
   name: layer7-operator-controller-manager-metrics-service
   namespace: layer7-operator-system
@@ -7201,8 +7225,10 @@ spec:
   ports:
   - name: https
     port: 8443
-    targetPort: https
+    protocol: TCP
+    targetPort: 8443
   selector:
+    app.kubernetes.io/name: layer7-operator
     control-plane: controller-manager
 ---
 apiVersion: v1
@@ -7223,12 +7249,14 @@ spec:
     protocol: TCP
     targetPort: 9443
   selector:
+    app.kubernetes.io/name: layer7-operator
     control-plane: controller-manager
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
+    app.kubernetes.io/name: layer7-operator
     control-plane: controller-manager
   name: layer7-operator-controller-manager
   namespace: layer7-operator-system
@@ -7236,16 +7264,18 @@ spec:
   replicas: 1
   selector:
     matchLabels:
+      app.kubernetes.io/name: layer7-operator
       control-plane: controller-manager
   template:
     metadata:
       labels:
+        app.kubernetes.io/name: layer7-operator
         control-plane: controller-manager
     spec:
       containers:
       - args:
+        - --metrics-bind-address=:8443
         - --health-probe-bind-address=:8081
-        - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
         - --zap-log-level=info
         - --zap-time-encoding=rfc3339nano
@@ -7300,28 +7330,6 @@ spec:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
-      - args:
-        - --secure-listen-address=0.0.0.0:8443
-        - --upstream=http://127.0.0.1:8080/
-        - --logtostderr=true
-        - --v=0
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
-        name: kube-rbac-proxy
-        ports:
-        - containerPort: 8443
-          name: https
-        resources:
-          limits:
-            cpu: 500m
-            memory: 128Mi
-          requests:
-            cpu: 5m
-            memory: 64Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
       securityContext:
         runAsNonRoot: true
       serviceAccountName: layer7-operator-controller-manager

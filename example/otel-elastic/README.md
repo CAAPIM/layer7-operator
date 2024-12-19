@@ -578,7 +578,7 @@ There are additional APM Components that need to be installed via Kibana in a br
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
 ```
 
 #### Verify the Operator is up and running
@@ -872,5 +872,5 @@ kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/mai
 
 ### Uninstall the Operator
 ```
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.0.4/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
 ```

@@ -18,15 +18,11 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 2,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "collapsed": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -35,15 +31,6 @@
       },
       "id": 18,
       "panels": [],
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "refId": "A"
-        }
-      ],
       "title": "Gateway Service Metrics",
       "type": "row"
     },
@@ -82,6 +69,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -94,7 +82,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.1",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -148,6 +136,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -160,7 +149,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.1",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -215,6 +204,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -227,7 +217,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.1",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -263,6 +253,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -323,7 +314,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -418,7 +409,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "10.4.1",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -494,6 +485,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -558,7 +550,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -613,6 +605,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -625,7 +618,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.1",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -663,7 +656,11 @@
               "tooltip": false,
               "viz": false
             },
-            "lineWidth": 1
+            "lineWidth": 1,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -700,9 +697,13 @@
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
         }
       },
-      "pluginVersion": "10.4.0",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -827,7 +828,7 @@
           }
         ]
       },
-      "pluginVersion": "10.4.1",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -945,7 +946,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "10.4.1",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -975,6 +976,10 @@
         "type": "loki",
         "uid": "P982945308D3682D1"
       },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -992,6 +997,7 @@
         "sortOrder": "Descending",
         "wrapLogMessage": false
       },
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -1009,10 +1015,6 @@
     },
     {
       "collapsed": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1021,15 +1023,6 @@
       },
       "id": 20,
       "panels": [],
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "refId": "A"
-        }
-      ],
       "title": "Gateway Application Metrics",
       "type": "row"
     },
@@ -1050,6 +1043,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -1080,7 +1074,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1111,7 +1106,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -1120,7 +1115,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "process_runtime_jvm_system_cpu_utilization_ratio",
+          "expr": "process_runtime_jvm_system_cpu_utilization_ratio{job=\"$gatewayDeployment\"}",
           "interval": "",
           "legendFormat": "{{pod}}",
           "range": true,
@@ -1147,6 +1142,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -1177,7 +1173,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1208,7 +1205,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -1217,7 +1214,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "process_runtime_jvm_system_cpu_load_1m",
+          "expr": "process_runtime_jvm_system_cpu_load_1m{job=\"$gatewayDeployment\"}",
           "interval": "",
           "legendFormat": "{{pod}}",
           "range": true,
@@ -1244,6 +1241,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -1274,7 +1272,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1305,7 +1304,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -1314,7 +1313,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "process_runtime_jvm_memory_usage_bytes{type=\"non_heap\"}",
+          "expr": "process_runtime_jvm_memory_usage_bytes{type=\"non_heap\",job=\"$gatewayDeployment\"}",
           "interval": "",
           "legendFormat": "{{pod}}-{{pool}}-{{type}}",
           "range": true,
@@ -1341,6 +1340,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -1371,7 +1371,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1402,7 +1403,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "10.0.3",
+      "pluginVersion": "11.3.1",
       "targets": [
         {
           "datasource": {
@@ -1411,7 +1412,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "process_runtime_jvm_memory_usage_bytes{type=\"heap\"}",
+          "expr": "process_runtime_jvm_memory_usage_bytes{type=\"heap\",job=\"$gatewayDeployment\"}",
           "interval": "",
           "legendFormat": "{{pod}}-{{pool}}-{{type}}",
           "range": true,
@@ -1422,15 +1423,15 @@
       "type": "timeseries"
     }
   ],
+  "preload": false,
   "refresh": "5s",
-  "schemaVersion": 39,
+  "schemaVersion": 40,
   "tags": [],
   "templating": {
     "list": [
       {
         "allValue": "\"\"",
         "current": {
-          "selected": false,
           "text": "ssg-otel-gateway",
           "value": "ssg-otel-gateway"
         },
@@ -1439,10 +1440,8 @@
           "uid": "mimir"
         },
         "definition": "l7_service_attempted_count_total{job!=\"\"}",
-        "hide": 0,
         "includeAll": false,
         "label": "Gateway Deployment",
-        "multi": false,
         "name": "gatewayDeployment",
         "options": [],
         "query": {
@@ -1452,18 +1451,12 @@
         },
         "refresh": 2,
         "regex": "/.*job=\"([^\"]*)\"/",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
+        "type": "query"
       },
       {
         "allValue": "\"\"",
         "current": {
           "isNone": true,
-          "selected": false,
           "text": "None",
           "value": ""
         },
@@ -1472,10 +1465,8 @@
           "uid": "mimir"
         },
         "definition": "l7_service_attempted_count_total{pod!=\"\",job=\"$gatewayDeployment\"}",
-        "hide": 0,
         "includeAll": false,
         "label": "Pod",
-        "multi": false,
         "name": "gatewayPod",
         "options": [],
         "query": {
@@ -1485,17 +1476,11 @@
         },
         "refresh": 2,
         "regex": "/.*pod=\"([^\"]*)\"/",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
+        "type": "query"
       },
       {
         "allValue": "\"\"",
         "current": {
-          "selected": false,
           "text": "Test12345",
           "value": "Test12345"
         },
@@ -1504,10 +1489,8 @@
           "uid": "mimir"
         },
         "definition": "l7_service_attempted_count_total{l7_serviceName!=\"\", job=\"$gatewayDeployment\"}",
-        "hide": 0,
         "includeAll": false,
         "label": "Service Name",
-        "multi": false,
         "name": "serviceName",
         "options": [],
         "query": {
@@ -1517,17 +1500,11 @@
         },
         "refresh": 2,
         "regex": "/.*l7_serviceName=\"([^\"]*)\"/",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
+        "type": "query"
       },
       {
         "allValue": "\"\"",
         "current": {
-          "selected": false,
           "text": "GET",
           "value": "GET"
         },
@@ -1536,10 +1513,8 @@
           "uid": "mimir"
         },
         "definition": "l7_service_attempted_count_total{l7_method!=\"\",l7_serviceName=\"$serviceName\", job=\"$gatewayDeployment\"}",
-        "hide": 0,
         "includeAll": false,
         "label": "Request Method",
-        "multi": false,
         "name": "requestMethod",
         "options": [],
         "query": {
@@ -1549,12 +1524,7 @@
         },
         "refresh": 2,
         "regex": "/.*l7_method=\"([^\"]*)\"/",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
+        "type": "query"
       }
     ]
   },

@@ -76,7 +76,7 @@ ssg-7b7694d995-qptbj                                  1/1     Running   0       
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.0/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
@@ -100,7 +100,7 @@ kubectl apply -k ./example/repositories
 
 ##### Operator Logs
 ```
-kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
+kubectl logs -f -l app.kubernetes.io/name=layer7-operator
 ```
 
 ##### Repository CR
@@ -301,7 +301,7 @@ ssg-7698bc565b-szrbj   1/1     Running   0          2m45s
 
 ##### View the Operator logs
 ```
-kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
+kubectl logs -f -l app.kubernetes.io/name=layer7-operator
 ```
 
 ###### Gateway CR
@@ -531,5 +531,5 @@ kubectl delete -k ./example/repositories/
 
 ### Uninstall the Operator
 ```
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.0/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
 ```

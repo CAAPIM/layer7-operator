@@ -131,7 +131,7 @@ spec:
         enabled: true
       ports:
       - name: Default HTTPS (8443)
-        port: "8443"
+        port: 8443
         enabled: true
         protocol: HTTPS
         managementFeatures:
@@ -172,7 +172,7 @@ spec:
           - TLS_AES_256_GCM_SHA384
           - TLS_AES_128_GCM_SHA256
       - name: Default HTTPS (9443)
-        port: "9443"
+        port: 9443
         enabled: true
         protocol: HTTPS
         managementFeatures:
@@ -213,7 +213,7 @@ spec:
           - TLS_AES_256_GCM_SHA384
           - TLS_AES_128_GCM_SHA256
       - name: Default HTTP (8080)
-        port: "8080"
+        port: 8080
         enabled: false
         protocol: HTTP
         managementFeatures:
@@ -292,6 +292,7 @@ spec:
         protocol: TCP
       - name: monitoring
         port: 8889
+        targetPort: 8889
         protocol: TCP
     ingress:
       enabled: true

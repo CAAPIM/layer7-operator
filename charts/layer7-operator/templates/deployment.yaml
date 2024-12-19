@@ -72,18 +72,6 @@ spec:
           subPath: ca-certificates.crt
           readOnly: true
         {{- end }}
-      - name: kube-rbac-proxy
-        image: {{ .Values.rbacProxy.image.registry }}/{{ .Values.rbacProxy.image.repository }}:{{ .Values.rbacProxy.image.tag }}
-        imagePullPolicy: {{ .Values.rbacProxy.image.pullPolicy }}
-        args: {{- toYaml .Values.rbacProxy.args | nindent 8 }}
-        env:
-        - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.clusterDomain }}
-        ports:
-        - containerPort: 8443
-          name: https
-        resources: {{- toYaml .Values.rbacProxy.resources | nindent 10 }}
-        securityContext: {{- toYaml .Values.rbacProxy.containerSecurityContext | nindent 10 }}
       securityContext: {{- toYaml .Values.podSecurityContext | nindent 10 }}
       serviceAccountName: {{ include "layer7-operator.fullname" . }}-controller-manager
       terminationGracePeriodSeconds: 10

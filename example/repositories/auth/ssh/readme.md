@@ -52,5 +52,5 @@ The Layer7 Operator will log an error if there is an issue with your key, key pa
 
 You can view the operator log with the following command
 ```
-kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
+kubectl logs -f -l app.kubernetes.io/name=layer7-operator
 ```

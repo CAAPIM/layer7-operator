@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "layer7-operator.fullname" . }}-proxy-role
+  name: {{ include "layer7-operator.fullname" . }}-metrics-auth-role
   labels:
     {{- include "layer7-operator.labels" . | nindent 4 }}
     {{- range $key, $val := .Values.commonLabels }}
@@ -31,13 +31,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "layer7-operator.fullname" . }}-proxy-rolebinding
+  name: {{ include "layer7-operator.fullname" . }}-metrics-auth-rolebinding
   labels:
   {{- include "layer7-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: '{{ include "layer7-operator.fullname" . }}-proxy-role'
+  name: '{{ include "layer7-operator.fullname" . }}-metrics-auth-role'
 subjects:
 - kind: ServiceAccount
   name: '{{ include "layer7-operator.fullname" . }}-controller-manager'

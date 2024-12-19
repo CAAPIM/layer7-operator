@@ -16,7 +16,6 @@ As part of this guide we will deploy the following components
 - OpenTelemetry Operator
     - Certmanager (dependency)
 
-
 ![grafana-stack](./images/grafana-stack-diagram.png)
 
 ## Prerequisites
@@ -305,7 +304,7 @@ kubectl apply -f ./otel-lgtm/
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.0/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
 ```
 
 #### Open Telemetry Support
@@ -333,7 +332,7 @@ kubectl apply -k ./repositories
 
 #### View the Operator Logs
 ```
-kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
+kubectl logs -f -l app.kubernetes.io/name=layer7-operator
 ```
 
 #### Repository CR
@@ -429,7 +428,7 @@ l7-gw-myframework with 40kbs written to /opt/SecureSpan/Gateway/node/default/etc
 
 ### View the Operator logs
 ```
-kubectl logs -f $(kubectl get pods -oname | grep layer7-operator-controller-manager) manager
+kubectl logs -f -l app.kubernetes.io/name=layer7-operator
 ```
 
 ### Inspect the Status of your Custom Resources

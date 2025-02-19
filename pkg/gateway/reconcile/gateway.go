@@ -37,6 +37,7 @@ import (
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	"github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -117,6 +118,16 @@ func parseGatewaySecret(gwSecret *corev1.Secret) (string, string) {
 		password = string(gwSecret.Data["SSG_ADMIN_PASSWORD"])
 	}
 	return username, password
+}
+
+func getStateStoreSecret(ctx context.Context, name string, statestore securityv1alpha1.L7StateStore, params Params) (*corev1.Secret, error) {
+	statestoreSecret := &corev1.Secret{}
+
+	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: statestore.Namespace}, statestoreSecret)
+	if err != nil {
+		return statestoreSecret, err
+	}
+	return statestoreSecret, nil
 }
 
 // HardenGraphmanService adds required mutual TLS to the Gateway's GraphQL Management API (Graphman)
@@ -563,4 +574,13 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 	}
 
 	return nil
+}
+
+func getStateStore(ctx context.Context, params Params, stateStoreName string) (securityv1alpha1.L7StateStore, error) {
+	statestore := securityv1alpha1.L7StateStore{}
+	err := params.Client.Get(ctx, types.NamespacedName{Name: stateStoreName, Namespace: params.Instance.Namespace}, &statestore)
+	if err != nil {
+		return statestore, err
+	}
+	return statestore, nil
 }

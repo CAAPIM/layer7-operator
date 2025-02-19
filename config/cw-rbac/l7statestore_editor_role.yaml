@@ -1,0 +1,27 @@
+# permissions for end users to edit l7statestores.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: layer7-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: l7statestore-editor-role
+rules:
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores/status
+  verbs:
+  - get

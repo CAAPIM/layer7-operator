@@ -1,6 +1,8 @@
 # This Makefile drives the quickstart sections of all examples.
 #SHELL := /bin/bash
 
+NAMESPACE ?= default
+
 .PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel
 
 wait:

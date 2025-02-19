@@ -18,6 +18,9 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -43,7 +46,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	creconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -142,11 +147,22 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	builder.WatchesMetadata(repo,
 		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []creconcile.Request {
+			rb, err := json.Marshal(a.DeepCopyObject())
+			var repository securityv1.Repository
+			if err != nil {
+				return []creconcile.Request{}
+			}
+
+			err = json.Unmarshal(rb, &repository)
+			if err != nil {
+				return []creconcile.Request{}
+			}
+
 			gatewayList := &securityv1.GatewayList{}
 			listOpts := []client.ListOption{
 				client.InNamespace(a.GetNamespace()),
 			}
-			err := r.List(ctx, gatewayList, listOpts...)
+			err = r.List(ctx, gatewayList, listOpts...)
 
 			if err != nil {
 				if k8serrors.IsNotFound(err) {
@@ -156,7 +172,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			req := []creconcile.Request{}
 			for _, gateway := range gatewayList.Items {
 				for _, repoRef := range gateway.Spec.App.RepositoryReferences {
-					if repoRef.Name == a.GetName() {
+					if repoRef.Name == repository.Name {
 						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
 					}
 				}
@@ -203,7 +219,80 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			}
 			return req
 		}),
-	)
+	).WithEventFilter(predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectNew.GetObjectKind().GroupVersionKind().Kind == "gateway" {
+				oldGwGen := e.ObjectOld.GetGeneration()
+				newGwGen := e.ObjectNew.GetGeneration()
+				return oldGwGen != newGwGen
+			}
+			objType := fmt.Sprintf("%v", reflect.TypeOf(e.ObjectNew))
+			if e.ObjectNew.GetObjectKind().GroupVersionKind().Kind == "" {
+				if objType == "*v1.Gateway" {
+					oldGw := securityv1.Gateway{}
+					newGw := securityv1.Gateway{}
+					oldGwB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+					newGwB, err := json.Marshal(e.ObjectNew.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+
+					err = json.Unmarshal(oldGwB, &oldGw)
+					if err != nil {
+						return true
+					}
+					err = json.Unmarshal(newGwB, &newGw)
+					if err != nil {
+						return true
+					}
+
+					if reflect.DeepEqual(oldGw.Spec, newGw.Spec) {
+						return false
+					}
+				}
+
+				if objType == "*v1.Deployment" {
+					oldDep := appsv1.Deployment{}
+					newDep := appsv1.Deployment{}
+					oldDepB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+					newDepB, err := json.Marshal(e.ObjectNew.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+
+					err = json.Unmarshal(oldDepB, &oldDep)
+					if err != nil {
+						return true
+					}
+					err = json.Unmarshal(newDepB, &newDep)
+					if err != nil {
+						return true
+					}
+					if oldDep.Status.AvailableReplicas == newDep.Status.AvailableReplicas || newDep.Status.AvailableReplicas == 0 {
+						return false
+					}
+					return true
+				}
+
+			}
+			return true
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return true
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return true
+		},
+	})
 
 	if r.Platform == "openshift" {
 		builder.Owns(&routev1.Route{})
@@ -242,10 +331,6 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 	hostname, err := util.GetHostname()
 	if err != nil {
 		params.Log.Error(err, "failed to retrieve operator hostname")
-		return err
-	}
-	if err != nil {
-		params.Log.Error(err, "failed to retrieve operator namespace")
 		return err
 	}
 

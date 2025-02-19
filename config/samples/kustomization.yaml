@@ -4,4 +4,5 @@ resources:
 - security_v1_repository.yaml
 - security_v1alpha1_l7portal.yaml
 - security_v1alpha1_l7api.yaml
+- security_v1alpha1_l7statestore.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

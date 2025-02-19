@@ -251,6 +251,10 @@ type MappingSource struct {
 	Alias          string `json:"alias,omitempty"`
 	KeystoreId     string `json:"keystoreId,omitempty"`
 	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
+	SystemId       string `json:"systemId,omitempty"`
+	Port           int    `json:"port,omitempty"`
+	Key            string `json:"key,omitempty"`
+	ResolutionPath string `json:"resolutionPath,omitempty"`
 }
 
 var entities = []string{
@@ -882,6 +886,1151 @@ func implodeBundle(path string) (Bundle, error) {
 	return bundle, nil
 }
 
+// SubtractBundle subtracts source from a new bundle by combining the diff and configuring delete mappings
+func SubtractBundle(src []byte, new []byte) (delta []byte, combined []byte, err error) {
+
+	var srcBundle Bundle
+	var newBundle Bundle
+	var deltaBundle Bundle
+
+	deltaBundle.Properties = &BundleProperties{}
+
+	err = json.Unmarshal(src, &srcBundle)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = json.Unmarshal(new, &newBundle)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, s := range srcBundle.ActiveConnectors {
+		found := false
+		for _, d := range newBundle.ActiveConnectors {
+			if s.Name == d.Name {
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.ActiveConnectors = append(deltaBundle.ActiveConnectors, d)
+				}
+				s = d
+				found = true
+			}
+		}
+		if !found {
+			deltaBundle.ActiveConnectors = append(deltaBundle.ActiveConnectors, s)
+			newBundle.ActiveConnectors = append(newBundle.ActiveConnectors, s)
+			newBundle.Properties.Mappings.ActiveConnectors = append(newBundle.Properties.Mappings.ActiveConnectors, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.BackgroundTasks {
+		found := false
+		for _, d := range newBundle.BackgroundTasks {
+			if s.Name == d.Name {
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.BackgroundTasks = append(deltaBundle.BackgroundTasks, d)
+				}
+				s = d
+				found = true
+			}
+		}
+		if !found {
+			deltaBundle.BackgroundTasks = append(deltaBundle.BackgroundTasks, s)
+			newBundle.BackgroundTasks = append(newBundle.BackgroundTasks, s)
+			newBundle.Properties.Mappings.BackgroundTasks = append(newBundle.Properties.Mappings.BackgroundTasks, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.CassandraConnections {
+		found := false
+		for _, d := range newBundle.CassandraConnections {
+			if s.Name == d.Name {
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.CassandraConnections = append(deltaBundle.CassandraConnections, d)
+				}
+				s = d
+				found = true
+			}
+		}
+		if !found {
+			deltaBundle.CassandraConnections = append(deltaBundle.CassandraConnections, s)
+			newBundle.CassandraConnections = append(newBundle.CassandraConnections, s)
+			newBundle.Properties.Mappings.CassandraConnections = append(newBundle.Properties.Mappings.CassandraConnections, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.ClusterProperties {
+		found := false
+		for _, d := range newBundle.ClusterProperties {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.ClusterProperties = append(deltaBundle.ClusterProperties, d)
+				}
+				s = d
+
+			}
+		}
+		if !found {
+			deltaBundle.ClusterProperties = append(deltaBundle.ClusterProperties, s)
+			newBundle.ClusterProperties = append(newBundle.ClusterProperties, s)
+			newBundle.Properties.Mappings.ClusterProperties = append(newBundle.Properties.Mappings.ClusterProperties, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.Dtds {
+		found := false
+		for _, d := range newBundle.Dtds {
+			if s.SystemId == d.SystemId {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Dtds = append(deltaBundle.Dtds, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Dtds = append(deltaBundle.Dtds, s)
+			newBundle.Dtds = append(newBundle.Dtds, s)
+			newBundle.Properties.Mappings.Dtds = append(newBundle.Properties.Mappings.Dtds, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					SystemId: s.SystemId,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.EmailListeners {
+		found := false
+		for _, d := range newBundle.EmailListeners {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.EmailListeners = append(deltaBundle.EmailListeners, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.EmailListeners = append(deltaBundle.EmailListeners, s)
+			newBundle.EmailListeners = append(newBundle.EmailListeners, s)
+			newBundle.Properties.Mappings.EmailListeners = append(newBundle.Properties.Mappings.EmailListeners, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.EncassConfigs {
+		found := false
+		for _, d := range newBundle.EncassConfigs {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.EncassConfigs = append(deltaBundle.EncassConfigs, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.EncassConfigs = append(deltaBundle.EncassConfigs, s)
+			newBundle.EncassConfigs = append(newBundle.EncassConfigs, s)
+			newBundle.Properties.Mappings.EncassConfigs = append(newBundle.Properties.Mappings.EncassConfigs, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.FipGroups {
+		found := false
+		for _, d := range newBundle.FipGroups {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.FipGroups = append(deltaBundle.FipGroups, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.FipGroups = append(deltaBundle.FipGroups, s)
+			newBundle.FipGroups = append(newBundle.FipGroups, s)
+			newBundle.Properties.Mappings.FipGroups = append(newBundle.Properties.Mappings.FipGroups, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.FipUsers {
+		found := false
+		for _, d := range newBundle.FipUsers {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.FipUsers = append(deltaBundle.FipUsers, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.FipUsers = append(deltaBundle.FipUsers, s)
+			newBundle.FipUsers = append(newBundle.FipUsers, s)
+			newBundle.Properties.Mappings.FipUsers = append(newBundle.Properties.Mappings.FipUsers, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.Fips {
+		found := false
+		for _, d := range newBundle.Fips {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Fips = append(deltaBundle.Fips, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Fips = append(deltaBundle.Fips, s)
+			newBundle.Fips = append(newBundle.Fips, s)
+			newBundle.Properties.Mappings.Fips = append(newBundle.Properties.Mappings.Fips, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.GlobalPolicies {
+		found := false
+		for _, d := range newBundle.GlobalPolicies {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.GlobalPolicies = append(deltaBundle.GlobalPolicies, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.GlobalPolicies = append(deltaBundle.GlobalPolicies, s)
+			newBundle.GlobalPolicies = append(newBundle.GlobalPolicies, s)
+			newBundle.Properties.Mappings.GlobalPolicies = append(newBundle.Properties.Mappings.GlobalPolicies, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.InternalGroups {
+		found := false
+		for _, d := range newBundle.InternalGroups {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.InternalGroups = append(deltaBundle.InternalGroups, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.InternalGroups = append(deltaBundle.InternalGroups, s)
+			newBundle.InternalGroups = append(newBundle.InternalGroups, s)
+			newBundle.Properties.Mappings.InternalGroups = append(newBundle.Properties.Mappings.InternalGroups, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.InternalSoapServices {
+		found := false
+		for _, d := range newBundle.InternalSoapServices {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.InternalSoapServices = append(deltaBundle.InternalSoapServices, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.InternalSoapServices = append(deltaBundle.InternalSoapServices, s)
+			newBundle.InternalSoapServices = append(newBundle.InternalSoapServices, s)
+			newBundle.Properties.Mappings.InternalSoapServices = append(newBundle.Properties.Mappings.InternalSoapServices, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.InternalUsers {
+		found := false
+		for _, d := range newBundle.InternalUsers {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.InternalUsers = append(deltaBundle.InternalUsers, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.InternalUsers = append(deltaBundle.InternalUsers, s)
+			newBundle.InternalUsers = append(newBundle.InternalUsers, s)
+			newBundle.Properties.Mappings.InternalUsers = append(newBundle.Properties.Mappings.InternalUsers, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.InternalWebApiServices {
+		found := false
+		for _, d := range newBundle.InternalWebApiServices {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.InternalWebApiServices = append(deltaBundle.InternalWebApiServices, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.InternalWebApiServices = append(deltaBundle.InternalWebApiServices, s)
+			newBundle.InternalWebApiServices = append(newBundle.InternalWebApiServices, s)
+			newBundle.Properties.Mappings.InternalWebApiServices = append(newBundle.Properties.Mappings.InternalWebApiServices, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.JdbcConnections {
+		found := false
+		for _, d := range newBundle.JdbcConnections {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.JdbcConnections = append(deltaBundle.JdbcConnections, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.JdbcConnections = append(deltaBundle.JdbcConnections, s)
+			newBundle.JdbcConnections = append(newBundle.JdbcConnections, s)
+			newBundle.Properties.Mappings.JdbcConnections = append(newBundle.Properties.Mappings.JdbcConnections, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.JmsDestinations {
+		found := false
+		for _, d := range newBundle.JmsDestinations {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.JmsDestinations = append(deltaBundle.JmsDestinations, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.JmsDestinations = append(deltaBundle.JmsDestinations, s)
+			newBundle.JmsDestinations = append(newBundle.JmsDestinations, s)
+			newBundle.Properties.Mappings.JmsDestinations = append(newBundle.Properties.Mappings.JmsDestinations, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.Keys {
+		found := false
+		for _, d := range newBundle.Keys {
+			if s.Alias == d.Alias {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Keys = append(deltaBundle.Keys, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Keys = append(deltaBundle.Keys, s)
+			newBundle.Keys = append(newBundle.Keys, s)
+			newBundle.Properties.Mappings.Keys = append(newBundle.Properties.Mappings.Keys, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					KeystoreId: "00000000000000000000000000000002",
+					Alias:      s.Alias,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.LdapIdps {
+		found := false
+		for _, d := range newBundle.LdapIdps {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.LdapIdps = append(deltaBundle.LdapIdps, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.LdapIdps = append(deltaBundle.LdapIdps, s)
+			newBundle.LdapIdps = append(newBundle.LdapIdps, s)
+			newBundle.Properties.Mappings.LdapIdps = append(newBundle.Properties.Mappings.LdapIdps, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.ListenPorts {
+		found := false
+		for _, d := range newBundle.ListenPorts {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.ListenPorts = append(deltaBundle.ListenPorts, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.ListenPorts = append(deltaBundle.ListenPorts, s)
+			newBundle.ListenPorts = append(newBundle.ListenPorts, s)
+			newBundle.Properties.Mappings.ListenPorts = append(newBundle.Properties.Mappings.ListenPorts, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.PolicyFragments {
+		found := false
+		for _, d := range newBundle.PolicyFragments {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.PolicyFragments = append(deltaBundle.PolicyFragments, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.PolicyFragments = append(deltaBundle.PolicyFragments, s)
+			newBundle.PolicyFragments = append(newBundle.PolicyFragments, s)
+			newBundle.Properties.Mappings.PolicyFragments = append(newBundle.Properties.Mappings.PolicyFragments, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.ScheduledTasks {
+		found := false
+		for _, d := range newBundle.ScheduledTasks {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.ScheduledTasks = append(deltaBundle.ScheduledTasks, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.ScheduledTasks = append(deltaBundle.ScheduledTasks, s)
+			newBundle.ScheduledTasks = append(newBundle.ScheduledTasks, s)
+			newBundle.Properties.Mappings.ScheduledTasks = append(newBundle.Properties.Mappings.ScheduledTasks, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.Schemas {
+		found := false
+		for _, d := range newBundle.Schemas {
+			if s.SystemId == d.SystemId {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Schemas = append(deltaBundle.Schemas, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Schemas = append(deltaBundle.Schemas, s)
+			newBundle.Schemas = append(newBundle.Schemas, s)
+			newBundle.Properties.Mappings.Schemas = append(newBundle.Properties.Mappings.Schemas, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					SystemId: s.SystemId,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.Secrets {
+		found := false
+		for _, d := range newBundle.Secrets {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Secrets = append(deltaBundle.Secrets, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Secrets = append(deltaBundle.Secrets, s)
+			newBundle.Secrets = append(newBundle.Secrets, s)
+			newBundle.Properties.Mappings.Secrets = append(newBundle.Properties.Mappings.Secrets, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.ServerModuleFiles {
+		found := false
+		for _, d := range newBundle.ServerModuleFiles {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.ServerModuleFiles = append(deltaBundle.ServerModuleFiles, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.ServerModuleFiles = append(deltaBundle.ServerModuleFiles, s)
+			newBundle.ServerModuleFiles = append(newBundle.ServerModuleFiles, s)
+			newBundle.Properties.Mappings.ServerModuleFiles = append(newBundle.Properties.Mappings.ServerModuleFiles, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.SiteMinderConfigs {
+		found := false
+		for _, d := range newBundle.SiteMinderConfigs {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.SiteMinderConfigs = append(deltaBundle.SiteMinderConfigs, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.SiteMinderConfigs = append(deltaBundle.SiteMinderConfigs, s)
+			newBundle.SiteMinderConfigs = append(newBundle.SiteMinderConfigs, s)
+			newBundle.Properties.Mappings.SiteMinderConfigs = append(newBundle.Properties.Mappings.SiteMinderConfigs, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.SoapServices {
+		found := false
+		for _, d := range newBundle.SoapServices {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.SoapServices = append(deltaBundle.SoapServices, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.SoapServices = append(deltaBundle.SoapServices, s)
+			newBundle.SoapServices = append(newBundle.SoapServices, s)
+			newBundle.Properties.Mappings.SoapServices = append(newBundle.Properties.Mappings.SoapServices, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.TrustedCerts {
+		found := false
+		for _, d := range newBundle.TrustedCerts {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.TrustedCerts = append(deltaBundle.TrustedCerts, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.TrustedCerts = append(deltaBundle.TrustedCerts, s)
+			newBundle.TrustedCerts = append(newBundle.TrustedCerts, s)
+			newBundle.Properties.Mappings.TrustedCerts = append(newBundle.Properties.Mappings.TrustedCerts, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					ThumbprintSha1: s.ThumbprintSha1,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.WebApiServices {
+		found := false
+		for _, d := range newBundle.WebApiServices {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.WebApiServices = append(deltaBundle.WebApiServices, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.WebApiServices = append(deltaBundle.WebApiServices, s)
+			newBundle.WebApiServices = append(newBundle.WebApiServices, s)
+			newBundle.Properties.Mappings.WebApiServices = append(newBundle.Properties.Mappings.WebApiServices, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	// AdministrativeUserAccountProperties will be kept if removed as they can't actually be removed
+	// future versions may reset to default when not present, this may not represent expected behaviour or cause breaking changes
+	// so the default will be to persist even if they aren't present in the new bundle.
+	for _, s := range srcBundle.AdministrativeUserAccountProperties {
+		found := false
+		for _, d := range newBundle.AdministrativeUserAccountProperties {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.AdministrativeUserAccountProperties = append(deltaBundle.AdministrativeUserAccountProperties, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.AdministrativeUserAccountProperties = append(deltaBundle.AdministrativeUserAccountProperties, s)
+			newBundle.AdministrativeUserAccountProperties = append(newBundle.AdministrativeUserAccountProperties, s)
+		}
+	}
+
+	if len(newBundle.PasswordPolicies) == 0 {
+		newBundle.PasswordPolicies = append(newBundle.PasswordPolicies, srcBundle.PasswordPolicies...)
+	}
+
+	for _, s := range srcBundle.RevocationCheckPolicies {
+		found := false
+		for _, d := range newBundle.RevocationCheckPolicies {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.RevocationCheckPolicies = append(deltaBundle.RevocationCheckPolicies, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.RevocationCheckPolicies = append(deltaBundle.RevocationCheckPolicies, s)
+			newBundle.RevocationCheckPolicies = append(newBundle.RevocationCheckPolicies, s)
+			newBundle.Properties.Mappings.RevocationCheckPolicies = append(newBundle.Properties.Mappings.RevocationCheckPolicies, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.LogSinks {
+		found := false
+		for _, d := range newBundle.LogSinks {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.LogSinks = append(deltaBundle.LogSinks, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.LogSinks = append(deltaBundle.LogSinks, s)
+			newBundle.LogSinks = append(newBundle.LogSinks, s)
+			newBundle.Properties.Mappings.LogSinks = append(newBundle.Properties.Mappings.LogSinks, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.HttpConfigurations {
+		found := false
+		for _, d := range newBundle.HttpConfigurations {
+			if s.Host == d.Host && s.Port == d.Port {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.HttpConfigurations = append(deltaBundle.HttpConfigurations, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.HttpConfigurations = append(deltaBundle.HttpConfigurations, s)
+			newBundle.HttpConfigurations = append(newBundle.HttpConfigurations, s)
+			newBundle.Properties.Mappings.HttpConfigurations = append(newBundle.Properties.Mappings.HttpConfigurations, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Host,
+					Port: s.Port,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.CustomKeyValues {
+		found := false
+		for _, d := range newBundle.CustomKeyValues {
+			if s.Key == d.Key {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.CustomKeyValues = append(deltaBundle.CustomKeyValues, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.CustomKeyValues = append(deltaBundle.CustomKeyValues, s)
+			newBundle.CustomKeyValues = append(newBundle.CustomKeyValues, s)
+			newBundle.Properties.Mappings.CustomKeyValues = append(newBundle.Properties.Mappings.CustomKeyValues, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Key: s.Key,
+				},
+			})
+		}
+	}
+
+	if len(newBundle.ServiceResolutionConfigs) == 0 {
+		newBundle.ServiceResolutionConfigs = append(newBundle.ServiceResolutionConfigs, srcBundle.ServiceResolutionConfigs...)
+	}
+
+	for _, s := range srcBundle.Folders {
+		found := false
+		for _, d := range newBundle.Folders {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Folders = append(deltaBundle.Folders, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Folders = append(deltaBundle.Folders, s)
+			newBundle.Folders = append(newBundle.Folders, s)
+			newBundle.Properties.Mappings.Folders = append(newBundle.Properties.Mappings.Folders, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.FederatedIdps {
+		found := false
+		for _, d := range newBundle.FederatedIdps {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.FederatedIdps = append(deltaBundle.FederatedIdps, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.FederatedIdps = append(deltaBundle.FederatedIdps, s)
+			newBundle.FederatedIdps = append(newBundle.FederatedIdps, s)
+			newBundle.Properties.Mappings.FederatedIdps = append(newBundle.Properties.Mappings.FederatedIdps, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.FederatedGroups {
+		found := false
+		for _, d := range newBundle.FederatedGroups {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.FederatedGroups = append(deltaBundle.FederatedGroups, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.FederatedGroups = append(deltaBundle.FederatedGroups, s)
+			newBundle.FederatedGroups = append(newBundle.FederatedGroups, s)
+			newBundle.Properties.Mappings.FederatedGroups = append(newBundle.Properties.Mappings.FederatedGroups, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.FederatedUsers {
+		found := false
+		for _, d := range newBundle.FederatedUsers {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.FederatedUsers = append(deltaBundle.FederatedUsers, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.FederatedUsers = append(deltaBundle.FederatedUsers, s)
+			newBundle.FederatedUsers = append(newBundle.FederatedUsers, s)
+			newBundle.Properties.Mappings.FederatedUsers = append(newBundle.Properties.Mappings.FederatedUsers, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.FederatedUsers {
+		found := false
+		for _, d := range newBundle.FederatedUsers {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.FederatedUsers = append(deltaBundle.FederatedUsers, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.FederatedUsers = append(deltaBundle.FederatedUsers, s)
+			newBundle.FederatedUsers = append(newBundle.FederatedUsers, s)
+			newBundle.Properties.Mappings.FederatedUsers = append(newBundle.Properties.Mappings.FederatedUsers, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.InternalIdps {
+		found := false
+		for _, d := range newBundle.InternalIdps {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.InternalIdps = append(deltaBundle.InternalIdps, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.InternalIdps = append(deltaBundle.InternalIdps, s)
+			newBundle.InternalIdps = append(newBundle.InternalIdps, s)
+			newBundle.Properties.Mappings.InternalIdps = append(newBundle.Properties.Mappings.InternalIdps, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.LdapIdps {
+		found := false
+		for _, d := range newBundle.LdapIdps {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.LdapIdps = append(deltaBundle.LdapIdps, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.LdapIdps = append(deltaBundle.LdapIdps, s)
+			newBundle.LdapIdps = append(newBundle.LdapIdps, s)
+			newBundle.Properties.Mappings.LdapIdps = append(newBundle.Properties.Mappings.LdapIdps, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.SimpleLdapIdps {
+		found := false
+		for _, d := range newBundle.SimpleLdapIdps {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.SimpleLdapIdps = append(deltaBundle.SimpleLdapIdps, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.SimpleLdapIdps = append(deltaBundle.SimpleLdapIdps, s)
+			newBundle.SimpleLdapIdps = append(newBundle.SimpleLdapIdps, s)
+			newBundle.Properties.Mappings.SimpleLdapIdps = append(newBundle.Properties.Mappings.SimpleLdapIdps, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.PolicyBackedIdps {
+		found := false
+		for _, d := range newBundle.PolicyBackedIdps {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.PolicyBackedIdps = append(deltaBundle.PolicyBackedIdps, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.PolicyBackedIdps = append(deltaBundle.PolicyBackedIdps, s)
+			newBundle.PolicyBackedIdps = append(newBundle.PolicyBackedIdps, s)
+			newBundle.Properties.Mappings.PolicyBackedIdps = append(newBundle.Properties.Mappings.PolicyBackedIdps, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.Policies {
+		found := false
+		for _, d := range newBundle.Policies {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Policies = append(deltaBundle.Policies, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Policies = append(deltaBundle.Policies, s)
+			newBundle.Policies = append(newBundle.Policies, s)
+			newBundle.Properties.Mappings.Policies = append(newBundle.Properties.Mappings.Policies, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.Services {
+		found := false
+		for _, d := range newBundle.Services {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Services = append(deltaBundle.Services, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Services = append(deltaBundle.Services, s)
+			newBundle.Services = append(newBundle.Services, s)
+			newBundle.Properties.Mappings.Services = append(newBundle.Properties.Mappings.Services, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					ResolutionPath: s.ResolutionPath,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.Roles {
+		found := false
+		for _, d := range newBundle.Roles {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.Roles = append(deltaBundle.Roles, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.Roles = append(deltaBundle.Roles, s)
+			newBundle.Roles = append(newBundle.Roles, s)
+			newBundle.Properties.Mappings.Roles = append(newBundle.Properties.Mappings.Roles, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.GenericEntities {
+		found := false
+		for _, d := range newBundle.GenericEntities {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.GenericEntities = append(deltaBundle.GenericEntities, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.GenericEntities = append(deltaBundle.GenericEntities, s)
+			newBundle.GenericEntities = append(newBundle.GenericEntities, s)
+			newBundle.Properties.Mappings.GenericEntities = append(newBundle.Properties.Mappings.GenericEntities, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	for _, s := range srcBundle.AuditConfigurations {
+		found := false
+		for _, d := range newBundle.AuditConfigurations {
+			if s.Name == d.Name {
+				found = true
+				if !reflect.DeepEqual(s, d) {
+					deltaBundle.AuditConfigurations = append(deltaBundle.AuditConfigurations, d)
+				}
+				s = d
+			}
+		}
+		if !found {
+			deltaBundle.AuditConfigurations = append(deltaBundle.AuditConfigurations, s)
+			newBundle.AuditConfigurations = append(newBundle.AuditConfigurations, s)
+			newBundle.Properties.Mappings.AuditConfigurations = append(newBundle.Properties.Mappings.AuditConfigurations, &MappingInstructionInput{
+				Action: MappingActionDelete,
+				Source: MappingSource{
+					Name: s.Name,
+				},
+			})
+		}
+	}
+
+	deltaBundle.Properties.Mappings = newBundle.Properties.Mappings
+
+	delta, err = json.Marshal(deltaBundle)
+	if err != nil {
+		return nil, nil, err
+	}
+	combined, err = json.Marshal(newBundle)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return delta, combined, nil
+}
+
 func combineBundle(srcBundle Bundle, destBundle Bundle) Bundle {
 	for _, s := range srcBundle.ActiveConnectors {
 		found := false
@@ -1490,6 +2639,29 @@ func installGenericBundle(
 	req_ := &graphql.Request{
 		OpName:    "installBundle",
 		Query:     installBundleGeneric_Operation,
+		Variables: bundle,
+	}
+	var err_ error
+
+	var data_ BundleResponseDetailedStatus
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+	return &data_, err_
+}
+
+func deleteGenericBundle(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	bundle *Bundle,
+) (interface{}, error) {
+	req_ := &graphql.Request{
+		OpName:    "deleteBundle",
+		Query:     deleteBundleGeneric_Operation,
 		Variables: bundle,
 	}
 	var err_ error

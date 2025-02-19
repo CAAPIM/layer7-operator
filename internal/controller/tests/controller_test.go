@@ -42,7 +42,7 @@ var _ = Describe("Gateway controller", func() {
 			repoName            = "l7-gw-myframework"
 			repoCheckoutPath    = "/tmp/l7GWMyFramework"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyFramework"
-			repoType            = "git"
+			repoType            = securityv1.RepositoryTypeGit
 			repo                Repo
 		)
 

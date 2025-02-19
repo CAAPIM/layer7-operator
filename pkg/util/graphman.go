@@ -67,19 +67,37 @@ type MappingSource struct {
 	Alias          string `json:"alias,omitempty"`
 	KeystoreId     string `json:"keystoreId,omitempty"`
 	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
+	SystemId       string `json:"systemId,omitempty"`
 }
 
-func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, username string, password string, target string, encpass string) error {
+type ApplyToGraphmanTargetOpts struct {
+	Path         string
+	Bundle       []byte
+	SecretBundle []byte
+	Singleton    bool
+	Username     string
+	Password     string
+	Target       string
+	Encpass      string
+}
+
+func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, username string, password string, target string, encpass string, delete bool) error {
 	bundle := graphman.Bundle{}
+	var bundleBytes []byte
+	var err error
 
-	bundleBytes, err := BuildAndValidateBundle(path)
-	if err != nil {
-		return err
-	}
-
-	if bundleBytes == nil && len(secretBundle) > 0 {
+	if len(secretBundle) > 0 {
 		bundleBytes = secretBundle
+	} else {
+		bundleBytes, err = BuildAndValidateBundle(path)
+		if err != nil {
+			return err
+		}
 	}
+
+	// if bundleBytes == nil && len(secretBundle) > 0 {
+	// 	bundleBytes = secretBundle
+	// }
 
 	if !singleton {
 		scheduledTasks := []*graphman.ScheduledTaskInput{}
@@ -111,10 +129,22 @@ func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, use
 		}
 	}
 
-	_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
-	if err != nil {
-		return err
+	if !delete {
+		_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = graphman.DeleteDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+		if err != nil {
+			return err
+		}
 	}
+
+	// _, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
@@ -329,6 +359,25 @@ func RemoveL7API(username string, password string, target string, apiName string
 	return nil
 }
 
+func DeleteBundle(src []byte) (bundle []byte, err error) {
+	srcBundle := graphman.Bundle{}
+
+	err = json.Unmarshal(src, &srcBundle)
+
+	if err != nil {
+		return nil, err
+	}
+
+	srcBundle.Properties = &graphman.BundleProperties{DefaultAction: graphman.MappingActionDelete}
+
+	bundle, err = json.Marshal(srcBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	return bundle, nil
+}
+
 func CompressGraphmanBundle(path string) ([]byte, error) {
 	bundleBytes, err := BuildAndValidateBundle(path)
 	if err != nil {
@@ -465,13 +514,13 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 			}
 		}
 
-		bundle.Fips = append(bundle.Fips, &graphman.FipInput{
-			Name:                     "otk-fips-provider",
-			Goid:                     fipsProviderGuid,
-			EnableCredentialTypeSaml: false,
-			EnableCredentialTypeX509: true,
-			CertificateValidation:    graphman.CertificateValidationTypeCertificateOnly,
-			CertificateReferences:    []*graphman.FipCertInput{},
+		bundle.FederatedIdps = append(bundle.FederatedIdps, &graphman.FederatedIdpInput{
+			Name:           "otk-fips-provider",
+			Goid:           fipsProviderGuid,
+			SupportsSAML:   false,
+			SupportsX509:   true,
+			CertValidation: graphman.CertValidationTypeUseDefault,
+			TrustedCerts:   []*graphman.TrustedCertPartialInput{},
 		})
 	case "DMZ":
 		for _, externalPolicy := range externalPolicies {

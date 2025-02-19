@@ -1,0 +1,10 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Repository
+metadata:
+  name: statestore-repository-pull
+spec:
+  enabled: true
+  type: statestore
+  stateStoreReference: state-store-example
+  stateStoreKey: test123
+  auth: {}

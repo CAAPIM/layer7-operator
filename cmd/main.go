@@ -37,14 +37,6 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
-	"github.com/caapim/layer7-operator/internal/controller/api"
-	"github.com/caapim/layer7-operator/internal/controller/gateway"
-	"github.com/caapim/layer7-operator/internal/controller/portal"
-	"github.com/caapim/layer7-operator/internal/controller/repository"
-	"github.com/caapim/layer7-operator/internal/platform"
-	"github.com/caapim/layer7-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -56,6 +48,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
+	"github.com/caapim/layer7-operator/internal/controller/api"
+	"github.com/caapim/layer7-operator/internal/controller/gateway"
+	"github.com/caapim/layer7-operator/internal/controller/portal"
+	"github.com/caapim/layer7-operator/internal/controller/repository"
+	controller "github.com/caapim/layer7-operator/internal/controller/statestore"
+	"github.com/caapim/layer7-operator/internal/platform"
+	"github.com/caapim/layer7-operator/pkg/util"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -206,6 +208,16 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "L7Api")
+		os.Exit(1)
+	}
+
+	if err = (&controller.L7StateStoreReconciler{
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("L7StateStore"),
+		Recorder: mgr.GetEventRecorderFor("L7StateStore"),
+		Scheme:   mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "L7StateStore")
 		os.Exit(1)
 	}
 

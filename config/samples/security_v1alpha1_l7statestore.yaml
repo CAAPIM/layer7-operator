@@ -1,0 +1,15 @@
+apiVersion: security.brcmlabs.com/v1alpha1
+kind: L7StateStore
+metadata:
+  name: state-store-example
+spec:
+  type: redis
+  redis:
+    database: 0
+    groupName: l7tests
+    type: standalone
+    masterPassword: 7layer
+    standalone:
+      host: 192.168.1.10
+      port: 30036
+    storeId: test

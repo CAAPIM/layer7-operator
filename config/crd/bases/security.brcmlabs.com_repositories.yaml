@@ -106,6 +106,14 @@ spec:
               remoteName:
                 description: Remote Name - defaults to "origin"
                 type: string
+              stateStoreKey:
+                description: "StateStoreKey where the repository is stored in the
+                  L7StateStore\nthis only "
+                type: string
+              stateStoreReference:
+                description: StateStoreReference which L7StateStore connection should
+                  be used to store o
+                type: string
               sync:
                 description: RepositorySyncConfig defines how often this repository
                   is synced
@@ -119,7 +127,7 @@ spec:
                 description: Tag - clone a specific tag.
                 type: string
               type:
-                description: Type of Repository - Git, HTTP, Local
+                description: Type of Repository - git, http, local, statestore
                 type: string
             type: object
           status:
@@ -137,6 +145,10 @@ spec:
               ready:
                 description: Ready to apply to Gateway Deployments
                 type: boolean
+              stateStoreVersion:
+                description: StateStoreVersion tracks where this is stored in the
+                  state store
+                type: integer
               storageSecretName:
                 description: StorageSecretName is the Kubernetes Secret that this
                   repository is stored i

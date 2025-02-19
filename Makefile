@@ -423,6 +423,7 @@ generate-docs: controller-gen
 	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_repositories.yaml --output docs/repository.md
 	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7portals.yaml --output docs/l7portals.md
 	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7apis.yaml --output docs/l7apis.md
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7statestores.yaml --output docs/l7statestores.md
 	rm -r ./tmp/
 
 helmify:

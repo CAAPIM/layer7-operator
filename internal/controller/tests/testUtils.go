@@ -38,7 +38,7 @@ type Repo struct {
 	SecretName   string
 	CheckoutPath string
 	Namespace    string
-	Type         string
+	Type         securityv1.RepositoryType
 }
 
 // func createGatewayLicenseSecret(secret Secret) {

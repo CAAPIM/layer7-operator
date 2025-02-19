@@ -15,3 +15,5 @@ resources:
 - metrics_auth_role.yaml
 - metrics_auth_role_binding.yaml
 #- metrics_reader_role.yaml
+# - l7statestore_editor_role.yaml
+# - l7statestore_viewer_role.yaml

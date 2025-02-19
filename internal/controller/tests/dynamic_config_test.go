@@ -31,7 +31,7 @@ var _ = Describe("Gateway controller", func() {
 			repoName            = "l7-gw-myapis"
 			repoCheckoutPath    = "/tmp/l7GWMyAPIs"
 			repoGitUrl          = "https://github.com/uppoju/l7GWMyAPIs"
-			repoType            = "git"
+			repoType            = securityv1.RepositoryTypeGit
 			repo                Repo
 		)
 

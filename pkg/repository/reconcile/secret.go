@@ -54,7 +54,7 @@ func StorageSecret(ctx context.Context, params Params) error {
 	if ext == "" {
 		ext = params.Instance.Spec.Tag
 	}
-	switch strings.ToLower(params.Instance.Spec.Type) {
+	switch strings.ToLower(string(params.Instance.Spec.Type)) {
 	case "http":
 		fileURL, err := url.Parse(params.Instance.Spec.Endpoint)
 		if err != nil {

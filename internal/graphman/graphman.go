@@ -72,6 +72,38 @@ func ApplyDynamicBundle(username string, password string, target string, encpass
 	return resp, nil
 }
 
+func DeleteDynamicBundle(username string, password string, target string, encpass string, bundleBytes []byte) (interface{}, error) {
+	bundle := Bundle{}
+
+	err := json.Unmarshal(bundleBytes, &bundle)
+	if err != nil {
+		return nil, err
+	}
+	resp, applyErr := deleteGenericBundle(context.Background(), gqlClient(username, password, target, encpass), &bundle)
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if applyErr != nil {
+		bundleApplyErrors, err := CheckDetailedStatus(respBytes)
+		if err != nil {
+			return nil, err
+		}
+		if bundleApplyErrors == nil {
+			return nil, applyErr
+		}
+		bundleApplyErrorBytes, err := json.Marshal(bundleApplyErrors)
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%s", string(bundleApplyErrorBytes))
+	}
+
+	return resp, nil
+}
+
 func CheckDetailedStatus(respBytes []byte) (*[]BundleApplyError, error) {
 	mutationDetailedStatuses := BundleResponseDetailedStatus{}
 	bundleApplyErrors := []BundleApplyError{}

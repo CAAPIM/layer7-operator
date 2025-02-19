@@ -31,11 +31,11 @@ func LocalReference(ctx context.Context, params Params) error {
 
 	patch := []byte(`[{"op": "replace", "path": "/status/ready", "value": false}]`)
 
-	switch strings.ToLower(repository.Spec.Type) {
+	switch strings.ToLower(string(repository.Spec.Type)) {
 	case "local":
 		commit, err = localReferenceShaSum(ctx, repository, params)
 		if err != nil {
-			err = setRepoStatus(ctx, params, patch)
+			err = setRepoReady(ctx, params, patch)
 			if err != nil {
 				return err
 			}

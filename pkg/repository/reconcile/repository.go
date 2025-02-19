@@ -8,13 +8,13 @@ import (
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-git/go-git/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -28,6 +28,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	var sshKey []byte
 	var sshKeyPass string
 	var knownHosts []byte
+	var statestore securityv1alpha1.L7StateStore
 
 	authType := repository.Spec.Auth.Type
 	if err != nil {
@@ -38,7 +39,7 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	params.Instance = &repository
 
-	repoStatus := repository.Status
+	// repoStatus := repository.Status
 	if !repository.Spec.Enabled {
 		return nil
 	}
@@ -46,7 +47,7 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	if repository.Spec.Auth != (securityv1.RepositoryAuth{}) && repository.Spec.Auth.Type != securityv1.RepositoryAuthTypeNone {
 
-		repositorySecret, err = getSecret(ctx, repository, params)
+		repositorySecret, err = getRepositorySecret(ctx, repository, params)
 
 		if err != nil {
 			params.Log.Info("secret unavailable", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
@@ -97,9 +98,17 @@ func syncRepository(ctx context.Context, params Params) error {
 		return nil
 	}
 
+	if repository.Spec.StateStoreReference != "" {
+		statestore, err = getStateStore(ctx, params)
+		if err != nil {
+			params.Log.V(2).Error(err, "failed to retrieve statestore", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+			return nil
+		}
+	}
+
 	patch := []byte(`[{"op": "replace", "path": "/status/ready", "value": false}]`)
 
-	switch strings.ToLower(repository.Spec.Type) {
+	switch strings.ToLower(string(repository.Spec.Type)) {
 	case "http":
 		forceUpdate := false
 		if repository.Status.Summary != repository.Spec.Endpoint {
@@ -111,7 +120,7 @@ func syncRepository(ctx context.Context, params Params) error {
 				params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 				backoffAttempts := 5
 				syncCache.Update(util.SyncRequest{RequestName: backoffRequestCacheEntry, Attempts: backoffAttempts}, time.Now().Add(360*time.Second).Unix())
-				err = setRepoStatus(ctx, params, patch)
+				err = setRepoReady(ctx, params, patch)
 				if err != nil {
 					params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 				}
@@ -123,7 +132,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			backoffAttempts := backoffSyncRequest.Attempts + 1
 			syncCache.Update(util.SyncRequest{RequestName: backoffRequestCacheEntry, Attempts: backoffAttempts}, time.Now().Add(360*time.Second).Unix())
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
-			err = setRepoStatus(ctx, params, patch)
+			err = setRepoReady(ctx, params, patch)
 			if err != nil {
 				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 			}
@@ -142,9 +151,29 @@ func syncRepository(ctx context.Context, params Params) error {
 		storageSecretName = repository.Name + "-repository-" + folderName
 
 	case "git":
-		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
+		opts := util.CloneRepositoryOpts{
+			Username:       username,
+			Token:          token,
+			PrivateKey:     sshKey,
+			PrivateKeyPass: sshKeyPass,
+			Branch:         repository.Spec.Branch,
+			Tag:            repository.Spec.Tag,
+			RemoteName:     repository.Spec.RemoteName,
+			Name:           repository.Name,
+			Vendor:         repository.Spec.Auth.Vendor,
+			AuthType:       string(authType),
+			KnownHosts:     knownHosts,
+			Namespace:      repository.Namespace,
+		}
+
+		commit, err = util.CloneRepository(repository.Spec.Endpoint, &opts)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+			updateErr := updateStatus(ctx, params, commit, storageSecretName)
+			if updateErr != nil {
+				_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
+				params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
+			}
 			return nil
 		}
 
@@ -152,56 +181,63 @@ func syncRepository(ctx context.Context, params Params) error {
 			params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
 			attempts := syncRequest.Attempts + 1
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
-			err = setRepoStatus(ctx, params, patch)
+			err = setRepoReady(ctx, params, patch)
 			if err != nil {
 				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 			}
 			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 			return nil
 		}
+	case "statestore":
+		commit, err = GetStateStoreChecksum(ctx, params, statestore)
+		if err != nil {
+			params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+			attempts := syncRequest.Attempts + 1
+			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
+			err = setRepoReady(ctx, params, patch)
+			if err != nil {
+				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+			}
+			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
+			storageSecretName = ""
+			return nil
+		}
 	case "local":
 		return nil
 	default:
-		params.Log.Info("repository type not set", "name", repository.Name, "namespace", repository.Namespace)
+		params.Log.Info("repository type not set or not supported", "name", repository.Name, "namespace", repository.Namespace)
 		return nil
 	}
 
-	err = StorageSecret(ctx, params)
-	if err != nil {
-		params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
-		storageSecretName = ""
-	}
-
-	repoStatus.Commit = commit
-	repoStatus.Name = repository.Name
-	repoStatus.Vendor = repository.Spec.Auth.Vendor
-	repoStatus.Ready = true
-
-	if repository.Spec.Type == "http" {
-		// future usage will include filesize for tracking changes in remote
-		// or use a different status field.
-		repoStatus.Summary = repository.Spec.Endpoint
-	}
-
-	repoStatus.StorageSecretName = storageSecretName
-
-	if !reflect.DeepEqual(repoStatus, repository.Status) {
-		params.Log.Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)
-		repoStatus.Updated = time.Now().String()
-		repository.Status = repoStatus
-		err = params.Client.Status().Update(ctx, &repository)
-		if err != nil {
-			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
-			params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
-			return nil
+	if strings.ToLower(string(repository.Spec.Type)) != "statestore" {
+		if repository.Spec.StateStoreReference != "" {
+			err = StateStorage(ctx, params, statestore)
+			if err != nil {
+				params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+				storageSecretName = ""
+			}
+		} else {
+			err = StorageSecret(ctx, params)
+			if err != nil {
+				params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+				storageSecretName = ""
+			}
 		}
-		params.Log.Info("reconciled", "name", repository.Name, "namespace", repository.Namespace, "commit", commit)
 	}
+
+	err = updateStatus(ctx, params, commit, storageSecretName)
+	if err != nil {
+		_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
+		params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
+		return nil
+	}
+
 	_ = captureRepositorySyncMetrics(ctx, params, start, commit, false)
+	params.Log.Info("reconciled", "name", repository.Name, "namespace", repository.Namespace, "commit", commit)
 	return nil
 }
 
-func getSecret(ctx context.Context, repository securityv1.Repository, params Params) (*corev1.Secret, error) {
+func getRepositorySecret(ctx context.Context, repository securityv1.Repository, params Params) (*corev1.Secret, error) {
 	repositorySecret := &corev1.Secret{}
 	name := repository.Name
 
@@ -211,11 +247,7 @@ func getSecret(ctx context.Context, repository securityv1.Repository, params Par
 
 	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: repository.Namespace}, repositorySecret)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			if err != nil {
-				return repositorySecret, err
-			}
-		}
+		return repositorySecret, err
 	}
 	return repositorySecret, nil
 }
@@ -225,16 +257,50 @@ func getRepository(ctx context.Context, params Params) (securityv1.Repository, e
 
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, &repository)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			if err != nil {
-				return repository, err
-			}
-		}
+		return repository, err
 	}
 	return repository, nil
 }
 
-func setRepoStatus(ctx context.Context, params Params, patch []byte) error {
+func updateStatus(ctx context.Context, params Params, commit string, storageSecretName string) (err error) {
+	rs := params.Instance.Status
+	r := params.Instance
+
+	rs.Commit = commit
+	rs.Name = r.Name
+	rs.Vendor = r.Spec.Auth.Vendor
+	rs.Ready = true
+
+	if r.Spec.Type == "http" {
+		// future usage will include filesize for tracking changes in remote
+		// or use a different status field.
+		rs.Summary = r.Spec.Endpoint
+	}
+
+	rs.StorageSecretName = storageSecretName
+
+	if !reflect.DeepEqual(rs, r.Status) {
+		params.Log.Info("syncing repository", "name", r.Name, "namespace", r.Namespace)
+		rs.Updated = time.Now().String()
+
+		if r.Spec.StateStoreReference != "" {
+			if rs.StateStoreVersion == 0 {
+				rs.StateStoreVersion = 1
+			} else {
+				rs.StateStoreVersion = rs.StateStoreVersion + 1
+			}
+		}
+
+		r.Status = rs
+		err = params.Client.Status().Update(ctx, r)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func setRepoReady(ctx context.Context, params Params, patch []byte) error {
 
 	if !params.Instance.Status.Ready {
 		return nil
@@ -245,7 +311,6 @@ func setRepoStatus(ctx context.Context, params Params, patch []byte) error {
 		return err
 	}
 	params.Log.Info("repository status has been updated", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
-
 	return nil
 }
 
@@ -279,10 +344,6 @@ func captureRepositorySyncMetrics(ctx context.Context, params Params, start time
 	hostname, err := util.GetHostname()
 	if err != nil {
 		params.Log.Error(err, "failed to retrieve operator hostname")
-		return err
-	}
-	if err != nil {
-		params.Log.Error(err, "failed to retrieve operator namespace")
 		return err
 	}
 
@@ -330,7 +391,7 @@ func captureRepositorySyncMetrics(ctx context.Context, params Params, start time
 				attribute.String("k8s.pod.name", hostname),
 				attribute.String("k8s.namespace.name", operatorNamespace),
 				attribute.String("repository_namespace", gateway.Namespace),
-				attribute.String("repository_type", params.Instance.Spec.Type),
+				attribute.String("repository_type", string(params.Instance.Spec.Type)),
 				attribute.String("repository_name", params.Instance.Name),
 				attribute.String("commit_id", commitId)))
 	} else {
@@ -339,7 +400,7 @@ func captureRepositorySyncMetrics(ctx context.Context, params Params, start time
 				attribute.String("k8s.pod.name", hostname),
 				attribute.String("k8s.namespace.name", operatorNamespace),
 				attribute.String("repository_namespace", gateway.Namespace),
-				attribute.String("repository_type", params.Instance.Spec.Type),
+				attribute.String("repository_type", string(params.Instance.Spec.Type)),
 				attribute.String("repository_name", params.Instance.Name),
 				attribute.String("commit_id", commitId)))
 	}

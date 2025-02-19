@@ -67,3 +67,19 @@ spec:
   endpoint: dev-ssg.brcmlabs.com
   enrollmentBundle: ""
   portalTenant: portal
+---
+apiVersion: security.brcmlabs.com/v1alpha1
+kind: L7StateStore
+metadata:
+  name: state-store-example
+spec:
+  redis:
+    database: 0
+    groupName: l7tests
+    masterPassword: 7layer
+    standalone:
+      host: 192.168.1.10
+      port: 30036
+    storeId: test
+    type: standalone
+  type: redis

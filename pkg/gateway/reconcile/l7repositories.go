@@ -22,17 +22,39 @@ func ExternalRepository(ctx context.Context, params Params) error {
 
 	for _, repoRef := range gateway.Spec.App.RepositoryReferences {
 		if repoRef.Enabled {
-			err := reconcileDynamicRepository(ctx, params, repoRef)
+			err := reconcileDynamicRepository(ctx, params, repoRef, false)
 			if err != nil {
 				params.Log.Error(err, "failed to reconcile repository reference", "name", gateway.Name, "repository", repoRef.Name, "namespace", gateway.Namespace)
 				return err
 			}
 		}
 	}
+
+	for _, repoStatus := range gateway.Status.RepositoryStatus {
+		found := false
+		disabled := false
+		for _, repoRef := range gateway.Spec.App.RepositoryReferences {
+			if repoStatus.Name == repoRef.Name {
+				found = true
+				if !repoRef.Enabled {
+					disabled = true
+				}
+			}
+		}
+		if !found || disabled {
+			repoRef := securityv1.RepositoryReference{Name: repoStatus.Name, Type: "dynamic", Encryption: securityv1.BundleEncryption{Passphrase: "delete"}}
+			err := reconcileDynamicRepository(ctx, params, repoRef, true)
+			if err != nil {
+				params.Log.Error(err, "failed to remove repository reference", "name", gateway.Name, "repository", repoRef.Name, "namespace", gateway.Namespace)
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
-func reconcileDynamicRepository(ctx context.Context, params Params, repoRef securityv1.RepositoryReference) error {
+func reconcileDynamicRepository(ctx context.Context, params Params, repoRef securityv1.RepositoryReference, delete bool) error {
 	gateway := params.Instance
 	repository := &securityv1.Repository{}
 
@@ -48,17 +70,22 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 	commit := repository.Status.Commit
 
+	// only support delete if a statestore is used
+	if repository.Spec.StateStoreReference == "" {
+		delete = false
+	}
+
 	switch repoRef.Type {
 	case "dynamic":
 		if !gateway.Spec.App.Management.Database.Enabled {
-			err = applyEphemeral(ctx, params, repository, repoRef, commit)
+			err = applyEphemeral(ctx, params, repository, repoRef, commit, delete)
 			if err != nil {
 				params.Log.Info("failed to apply commit", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
 				return err
 			}
 
 		} else {
-			err = applyDbBacked(ctx, params, repository, repoRef, commit)
+			err = applyDbBacked(ctx, params, repository, repoRef, commit, delete)
 			if err != nil {
 				params.Log.Info("failed to apply commit", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
 				return err
@@ -77,9 +104,10 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 	return nil
 }
 
-func applyEphemeral(ctx context.Context, params Params, repository *securityv1.Repository, repoRef securityv1.RepositoryReference, commit string) error {
+func applyEphemeral(ctx context.Context, params Params, repository *securityv1.Repository, repoRef securityv1.RepositoryReference, commit string, delete bool) error {
 	gateway := params.Instance
 	secretBundle := []byte{}
+	bundle := []byte{}
 	graphmanPort := 9443
 
 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
@@ -122,6 +150,67 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 		singleton = true
 	}
 
+	if len(repoRef.Directories) == 0 {
+		repoRef.Directories = []string{"/"}
+	}
+
+	if repository.Spec.StateStoreReference != "" {
+		repoRef.Directories = []string{"/"}
+		statestore, err := getStateStore(ctx, params, repository.Spec.StateStoreReference)
+		if err != nil {
+			return err
+		}
+
+		// Retrieve existing secret for Redis
+		// this will need to be updated for multi-state store provider support
+		if statestore.Spec.Redis.ExistingSecret != "" {
+			stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, statestore, params)
+			if err != nil {
+				return err
+			}
+			statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
+			statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
+		}
+
+		rc := util.RedisClient(&statestore.Spec.Redis)
+		bundleString := ""
+		if repository.Spec.StateStoreKey != "" {
+			bundleString, err = rc.Get(ctx, repository.Spec.StateStoreKey).Result()
+			if err != nil {
+				return err
+			}
+			bundle = []byte(bundleString)
+		} else {
+			bundleString, err = rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+repository.Status.StorageSecretName+":latest").Result()
+			if err != nil {
+				return err
+			}
+			bundle, err = util.GzipDecompress([]byte(bundleString))
+			if err != nil {
+				return err
+			}
+		}
+
+		// bundleGzip, err := rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+repository.Status.StorageSecretName+":latest").Result()
+		// if err != nil {
+		// 	return err
+		// }
+
+		// bundle, err = util.GzipDecompress([]byte(bundleGzip))
+		// if err != nil {
+		// 	return err
+		// }
+
+		if delete {
+			bundle, err = util.DeleteBundle(bundle)
+			if err != nil {
+				return err
+			}
+		}
+
+		secretBundle = bundle
+	}
+
 	for i, pod := range podList.Items {
 
 		update := false
@@ -135,6 +224,10 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 		latestCommit := commit
 		currentCommit := pod.ObjectMeta.Annotations["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
 
+		if currentCommit == "deleted" && !repoRef.Enabled {
+			return nil
+		}
+
 		if gateway.Spec.App.SingletonExtraction {
 			if pod.ObjectMeta.Labels["management-access"] == "leader" {
 				latestCommit = commit + "-leader"
@@ -144,15 +237,17 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 
 		patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, latestCommit)
 
-		if currentCommit != latestCommit || currentCommit == "" {
+		if delete {
+			patch = fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, "deleted")
+		}
+
+		if currentCommit != latestCommit || currentCommit == "" || delete {
 			update = true
 		}
 
 		if update && ready {
 			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"
-			if len(repoRef.Directories) == 0 {
-				repoRef.Directories = []string{"/"}
-			}
+
 			for d := range repoRef.Directories {
 				ext := repository.Spec.Branch
 				if ext == "" {
@@ -161,7 +256,11 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 
 				gitPath := "/tmp/" + repoRef.Name + "-" + gateway.Namespace + "-" + ext + "/" + repoRef.Directories[d]
 
-				switch strings.ToLower(repository.Spec.Type) {
+				if repository.Spec.StateStoreReference != "" {
+					gitPath = ""
+				}
+
+				switch strings.ToLower(string(repository.Spec.Type)) {
 				case "http":
 					fileURL, err := url.Parse(repository.Spec.Endpoint)
 					if err != nil {
@@ -182,7 +281,6 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 					if err != nil {
 						return err
 					}
-
 				}
 
 				requestCacheEntry := pod.Name + "-" + repoRef.Name + "-" + latestCommit
@@ -202,7 +300,7 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 					syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 					start := time.Now()
 					params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-					err = util.ApplyToGraphmanTarget(gitPath, secretBundle, singleton, username, password, endpoint, graphmanEncryptionPassphrase)
+					err = util.ApplyToGraphmanTarget(gitPath, secretBundle, singleton, username, password, endpoint, graphmanEncryptionPassphrase, delete)
 					if err != nil {
 						params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 						_ = captureGraphmanMetrics(ctx, params, start, pod.Name, "repository", repoRef.Name, latestCommit, true)
@@ -224,9 +322,10 @@ func applyEphemeral(ctx context.Context, params Params, repository *securityv1.R
 	return nil
 }
 
-func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Repository, repoRef securityv1.RepositoryReference, commit string) error {
+func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Repository, repoRef securityv1.RepositoryReference, commit string, delete bool) error {
 	gateway := params.Instance
 	secretBundle := []byte{}
+	bundle := []byte{}
 	graphmanPort := 9443
 
 	if params.Instance.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
@@ -271,11 +370,6 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 		return nil
 	}
 
-	currentCommit := gatewayDeployment.ObjectMeta.Annotations["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
-	if currentCommit == commit {
-		return nil
-	}
-
 	endpoint := params.Instance.Name + "." + params.Instance.Namespace + ".svc.cluster.local:" + strconv.Itoa(graphmanPort) + "/graphman"
 	if params.Instance.Spec.App.Management.Service.Enabled {
 		endpoint = params.Instance.Name + "-management-service." + params.Instance.Namespace + ".svc.cluster.local:9443/graphman"
@@ -284,6 +378,69 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 	if len(repoRef.Directories) == 0 {
 		repoRef.Directories = []string{"/"}
 	}
+
+	if repository.Spec.StateStoreReference != "" {
+		repoRef.Directories = []string{"/"}
+		statestore, err := getStateStore(ctx, params, repository.Spec.StateStoreReference)
+		if err != nil {
+			return err
+		}
+
+		// Retrieve existing secret for Redis
+		// this will need to be updated for multi-state store provider support
+		if statestore.Spec.Redis.ExistingSecret != "" {
+			stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, statestore, params)
+			if err != nil {
+				return err
+			}
+			statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
+			statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
+		}
+
+		rc := util.RedisClient(&statestore.Spec.Redis)
+		bundleString := ""
+		if repository.Spec.StateStoreKey != "" {
+			bundleString, err = rc.Get(ctx, repository.Spec.StateStoreKey).Result()
+			if err != nil {
+				return err
+			}
+			bundle = []byte(bundleString)
+		} else {
+			bundleString, err = rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+repository.Status.StorageSecretName+":latest").Result()
+			if err != nil {
+				return err
+			}
+			bundle, err = util.GzipDecompress([]byte(bundleString))
+			if err != nil {
+				return err
+			}
+		}
+
+		// bundleGzip, err := rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+repository.Status.StorageSecretName+":latest").Result()
+		// if err != nil {
+		// 	return err
+		// }
+
+		// bundle, err = util.GzipDecompress([]byte(bundleGzip))
+		// if err != nil {
+		// 	return err
+		// }
+
+		if delete {
+			bundle, err = util.DeleteBundle(bundle)
+			if err != nil {
+				return err
+			}
+		}
+
+		secretBundle = bundle
+	}
+
+	currentCommit := gatewayDeployment.ObjectMeta.Annotations["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
+	if currentCommit == commit && !delete {
+		return nil
+	}
+
 	for d := range repoRef.Directories {
 		ext := repository.Spec.Branch
 
@@ -292,7 +449,11 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 		}
 		gitPath := "/tmp/" + repoRef.Name + "-" + gateway.Namespace + "-" + ext + "/" + repoRef.Directories[d]
 
-		switch strings.ToLower(repository.Spec.Type) {
+		if repository.Spec.StateStoreReference != "" {
+			gitPath = ""
+		}
+
+		switch strings.ToLower(string(repository.Spec.Type)) {
 		case "http":
 			fileURL, err := url.Parse(repository.Spec.Endpoint)
 			if err != nil {
@@ -332,7 +493,7 @@ func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Re
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 			start := time.Now()
 			params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-			err = util.ApplyToGraphmanTarget(gitPath, secretBundle, true, username, password, endpoint, graphmanEncryptionPassphrase)
+			err = util.ApplyToGraphmanTarget(gitPath, secretBundle, true, username, password, endpoint, graphmanEncryptionPassphrase, delete)
 			if err != nil {
 				params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 				_ = captureGraphmanMetrics(ctx, params, start, gatewayDeployment.Name, "repository", repoRef.Name, commit, true)

@@ -46,6 +46,7 @@ type L7ApiSpec struct {
 //+kubebuilder:object:root=true
 // +operator-sdk:csv:customresourcedefinitions:resources={{ConfigMaps,v1},{Secrets,v1}}
 //+kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=api;apis
 
 // L7Api is the Schema for the l7apis API
 type L7Api struct {

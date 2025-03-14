@@ -1,7 +1,7 @@
 apiVersion: security.brcmlabs.com/v1alpha1
 kind: L7StateStore
 metadata:
-  name: state-store-example
+  name: portal-state-store
 spec:
   type: redis
   redis:

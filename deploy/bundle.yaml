@@ -6525,8 +6525,6 @@ spec:
               gateways:
                 items:
                   properties:
-                    checksum:
-                      type: string
                     deployment:
                       description: Phase       corev1.
                       type: string
@@ -6535,6 +6533,25 @@ spec:
                       type: string
                     name:
                       type: string
+                    conditions:
+                      items:
+                        properties:
+                          action:
+                            description: enumeration values, either 'DEPLOY' or 'UNDEPLOY" is allowed
+                            type: string
+                          actionTime:
+                            type:
+                              string
+                          checksum:
+                            type: string
+                          status:
+                            description: enumeration values, either 'SUCCESS' or 'FAILURE" is allowed
+                            type: string
+                          reason:
+                            description: deployment detail message
+                            type: string
+                        type: object
+                      type: array
                   type: object
                 type: array
               ready:

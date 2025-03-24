@@ -1,3 +1,4 @@
+// Copyright (c) 2025 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -108,14 +109,21 @@ type CustomField struct {
 	Value string `json:"value"`
 }
 
+type GatewayPodDeploymentCondition struct {
+	Action     string `json:"action,omitempty"`
+	ActionTime string `json:"actionTime,omitempty"`
+	Checksum   string `json:"checksum,omitempty"`
+	Status     string `json:"status,omitempty"`
+	Reason     string `json:"reason,omitempty"`
+}
+
 type LinkedGatewayStatus struct {
 	Name string `json:"name,omitempty"`
 	//Phase       corev1.PodPhase `json:"phase,omitempty"`
-	// Reason: Success/Failed to sync because of x
 	Deployment string `json:"deployment,omitempty"`
 	//Ready       bool            `json:"ready,omitempty"`
-	LastUpdated string `json:"lastUpdated,omitempty"`
-	Checksum    string `json:"checksum,omitempty"`
+	//LastUpdated string `json:"lastUpdated,omitempty"`
+	Conditions []GatewayPodDeploymentCondition `json:"conditions,omitempty"`
 }
 
 func init() {

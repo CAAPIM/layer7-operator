@@ -1299,7 +1299,7 @@ spec:
                       description: Bundle A Restman or Graphman bundle
                       properties:
                         csi:
-                          description: ConfigMap ConfigMap `json:"configMap,omitempty"`
+                          description: CSI volume configuration
                           properties:
                             driver:
                               description: Driver is the secretstore csi driver
@@ -3800,6 +3800,9 @@ spec:
                           createReadOnlySqlConnection:
                             description: CreateReadOnlySqlConnection
                             type: boolean
+                          dbUpgrade:
+                            description: DbUpgrade only applies to oracle and mysql
+                            type: boolean
                           properties:
                             additionalProperties:
                               anyOf:
@@ -4025,26 +4028,12 @@ spec:
                           Gateway deployment that '
                         type: string
                       maintenanceTasks:
-                        description: 'MaintenanceTasks for the OTK database - these
-                          are run by calling a Gateway '
+                        description: MaintenanceTasks for the OTK database are disabled
+                          by default
                         properties:
                           enabled:
                             description: Enable or disable database maintenance tasks
                             type: boolean
-                          operatorManaged:
-                            description: OperatorManaged lets the Operator configure
-                              a hardened version of the db-ma
-                            type: boolean
-                          periodSeconds:
-                            description: Period in seconds between maintenance task
-                              runs
-                            format: int64
-                            type: integer
-                          uri:
-                            description: |-
-                              Uri for custom db-maintenance services
-                              Corresponding maintenance policy mus
-                            type: string
                         type: object
                       overrides:
                         description: Overrides default OTK install functionality
@@ -4057,6 +4046,9 @@ spec:
                             description: CreateTestClients for mysql & oracle setup
                               test clients
                             type: boolean
+                          enablePortalIntegration:
+                            description: EnablePortalIntegration subSolutionKit install.
+                            type: boolean
                           enabled:
                             description: Enable or disable otk overrides
                             type: boolean
@@ -4068,10 +4060,6 @@ spec:
                             description: |-
                               SkipInternalServerTools subSolutionKit install
                               defaults to false
-                            type: boolean
-                          skipPortalIntegrationComponents:
-                            description: SkipPortalIntegrationComponents subSolutionKit
-                              install.
                             type: boolean
                           testClientsRedirectUrlPrefix:
                             description: TestClientsRedirectUrlPrefix. Required if
@@ -6361,7 +6349,7 @@ spec:
                         is enabled
                       type: boolean
                     endpoint:
-                      description: Endoint is the Git repo
+                      description: Endoint is the Git or HTTP repo
                       type: string
                     name:
                       description: Name of the Repository Reference
@@ -6372,6 +6360,12 @@ spec:
                     secretName:
                       description: SecretName is used to mount the correct repository
                         secret to the initContai
+                      type: string
+                    stateStoreKey:
+                      description: StateStoreKey
+                      type: string
+                    stateStoreReference:
+                      description: StateStoreReference
                       type: string
                     storageSecretName:
                       description: StorageSecretName is used to mount existing repository

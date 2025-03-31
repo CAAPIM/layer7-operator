@@ -500,7 +500,7 @@ func BuildDefaultListenPortBundle(refreshOnKeyChanges bool) ([]byte, string, err
 
 func BuildCustomListenPortBundle(gw *securityv1.Gateway, refreshOnKeyChanges bool) ([]byte, string, error) {
 	bundle := graphman.Bundle{}
-	privateKey := "00000000000000000000000000000002:ssl"
+	//privateKey := "00000000000000000000000000000002:ssl"
 	clientAuthentication := graphman.ListenPortClientAuthOptional
 	for _, port := range gw.Spec.App.ListenPorts.Ports {
 		enabledFeatures := []graphman.ListenPortFeature{}
@@ -527,8 +527,8 @@ func BuildCustomListenPortBundle(gw *securityv1.Gateway, refreshOnKeyChanges boo
 				CipherSuites:         port.Tls.CipherSuites,
 				UseCipherSuitesOrder: port.Tls.UseCipherSuitesOrder,
 				TlsVersions:          port.Tls.Versions,
-				KeystoreId:           strings.Split(privateKey, ":")[0],
-				KeyAlias:             strings.Split(privateKey, ":")[1],
+				// KeystoreId:           strings.Split(privateKey, ":")[0],
+				// KeyAlias:             strings.Split(privateKey, ":")[1],
 			}
 
 			hasRefreshOnKeyChangeProp := false

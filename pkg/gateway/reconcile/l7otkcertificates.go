@@ -33,7 +33,6 @@ func syncOtkCertificates(ctx context.Context, params Params) {
 	if err != nil {
 		params.Log.Info("failed to reconcile otk certificates", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
 	}
-
 }
 
 func applyOtkCertificates(ctx context.Context, params Params, gateway *securityv1.Gateway) error {
@@ -111,7 +110,7 @@ func applyOtkCertificates(ctx context.Context, params Params, gateway *securityv
 		if err != nil {
 			return err
 		}
-		err = ReconcileDBGateway(ctx, params, "otk certificates", gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, "otk certificates", bundleBytes)
+		err = ReconcileDBGateway(ctx, params, "otk certificates", *gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, "otk certificates", bundleBytes)
 		if err != nil {
 			return err
 		}
@@ -231,16 +230,3 @@ func retrieveCertificate(host string, port string) ([]byte, error) {
 	cert := conn.ConnectionState().PeerCertificates[0].Raw
 	return cert, nil
 }
-
-// func getSha1Thumbprint(rawCert []byte) (string, error) {
-// 	fingerprint := sha1.Sum(rawCert)
-// 	var buf bytes.Buffer
-// 	for _, f := range fingerprint {
-// 		fmt.Fprintf(&buf, "%02X", f)
-// 	}
-// 	hexDump, err := hex.DecodeString(buf.String())
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return base64.StdEncoding.EncodeToString(hexDump), nil
-// }

@@ -100,7 +100,12 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if gw.Spec.App.Otk.Enabled {
-		ops = append(ops, ReconcileOperations{reconcile.ScheduledJobs, "scheduled jobs"})
+		if gw.Spec.App.Otk.Type == securityv1.OtkTypeDMZ || gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal {
+			ops = append(ops, ReconcileOperations{reconcile.ScheduledJobs, "scheduled jobs"})
+		}
+		if gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle && !gw.Spec.App.Management.Database.Enabled {
+			ops = append(ops, ReconcileOperations{reconcile.OTKDatabaseMaintenanceTasks, "otk-db-maintenance-tasks"})
+		}
 	}
 
 	params := reconcile.Params{
@@ -114,11 +119,14 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	start := time.Now()
 	for _, op := range ops {
+		r.muTasks.Lock()
 		err = op.Run(ctx, params)
 		if err != nil {
 			_ = captureMetrics(ctx, params, start, true, op.Name)
+			r.muTasks.Unlock()
 			return ctrl.Result{}, err
 		}
+		r.muTasks.Unlock()
 	}
 
 	_ = captureMetrics(ctx, params, start, false, "")
@@ -144,6 +152,8 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Version: "v1",
 		Kind:    "repository",
 	})
+
+	///// make sure this actually works as intended.. getting complicated
 
 	builder.WatchesMetadata(repo,
 		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []creconcile.Request {
@@ -274,9 +284,36 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					if err != nil {
 						return true
 					}
-					if oldDep.Status.AvailableReplicas == newDep.Status.AvailableReplicas || newDep.Status.AvailableReplicas == 0 {
+					if oldDep.Status.ReadyReplicas == newDep.Status.ReadyReplicas || oldDep.Status.ReadyReplicas > newDep.Status.ReadyReplicas || newDep.Status.ReadyReplicas == 0 {
 						return false
 					}
+					return true
+				}
+
+				if objType == "*v1.PodDisruptionBudget" {
+					oldPdb := policyv1.PodDisruptionBudget{}
+					newPdb := appsv1.Deployment{}
+					oldPdbB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+					newPdbB, err := json.Marshal(e.ObjectNew.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+
+					err = json.Unmarshal(oldPdbB, &oldPdb)
+					if err != nil {
+						return true
+					}
+					err = json.Unmarshal(newPdbB, &newPdb)
+					if err != nil {
+						return true
+					}
+					if reflect.DeepEqual(oldPdb.Spec, newPdb.Spec) {
+						return false
+					}
+
 					return true
 				}
 

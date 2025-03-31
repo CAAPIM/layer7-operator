@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	v1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-co-op/gocron"
 )
@@ -42,10 +43,10 @@ func registerJobs(ctx context.Context, params Params) {
 		repoSyncInterval = params.Instance.Spec.RepositorySyncConfig.IntervalSeconds
 	}
 
-	_, err := s.Every(repoSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-repository").Do(syncRepository, ctx, params)
-
-	if err != nil {
-		params.Log.V(2).Info("repository sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+	if params.Instance.Spec.Type != v1.RepositoryTypeLocal {
+		_, err := s.Every(repoSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-repository").Do(syncRepository, ctx, params)
+		if err != nil {
+			params.Log.V(2).Info("repository sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		}
 	}
-
 }

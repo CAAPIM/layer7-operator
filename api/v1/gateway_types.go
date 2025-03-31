@@ -151,8 +151,12 @@ type GatewayRepositoryStatus struct {
 	Branch string `json:"branch,omitempty"`
 	// Tag is the git tag in the Git repo
 	Tag string `json:"tag,omitempty"`
-	// Endoint is the Git repo
+	// Endoint is the Git or HTTP repo
 	Endpoint string `json:"endpoint,omitempty"`
+	// StateStoreReference
+	StateStoreReference string `json:"stateStoreReference,omitempty"`
+	// StateStoreKey
+	StateStoreKey string `json:"stateStoreKey,omitempty"`
 }
 
 // PortalSyncStatus tracks the status of which portals are synced with a gateway.
@@ -290,25 +294,17 @@ type Otk struct {
 	DmzOtkGatewayReference string `json:"dmzGatewayReference,omitempty"`
 	// defaults to 8443
 	OTKPort int `json:"port,omitempty"`
-	// MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds
+	// MaintenanceTasks for the OTK database are disabled by default
 	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
 	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
 	RuntimeSyncIntervalSeconds int `json:"runtimeSyncIntervalSeconds,omitempty"`
 }
 
-// OtkMaintenanceTasks are run via API Call to Layer7 API Gateways
-// in ephemeral mode these tasks will run against one Gateway node automatically selected by the Operator.
-// This configuration allows that functionality to be disabled or customized.
+// OtkMaintenanceTasks are included in the install bundle as disabled scheduled tasks
+// if enabled they will be scheduled on the leader gateway node
 type OtkMaintenanceTasks struct {
 	// Enable or disable database maintenance tasks
 	Enabled bool `json:"enabled,omitempty"`
-	// OperatorManaged lets the Operator configure a hardened version of the db-maintenance policy
-	OperatorManaged bool `json:"operatorManaged,omitempty"`
-	// Uri for custom db-maintenance services
-	// Corresponding maintenance policy must support a parameter called task
-	Uri string `json:"uri,omitempty"`
-	// Period in seconds between maintenance task runs
-	Period int64 `json:"periodSeconds,omitempty"`
 }
 
 type OtkOverrides struct {
@@ -319,9 +315,9 @@ type OtkOverrides struct {
 	// SkipInternalServerTools subSolutionKit install
 	// defaults to false
 	SkipInternalServerTools bool `json:"skipInternalServerTools,omitempty"`
-	// SkipPortalIntegrationComponents subSolutionKit install. This does not perform portal integration
+	// EnablePortalIntegration subSolutionKit install. This does not perform portal integration
 	// defaults to true
-	SkipPortalIntegrationComponents bool `json:"skipPortalIntegrationComponents,omitempty"`
+	EnablePortalIntegration bool `json:"enablePortalIntegration,omitempty"`
 	// CreateTestClients for mysql & oracle setup test clients
 	CreateTestClients bool `json:"createTestClients,omitempty"`
 	// TestClientsRedirectUrlPrefix. Required if createTestClients is true.
@@ -426,6 +422,8 @@ type OtkDatabase struct {
 	Type OtkDatabaseType `json:"type,omitempty"`
 	// Create the OTK database. Only applies to oracle and mysql
 	Create bool `json:"create,omitempty"`
+	// DbUpgrade only applies to oracle and mysql
+	DbUpgrade bool `json:"dbUpgrade,omitempty"`
 	// ConnectionName for the JDBC or Cassandra Connection Gateway entity
 	ConnectionName string `json:"connectionName,omitempty"`
 	// Auth for the OTK Database
@@ -658,8 +656,7 @@ type Bundle struct {
 	// Source
 	Source string `json:"source,omitempty"`
 	Name   string `json:"name,omitempty"`
-	// ConfigMap ConfigMap `json:"configMap,omitempty"`
-	CSI CSI `json:"csi,omitempty"`
+	CSI    CSI    `json:"csi,omitempty"`
 }
 
 // CSI volume configuration
@@ -982,6 +979,13 @@ type System struct {
 	Properties string `json:"properties,omitempty"`
 }
 
+type RepositoryReferenceType string
+
+const (
+	RepositoryReferenceTypeDynamic RepositoryReferenceType = "dynamic"
+	RepositoryReferenceTypeStatic  RepositoryReferenceType = "static"
+)
+
 // RepositoryReference is reference to a Git repository or HTTP endpoint that contains graphman bundles
 type RepositoryReference struct {
 	// Enabled or disabled
@@ -996,9 +1000,9 @@ type RepositoryReference struct {
 	// it is recommended that these stay under 1mb in size when compressed
 	// for larger static repositories it is recommended that you use a dedicated initContainer
 	// dynamic repositories are applied directly to the gateway whenever the commit of a repository changes
-	Type         string           `json:"type,omitempty"`
-	Encryption   BundleEncryption `json:"encryption,omitempty"`
-	Notification Notification     `json:"notification,omitempty"`
+	Type         RepositoryReferenceType `json:"type,omitempty"`
+	Encryption   BundleEncryption        `json:"encryption,omitempty"`
+	Notification Notification            `json:"notification,omitempty"`
 }
 
 // BundleEncryption allows setting an encryption passphrase per repository or external secret/key reference

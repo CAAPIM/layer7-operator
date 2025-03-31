@@ -61,16 +61,15 @@ func (r *L7StateStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		Instance: stateStore,
 	}
 
-	// listRepositories
-	// if repository has statestore reference then sync that (checksum).
-	// otherwise do nothing..
-
 	err = reconcile.RedisStateStore(ctx, params)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	// just test the connection???
 
+	err = reconcile.Secret(ctx, params)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 

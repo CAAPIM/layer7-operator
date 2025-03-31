@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -48,7 +49,7 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			Commit:            commit,
 			Enabled:           repoRef.Enabled,
 			Name:              repoRef.Name,
-			Type:              repoRef.Type,
+			Type:              string(repoRef.Type),
 			SecretName:        secretName,
 			StorageSecretName: repository.Status.StorageSecretName,
 			Endpoint:          repository.Spec.Endpoint,
@@ -66,7 +67,26 @@ func GatewayStatus(ctx context.Context, params Params) error {
 		if repository.Spec.RemoteName != "" {
 			newRepoStatus.RemoteName = repository.Spec.RemoteName
 		}
+
+		if repository.Spec.StateStoreReference != "" {
+			newRepoStatus.StateStoreReference = repository.Spec.StateStoreReference
+
+			statestore := &securityv1alpha1.L7StateStore{}
+
+			err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Spec.StateStoreReference, Namespace: params.Instance.Namespace}, statestore)
+			if err != nil && k8serrors.IsNotFound(err) {
+				params.Log.Info("state store not found", "name", repository.Spec.StateStoreReference, "repository", repoRef.Name, "namespace", params.Instance.Namespace)
+				return err
+			}
+
+			newRepoStatus.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + repository.Status.StorageSecretName + ":latest"
+			if repository.Spec.StateStoreKey != "" {
+				newRepoStatus.StateStoreKey = repository.Spec.StateStoreKey
+			}
+		}
+
 		gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, newRepoStatus)
+
 	}
 
 	podList, err := getGatewayPods(ctx, params)
@@ -77,6 +97,7 @@ func GatewayStatus(ctx context.Context, params Params) error {
 	for _, p := range podList.Items {
 		if p.ObjectMeta.Labels["management-access"] == "leader" {
 			gatewayStatus.ManagementPod = p.Name
+			// range over repository status and check if the delete annotation has been added to pods
 		}
 	}
 

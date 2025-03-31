@@ -1,8 +1,6 @@
 package gateway
 
 import (
-	"crypto/sha1"
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -629,14 +627,13 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		initContainers = append(initContainers, ic)
 	}
 
-	graphmanInitContainer := false
-	commits := ""
+	//graphmanInitContainer := false
+	//commits := ""
 	gmanInitContainerVolumeMounts := []corev1.VolumeMount{}
 	for _, staticRepository := range gw.Status.RepositoryStatus {
 		if staticRepository.Enabled && staticRepository.Type == "static" {
-			commits = commits + staticRepository.Commit
-			graphmanInitContainer = true
-
+			//commits = commits + staticRepository.Commit
+			//graphmanInitContainer = true
 			if staticRepository.SecretName != "" {
 				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 					Name:      staticRepository.SecretName,
@@ -672,81 +669,87 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		}
 	}
 
-	if graphmanInitContainer {
-		// Config Mount
-		gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-			Name:      gw.Name + "-repository-init-config",
-			MountPath: "/graphman/config.json",
-			SubPath:   "config.json",
-		})
+	//if graphmanInitContainer {
+	// Config Mount
+	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+		Name:      gw.Name + "-repository-init-config",
+		MountPath: "/graphman/config.json",
+		SubPath:   "config.json",
+	})
 
-		volumes = append(volumes, corev1.Volume{
-			Name: gw.Name + "-repository-init-config",
-			VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: gw.Name + "-repository-init-config",
-				},
-				DefaultMode: &defaultMode,
-				Optional:    &optional,
-			}},
-		})
-
-		// Target Bootstrap Mount
-		gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-			Name:      gw.Name + "-repository-bundle-dest",
-			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
-		})
-		volumes = append(volumes, corev1.Volume{
-			Name: gw.Name + "-repository-bundle-dest",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+	volumes = append(volumes, corev1.Volume{
+		Name: gw.Name + "-repository-init-config",
+		VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: gw.Name + "-repository-init-config",
 			},
-		})
+			DefaultMode: &defaultMode,
+			Optional:    &optional,
+		}},
+	})
 
-		volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
+	/////// change the init container to always mount
+	// Target Bootstrap Mount
+	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+		Name:      gw.Name + "-repository-bundle-dest",
+		MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
+	})
+	volumes = append(volumes, corev1.Volume{
+		Name: gw.Name + "-repository-bundle-dest",
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	})
 
-		h := sha1.New()
-		h.Write([]byte(commits))
-		commits = fmt.Sprintf("%x", h.Sum(nil))
+	volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
 
-		graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.2"
-		graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
-		graphmanInitContainerSecurityContext := corev1.SecurityContext{}
+	// h := sha1.New()
+	// h.Write([]byte(commits))
+	// commits = fmt.Sprintf("%x", h.Sum(nil))
 
-		if gw.Spec.App.Management.Graphman.InitContainerImage != "" {
-			graphmanInitContainerImage = gw.Spec.App.Management.Graphman.InitContainerImage
-		}
+	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.2"
+	graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
+	graphmanInitContainerSecurityContext := corev1.SecurityContext{}
 
-		if gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy != "" {
-			graphmanInitContainerImagePullPolicy = gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy
-		}
-
-		if platform == "openshift" {
-			graphmanInitContainerSecurityContext = ocContainerSecurityContext
-		}
-
-		if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
-			graphmanInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
-		}
-
-		if gw.Spec.App.Management.Graphman.InitContainerSecurityContext != (corev1.SecurityContext{}) {
-			graphmanInitContainerSecurityContext = gw.Spec.App.Management.Graphman.InitContainerSecurityContext
-		}
-
-		initContainers = append(initContainers, corev1.Container{
-			Name:            "graphman-static-init-" + commits[30:],
-			Image:           graphmanInitContainerImage,
-			ImagePullPolicy: graphmanInitContainerImagePullPolicy,
-			SecurityContext: &graphmanInitContainerSecurityContext,
-			VolumeMounts:    gmanInitContainerVolumeMounts,
-			Env: []corev1.EnvVar{{
-				Name:  "BOOTSTRAP_BASE",
-				Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
-			}},
-			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-		})
+	if gw.Spec.App.Management.Graphman.InitContainerImage != "" {
+		graphmanInitContainerImage = gw.Spec.App.Management.Graphman.InitContainerImage
 	}
+
+	if gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy != "" {
+		graphmanInitContainerImagePullPolicy = gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy
+	}
+
+	if platform == "openshift" {
+		graphmanInitContainerSecurityContext = ocContainerSecurityContext
+	}
+
+	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+		graphmanInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
+	}
+
+	if gw.Spec.App.Management.Graphman.InitContainerSecurityContext != (corev1.SecurityContext{}) {
+		graphmanInitContainerSecurityContext = gw.Spec.App.Management.Graphman.InitContainerSecurityContext
+	}
+	//gIcName := "graphman-static-init"
+
+	// if commits != "" {
+	// 	gIcName = "graphman-static-init-" + commits[30:]
+	// }
+
+	initContainers = append(initContainers, corev1.Container{
+		Name:            "graphman-static-init",
+		Image:           graphmanInitContainerImage,
+		ImagePullPolicy: graphmanInitContainerImagePullPolicy,
+		SecurityContext: &graphmanInitContainerSecurityContext,
+		VolumeMounts:    gmanInitContainerVolumeMounts,
+		Env: []corev1.EnvVar{{
+			Name:  "BOOTSTRAP_BASE",
+			Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
+		}},
+		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+	})
+	//}
 
 	if gw.Spec.App.PortalReference.Enabled {
 		portalInitContainerVolumeMounts := []corev1.VolumeMount{}

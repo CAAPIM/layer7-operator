@@ -3503,7 +3503,7 @@ Bundle A Restman or Graphman bundle
         <td><b><a href="#gatewayspecappbundleindexcsi">csi</a></b></td>
         <td>object</td>
         <td>
-          ConfigMap ConfigMap `json:"configMap,omitempty"`<br/>
+          CSI volume configuration<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3536,7 +3536,7 @@ Bundle A Restman or Graphman bundle
 
 
 
-ConfigMap ConfigMap `json:"configMap,omitempty"`
+CSI volume configuration
 
 <table>
     <thead>
@@ -10463,7 +10463,7 @@ This configures a relationship between DMZ and Internal Gateways.<br/>
         <td><b><a href="#gatewayspecappotkmaintenancetasks">maintenanceTasks</a></b></td>
         <td>object</td>
         <td>
-          MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds<br/>
+          MaintenanceTasks for the OTK database are disabled by default<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10554,6 +10554,13 @@ Database configuration
         <td>boolean</td>
         <td>
           CreateReadOnlySqlConnection<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>dbUpgrade</b></td>
+        <td>boolean</td>
+        <td>
+          DbUpgrade only applies to oracle and mysql<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11321,7 +11328,7 @@ PodSecurityContext, the value specified in SecurityContext takes precedence.<br/
 
 
 
-MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds
+MaintenanceTasks for the OTK database are disabled by default
 
 <table>
     <thead>
@@ -11337,30 +11344,6 @@ MaintenanceTasks for the OTK database - these are run by calling a Gateway endpo
         <td>boolean</td>
         <td>
           Enable or disable database maintenance tasks<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>operatorManaged</b></td>
-        <td>boolean</td>
-        <td>
-          OperatorManaged lets the Operator configure a hardened version of the db-maintenance policy<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>periodSeconds</b></td>
-        <td>integer</td>
-        <td>
-          Period in seconds between maintenance task runs<br/>
-          <br/>
-            <i>Format</i>: int64<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>uri</b></td>
-        <td>string</td>
-        <td>
-          Uri for custom db-maintenance services
-Corresponding maintenance policy must support a parameter called task<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11398,6 +11381,14 @@ Overrides default OTK install functionality
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>enablePortalIntegration</b></td>
+        <td>boolean</td>
+        <td>
+          EnablePortalIntegration subSolutionKit install. This does not perform portal integration
+defaults to true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
@@ -11423,14 +11414,6 @@ This should be disabled if you intend to manage these via Graphman/Restman bundl
         <td>
           SkipInternalServerTools subSolutionKit install
 defaults to false<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>skipPortalIntegrationComponents</b></td>
-        <td>boolean</td>
-        <td>
-          SkipPortalIntegrationComponents subSolutionKit install. This does not perform portal integration
-defaults to true<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17713,7 +17696,7 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         <td><b>endpoint</b></td>
         <td>string</td>
         <td>
-          Endoint is the Git repo<br/>
+          Endoint is the Git or HTTP repo<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17735,6 +17718,20 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         <td>string</td>
         <td>
           SecretName is used to mount the correct repository secret to the initContainer<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateStoreKey</b></td>
+        <td>string</td>
+        <td>
+          StateStoreKey<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateStoreReference</b></td>
+        <td>string</td>
+        <td>
+          StateStoreReference<br/>
         </td>
         <td>false</td>
       </tr><tr>

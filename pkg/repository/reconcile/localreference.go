@@ -80,10 +80,6 @@ func localReferenceShaSum(ctx context.Context, repository securityv1.Repository,
 		return "", err
 	}
 
-	// bundleBytes, err := util.ConcatBundles(localReference.Data)
-	// if err != nil {
-	// 	return "", err
-	// }
 	dataBytes, _ := json.Marshal(&localReference.Data)
 	h := sha1.New()
 	h.Write(dataBytes)

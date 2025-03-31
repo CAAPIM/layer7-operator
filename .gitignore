@@ -40,6 +40,7 @@ license.xml
 testdata
 l7api.yaml
 l7portal.yaml
-oom-repo.yaml
 docker-secret.yaml
 tenant_info.json
+example/repositories/local-tests
+example/gateway/local-tests

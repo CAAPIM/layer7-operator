@@ -168,7 +168,7 @@ func syncRepository(ctx context.Context, params Params) error {
 
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, &opts)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
-			params.Log.V(2).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			updateErr := updateStatus(ctx, params, commit, storageSecretName)
 			if updateErr != nil {
 				_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
@@ -202,6 +202,12 @@ func syncRepository(ctx context.Context, params Params) error {
 			storageSecretName = ""
 			return nil
 		}
+
+		if params.Instance.Status.Commit == commit {
+			params.Log.V(5).Info("already up-to-date", "name", repository.Name, "namespace", repository.Namespace)
+			return nil
+		}
+
 	case "local":
 		return nil
 	default:

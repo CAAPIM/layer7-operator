@@ -22,13 +22,16 @@ type InitContainerStaticConfig struct {
 }
 
 type RepositoryConfig struct {
-	Name           string `json:"name"`
-	Endpoint       string `json:"endpoint"`
-	Branch         string `json:"branch"`
-	Auth           string `json:"auth"`
-	LocalReference string `json:"localReference,omitempty"`
-	Tag            string `json:"tag,omitempty"`
-	RemoteName     string `json:"remoteName,omitempty"`
+	Name                string `json:"name"`
+	Endpoint            string `json:"endpoint"`
+	Branch              string `json:"branch"`
+	Auth                string `json:"auth"`
+	LocalReference      string `json:"localReference,omitempty"`
+	Tag                 string `json:"tag,omitempty"`
+	RemoteName          string `json:"remoteName,omitempty"`
+	StateStoreReference string `json:"stateStoreReference,omitempty"`
+	StateStoreKey       string `json:"stateStoreKey,omitempty"`
+	SingletonExtraction bool   `json:"singletonExtraction,omitempty"`
 }
 
 // NewConfigMap
@@ -110,24 +113,41 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		initContainerStaticConfig := InitContainerStaticConfig{}
 		initContainerStaticConfig.Version = "1.0"
 		for i := range gw.Status.RepositoryStatus {
+			var localRef string
 			if gw.Status.RepositoryStatus[i].Enabled && gw.Status.RepositoryStatus[i].Type == "static" {
-				var localRef string
-				if gw.Status.RepositoryStatus[i].StorageSecretName != "" {
-					localRef = "/graphman/localref/" + gw.Status.RepositoryStatus[i].StorageSecretName + "/" + gw.Status.RepositoryStatus[i].Name + ".gz"
-					initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
-						Name:           gw.Status.RepositoryStatus[i].Name,
-						LocalReference: localRef,
-					})
+				//if gw.Status.RepositoryStatus[i].Type == "static" {
+				if gw.Status.RepositoryStatus[i].StateStoreReference == "" {
+					if gw.Status.RepositoryStatus[i].StorageSecretName != "" {
+						localRef = "/graphman/localref/" + gw.Status.RepositoryStatus[i].StorageSecretName + "/" + gw.Status.RepositoryStatus[i].Name + ".gz"
+						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
+							Name:                gw.Status.RepositoryStatus[i].Name,
+							LocalReference:      localRef,
+							SingletonExtraction: gw.Spec.App.SingletonExtraction,
+						})
+					} else {
+						if !gw.Spec.App.Management.Database.Enabled {
+							initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
+								Name:                gw.Status.RepositoryStatus[i].Name,
+								Endpoint:            gw.Status.RepositoryStatus[i].Endpoint,
+								Branch:              gw.Status.RepositoryStatus[i].Branch,
+								RemoteName:          gw.Status.RepositoryStatus[i].RemoteName,
+								Tag:                 gw.Status.RepositoryStatus[i].Tag,
+								Auth:                "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
+								SingletonExtraction: gw.Spec.App.SingletonExtraction,
+							})
+						}
+					}
 				} else {
-					initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
-						Name:       gw.Status.RepositoryStatus[i].Name,
-						Endpoint:   gw.Status.RepositoryStatus[i].Endpoint,
-						Branch:     gw.Status.RepositoryStatus[i].Branch,
-						RemoteName: gw.Status.RepositoryStatus[i].RemoteName,
-						Tag:        gw.Status.RepositoryStatus[i].Tag,
-						Auth:       "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
-					})
+					if gw.Status.RepositoryStatus[i].StateStoreReference != "" && !gw.Spec.App.Management.Database.Enabled {
+						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
+							Name:                gw.Status.RepositoryStatus[i].Name,
+							StateStoreReference: gw.Status.RepositoryStatus[i].StateStoreReference,
+							StateStoreKey:       gw.Status.RepositoryStatus[i].StateStoreKey,
+							SingletonExtraction: gw.Spec.App.SingletonExtraction,
+						})
+					}
 				}
+				//	}
 			}
 		}
 		initContainerStaticConfigBytes, _ := json.Marshal(initContainerStaticConfig)
@@ -147,9 +167,9 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			dbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.Properties)
 			dbPropertyString := strings.ReplaceAll(string(dbPropertyBytes), "[", "")
 			dbPropertyString = strings.ReplaceAll(dbPropertyString, "]", "")
-			data["OTK_DATABASE_PROPERTIES"] = base64.RawStdEncoding.EncodeToString([]byte(dbPropertyString))
+			data["OTK_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
 			if gw.Spec.App.Otk.Database.CreateReadOnlySqlConnection {
-				data["OTK_RO_DATABASE_PROPERTIES"] = base64.RawStdEncoding.EncodeToString([]byte(dbPropertyString))
+				data["OTK_RO_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
 			}
 		}
 
@@ -211,10 +231,10 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 	case gw.Name + "-otk-install-init-config":
 		data["OTK_INSTALL_MODE"] = "initContainer"
 		data["BOOTSTRAP_DIR"] = "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK"
-		data["OTK_INTEGRATE_WITH_PORTAL"] = "true"
+		data["OTK_INTEGRATE_WITH_PORTAL"] = "false"
 		data["OTK_SKIP_INTERNAL_SERVER_TOOLS"] = "false"
 		data["OTK_SKIP_POST_INSTALLATION_TASKS"] = "false"
-		data["OTK_DATABASE_UPGRADE"] = "false"
+		data["OTK_DATABASE_UPGRADE"] = strconv.FormatBool(gw.Spec.App.Otk.Database.DbUpgrade)
 		data["OTK_INTERNAL_CERT_ENCODED"] = ""
 		data["OTK_INTERNAL_CERT_ISS"] = ""
 		data["OTK_INTERNAL_CERT_SERIAL"] = "12345"
@@ -236,8 +256,8 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			if gw.Spec.App.Otk.Overrides.SkipInternalServerTools {
 				data["OTK_SKIP_INTERNAL_SERVER_TOOLS"] = "true"
 			}
-			if gw.Spec.App.Otk.Overrides.SkipPortalIntegrationComponents {
-				data["OTK_INTEGRATE_WITH_PORTAL"] = "false"
+			if gw.Spec.App.Otk.Overrides.EnablePortalIntegration {
+				data["OTK_INTEGRATE_WITH_PORTAL"] = "true"
 			}
 
 		}
@@ -265,7 +285,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 				data["OTK_JDBC_DRIVER_CLASS"] = string(gw.Spec.App.Otk.Database.Sql.JDBCDriverClass)
 
 			}
-			data["OTK_DATABASE_UPGRADE"] = "true"
+			data["OTK_DATABASE_UPGRADE"] = strconv.FormatBool(gw.Spec.App.Otk.Database.DbUpgrade)
 			data["OTK_CREATE_TEST_CLIENTS"] = "false"
 			data["OTK_TEST_CLIENTS_REDIRECT_URL_PREFIX"] = ""
 			//data["OTK_LIQUIBASE_OPERATION"] = "changelogSync"

@@ -71,7 +71,7 @@ type MappingSource struct {
 }
 
 type ApplyToGraphmanTargetOpts struct {
-	Path         string
+	//Path         string
 	Bundle       []byte
 	SecretBundle []byte
 	Singleton    bool
@@ -81,23 +81,9 @@ type ApplyToGraphmanTargetOpts struct {
 	Encpass      string
 }
 
-func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, username string, password string, target string, encpass string, delete bool) error {
+func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, password string, target string, encpass string, delete bool) error {
 	bundle := graphman.Bundle{}
-	var bundleBytes []byte
 	var err error
-
-	if len(secretBundle) > 0 {
-		bundleBytes = secretBundle
-	} else {
-		bundleBytes, err = BuildAndValidateBundle(path)
-		if err != nil {
-			return err
-		}
-	}
-
-	// if bundleBytes == nil && len(secretBundle) > 0 {
-	// 	bundleBytes = secretBundle
-	// }
 
 	if !singleton {
 		scheduledTasks := []*graphman.ScheduledTaskInput{}
@@ -410,6 +396,17 @@ func ConcatBundles(bundleMap map[string][]byte) ([]byte, error) {
 
 	for k, bundle := range bundleMap {
 		if strings.HasSuffix(k, ".json") {
+			newBundle, err := graphman.ConcatBundle(combinedBundle, bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle = newBundle
+		}
+		if strings.HasSuffix(k, ".gz") {
+			bundle, err := GzipDecompress(bundle)
+			if err != nil {
+				return nil, err
+			}
 			newBundle, err := graphman.ConcatBundle(combinedBundle, bundle)
 			if err != nil {
 				return nil, err

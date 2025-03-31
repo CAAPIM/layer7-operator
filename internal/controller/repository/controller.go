@@ -40,7 +40,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	creconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -50,8 +49,7 @@ type RepositoryReconciler struct {
 	Recorder record.EventRecorder
 	Log      logr.Logger
 	Scheme   *runtime.Scheme
-	// implement mutex..
-	muTasks sync.Mutex
+	muTasks  sync.Mutex
 }
 
 type ReconcileOperations struct {
@@ -106,8 +104,7 @@ func (r *RepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&securityv1.Repository{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Secret{}).
-		WithEventFilter(predicate.GenerationChangedPredicate{})
+		Owns(&corev1.Secret{})
 
 	s := &metav1.PartialObjectMetadata{}
 	s.SetGroupVersionKind(schema.GroupVersionKind{
@@ -130,7 +127,7 @@ func (r *RepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			}
 			req := []creconcile.Request{}
 			for _, repo := range repoList.Items {
-				if strings.ToLower(string(repo.Spec.Type)) == "local" && s.Name == repo.Spec.LocalReference.SecretName {
+				if strings.ToLower(string(repo.Spec.Type)) == "local" && a.GetName() == repo.Spec.LocalReference.SecretName {
 					req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: repo.Namespace, Name: repo.Name}})
 				}
 			}

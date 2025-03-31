@@ -41,7 +41,7 @@ func registerJobs(ctx context.Context, params Params) {
 		otkSyncInterval = params.Instance.Spec.App.Otk.RuntimeSyncIntervalSeconds
 	}
 
-	if params.Instance.Spec.App.Otk.Enabled && params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeDMZ || params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeInternal {
+	if params.Instance.Spec.App.Otk.Enabled && (params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeDMZ || params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeInternal) {
 		_, err := s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-otk-policies").Do(syncOtkPolicies, ctx, params)
 
 		if err != nil {

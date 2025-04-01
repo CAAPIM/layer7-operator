@@ -6525,33 +6525,29 @@ spec:
               gateways:
                 items:
                   properties:
-                    deployment:
-                      description: Phase       corev1.
-                      type: string
-                    lastUpdated:
-                      description: Ready       bool            `json:"ready,omitempty"`
-                      type: string
-                    name:
-                      type: string
                     conditions:
+                      description: |-
+                        Ready       bool            `json:"ready,omitempty"`
+                        LastUpdated string `js
                       items:
                         properties:
                           action:
-                            description: enumeration values, either 'DEPLOY' or 'UNDEPLOY" is allowed
                             type: string
                           actionTime:
-                            type:
-                              string
+                            type: string
                           checksum:
                             type: string
-                          status:
-                            description: enumeration values, either 'SUCCESS' or 'FAILURE" is allowed
-                            type: string
                           reason:
-                            description: deployment detail message
+                            type: string
+                          status:
                             type: string
                         type: object
                       type: array
+                    deployment:
+                      description: Phase       corev1.PodPhase `json:"phase,omitempty"`
+                      type: string
+                    name:
+                      type: string
                   type: object
                 type: array
               ready:

@@ -26,6 +26,7 @@ import (
 )
 
 const apiFinalizer = "security.brcmlabs.com/finalizer"
+const L7API_REMOVED_ANNOTATION = "security.brcmlabs.com/l7api-removed"
 const portalTempDirectory = "/tmp/portalapis/"
 const GATEWAY_STATUS_CONDITIONS_MAX_LEN = 1
 const (
@@ -63,7 +64,7 @@ func Gateway(ctx context.Context, params Params) error {
 		if !isMarkedToBeDeleted {
 			err = deployL7ApiToGateway(ctx, params, gateway, tag, updatedStatus)
 		} else {
-			if params.Instance.ObjectMeta.Annotations["security.brcmlabs.com/l7api-removed"] == "true" {
+			if params.Instance.ObjectMeta.Annotations[L7API_REMOVED_ANNOTATION] == "true" {
 				params.Log.V(2).Info("skip un-deployment since it has been done", "api", params.Instance.Name)
 				return nil
 			}
@@ -84,7 +85,7 @@ func Gateway(ctx context.Context, params Params) error {
 	}
 
 	if isMarkedToBeDeleted {
-		params.Instance.ObjectMeta.Annotations["security.brcmlabs.com/l7api-removed"] = "true"
+		params.Instance.ObjectMeta.Annotations[L7API_REMOVED_ANNOTATION] = "true"
 		_ = params.Client.Update(ctx, params.Instance)
 		RemoveTempStorage(ctx, params)
 		params.Log.V(2).Info("removed api from temp storage", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
@@ -384,7 +385,7 @@ func getGatewaySecret(ctx context.Context, params Params, name string) (*corev1.
 }
 
 func finalizeL7Api(ctx context.Context, params Params) error {
-	if params.Instance.ObjectMeta.Annotations["security.brcmlabs.com/l7api-removed"] == "true" {
+	if params.Instance.ObjectMeta.Annotations[L7API_REMOVED_ANNOTATION] == "true" {
 		params.Log.V(2).Info("removing finalizer", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		controllerutil.RemoveFinalizer(params.Instance, apiFinalizer)
 		err := params.Client.Update(ctx, params.Instance)

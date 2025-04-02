@@ -131,13 +131,26 @@ spec:
               gateways:
                 items:
                   properties:
-                    checksum:
-                      type: string
+                    conditions:
+                      description: |-
+                        Ready       bool            `json:"ready,omitempty"`
+                        LastUpdated string `js
+                      items:
+                        properties:
+                          action:
+                            type: string
+                          actionTime:
+                            type: string
+                          checksum:
+                            type: string
+                          reason:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
                     deployment:
-                      description: Phase       corev1.
-                      type: string
-                    lastUpdated:
-                      description: Ready       bool            `json:"ready,omitempty"`
+                      description: Phase       corev1.PodPhase `json:"phase,omitempty"`
                       type: string
                     name:
                       type: string

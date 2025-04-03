@@ -25,7 +25,9 @@ type PortalAPI struct {
 	PolicyTemplates []PolicyTemplate `json:"policyEntities"`              // required by qtpl templates
 	CustomFields    []CustomField    `json:"customFieldValues,omitempty"` // required by qtpl templates
 	//PublishedByPortal bool             `json:"publishedByPortal"`
-	Checksum string `json:"checksum"`
+	SecurePasswords                  []SecurePassword `json:"securePasswords,omitempty"`
+	SecurePasswordIdsForUndeployment []string         `json:"securePasswordIdsForUndeployment,omitempty"`
+	Checksum                         string           `json:"checksum"`
 }
 
 type PolicyTemplate struct {
@@ -41,6 +43,13 @@ type PolicyTemplateArg struct {
 type CustomField struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type SecurePassword struct {
+	Id          string `json:"id"`
+	Value       string `json:"value"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 //go:generate go get -u github.com/valyala/quicktemplate/qtc

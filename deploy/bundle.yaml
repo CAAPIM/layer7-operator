@@ -6608,6 +6608,28 @@ spec:
                     type: array
                   publishedTs:
                     type: integer
+                  securePasswordIdsForUndeployment:
+                    items:
+                      type: string
+                    type: array
+                  securePasswords:
+                    items:
+                      properties:
+                        description:
+                          type: string
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        value:
+                          type: string
+                      required:
+                      - description
+                      - id
+                      - name
+                      - value
+                      type: object
+                    type: array
                   serviceId:
                     type: string
                   ssgServiceType:

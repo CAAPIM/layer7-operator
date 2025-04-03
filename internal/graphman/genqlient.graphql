@@ -1,11 +1,16 @@
 
 
-mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!) {
+mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!, $secretNames: [String!]!) {
     deleteWebApiServices (resolutionPaths: $webApiServiceResolutionPaths) {
         detailedStatus {status description}
     },
     deletePolicyFragments (names: $policyFragmentNames) {
          detailedStatus {status description}
+    },
+    deleteSecrets(names: $secretNames) {
+        secrets {
+            name
+        }
     }
 }
 

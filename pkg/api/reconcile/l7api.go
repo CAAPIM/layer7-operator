@@ -153,7 +153,7 @@ func deployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gatewa
 			}
 
 			policyXml := templategen.BuildTemplate(portalMeta)
-			graphmanBundleBytes, _, err = api.ConvertPortalPolicyXmlToGraphman(policyXml)
+			graphmanBundleBytes, _, err = api.ConvertPortalPolicyXmlToGraphman(policyXml, portalMeta.SecurePasswords, portalMeta.SecurePasswordIdsForUndeployment)
 			if err != nil {
 				return err
 			}
@@ -220,8 +220,18 @@ func undeployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gate
 	graphmanPort := 9443
 	tryRequest := true
 	checksum := params.Instance.Annotations["app.l7.traceId"]
+	secretNames := []string{}
 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
 		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
+	}
+
+	for _, securePassword := range params.Instance.Spec.PortalMeta.SecurePasswords {
+		secretNames = append(secretNames, securePassword.Name)
+	}
+
+	for _, securePasswordIdsForUndeployment := range params.Instance.Spec.PortalMeta.SecurePasswordIdsForUndeployment {
+		secretToDelete := "l7_secure_" + securePasswordIdsForUndeployment
+		secretNames = append(secretNames, secretToDelete)
 	}
 
 	if !gateway.Spec.App.Management.Database.Enabled {
@@ -266,7 +276,7 @@ func undeployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gate
 
 				params.Log.V(2).Info("removing api", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 				var errorMessage string
-				err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl+"*", params.Instance.Spec.PortalMeta.Name+"-fragment")
+				err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl+"*", params.Instance.Spec.PortalMeta.Name+"-fragment", secretNames)
 				if err != nil {
 					status = FAILURE
 					errorMessage = err.Error()

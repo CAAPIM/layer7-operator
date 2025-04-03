@@ -61,22 +61,24 @@ type L7ApiStatus struct {
 
 // PortalMeta contains layer7 portal API Specific Metadata
 type PortalMeta struct {
-	TenantId        string           `json:"tenantId,omitempty"`
-	Uuid            string           `json:"apiUuid,omitempty"`
-	UuidStripped    string           `json:"apiId,omitempty"`
-	ServiceId       string           `json:"serviceId,omitempty"`
-	Name            string           `json:"name,omitempty"`
-	ApiEnabled      bool             `json:"enabled,omitempty"`
-	SsgUrl          string           `json:"ssgUrl,omitempty"`
-	SsgUrlBase64    string           `json:"ssgUrlEncoded,omitempty"`
-	LocationUrl     string           `json:"locationUrl,omitempty"`
-	PublishedTs     int              `json:"publishedTs,omitempty"`
-	CreateTs        int              `json:"createTs,omitempty"`
-	ModifyTs        int              `json:"modifyTs,omitempty"`
-	SsgServiceType  string           `json:"ssgServiceType,omitempty"`
-	PolicyTemplates []PolicyTemplate `json:"policyEntities,omitempty"`
-	CustomFields    []CustomField    `json:"customFieldValues,omitempty"`
-	Checksum        string           `json:"checksum,omitempty"`
+	TenantId                         string           `json:"tenantId,omitempty"`
+	Uuid                             string           `json:"apiUuid,omitempty"`
+	UuidStripped                     string           `json:"apiId,omitempty"`
+	ServiceId                        string           `json:"serviceId,omitempty"`
+	Name                             string           `json:"name,omitempty"`
+	ApiEnabled                       bool             `json:"enabled,omitempty"`
+	SsgUrl                           string           `json:"ssgUrl,omitempty"`
+	SsgUrlBase64                     string           `json:"ssgUrlEncoded,omitempty"`
+	LocationUrl                      string           `json:"locationUrl,omitempty"`
+	PublishedTs                      int              `json:"publishedTs,omitempty"`
+	CreateTs                         int              `json:"createTs,omitempty"`
+	ModifyTs                         int              `json:"modifyTs,omitempty"`
+	SsgServiceType                   string           `json:"ssgServiceType,omitempty"`
+	PolicyTemplates                  []PolicyTemplate `json:"policyEntities,omitempty"`
+	CustomFields                     []CustomField    `json:"customFieldValues,omitempty"`
+	SecurePasswords                  []SecurePassword `json:"securePasswords,omitempty"`
+	SecurePasswordIdsForUndeployment []string         `json:"securePasswordIdsForUndeployment,omitempty"`
+	Checksum                         string           `json:"checksum,omitempty"`
 }
 
 type PolicyTemplate struct {
@@ -92,6 +94,13 @@ type PolicyTemplateArg struct {
 type CustomField struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type SecurePassword struct {
+	Id          string `json:"id"`
+	Value       string `json:"value"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type GatewayPodDeploymentCondition struct {

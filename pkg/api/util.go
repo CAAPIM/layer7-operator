@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-
 	"github.com/caapim/layer7-operator/internal/graphman"
+	"github.com/caapim/layer7-operator/internal/templategen"
 )
 
-func ConvertPortalPolicyXmlToGraphman(policyXml string) ([]byte, string, error) {
+func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.SecurePassword, passwordUndeploymentIds []string) ([]byte, string, error) {
 	restmanBundle := Bundle{}
 	graphmanBundle := graphman.Bundle{}
 	err := xml.Unmarshal([]byte(policyXml), &restmanBundle)
@@ -84,6 +84,36 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string) ([]byte, string, error) 
 			}
 			graphmanBundle.WebApiServices = append(graphmanBundle.WebApiServices, &l7Service)
 		}
+	}
+
+	for _, securePassword := range passwords {
+		l7Secret := graphman.SecretInput{
+			Name:                 securePassword.Name,
+			Secret:               securePassword.Value,
+			SecretType:           graphman.SecretTypePassword,
+			Goid:                 securePassword.Id,
+			VariableReferencable: true,
+			Description:          securePassword.Description,
+		}
+		graphmanBundle.Secrets = append(graphmanBundle.Secrets, &l7Secret)
+	}
+
+	graphmanBundle.Properties = &graphman.BundleProperties{}
+
+	for _, securePasswordIdsForUndeployment := range passwordUndeploymentIds {
+		secretToDelete := "l7_secure_" + securePasswordIdsForUndeployment
+		graphmanBundle.Secrets = append(graphmanBundle.Secrets, &graphman.SecretInput{
+			Name:       secretToDelete,
+			Secret:     "",
+			SecretType: graphman.SecretTypePassword,
+		})
+		graphmanBundle.Properties.Mappings.Secrets = append(graphmanBundle.Properties.Mappings.Secrets,
+			&graphman.MappingInstructionInput{
+				Action: graphman.MappingActionDelete,
+				Source: graphman.MappingSource{
+					Name: secretToDelete,
+				},
+			})
 	}
 
 	graphmanBundleBytes, _ := json.Marshal(graphmanBundle)

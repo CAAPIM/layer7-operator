@@ -3505,6 +3505,7 @@ func (v *__deleteKeysInput) GetKeys() []string { return v.Keys }
 type __deleteL7PortalApiInput struct {
 	WebApiServiceResolutionPaths []string `json:"webApiServiceResolutionPaths"`
 	PolicyFragmentNames          []string `json:"policyFragmentNames"`
+	SecretNames                  []string `json:"secretNames"`
 }
 
 // GetWebApiServiceResolutionPaths returns __deleteL7PortalApiInput.WebApiServiceResolutionPaths, and is useful for accessing the field via an interface.
@@ -3514,6 +3515,9 @@ func (v *__deleteL7PortalApiInput) GetWebApiServiceResolutionPaths() []string {
 
 // GetPolicyFragmentNames returns __deleteL7PortalApiInput.PolicyFragmentNames, and is useful for accessing the field via an interface.
 func (v *__deleteL7PortalApiInput) GetPolicyFragmentNames() []string { return v.PolicyFragmentNames }
+
+// GetSecretNames returns __deleteL7PortalApiInput.SecretNames, and is useful for accessing the field via an interface.
+func (v *__deleteL7PortalApiInput) GetSecretNames() []string { return v.SecretNames }
 
 // __deleteSecretsInput is used internally by genqlient
 type __deleteSecretsInput struct {
@@ -3849,6 +3853,35 @@ func (v *deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayloadDetailedSta
 	return v.Description
 }
 
+// deleteL7PortalApiDeleteSecretsSecretsPayload includes the requested fields of the GraphQL type SecretsPayload.
+type deleteL7PortalApiDeleteSecretsSecretsPayload struct {
+	Secrets []*deleteL7PortalApiDeleteSecretsSecretsPayloadSecretsSecret `json:"secrets"`
+}
+
+// GetSecrets returns deleteL7PortalApiDeleteSecretsSecretsPayload.Secrets, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiDeleteSecretsSecretsPayload) GetSecrets() []*deleteL7PortalApiDeleteSecretsSecretsPayloadSecretsSecret {
+	return v.Secrets
+}
+
+// deleteL7PortalApiDeleteSecretsSecretsPayloadSecretsSecret includes the requested fields of the GraphQL type Secret.
+// The GraphQL type's documentation follows.
+//
+// A secret (password or private key) which is used by gateway policies and other configurations.
+// > @l7-entity
+// > @l7-identity-fields name
+// > @l7-summary-fields goid,name,checksum
+// > @l7-excluded-fields
+type deleteL7PortalApiDeleteSecretsSecretsPayloadSecretsSecret struct {
+	// Identify the password being stored. You may use letters, numbers, dashes, and underscores.
+	// Names that contain spaces or periods are valid, but the resulting stored
+	// password cannot be referenced via context variable.
+	// Names that contain @ or $ are valid, but the resulting stored password cannot be referenced via context variable.
+	Name string `json:"name"`
+}
+
+// GetName returns deleteL7PortalApiDeleteSecretsSecretsPayloadSecretsSecret.Name, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiDeleteSecretsSecretsPayloadSecretsSecret) GetName() string { return v.Name }
+
 // deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload includes the requested fields of the GraphQL type WebApiServicesPayload.
 type deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload struct {
 	DetailedStatus []*deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
@@ -3881,6 +3914,8 @@ type deleteL7PortalApiResponse struct {
 	DeleteWebApiServices *deleteL7PortalApiDeleteWebApiServicesWebApiServicesPayload `json:"deleteWebApiServices"`
 	// Delete policy fragments
 	DeletePolicyFragments *deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload `json:"deletePolicyFragments"`
+	// Deletes one or more existing secrets
+	DeleteSecrets *deleteL7PortalApiDeleteSecretsSecretsPayload `json:"deleteSecrets"`
 }
 
 // GetDeleteWebApiServices returns deleteL7PortalApiResponse.DeleteWebApiServices, and is useful for accessing the field via an interface.
@@ -3891,6 +3926,11 @@ func (v *deleteL7PortalApiResponse) GetDeleteWebApiServices() *deleteL7PortalApi
 // GetDeletePolicyFragments returns deleteL7PortalApiResponse.DeletePolicyFragments, and is useful for accessing the field via an interface.
 func (v *deleteL7PortalApiResponse) GetDeletePolicyFragments() *deleteL7PortalApiDeletePolicyFragmentsPolicyFragmentsPayload {
 	return v.DeletePolicyFragments
+}
+
+// GetDeleteSecrets returns deleteL7PortalApiResponse.DeleteSecrets, and is useful for accessing the field via an interface.
+func (v *deleteL7PortalApiResponse) GetDeleteSecrets() *deleteL7PortalApiDeleteSecretsSecretsPayload {
+	return v.DeleteSecrets
 }
 
 // deleteSecretsDeleteSecretsSecretsPayload includes the requested fields of the GraphQL type SecretsPayload.
@@ -8563,7 +8603,7 @@ func deleteKeys(
 
 // The query or mutation executed by deleteL7PortalApi.
 const deleteL7PortalApi_Operation = `
-mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!) {
+mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFragmentNames: [String!]!, $secretNames: [String!]!) {
 	deleteWebApiServices(resolutionPaths: $webApiServiceResolutionPaths) {
 		detailedStatus {
 			status
@@ -8576,6 +8616,11 @@ mutation deleteL7PortalApi ($webApiServiceResolutionPaths: [String!]!, $policyFr
 			description
 		}
 	}
+	deleteSecrets(names: $secretNames) {
+		secrets {
+			name
+		}
+	}
 }
 `
 
@@ -8584,6 +8629,7 @@ func deleteL7PortalApi(
 	client_ graphql.Client,
 	webApiServiceResolutionPaths []string,
 	policyFragmentNames []string,
+	secretNames []string,
 ) (*deleteL7PortalApiResponse, error) {
 	req_ := &graphql.Request{
 		OpName: "deleteL7PortalApi",
@@ -8591,6 +8637,7 @@ func deleteL7PortalApi(
 		Variables: &__deleteL7PortalApiInput{
 			WebApiServiceResolutionPaths: webApiServiceResolutionPaths,
 			PolicyFragmentNames:          policyFragmentNames,
+			SecretNames:                  secretNames,
 		},
 	}
 	var err_ error

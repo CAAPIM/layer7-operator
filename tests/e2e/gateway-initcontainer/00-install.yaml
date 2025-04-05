@@ -1,7 +1,7 @@
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
-  name: ssg
+  name: ssg-initcontainer-test
 spec:
   version: "11.1.1"
   license:
@@ -11,12 +11,14 @@ spec:
     replicas: 1
     image: docker.io/caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
-    #serviceAccountName: ssg-serviceaccount
     management:
       cluster:
         hostname: gateway.brcmlabs.com
-    autoscaling:
-      enabled: false
+      username: admin
+      password: 7layer
+    bootstrap:
+      script:
+        enabled: true
     initContainers:
      - name: simple-init
        image: docker.io/layer7api/simple-init:1.0.1
@@ -41,3 +43,23 @@ spec:
           port: 9443
           targetPort: 9443
           protocol: TCP
+    livenessProbe:
+      exec:
+        command:
+        - /bin/bash
+        - /opt/docker/rc.d/diagnostic/health_check.sh
+      failureThreshold: 25
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    readinessProbe:
+      exec:
+        command:
+        - /bin/bash
+        - /opt/docker/rc.d/diagnostic/health_check.sh
+      failureThreshold: 25
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1

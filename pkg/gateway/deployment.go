@@ -426,6 +426,28 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		})
 	}
 
+	////// OTK HEALTHCHECK
+	if gw.Spec.App.Otk.Enabled && gw.Spec.App.Otk.HealthCheck.Enabled {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      gw.Name + "-otk-healthcheck",
+			MountPath: "/opt/docker/rc.d/diagnostic/health_check/otk-healthcheck.sh",
+			SubPath:   "otk-healthcheck.sh",
+		})
+		volumes = append(volumes, corev1.Volume{
+			Name: gw.Name + "-otk-healthcheck",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
+					Items: []corev1.KeyToPath{{
+						Path: "otk-healthcheck.sh",
+						Key:  "otk-healthcheck"},
+					},
+					DefaultMode: &defaultMode,
+				},
+			},
+		})
+	}
+
 	if gw.Spec.App.Bootstrap.Script.Enabled {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      gw.Name + "-parse-custom-files-script",
@@ -925,7 +947,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		})
 	}
 
-	if otkDbInitContainer && (gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle) {
+	if otkDbInitContainer && gw.Spec.App.Otk.Database.Type != securityv1.OtkDatabaseTypeCassandra && (gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle) {
 		initContainers = append(initContainers, corev1.Container{
 			Name:            "otk-db-init",
 			Image:           otkInitContainerImage,

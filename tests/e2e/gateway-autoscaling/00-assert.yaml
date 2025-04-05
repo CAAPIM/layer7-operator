@@ -5,7 +5,7 @@ timeout: 150
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ssg
+  name: ssg-autoscaling-test
 status:
   replicas: 1
   readyReplicas: 1
@@ -13,17 +13,17 @@ status:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ssg
+  name: ssg-autoscaling-test
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: ssg
+  name: ssg-autoscaling-test
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: ssg
+    name: ssg-autoscaling-test
   minReplicas: 1
   maxReplicas: 3
   behavior:

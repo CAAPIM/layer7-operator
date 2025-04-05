@@ -5,7 +5,7 @@ timeout: 200
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ssg
+  name: ssg-initcontainer-test
 spec:
   strategy:
     rollingUpdate:
@@ -18,22 +18,12 @@ spec:
       containers:
       - envFrom:
         - configMapRef:
-            name: ssg
+            name: ssg-initcontainer-test
         - secretRef:
-            name: ssg
+            name: ssg-initcontainer-test
         image: docker.io/caapim/gateway:11.1.1
         imagePullPolicy: IfNotPresent
         lifecycle: {}
-        livenessProbe:
-          exec:
-            command:
-            - /bin/bash
-            - /opt/docker/rc.d/diagnostic/health_check.sh
-          failureThreshold: 25
-          initialDelaySeconds: 30
-          periodSeconds: 15
-          successThreshold: 1
-          timeoutSeconds: 1
         name: gateway
         ports:
         - containerPort: 8443
@@ -42,28 +32,10 @@ spec:
         - containerPort: 9443
           name: management
           protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-            - /bin/bash
-            - /opt/docker/rc.d/diagnostic/health_check.sh
-          failureThreshold: 25
-          initialDelaySeconds: 30
-          periodSeconds: 15
-          successThreshold: 1
-          timeoutSeconds: 1
         resources: {}
         securityContext: {}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
-        volumeMounts:
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
-          name: gateway-license
-          subPath: license.xml
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-listen-port-bundle
-          name: ssg-listen-port-bundle
-        - mountPath: /opt/docker/custom
-          name: config-directory
       dnsPolicy: ClusterFirst
       initContainers:
       - image: docker.io/layer7api/simple-init:1.0.1
@@ -75,28 +47,18 @@ spec:
         volumeMounts:
         - mountPath: /opt/docker/custom
           name: config-directory
+      - env:
+        - name: BOOTSTRAP_BASE
+          value: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
+        image: docker.io/caapim/graphman-static-init:1.0.2
+        imagePullPolicy: IfNotPresent
+        name: graphman-static-init
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
       serviceAccount: default
       serviceAccountName: default
       terminationGracePeriodSeconds: 30
-      volumes:
-      - name: gateway-license
-        secret:
-          defaultMode: 493
-          items:
-          - key: license.xml
-            path: license.xml
-          optional: false
-          secretName: gateway-license
-      - configMap:
-          defaultMode: 493
-          name: ssg-listen-port-bundle
-          optional: false
-        name: ssg-listen-port-bundle
-      - emptyDir: {}
-        name: config-directory
 status:
   replicas: 1
   readyReplicas: 1

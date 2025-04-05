@@ -1,5 +1,5 @@
-# Advanced
-By the end of this example you should have a better understanding of the Layer7 Operator and the Custom Resources it manages. This example builds on the basic example with a stronger focus on the Gateway Custom Resource.
+# OTK Single Mode Install
+By the end of this example you should have a better understanding of the Layer7 Operator and ways you can use the OTK with Ephemeral Gateways. This example builds on the advanced example with a stronger focus on the OTK configuration in the Gateway Custom Resource.
 
 ### Getting started
 1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
@@ -46,7 +46,7 @@ make nginx-kind
 ```
 4. Deploy the example
 ```
-make install advanced
+make install mysql otk-single
 ```
 5. Wait for all components to be ready
 ```
@@ -66,8 +66,11 @@ ssg-7b7694d995-qptbj                                  1/1     Running   0       
 ### Guide
 - [Deploy the Operator](#deploy-the-layer7-operator)
 - [Create Repositories](#create-repositories)
+- [The OTK Customizations Repository](#otk-customizations-repository)
 - [Create a Gateway](#create-a-gateway)
+- [Create Access Token](#create-access-token)
 - [Test Gateway Deployment](#test-your-gateway-deployment)
+- [Access OAuth Manager](#access-oauth-manager)
 - [Remove Kind Cluster](#remove-kind-cluster)
 - [Remove Custom Resources](#remove-custom-resources)
 - [Uninstall the Operator CRs](#uninstall-the-operator)
@@ -88,11 +91,10 @@ layer7-operator-controller-manager-7647b58697-qd9vg   2/2     Running   0       
 ```
 
 ### Create Repositories
-This example ships with 3 pre-configured Graphman repositories. The repository controller is responsible for synchronising these with the Operator and should always be created before Gateway resources that reference them to avoid race conditions. ***race conditions will be resolved automatically.***
+This example ships with 2 pre-configured Graphman repository.
 
-- [l7-gw-myframework](https://github.com/Gazza7205/l7GWMyFramework)
-- [l7-gw-mysubscriptions](https://github.com/Gazza7205/l7GWMySubscriptions)
-- [l7-gw-myapis](https://github.com/Gazza7205/l7GWMyAPIs)
+- [otk-customizations-single](https://github.com/Gazza7205/l7GWMyFramework)
+- [local-reference-repository](../../base/resources/secrets/repository/local-repository.json)
 
 ```
 kubectl apply -k ./example/repositories
@@ -142,6 +144,13 @@ spec:
   type: local
   auth: {}
 ```
+
+## OTK Customization Repository
+Modifying the default behaviour and configuration of the OTK is important for a variety of reasons. The Layer7 Operator provides an easy way to do this using repositories.
+
+We provide a [sample repo](link to sample repo) that has everthing pre-configured to work with this example. [This](link to community getting started repo) repo provides steps on how to create your own customizations repo using graphman.
+
+
 
 ### Create a Gateway
 The [Gateway Custom Resource](../gateway/advanced-gateway.yaml) in this example has the following pre-configured
@@ -349,12 +358,31 @@ state: Ready
 version: 11.1.1
 ```
 
+### Create Access Token
+In order to use of our gateway test endpoint we will need to get an access token
+
+Run the following command
+```
+curl 'https://gateway.brcmlabs.com/auth/oauth/v2/token' -H 'Content-Type: application/x-www-form-urlencoded' -d 'client_id=54f0c455-4d80-421f-82ca-9194df24859d&client_secret=a0f2742f-31c7-436f-9802-b7015b8fd8e6&grant_type=password&username=admin&password=7layer'
+```
+output
+```
+{
+  "access_token":"7326970c-f3e5-41f3-80c8-2f35dd05948b-1743426200",
+  "token_type":"Bearer",
+  "expires_in":3600,
+  "scope":"oob",
+  "resource": ["https://gateway.brcmlabs.com/*"]
+}
+```
+Take note of your access_token, you will use that in the next step
+
 ### Test your Gateway Deployment
 ```
 kubectl get ingress
 
 NAME   CLASS   HOSTS                  ADDRESS              PORTS     AGE
-ssg    nginx   gateway.brcmlabs.com   <YOUR-EXTERNAL-IP> or localhost   80, 443   54m
+ssg    nginx   gateway.brcmlabs.com,gateway-otk-management.brcmlabs.com   <YOUR-EXTERNAL-IP> or localhost   80, 443   54m
 ```
 
 Add the following to your hosts file for DNS resolution
@@ -363,21 +391,39 @@ Format
 $ADDRESS $HOST
 
 example
-<YOUR-EXTERNAL-IP> or 127.0.0.1 gateway.brcmlabs.com
+<YOUR-EXTERNAL-IP> or 127.0.0.1 gateway.brcmlabs.com gateway-otk-management.brcmlabs.com
 ```
 Curl
 ```
-curl https://gateway.brcmlabs.com/api1 -H "client-id: D63FA04C8447" -k
+curl https://gateway.brcmlabs.com/v1/auth/test -H "Authorization: Bearer 7326970c-f3e5-41f3-80c8-2f35dd05948b-1743426200" -k
 ```
 Response
 ```
 {
-  "client" : "D63FA04C8447",
-  "plan" : "plan_a",
-  "service" : "hello api 1",
-  "myDemoConfigVal" : "suspiciousLlama"
+  "message": "success",
+  "user": "admin",
+  "resource": "https://gateway.brcmlabs.com/*",
+  "scope": "oob",
+  "gateway": "bATu1QUbd7VJVZMqwISI8g+WefIJLL9e"
 }
 ```
+
+### Access OAuth Manager
+To interact with OAuth Clients in the browser you can use the built-in OAuth Manager. This has been configured on a different hostname for this example.
+
+
+1. Open a browser and navigate to https://gateway-otk-management.brcmlabs.com/oauth/manager
+2. Accept the certificate warning and proceed
+3. Enter the following credentials and click login
+```
+username: admin
+password: 7layer
+```
+4. On the top menu select 'Clients' to see the OAuth Clients. These are pre-populated as this example loads test data.
+5. On the top menu select 'Tokens' to see Tokens that have been issued.
+
+Expired tokens will be removed automatically.
+
 
 ##### Sign into Policy Manager
 Policy Manager access is less relevant in a deployment like this because we haven't specified an external MySQL database, any changes that we make will only apply to the Gateway that we're connected to and won't survive a restart. It is still useful to check what's been applied. We configured custom ports where we disabled Policy Manager access on 8443, we're also using an ingress controller meaning that port 9443 is not accessible without port forwarding.
@@ -397,112 +443,6 @@ Policy Manager
 username: admin
 password: 7layer
 gateway: localhost:9443
-```
-
-### Automated Features
-The Layer7 Operator will automatically manage the following configured entities for you when you update them. The [advanced-gateway](../gateway/advanced-gateway.yaml) has been configured with examples for these, keys are not currently included.
-
-- Cluster-Wide Properties
-These are defined in your Gateway CR spec. Adding, removing or updating one of these values will automatically update your Gateways with no restarts required.
-```
-apiVersion: security.brcmlabs.com/v1
-kind: Gateway
-metadata:
-  name: ssg
-spec:
-  ...
-  app:
-    cwp:
-      enabled: true
-      properties:
-        - name: abc
-          value: def
-        - name: io.httpsHostAllowWildcard
-          value: "true"
-```
-- Application Listen Ports
-These are defined in your Gateway CR spec. Adding, removing or updating one of these values will automatically update your Gateways with no restarts required.
-
-```
-apiVersion: security.brcmlabs.com/v1
-kind: Gateway
-metadata:
-  name: ssg
-spec:
-  ...
-  app:
-```
-- External Certs
-These are defined in your Gateway CR spec. External Certs reference existing Kubernetes Secrets, the Operator watches these secrets and will automatically
-- Update your Gateways if a referenced secret changes
-- Update your Gateways if the CR spec changes
-
-```
-apiVersion: security.brcmlabs.com/v1
-kind: Gateway
-metadata:
-  name: ssg
-spec:
-  ...
-  app:
-    externalCerts:
-    - name: multi-cert-secret
-      enabled: true
-      trustAnchor: false
-      trustedFor:
-      - "SSL"
-      - "SIGNING_SERVER_CERTS"
-    # verifyHostname: true
-    - name: single-cert-secret
-      enabled: true
-      trustAnchor: true
-      trustedFor:
-      - "SSL"
-      - "SIGNING_SERVER_CERTS"
-    # verifyHostname: true
-```
-- External Keys
-These are defined in your Gateway CR spec. External Keys reference existing Kubernetes Secrets, the Operator watches these secrets and will automatically
-- Update your Gateways if a referenced secret changes
-- Update your Gateways if the CR spec changes
-```
-apiVersion: security.brcmlabs.com/v1
-kind: Gateway
-metadata:
-  name: ssg
-spec:
-  ...
-  app:
-    externalKeys:
-    - name: brcmlabs
-      alias: test
-      keyUsageType: SSL
-      enabled: true
-```
-- External Secrets
-These are defined in your Gateway CR spec. External Secrets reference existing Kubernetes Secrets, the Operator watches these secrets and will automatically
-- Update your Gateways if a referenced secret changes
-- Update your Gateways if the CR spec changes
-```
-apiVersion: security.brcmlabs.com/v1
-kind: Gateway
-metadata:
-  name: ssg
-spec:
-  ...
-  app:
-    externalSecrets:
-    - name: multi-ext-secret
-      enabled: true
-      description: k8s secret that contains multiple values
-      variableReferencable: true
-      encryption: {}
-    - name: single-ext-secret
-      enabled: true
-      description: k8s secret that contains a single value
-      variableReferencable: true
-      encryption: {}
-  ...
 ```
 
 ### Remove Kind Cluster

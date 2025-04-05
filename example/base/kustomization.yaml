@@ -4,6 +4,11 @@ resources:
   - ./resources/serviceaccount/serviceaccount.yaml
 generatorOptions:
  disableNameSuffixHash: true
+configMapGenerator:
+  - name: otk-cassandra-schema
+    files:
+      - ./resources/configmaps/cassandra/0_otk_db_schema_cassandra.cql
+      - ./resources/configmaps/cassandra/1_otk_db_testdata_cassandra.cql
 secretGenerator:
 - name: gateway-license
   files:

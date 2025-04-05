@@ -1,11 +1,11 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 250
+timeout: 60
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ssg
+  name: ssg-deployment-test
 status:
   replicas: 2
   readyReplicas: 2

@@ -3,7 +3,7 @@
 
 NAMESPACE ?= default
 
-.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel
+.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk
 
 wait:
 ifeq ($(OS),Windows_NT)
@@ -37,6 +37,11 @@ advanced:
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
 
+otk-single:
+	kubectl apply -k ./repositories
+	@$(MAKE) --silent t=10 wait
+	kubectl apply -f ./gateway/otk/otk-single-gateway.yaml
+
 portal-example: redis
 	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml -n ${NAMESPACE}
 	@$(MAKE) --silent t=15 wait
@@ -67,7 +72,7 @@ redis:
 	helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis -n ${NAMESPACE}
 	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis -n ${NAMESPACE}
-
+	
 configure-nginx-ssl-passthrough:
 	kubectl -n ingress-nginx  get deployment ingress-nginx-controller -oyaml | sed -e "s/env:/\- \-\-enable\-ssl\-passthrough\n        env\:/g" | kubectl -n ingress-nginx apply -f -
 
@@ -199,6 +204,12 @@ nginx:
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
 
+cassandra:
+	helm upgrade --install cassandra -f ./otk/database/cassandra/cassandra-values.yaml oci://registry-1.docker.io/bitnamicharts/cassandra
+
+mysql:
+	helm upgrade --install mysql -f ./otk/database/mysql/mysql-values.yaml oci://registry-1.docker.io/bitnamicharts/mysql
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=mysql
 
 enable-otel-l7operator:
 	kubectl apply -f ./otel-lgtm/layer7-operator/collector.yaml
@@ -222,6 +233,8 @@ uninstall:
 	-kubectl delete ns observability
 	-kubectl delete ns monitoring
 	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
+	-helm uninstall mysql
+	-helm uninstall cassandra
 
 uninstall-kind:
 	kind delete cluster --name layer7

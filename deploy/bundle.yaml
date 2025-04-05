@@ -3776,17 +3776,12 @@ spec:
                               connectionPoints:
                                 type: string
                               driverConfig:
-                                additionalProperties:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  x-kubernetes-int-or-string: true
                                 description: DriverConfig is supported from GW 11.x
-                                type: object
-                              keySpace:
+                                type: string
+                              keyspace:
                                 type: string
                               port:
-                                type: string
+                                type: integer
                             type: object
                           connectionName:
                             description: ConnectionName for the JDBC or Cassandra
@@ -3884,6 +3879,15 @@ spec:
                       enabled:
                         description: Enable or disable the OTK initContainer
                         type: boolean
+                      healthCheck:
+                        description: Healthcheck
+                        properties:
+                          enabled:
+                            description: Enable or disable database maintenance tasks
+                            type: boolean
+                          port:
+                            type: integer
+                        type: object
                       initContainerImage:
                         description: InitContainerImage for the initContainer
                         type: string
@@ -4066,7 +4070,7 @@ spec:
                             type: string
                         type: object
                       port:
-                        description: defaults to 8443
+                        description: OTKPort defaults to 8443
                         type: integer
                       runtimeSyncIntervalSeconds:
                         description: RuntimeSyncIntervalSeconds how often OTK Gateways

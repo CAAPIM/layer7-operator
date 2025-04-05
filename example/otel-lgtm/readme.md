@@ -51,7 +51,7 @@ prometheus-grafana   nginx   grafana.brcmlabs.com   <ip-address>   80, 443   57m
 ```
 
 ### Getting started
-1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/otel-lgtm-gateway.yaml)
   - update license.accept to true before proceeding

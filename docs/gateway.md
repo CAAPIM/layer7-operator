@@ -10424,6 +10424,13 @@ sets host_oauth2_auth_server port in #OTK Client Context Variables<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappotkhealthcheck">healthCheck</a></b></td>
+        <td>object</td>
+        <td>
+          Healthcheck<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>initContainerImage</b></td>
         <td>string</td>
         <td>
@@ -10477,7 +10484,7 @@ This configures a relationship between DMZ and Internal Gateways.<br/>
         <td><b>port</b></td>
         <td>integer</td>
         <td>
-          defaults to 8443<br/>
+          OTKPort defaults to 8443<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10787,13 +10794,13 @@ Cassandra configuration
         <td>false</td>
       </tr><tr>
         <td><b>driverConfig</b></td>
-        <td>map[string]int or string</td>
+        <td>string</td>
         <td>
           DriverConfig is supported from GW 11.x<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>keySpace</b></td>
+        <td><b>keyspace</b></td>
         <td>string</td>
         <td>
           <br/>
@@ -10801,7 +10808,7 @@ Cassandra configuration
         <td>false</td>
       </tr><tr>
         <td><b>port</b></td>
-        <td>string</td>
+        <td>integer</td>
         <td>
           <br/>
         </td>
@@ -10932,6 +10939,40 @@ defaults to com.mysql.jdbc.Driver<br/>
         <td>
           ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database
 only supports MySQL and Oracle<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.healthCheck
+<sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
+
+
+
+Healthcheck
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable database maintenance tasks<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11385,7 +11426,7 @@ Overrides default OTK install functionality
         <td>boolean</td>
         <td>
           EnablePortalIntegration subSolutionKit install. This does not perform portal integration
-defaults to true<br/>
+defaults to false<br/>
         </td>
         <td>false</td>
       </tr><tr>

@@ -25,7 +25,7 @@ We make use of Filebeat for container log files (the Gateway + everything else) 
 
 ## Prerequisites
 - Kubernetes v1.25+
-- Gateway v10/11.x License
+- Gateway v11.x License
 - Ingress Controller (for kibana)
 
 This OTel Elastic Example requires multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc.
@@ -94,7 +94,7 @@ kubectl config set-context --current --namespace=yournamespace
 If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.io/) to try out this example!
 
 ### Getting started
-1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/otel-elastic-gateway.yaml)
   - update license.accept to true before proceeding

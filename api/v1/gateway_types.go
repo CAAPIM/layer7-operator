@@ -169,7 +169,7 @@ type PortalSyncStatus struct {
 	LastUpdated string `json:"lastUpdated,omitempty"`
 }
 
-// License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license.
+// License is reference to a Kubernetes Secret Containing a Gateway v11.x license.
 // license.accept must be set to true or the Gateway will not start.
 type License struct {
 	Accept bool `json:"accept"`
@@ -292,8 +292,10 @@ type Otk struct {
 	// sets host_oauth2_auth_server port in #OTK Client Context Variables
 	// TODO: Make this an array for many dmz deployments to one internal
 	DmzOtkGatewayReference string `json:"dmzGatewayReference,omitempty"`
-	// defaults to 8443
+	// OTKPort defaults to 8443
 	OTKPort int `json:"port,omitempty"`
+	// Healthcheck
+	HealthCheck OTKHealthCheck `json:"healthCheck,omitempty"`
 	// MaintenanceTasks for the OTK database are disabled by default
 	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
 	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
@@ -307,6 +309,15 @@ type OtkMaintenanceTasks struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+// OTKHealthCheck allows loading a script into the Gateway Containers Healthcheck folder
+// this calls /auth/oauth/health on the Gateway on a specified port
+// if enabled they will be scheduled on the leader gateway node
+type OTKHealthCheck struct {
+	// Enable or disable database maintenance tasks
+	Enabled bool `json:"enabled,omitempty"`
+	Port    int  `json:"port,omitempty"`
+}
+
 type OtkOverrides struct {
 	// Enable or disable otk overrides
 	Enabled bool `json:"enabled,omitempty"`
@@ -316,7 +327,7 @@ type OtkOverrides struct {
 	// defaults to false
 	SkipInternalServerTools bool `json:"skipInternalServerTools,omitempty"`
 	// EnablePortalIntegration subSolutionKit install. This does not perform portal integration
-	// defaults to true
+	// defaults to false
 	EnablePortalIntegration bool `json:"enablePortalIntegration,omitempty"`
 	// CreateTestClients for mysql & oracle setup test clients
 	CreateTestClients bool `json:"createTestClients,omitempty"`
@@ -470,10 +481,10 @@ type OtkDatabaseAuthCredentials struct {
 
 type OtkCassandra struct {
 	ConnectionPoints string `json:"connectionPoints,omitempty"`
-	Port             string `json:"port,omitempty"`
-	Keyspace         string `json:"keySpace,omitempty"`
+	Port             int    `json:"port,omitempty"`
+	Keyspace         string `json:"keyspace,omitempty"`
 	// DriverConfig is supported from GW 11.x
-	DriverConfig map[string]intstr.IntOrString `json:"driverConfig,omitempty"`
+	DriverConfig string `json:"driverConfig,omitempty"`
 }
 
 type OtkSql struct {

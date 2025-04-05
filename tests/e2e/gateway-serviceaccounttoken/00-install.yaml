@@ -1,7 +1,7 @@
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
-  name: ssg
+  name: ssg-sa-test
 spec:
   version: "11.1.1"
   license:
@@ -11,10 +11,11 @@ spec:
     replicas: 1
     image: docker.io/caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
-    #serviceAccountName: ssg-serviceaccount
     management:
       cluster:
         hostname: gateway.brcmlabs.com
+      username: admin
+      password: 7layer
     autoscaling:
       enabled: false
     autoMountServiceAccountToken: true
@@ -24,7 +25,6 @@ spec:
         enabled: false
       ports: []
     service:
-      # annotations:
       type: LoadBalancer
       ports:
         - name: https

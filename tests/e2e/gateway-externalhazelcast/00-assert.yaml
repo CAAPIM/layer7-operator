@@ -1,11 +1,7 @@
-apiVersion: kuttl.dev/v1beta1
-kind: TestAssert
-timeout: 100
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ssg
+  name: ssg-hazelcast-test
 spec:
   strategy:
     rollingUpdate:
@@ -18,22 +14,12 @@ spec:
       containers:
       - envFrom:
         - configMapRef:
-            name: ssg
+            name: ssg-hazelcast-test
         - secretRef:
-            name: ssg
+            name: ssg-hazelcast-test
         image: docker.io/caapim/gateway:11.1.1
         imagePullPolicy: IfNotPresent
         lifecycle: {}
-        livenessProbe:
-          exec:
-            command:
-            - /bin/bash
-            - /opt/docker/rc.d/diagnostic/health_check.sh
-          failureThreshold: 25
-          initialDelaySeconds: 30
-          periodSeconds: 15
-          successThreshold: 1
-          timeoutSeconds: 1
         name: gateway
         ports:
         - containerPort: 8443
@@ -42,16 +28,6 @@ spec:
         - containerPort: 9443
           name: management
           protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-            - /bin/bash
-            - /opt/docker/rc.d/diagnostic/health_check.sh
-          failureThreshold: 25
-          initialDelaySeconds: 30
-          periodSeconds: 15
-          successThreshold: 1
-          timeoutSeconds: 1
         resources: {}
         securityContext: {}
         terminationMessagePath: /dev/termination-log
@@ -60,11 +36,16 @@ spec:
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
           name: gateway-license
           subPath: license.xml
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-listen-port-bundle
-          name: ssg-listen-port-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-hazelcast-test-listen-port-bundle
+          name: ssg-hazelcast-test-listen-port-bundle
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/assertions/ExternalHazelcastSharedStateProviderAssertion/hazelcast-client.xml
           name: hazelcast-client
           subPath: hazelcast-client.xml
+        - mountPath: /graphman/config.json
+          name: ssg-hazelcast-test-repository-init-config
+          subPath: config.json
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
+          name: ssg-hazelcast-test-repository-bundle-dest          
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -83,14 +64,21 @@ spec:
           secretName: gateway-license
       - configMap:
           defaultMode: 493
-          name: ssg-listen-port-bundle
+          name: ssg-hazelcast-test-listen-port-bundle
           optional: false
-        name: ssg-listen-port-bundle
+        name: ssg-hazelcast-test-listen-port-bundle
       - configMap:
           defaultMode: 420
           items:
           - key: hazelcast-client.xml
             path: hazelcast-client.xml
-          name: ssg-gateway-files
+          name: ssg-hazelcast-test-gateway-files
         name: hazelcast-client
+      - configMap:
+          defaultMode: 493
+          name: ssg-hazelcast-test-repository-init-config
+          optional: false
+        name: ssg-hazelcast-test-repository-init-config
+      - emptyDir: {}
+        name: ssg-hazelcast-test-repository-bundle-dest
 

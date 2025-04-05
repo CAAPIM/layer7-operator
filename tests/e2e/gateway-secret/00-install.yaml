@@ -1,7 +1,7 @@
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
-  name: ssg
+  name: ssg-secret-test
 spec:
   version: "11.1.1"
   license:
@@ -11,7 +11,6 @@ spec:
     replicas: 1
     image: docker.io/caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
-    #serviceAccountName: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:

@@ -109,7 +109,10 @@ func setLabels(ctx context.Context, params Params, dep *appsv1.Deployment) (*app
 		configMaps := []string{params.Instance.Name, params.Instance.Name + "-system", params.Instance.Name + "-gateway-files"}
 
 		if params.Instance.Spec.App.Otk.Enabled && !params.Instance.Spec.App.Management.Database.Enabled {
-			configMaps = append(configMaps, params.Instance.Name+"-otk-shared-init-config", params.Instance.Name+"-otk-install-init-config", params.Instance.Name+"-otk-db-init-config")
+			configMaps = append(configMaps, params.Instance.Name+"-otk-shared-init-config", params.Instance.Name+"-otk-install-init-config")
+			if params.Instance.Spec.App.Otk.Database.Type != securityv1.OtkDatabaseTypeCassandra {
+				configMaps = append(configMaps, params.Instance.Name+"-otk-db-init-config")
+			}
 		}
 
 		for _, cmName := range configMaps {

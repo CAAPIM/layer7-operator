@@ -29,6 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+/// rewrite this test to use repo of type local
+
 var _ = Describe("Gateway controller", func() {
 	Context("When repo of type static is updated", func() {
 		var (

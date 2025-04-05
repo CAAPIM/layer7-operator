@@ -1,7 +1,7 @@
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
-  name: ssg
+  name: ssg-ingress-test
 spec:
   version: "11.1.1"
   license:
@@ -11,7 +11,6 @@ spec:
     replicas: 1
     image: docker.io/caapim/gateway:11.1.1
     imagePullPolicy: IfNotPresent
-    #serviceAccountName: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
@@ -31,7 +30,6 @@ spec:
         enabled: false
       ports: []
     service:
-      # annotations:
       type: LoadBalancer
       ports:
         - name: https
@@ -47,16 +45,19 @@ spec:
       ingressClassName: nginx
       tls:
         - hosts:
-            - testing.com
+            - dev.ca.com
+            - dev-management.ca.com
           secretName: default
       rules:
-        - host: testing.com
+        - host: dev.ca.com
+        - host: dev-management.ca.com
           http:
             paths:
               - backend:
                   service:
-                    name: ssg
+                    name: management
                     port:
-                      name: https
+                      name: management
                 path: /
                 pathType: Prefix
+

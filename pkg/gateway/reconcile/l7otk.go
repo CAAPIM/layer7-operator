@@ -22,22 +22,23 @@ var scheduledTasks = map[string]string{
 func OTKDatabaseMaintenanceTasks(ctx context.Context, params Params) error {
 	gateway := params.Instance
 
-	if gateway.Spec.App.Management.Database.Enabled || !gateway.Spec.App.Otk.Enabled || gateway.Spec.App.Otk.Type != v1.OtkTypeSingle {
+	if gateway.Spec.App.Management.Database.Enabled || !gateway.Spec.App.Otk.Enabled || gateway.Spec.App.Otk.Type != v1.OtkTypeSingle || gateway.Spec.App.Otk.Database.Type == v1.OtkDatabaseTypeCassandra {
 		return nil
 	}
 
 	bundle := graphman.Bundle{}
-
-	for name, schedule := range scheduledTasks {
-		bundle.ScheduledTasks = append(bundle.ScheduledTasks, &graphman.ScheduledTaskInput{
-			Name:                name,
-			PolicyName:          name,
-			JobType:             graphman.JobTypeRecurring,
-			CronExpression:      schedule,
-			ExecuteOnSingleNode: true,
-			ExecuteOnCreation:   false,
-			Status:              graphman.JobStatusScheduled,
-		})
+	if gateway.Spec.App.Otk.Database.Type != v1.OtkDatabaseTypeCassandra {
+		for name, schedule := range scheduledTasks {
+			bundle.ScheduledTasks = append(bundle.ScheduledTasks, &graphman.ScheduledTaskInput{
+				Name:                name,
+				PolicyName:          name,
+				JobType:             graphman.JobTypeRecurring,
+				CronExpression:      schedule,
+				ExecuteOnSingleNode: true,
+				ExecuteOnCreation:   false,
+				Status:              graphman.JobStatusScheduled,
+			})
+		}
 	}
 
 	bundleBytes, err := json.Marshal(bundle)
@@ -46,8 +47,8 @@ func OTKDatabaseMaintenanceTasks(ctx context.Context, params Params) error {
 	}
 
 	h := sha1.New()
-	h.Write(bundleBytes)
-	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+	h.Write([]byte(gateway.Spec.App.Otk.InitContainerImage))
+	checksum := fmt.Sprintf("%x", h.Sum(nil))
 
 	gwUpdReq, err := NewGwUpdateRequest(
 		ctx,
@@ -56,10 +57,10 @@ func OTKDatabaseMaintenanceTasks(ctx context.Context, params Params) error {
 		WithBundleType(BundleTypeOTKDatabaseMaintenance),
 		WithDelete(false),
 		WithBundle(bundleBytes),
-		WithChecksum(sha1Sum),
+		WithChecksum(checksum),
 		WithBundleName("otk-db-maintenance-tasks"),
 		WithPatchAnnotation("security.brcmlabs.com/otk-db-maintenance-tasks"),
-		WithCacheEntry(gateway.Name+"-"+string(BundleTypeOTKDatabaseMaintenance)+"-otk-db-maintenance-tasks-"+sha1Sum),
+		WithCacheEntry(gateway.Name+"-"+string(BundleTypeOTKDatabaseMaintenance)+"-otk-db-maintenance-tasks-"+checksum),
 	)
 
 	if err != nil {

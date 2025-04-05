@@ -1,0 +1,311 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg
+spec:
+  version: "11.1.1"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 2
+    restartOnConfigChange: true
+    image: docker.io/caapim/gateway:11.1.1
+    imagePullPolicy: IfNotPresent
+    serviceAccount:
+      create: true
+      name: ssg-serviceaccount
+    updateStrategy:
+      type: rollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 2
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: 0
+    resources:
+      requests:
+        memory: 4Gi
+        cpu: 2
+      limits:
+        memory: 4Gi
+        cpu: 2
+    otk:
+      enabled: true
+      initContainerImage: docker.io/caapim/otk-install:4.6.3
+      type: single
+      port: 443
+      healthCheck:
+        enabled: true
+       # port: 9443
+      overrides:
+        enabled: true
+        createTestClients: true
+        testClientsRedirectUrlPrefix: https://gateway-otk-management.brcmlabs.com:443
+      database:
+        type: mysql
+        create: true
+        dbUpgrade: true
+        connectionName: OAuth
+        auth:
+          # A single secret containing all of the values defined here will be created
+          # if existingSecret is set the corresponding gateway, readOnly or admin will be omitted from the secret
+          # if no values are set, a secret will not be created or referenced and the deployment will be invalidated.
+          # existingSecret: otk-db-secret
+          gateway:
+            username: otk_user
+            password: 7layer
+          readOnly:
+            username: readonly_user
+            password: 7layer
+          admin:
+            username: root
+            password: 7layer
+        properties:
+          minimumPoolSize: 10
+          maximumPoolSize: 15
+        sql:
+          databaseName: otk_db
+          jdbcUrl: jdbc:mysql://mysql:3306/otk_db?useSSL=true
+          jdbcDriverClass: com.mysql.cj.jdbc.Driver
+          connectionProperties:
+            c3p0.maxConnectionAge: "100"
+            c3p0.maxIdleTime: "1000"
+          manageSchema: true
+          databaseWaitTimeout: 60
+    singletonExtraction: true
+    bundle:
+      - type: restman
+        source: secret
+        name: restman-bootstrap-bundle
+      - type: graphman
+        source: secret
+        name: graphman-bootstrap-bundle
+    repositoryReferences:
+      - name: otk-customizations-single
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: APIS_ENCRYPTION_PASSPHRASE
+      - name: local-reference-repository
+        enabled: true
+        type: dynamic
+        encryption: {}
+    bootstrap:
+      script:
+        enabled: true
+    initContainers:
+    - name: gateway-init
+      image: docker.io/layer7api/gateway-init:1.0.0
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+      - name: config-directory
+        mountPath: /opt/docker/custom
+    hazelcast:
+      external: false
+      endpoint: hazelcast.example.com:5701
+    management:
+      secretName: gateway-secret
+      service:
+        enabled: true
+        type: ClusterIP
+        ports:
+        - name: management
+          port: 9443
+          targetPort: 9443
+          protocol: TCP   
+      restman:
+        enabled: false
+      graphman:
+        enabled: true
+        initContainerImage: harbor.sutraone.com/operator/graphman-static-init:1.0.3
+        initContainerImagePullPolicy: Always
+      cluster:
+        hostname: gateway.brcmlabs.com
+      database:
+        enabled: false
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+      - name: https
+        port: 8443
+        targetPort: 8443
+        protocol: TCP
+      # - name: management
+      #   port: 9443
+      #   targetPort: 9443
+      #   protocol: TCP
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        cert-manager.io/cluster-issuer: "brcmlabs-issuer"
+      tls:
+      - hosts: 
+        - gateway.brcmlabs.com
+        - gateway-otk-management.brcmlabs.com
+        secretName: brcmlabs
+      rules:
+      - host: gateway.brcmlabs.com
+      - host: gateway-otk-management.brcmlabs.com
+        http:
+          paths:
+          - backend:
+              service:
+                name: management
+                port:
+                  name: management
+
+            path: /
+            pathType: Prefix
+    java:
+      jvmHeap:
+        calculate: true
+        minPercentage: 25
+        maxPercentage: 75
+        default: 2g
+      extraArgs:
+      - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
+      - -Dcom.l7tech.server.audit.message.saveToInternal=false
+      - -Dcom.l7tech.server.audit.admin.saveToInternal=false
+      - -Dcom.l7tech.server.audit.system.saveToInternal=false
+      - -Dcom.l7tech.server.audit.log.format=json
+      - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
+      - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true 
+      - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
+    # - -Dcom.l7tech.server.log.console.extraCats=AUDIT,LOG,TRAFFIC
+    listenPorts:
+      harden: false
+      refreshOnKeyChanges: true
+      custom:
+        enabled: true
+      ports:
+      - name: Default HTTPS (8443)
+        port: 8443
+        enabled: true
+        protocol: HTTPS
+        managementFeatures:
+        - Published service message input
+        properties:
+        - name: server
+          value: A
+        tls:
+          enabled: true
+          #privateKey: 00000000000000000000000000000002:ssl
+          clientAuthentication: Optional
+          versions:
+          - TLSv1.2
+          - TLSv1.3
+          useCipherSuitesOrder: true
+          cipherSuites:
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+      - name: Default HTTPS (9443)
+        port: 9443
+        enabled: true
+        protocol: HTTPS
+        managementFeatures:
+        - Published service message input
+        - Administrative access
+        - Browser-based administration
+        - Built-in services
+        properties: []
+        tls:
+          enabled: true
+        # privateKey: 00000000000000000000000000000002:ssl
+          clientAuthentication: Optional
+          versions:
+          - TLSv1.2
+          - TLSv1.3
+          useCipherSuitesOrder: true
+          cipherSuites:
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+      - name: Default HTTP (8080)
+        port: 8080
+        enabled: false
+        protocol: HTTP
+        managementFeatures:
+        - Published service message input
+        tls:
+          enabled: false
+    cwp:
+      enabled: true
+      properties:
+        - name: abc
+          value: def
+        - name: io.httpsHostAllowWildcard
+          value: "true"
+        - name: log.levels
+          value: |
+            com.l7tech.level = CONFIG
+            com.l7tech.server.policy.variable.ServerVariables.level = SEVERE
+            com.l7tech.external.assertions.odata.server.producer.jdbc.GenerateSqlQuery.level = SEVERE
+            com.l7tech.server.policy.assertion.ServerSetVariableAssertion.level = SEVERE
+            com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion.level = SEVERE
+        - name: audit.setDetailLevel.FINE
+          value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
+    system:
+      properties: |-
+        # Default Gateway system properties
+        # Configuration properties for shared state extensions.
+        com.l7tech.server.extension.sharedKeyValueStoreProvider=embeddedhazelcast
+        com.l7tech.server.extension.sharedCounterProvider=ssgdb
+        com.l7tech.server.extension.sharedClusterInfoProvider=ssgdb
+        # By default, FIPS module will block an RSA modulus from being used for encryption if it has been used for
+        # signing, or visa-versa. Set true to disable this default behaviour and remain backwards compatible.
+        com.l7tech.org.bouncycastle.rsa.allow_multi_use=true
+        # Specifies the type of Trust Store (JKS/PKCS12) provided by AdoptOpenJDK that is used by Gateway.
+        # Must be set correctly when Gateway is running in FIPS mode. If not specified it will default to PKCS12.
+        javax.net.ssl.trustStoreType=jks
+        com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
+        # Additional properties go here
+    log:
+      override: true
+      properties: |-
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.formatter = com.l7tech.util.JsonLogFormatter
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.level = CONFIG
+    affinity: {}
+    nodeSelector: {}
+    tolerations: []
+    topologySpreadConstraints: []

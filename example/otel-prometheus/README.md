@@ -11,11 +11,11 @@ By the end of this example you should have a better understanding of the how to 
 
 ## Prerequisites
 - Kubernetes v1.25+
-- Gateway v10/11.x License
+- Gateway v11.x License
 - Ingress Controller (important for grafana and jaeger)
 
 ### Getting started
-1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/otel-prometheus-gateway.yaml)
   - update license.accept to true before proceeding
@@ -88,7 +88,7 @@ kubectl config set-context --current --namespace=yournamespace
 If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.io/) to try out this example!
 
 ### Getting started
-1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/otel-prometheus-gateway.yaml)
   - update license.accept to true before proceeding

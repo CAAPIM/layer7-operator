@@ -6,7 +6,7 @@ metadata:
 spec:
   # version is the gateway version this operator has been validated against
   version: "11.1.1"
-  # license is reference to a Gateway v10/11.x license. license.accept must be set to true for the gateway to start.
+  # license is reference to a Gateway v11.x license. license.accept must be set to true for the gateway to start.
   license:
     accept: false
     secretName: gateway-license

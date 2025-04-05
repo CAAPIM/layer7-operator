@@ -14,7 +14,7 @@ The basic and advanced examples can be run in a single namespace, The OTel Examp
 Each example also includes a [Kind](https://kind.sigs.k8s.io/) (Kubernetes in Docker) Quickstart which you can utilise if you have access to a Docker Machine.
 
 #### Getting started
-1. Place a gateway v10 or v11 license in [./base/resources/secrets/license](./base/resources/secrets/license).
+1. Place a gateway v11 license in [./base/resources/secrets/license](./base/resources/secrets/license).
 2. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [./base/resources/secrets/tls](./base/resources/secrets/tls)
     - these will be referenced later on.
 
@@ -24,6 +24,8 @@ All examples use [kustomize](https://kustomize.io/). The basic example covers a 
 Gateways
 - [Basic](./basic)
 - [Advanced](./advanced)
+- OTK
+  - [Single](./otk/single)
 
 Open Telemetry Example
 - [Grafana LGTM Stack](./otel-lgtm/)

@@ -165,8 +165,6 @@ prepare-e2e: kuttl docker-build start-kind
 	sed -i 's+docker.io/layer7api/layer7-operator:main+$(IMG)+g' deploy/bundle.yaml
 	kubectl apply -f deploy/bundle.yaml --namespace l7operator
 	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
-	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator
-	kubectl create secret generic graphman-encryption-secret --from-literal=FRAMEWORK_ENCRYPTION_PASSPHRASE=7layer -n l7operator
 	kubectl apply -f ./testdata/metallb-native.yaml
 	sleep 15s
 	kubectl wait --for=condition=ready --timeout=600s pod -l component=controller -n metallb-system

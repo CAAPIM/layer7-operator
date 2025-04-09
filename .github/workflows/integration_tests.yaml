@@ -40,20 +40,6 @@ jobs:
         run: go install sigs.k8s.io/kind@v${KIND_VERSION}
       - name: "install kuttl"
         run: ./hack/install-kuttl.sh
-      - name: Create test branch
-        env:
-          TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
-          TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
-          TEST_BRANCH: ingtest-${{ github.run_id }}
-        run: |
-           git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyFramework /tmp/l7GWMyFramework
-           cd /tmp/l7GWMyFramework
-           git checkout -b ${TEST_BRANCH}
-           git push --set-upstream origin ${TEST_BRANCH}
-           git clone https://oauth2:${TESTREPO_TOKEN}@github.com/${TESTREPO_USER}/l7GWMyAPIs /tmp/l7GWMyAPIs
-           cd /tmp/l7GWMyAPIs
-           git checkout -b ${TEST_BRANCH}
-           git push --set-upstream origin ${TEST_BRANCH}
       - name: "create license"
         env:
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
@@ -62,24 +48,11 @@ jobs:
       - name: "run tests"
         env:
           KUBE_VERSION: ${{ matrix.kube-version }}
-          TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
-          TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
           LICENSE: ${{ secrets.GATEWAY_LICENSE }}
-          TEST_BRANCH: ingtest-${{ github.run_id }}
           USE_EXISTING_CLUSTER: true
         run: |
           make prepare-e2e test KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
           rm ./testdata/license.xml
-      - name: Delete repo
-        env:
-          TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
-          TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
-          TEST_BRANCH: ingtest-${{ github.run_id }}
-        run: |
-           cd /tmp/l7GWMyFramework
-           git push origin --delete ${TEST_BRANCH}
-           cd /tmp/l7GWMyAPIs
-           git push origin --delete ${TEST_BRANCH}
   integration-tests-check:
     runs-on: ubuntu-22.04
     if: always()

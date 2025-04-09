@@ -3,22 +3,16 @@ package tests
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
-	"time"
-
-	"github.com/caapim/layer7-operator/pkg/util"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/caapim/layer7-operator/pkg/util"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -41,204 +35,41 @@ type Repo struct {
 	Type         securityv1.RepositoryType
 }
 
-// func createGatewayLicenseSecret(secret Secret) {
-// 	// Gateway licence
-// 	license, found := os.LookupEnv("LICENSE")
-// 	gomega.Expect(found).NotTo(gomega.BeFalse())
+type TestAPIResp struct {
+	Client    string `json:"client"`
+	Plan      string `json:"plan"`
+	Service   string `json:"service"`
+	ConfigVal string `json:"myDemoConfigVal"`
+}
 
-// 	data := make(map[string][]byte)
-// 	data["license.xml"] = []byte(license)
-// 	gatewayLicense := corev1.Secret{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      secret.Name,
-// 			Namespace: secret.Namespace,
-// 		},
-// 		TypeMeta: metav1.TypeMeta{
-// 			APIVersion: "v1",
-// 			Kind:       "Secret",
-// 		},
-// 		Type: corev1.SecretTypeOpaque,
-// 		Data: data,
-// 	}
-// 	gomega.Expect(secret.Client.Create(secret.Ctx, &gatewayLicense)).Should(gomega.Succeed())
-// }
-
-// func createRepositorySecret(secret Secret) {
-// 	//Repository secret
-// 	ghUname, found := os.LookupEnv("TESTREPO_USER")
-// 	gomega.Expect(found).NotTo(gomega.BeFalse())
-// 	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
-// 	gomega.Expect(found).NotTo(gomega.BeFalse())
-// 	repSecretData := make(map[string][]byte)
-
-// 	repSecretData["USERNAME"] = []byte(ghUname)
-// 	repSecretData["TOKEN"] = []byte(ghToken)
-
-// 	repSecret := corev1.Secret{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      secret.Name,
-// 			Namespace: secret.Namespace,
-// 		},
-// 		TypeMeta: metav1.TypeMeta{
-// 			APIVersion: "v1",
-// 			Kind:       "Secret",
-// 		},
-// 		Type: corev1.SecretTypeOpaque,
-// 		Data: repSecretData,
-// 	}
-// 	gomega.Expect(secret.Client.Create(secret.Ctx, &repSecret)).Should(gomega.Succeed())
-// }
-
-// func createGraphmanEncSecret(secret Secret) {
-// 	//Graphman enc secret
-// 	encSecretData := map[string][]byte{"FRAMEWORK_ENCRYPTION_PASSPHRASE": []byte("7layer")}
-// 	encSecret := corev1.Secret{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      secret.Name,
-// 			Namespace: secret.Namespace,
-// 		},
-// 		TypeMeta: metav1.TypeMeta{
-// 			APIVersion: "v1",
-// 			Kind:       "Secret",
-// 		},
-// 		Type: corev1.SecretTypeOpaque,
-// 		Data: encSecretData,
-// 	}
-// 	gomega.Expect(secret.Client.Create(secret.Ctx, &encSecret)).Should(gomega.Succeed())
-// }
-
-func createRepository(repo Repo) {
-	//Repository resource
-	repository := securityv1.Repository{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      repo.Name,
-			Namespace: repo.Namespace,
-		},
-		Spec: securityv1.RepositorySpec{
-			Enabled:  true,
-			Endpoint: repo.Url,
-			Branch:   repo.Branch,
-			Type:     repo.Type,
-			Auth: securityv1.RepositoryAuth{
-				Vendor:             "Github",
-				ExistingSecretName: repo.SecretName,
+func createGatewayLicenseSecret(secret Secret) error {
+	license, found := os.LookupEnv("LICENSE")
+	if found {
+		data := make(map[string][]byte)
+		data["license.xml"] = []byte(license)
+		gatewayLicense := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secret.Name,
+				Namespace: secret.Namespace,
 			},
-		},
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind:       "Secret",
+			},
+			Type: corev1.SecretTypeOpaque,
+			Data: data,
+		}
+		err := secret.Client.Create(secret.Ctx, &gatewayLicense)
+		if err != nil {
+			if k8serrors.IsAlreadyExists(err) {
+				return nil
+			}
+			return err
+		}
 	}
-	gomega.Expect(repo.Client.Create(repo.Ctx, &repository)).Should(gomega.Succeed())
-}
-
-func commitAndPushNewFile(repo Repo) string {
-	ghUname, found := os.LookupEnv("TESTREPO_USER")
-	gomega.Expect(found).NotTo(gomega.BeFalse())
-	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
-	gomega.Expect(found).NotTo(gomega.BeFalse())
-	token := string(ghToken)
-	username := string(ghUname)
-
-	gRepo, err := git.PlainOpen(repo.CheckoutPath)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	w, err := gRepo.Worktree()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	filename := filepath.Join(repo.CheckoutPath, "clusterProperties", "c.json")
-	err = os.WriteFile(filename, []byte("{\n  \"goid\": \"84449671abe2a5b143051dbdfdf5e5f4\",\n  \"name\": \"c\",\n  \"checksum\": \"b77d1a0eca5224e5a33453b8fa5ace8fcbb1ce4e\",\n  \"description\": \"c cwp\",\n  \"hiddenProperty\": false,\n  \"value\": \"c\"\n}"), 0644)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	_, err = w.Add("clusterProperties/c.json")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	// We can verify the current status of the worktree using the method Status.
-	status, err := w.Status()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	fmt.Println(status)
-
-	// Commits the current staging area to the repository, with the new file
-
-	commitHash, err := w.Commit("example go-git commit", &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "Test",
-			Email: "test@test.org",
-			When:  time.Now(),
-		},
-	})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	// Prints the current HEAD to verify that all worked well.
-	obj, _ := gRepo.CommitObject(commitHash)
-	ginkgo.GinkgoWriter.Printf("Commit hash %s", obj.Hash)
-
-	auth := &gitHttp.BasicAuth{
-		Username: username,
-		Password: token,
-	}
-	err = gRepo.Push(&git.PushOptions{
-		Auth: auth,
-	})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return commitHash.String()
-}
-
-func commitAndPushUpdatedFile(repo Repo) string {
-	ghUname, found := os.LookupEnv("TESTREPO_USER")
-	gomega.Expect(found).NotTo(gomega.BeFalse())
-	ghToken, found := os.LookupEnv("TESTREPO_TOKEN")
-	gomega.Expect(found).NotTo(gomega.BeFalse())
-	token := string(ghToken)
-	username := string(ghUname)
-
-	r, err := git.PlainOpen(repo.CheckoutPath)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	w, err := r.Worktree()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	filename := filepath.Join("/tmp/l7GWMyAPIs/tree/myApis/", "Rest Api 3-+api3.webapi.json")
-	os.Remove(filename)
-	os.WriteFile(filename, []byte("{\n  \"goid\": \"84449671abe2a5b143051dbdfdf7e684\",\n  \"name\": \"Rest Api 3\",\n  \"resolutionPath\": \"/api3\",\n  \"checksum\": \"ad069ae7b081636f7334ff76b99d09b75dd78b81\",\n  \"enabled\": true,\n  \"folderPath\": \"/myApis\",\n  \"methodsAllowed\": [\n    \"GET\",\n    \"POST\",\n    \"PUT\",\n    \"DELETE\"\n  ],\n  \"tracingEnabled\": false,\n  \"wssProcessingEnabled\": false,\n  \"policy\": {\n    \"xml\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<wsp:Policy xmlns:L7p=\\\"http://www.layer7tech.com/ws/policy\\\" xmlns:wsp=\\\"http://schemas.xmlsoap.org/ws/2002/12/policy\\\">\\n    <wsp:All wsp:Usage=\\\"Required\\\">\\n        <L7p:HardcodedResponse><L7p:Base64ResponseBody stringValue=\\\"aGVsbG8gdGVzdA==\\\"/>    </L7p:HardcodedResponse>    </wsp:All>\\n</wsp:Policy>\\n\"\n  }\n}"), 0644)
-	w.Add("tree/myApis/Rest Api 3-+api3.webapi.json")
-
-	// We can verify the current status of the worktree using the method Status.
-	status, err := w.Status()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	fmt.Println(status)
-
-	// Commits the current staging area to the repository, with the new file
-
-	commitHash, err := w.Commit("example go-git commit", &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "Test",
-			Email: "test@test.org",
-			When:  time.Now(),
-		},
-	})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	// Prints the current HEAD to verify that all worked well.
-	obj, _ := r.CommitObject(commitHash)
-
-	fmt.Println(obj)
-	auth := &gitHttp.BasicAuth{
-		Username: username,
-		Password: token,
-	}
-	err = r.Push(&git.PushOptions{
-		Auth: auth,
-	})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return commitHash.String()
-}
-
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
-}
-
-func redirectPolicyFunc(req *http.Request, via []*http.Request) error {
-	req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
 	return nil
 }
+
 func getGatewayPods(ctx context.Context, name string, namespace string, k8sClient client.Client) (*corev1.PodList, error) {
 	podList := &corev1.PodList{}
 
@@ -250,4 +81,24 @@ func getGatewayPods(ctx context.Context, name string, namespace string, k8sClien
 		return podList, err
 	}
 	return podList, nil
+}
+
+func getGatewayDeployment(ctx context.Context, name string, namespace string, k8sClient client.Client) (*appsv1.Deployment, error) {
+	gatewayDeployment := &appsv1.Deployment{}
+
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, gatewayDeployment)
+	if err != nil {
+		return nil, err
+	}
+	return gatewayDeployment, err
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func redirectPolicyFunc(req *http.Request, via []*http.Request) error {
+	req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
+	return nil
 }

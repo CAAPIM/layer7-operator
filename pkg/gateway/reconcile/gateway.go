@@ -35,6 +35,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -107,8 +108,6 @@ type MappingSource struct {
 }
 
 func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params Params, opts ...GatewayUpdateRequestOpt) (*GatewayUpdateRequest, error) {
-	// setCredentials
-	var bundle []byte
 	graphmanPort := 9443
 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
 		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
@@ -137,9 +136,57 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		opt(gwUpdReq)
 	}
 
+	if !gateway.Spec.App.Management.Database.Enabled {
+		gwUpdReq.ephemeral = true
+	}
+
+	switch gwUpdReq.ephemeral {
+	case true:
+		podList, err := getGatewayPods(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		gwUpdReq.podList = podList
+	case false:
+		deployment, err := getGatewayDeployment(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		gwUpdReq.deployment = deployment
+	}
+
 	switch gwUpdReq.bundleType {
 	case BundleTypeRepository:
+
+		if (gwUpdReq.repository.Spec.StateStoreReference == "" && !gwUpdReq.repositoryReference.Enabled) || !gwUpdReq.repository.Spec.Enabled {
+			return nil, nil
+		}
+
+		gwUpdReq.patchAnnotation = "security.brcmlabs.com/" + gwUpdReq.repositoryReference.Name + "-" + string(gwUpdReq.repositoryReference.Type)
 		graphmanEncryptionPassphrase := gwUpdReq.repositoryReference.Encryption.Passphrase
+		/// if no pods are ready return nil
+
+		if gwUpdReq.ephemeral {
+			updCntr := 0
+			ready := false
+			for _, pod := range gwUpdReq.podList.Items {
+				if pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum+"-leader" {
+					updCntr = updCntr + 1
+				}
+				for _, ps := range pod.Status.ContainerStatuses {
+					if ps.Ready {
+						ready = true
+					}
+				}
+			}
+			if updCntr == len(gwUpdReq.podList.Items) || !ready {
+				return nil, nil
+			}
+		} else {
+			if gwUpdReq.deployment.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || gwUpdReq.deployment.Status.ReadyReplicas == 0 {
+				return nil, nil
+			}
+		}
 
 		if gwUpdReq.repositoryReference.Encryption.ExistingSecret != "" {
 			graphmanEncryptionPassphrase, err = getGraphmanEncryptionPassphrase(ctx, params, gwUpdReq.repositoryReference.Encryption.ExistingSecret, gwUpdReq.repositoryReference.Encryption.Key)
@@ -172,20 +219,20 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				if err != nil {
 					return nil, err
 				}
-				bundle = []byte(bundleString)
+				gwUpdReq.bundle = []byte(bundleString)
 			} else {
 				bundleString, err = rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+gwUpdReq.repository.Status.StorageSecretName+":latest").Result()
 				if err != nil {
 					return nil, err
 				}
-				bundle, err = util.GzipDecompress([]byte(bundleString))
+				gwUpdReq.bundle, err = util.GzipDecompress([]byte(bundleString))
 				if err != nil {
 					return nil, err
 				}
 			}
 
 			if gwUpdReq.delete {
-				bundle, err = util.DeleteBundle(gwUpdReq.bundle)
+				gwUpdReq.bundle, err = util.DeleteBundle(gwUpdReq.bundle)
 				if err != nil {
 					return nil, err
 				}
@@ -194,15 +241,15 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			if len(gwUpdReq.repositoryReference.Directories) == 0 {
 				gwUpdReq.repositoryReference.Directories = []string{"/"}
 			}
-			bundle, err = buildBundle(ctx, params, gwUpdReq.repositoryReference, gwUpdReq.repository)
+
+			gwUpdReq.bundle, err = buildBundle(ctx, params, gwUpdReq.repositoryReference, gwUpdReq.repository)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		gwUpdReq.graphmanEncryptionPassphrase = graphmanEncryptionPassphrase
-		gwUpdReq.bundle = bundle
-		gwUpdReq.patchAnnotation = "security.brcmlabs.com/" + gwUpdReq.repositoryReference.Name + "-" + string(gwUpdReq.repositoryReference.Type)
+		//gwUpdReq.bundle = bundle
 
 		gwUpdReq.cacheEntry = gwUpdReq.repositoryReference.Name + "-" + gwUpdReq.checksum
 		gwUpdReq.bundleName = gwUpdReq.repositoryReference.Name
@@ -327,13 +374,13 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				})
 			}
 
-			bundleBytes, err := json.Marshal(bundle)
+			gwUpdReq.bundle, err = json.Marshal(bundle)
 			if err != nil {
 				return nil, err
 			}
 
 			gwUpdReq.graphmanEncryptionPassphrase = ""
-			gwUpdReq.bundle = bundleBytes
+			//gwUpdReq.bundle = bundleBytes
 			gwUpdReq.patchAnnotation = "security.brcmlabs.com/" + params.Instance.Name + "-listen-port-bundle"
 			gwUpdReq.checksum = checksum
 			gwUpdReq.cacheEntry = gateway.Name + "-" + string(gwUpdReq.bundleType) + "-" + gwUpdReq.checksum
@@ -507,7 +554,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		}
 
 		if len(keySecretMap) < 1 && len(notFound) < 1 {
-			return nil, errors.New("failed to create bundle")
+			return nil, nil
 		}
 
 		bundleBytes, err := util.ConvertX509ToGraphmanBundle(keySecretMap, notFound)
@@ -666,25 +713,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		gwUpdReq.externalEntities = externalSecrets
 	}
 
-	if !gateway.Spec.App.Management.Database.Enabled {
-		gwUpdReq.ephemeral = true
-	}
-
-	switch gwUpdReq.ephemeral {
-	case true:
-		podList, err := getGatewayPods(ctx, params)
-		if err != nil {
-			return nil, err
-		}
-		gwUpdReq.podList = podList
-	case false:
-		deployment, err := getGatewayDeployment(ctx, params)
-		if err != nil {
-			return nil, err
-		}
-		gwUpdReq.deployment = deployment
-	}
-
 	return gwUpdReq, nil
 }
 
@@ -749,7 +777,6 @@ func WithOTKCerts(otkCerts bool) GatewayUpdateRequestOpt {
 }
 
 func SyncGateway(ctx context.Context, params Params, gwUpdReq GatewayUpdateRequest) (err error) {
-	// dont apply if statestore (already synced)
 	switch gwUpdReq.ephemeral {
 	case true:
 		err = updateGatewayPods(ctx, params, &gwUpdReq)
@@ -766,9 +793,9 @@ func SyncGateway(ctx context.Context, params Params, gwUpdReq GatewayUpdateReque
 }
 
 func buildBundle(ctx context.Context, params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository) (bundleBytes []byte, err error) {
-	bundleMap := map[string][]byte{}
 	gitPath := ""
-
+	tmpPath := "/tmp/bundles/" + repository.Name
+	fileName := repository.Status.Commit + ".json"
 	for d := range repoRef.Directories {
 		ext := repository.Spec.Branch
 		if ext == "" {
@@ -805,16 +832,36 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 			gitPath = ""
 		}
 
-		if gitPath != "" {
-			b, err := util.BuildAndValidateBundle(gitPath)
-			if err != nil {
-				return nil, err
-			}
-			bundleMap[strconv.Itoa(d)+".json"] = b
+		_, dErr := os.Stat(tmpPath)
+		if dErr != nil {
+			_ = os.MkdirAll(tmpPath, 0755)
+		}
 
-			bundleBytes, err = util.ConcatBundles(bundleMap)
-			if err != nil {
-				return nil, err
+		if gitPath != "" {
+			_, fErr := os.Stat(tmpPath + "/" + fileName)
+
+			if fErr != nil {
+				// remove existing bundles to avoid
+				// growing the ephemeral filesystem
+				existingBundles, _ := os.ReadDir(tmpPath)
+				for _, f := range existingBundles {
+					os.Remove(tmpPath + "/" + f.Name())
+				}
+
+				bundleBytes, err = util.BuildAndValidateBundle(gitPath)
+				if err != nil {
+					return nil, err
+				}
+
+				err = os.WriteFile(tmpPath+"/"+fileName, bundleBytes, 0755)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				bundleBytes, err = os.ReadFile(tmpPath + "/" + fileName)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

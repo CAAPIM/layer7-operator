@@ -47,6 +47,10 @@ func ExternalKeys(ctx context.Context, params Params) error {
 		return err
 	}
 
+	if gwUpdReq == nil {
+		return nil
+	}
+
 	for _, extKey := range gwUpdReq.externalEntities {
 		extKeyUpdReq := gwUpdReq
 		extKeyUpdReq.bundle = extKey.Bundle

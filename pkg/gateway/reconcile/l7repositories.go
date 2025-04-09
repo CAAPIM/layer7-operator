@@ -8,20 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// type GatewayPodUpdateOpts struct {
-// 	Singleton                    bool
-// 	Commit                       string
-// 	Delete                       bool
-// 	GraphmanPort                 int
-// 	GraphmanEncryptionPassphrase string
-// 	Bundle                       []byte
-// 	Username                     string
-// 	Password                     string
-// 	StateStore                   bool
-// 	ReferenceType                securityv1.RepositoryReferenceType
-// 	ExternalCerts []ExternalCert
-// }
-
 func ExternalRepository(ctx context.Context, params Params) error {
 	gateway := params.Instance
 
@@ -34,7 +20,7 @@ func ExternalRepository(ctx context.Context, params Params) error {
 			}
 		}
 	}
-	//////// rewrite
+
 	for _, repoStatus := range gateway.Status.RepositoryStatus {
 		found := false
 		disabled := false
@@ -95,8 +81,13 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 		return err
 	}
 
+	if gwUpdReq == nil {
+		return nil
+	}
+
 	err = SyncGateway(ctx, params, *gwUpdReq)
 	if err != nil {
+		gwUpdReq = nil
 		return err
 	}
 
@@ -107,5 +98,6 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 			}
 		}
 	}
+	gwUpdReq = nil
 	return nil
 }

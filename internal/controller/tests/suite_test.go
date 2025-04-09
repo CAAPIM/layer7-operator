@@ -60,19 +60,17 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	ctx, cancel = context.WithCancel(context.TODO())
-
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
-
 		// The BinaryAssetsDirectory is only required if you want to run the tests directly
 		// without call the makefile target test. If not informed it will look for the
 		// default path defined in controller-runtime which is /usr/local/kubebuilder/.
 		// Note that you must have the required binaries setup under the bin directory to perform
 		// the tests directly. When we run make test it will be setup and used automatically.
 		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s",
-			fmt.Sprintf("1.28.3-%s-%s", runtime.GOOS, runtime.GOARCH)),
+			fmt.Sprintf("1.30.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
 	}
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
@@ -80,16 +78,6 @@ var _ = BeforeSuite(func() {
 
 	err = securityv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
-
-	err = securityv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = securityv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = securityv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
 	//+kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})

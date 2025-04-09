@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"os"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -18,7 +17,7 @@ var _ = Describe("Gateway controller", func() {
 		var (
 			gwLicenseSecretName = "gateway-license"
 			namespace           = "l7operator"
-			gatewayName         = "podconfig"
+			gatewayName         = "podconfig-ssg"
 			version             = "11.1.1"
 			image               = "docker.io/caapim/gateway:11.1.1"
 		)
@@ -35,8 +34,9 @@ var _ = Describe("Gateway controller", func() {
 		})
 
 		It("Should deploy gateway with given pod options", func() {
-
 			By("Creating Gateway custom resource with a repository")
+			Expect(createGatewayLicenseSecret(Secret{k8sClient, ctx, gwLicenseSecretName, namespace})).Should(Succeed())
+
 			gw := securityv1.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      gatewayName,
@@ -113,19 +113,22 @@ var _ = Describe("Gateway controller", func() {
 					return false
 				}
 
-				return true
+				podList, err := getGatewayPods(ctx, gatewayName, namespace, k8sClient)
+				if err != nil {
+					return false
+				}
 
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
-
-			time.Sleep(2 * time.Minute)
-
-			podList, err := getGatewayPods(ctx, gatewayName, namespace, k8sClient)
-			if err != nil {
-				GinkgoWriter.Printf("client: pod list request failed: %s\n", err)
-				os.Exit(1)
-			}
-
-			Expect(podList.Items[0].Annotations["testAnnotation"]).To(Equal("test1"))
+				for _, pod := range podList.Items {
+					for _, podStatus := range pod.Status.ContainerStatuses {
+						if podStatus.Ready {
+							if pod.ObjectMeta.Annotations["testAnnotation"] == "test1" {
+								return true
+							}
+						}
+					}
+				}
+				return false
+			}).Within(time.Second * 180).WithPolling(3 * time.Second).Should(BeTrue())
 		})
 	})
 })

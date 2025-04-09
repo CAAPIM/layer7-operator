@@ -107,7 +107,6 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	patch := []byte(`[{"op": "replace", "path": "/status/ready", "value": false}]`)
-
 	switch strings.ToLower(string(repository.Spec.Type)) {
 	case "http":
 		forceUpdate := false
@@ -167,6 +166,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, &opts)
+
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 			updateErr := updateStatus(ctx, params, commit, storageSecretName)
@@ -189,6 +189,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			return nil
 		}
 	case "statestore":
+		storageSecretName = "_"
 		commit, err = GetStateStoreChecksum(ctx, params, statestore)
 		if err != nil {
 			params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
@@ -199,7 +200,6 @@ func syncRepository(ctx context.Context, params Params) error {
 				params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 			}
 			_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
-			storageSecretName = ""
 			return nil
 		}
 
@@ -220,13 +220,18 @@ func syncRepository(ctx context.Context, params Params) error {
 			err = StateStorage(ctx, params, statestore)
 			if err != nil {
 				params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
-				storageSecretName = ""
+				storageSecretName = "_"
 			}
 		} else {
 			err = StorageSecret(ctx, params)
 			if err != nil {
+				// add a check here that prevents the Operator trying to sync the secret repeatedly
 				params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 				storageSecretName = ""
+				if err.Error() == "exceededMaxSize" {
+					storageSecretName = "_"
+				}
+
 			}
 		}
 	}
@@ -269,6 +274,11 @@ func getRepository(ctx context.Context, params Params) (securityv1.Repository, e
 }
 
 func updateStatus(ctx context.Context, params Params, commit string, storageSecretName string) (err error) {
+
+	if params.Instance.Status.StorageSecretName == "_" {
+		storageSecretName = "_"
+	}
+
 	rs := params.Instance.Status
 	r := params.Instance
 
@@ -278,8 +288,6 @@ func updateStatus(ctx context.Context, params Params, commit string, storageSecr
 	rs.Ready = true
 
 	if r.Spec.Type == "http" {
-		// future usage will include filesize for tracking changes in remote
-		// or use a different status field.
 		rs.Summary = r.Spec.Endpoint
 	}
 

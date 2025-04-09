@@ -172,8 +172,8 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["OTK_TYPE"] = strings.ToUpper(string(securityv1.OtkTypeSingle))
 		data["OTK_SK_UPGRADE"] = "true" // only applies when this runs as a job
 		data["OTK_UPDATE_DATABASE_CONNECTION"] = "true"
-		//data["OTK_DATABASE_PROPERTIES"] = "na"
-		//data["OTK_RO_DATABASE_PROPERTIES"] = "na"
+		data["OTK_DATABASE_PROPERTIES"] = "na"
+		data["OTK_RO_DATABASE_PROPERTIES"] = "na"
 
 		if gw.Spec.App.Otk.Type != "" {
 			data["OTK_TYPE"] = strings.ToUpper(string(gw.Spec.App.Otk.Type))
@@ -190,7 +190,9 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 
 		switch gw.Spec.App.Otk.Database.Type {
 		case securityv1.OtkDatabaseTypeMySQL, securityv1.OtkDatabaseTypeOracle:
-			//data["OTK_DATABASE_CONN_PROPERTIES"] = ""
+
+			/// client read only connection
+			data["OTK_DATABASE_CONN_PROPERTIES"] = "na"
 			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
 			data["OTK_DATABASE_NAME"] = gw.Spec.App.Otk.Database.Sql.DatabaseName
 			data["OTK_JDBC_URL"] = gw.Spec.App.Otk.Database.Sql.JDBCUrl
@@ -199,29 +201,21 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 				dbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.Sql.ConnectionProperties)
 				dbPropertyString := strings.Replace(string(dbPropertyBytes), "[", "", 1)
 				dbPropertyString = strings.Replace(dbPropertyString, "]", "", 1)
-
-				data["OTK_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString)) // needs to be comma separated JSON objects (no array) :'(
+				data["OTK_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
 			}
 
 			if gw.Spec.App.Otk.Database.Sql.JDBCDriverClass != "" {
 				data["OTK_JDBC_DRIVER_CLASS"] = string(gw.Spec.App.Otk.Database.Sql.JDBCDriverClass)
 			}
 
-			/// DRIVER CONFIG - check if empty is allowed
 		case securityv1.OtkDatabaseTypeCassandra:
-			// not set at all
-			//data["OTK_CASSANDRA_DRIVER_CONFIG"] = ""
+			data["OTK_CASSANDRA_DRIVER_CONFIG"] = "na"
 			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
 			data["OTK_CASSANDRA_CONNECTION_POINTS"] = gw.Spec.App.Otk.Database.Cassandra.ConnectionPoints
 			data["OTK_CASSANDRA_PORT"] = strconv.Itoa(gw.Spec.App.Otk.Database.Cassandra.Port)
 			data["OTK_CASSANDRA_KEYSPACE"] = gw.Spec.App.Otk.Database.Cassandra.Keyspace
-			/// take one or the other props or driver config.
-			/// driver config takes precedence over properties
 			if gw.Spec.App.Otk.Database.Cassandra.DriverConfig != "" {
-				// driverConfigBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.Cassandra.DriverConfig)
-				// driverConfigString := strings.Replace(string(driverConfigBytes), "[", "", 1)
-				// driverConfigString = strings.Replace(driverConfigString, "]", "", 1)
-				data["OTK_CASSANDRA_DRIVER_CONFIG"] = base64.StdEncoding.EncodeToString([]byte(gw.Spec.App.Otk.Database.Cassandra.DriverConfig)) // needs to be comma separated JSON objects (no array) :'(
+				data["OTK_CASSANDRA_DRIVER_CONFIG"] = base64.StdEncoding.EncodeToString([]byte(gw.Spec.App.Otk.Database.Cassandra.DriverConfig))
 			}
 		}
 
@@ -230,7 +224,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			if !reflect.DeepEqual(gw.Spec.App.Otk.Database.SqlReadOnly, securityv1.OtkSql{}) {
 				data["OTK_RO_DATABASE_CONNECTION_NAME"] = "OAuth_ReadOnly"
 
-				//data["OTK_RO_DATABASE_CONN_PROPERTIES"] = "na"
+				data["OTK_RO_DATABASE_CONN_PROPERTIES"] = "na"
 				data["OTK_CREATE_RO_DATABASE_CONN"] = "true"
 				data["OTK_RO_DATABASE_NAME"] = gw.Spec.App.Otk.Database.SqlReadOnly.DatabaseName
 				data["OTK_RO_JDBC_URL"] = gw.Spec.App.Otk.Database.SqlReadOnly.JDBCUrl
@@ -243,7 +237,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 					roDbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.SqlReadOnly.ConnectionProperties)
 					dbPropertyString := strings.Replace("[", string(roDbPropertyBytes), "", 1)
 					dbPropertyString = strings.Replace("]", dbPropertyString, "", 1)
-					data["OTK_RO_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString)) // needs to be comma separated JSON objects (no array) :'(
+					data["OTK_RO_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
 				}
 			}
 		}

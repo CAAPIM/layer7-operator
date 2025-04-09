@@ -364,13 +364,13 @@ func AddMappings(src []byte, dest []byte) ([]byte, error) {
 }
 
 func matchOptionsLevelFormat(value string) string {
-	re := regexp.MustCompile(`{{(.*)}}`)
+	re := regexp.MustCompile(`^{{(.*)}}`)
 	match := re.FindStringSubmatch(value)
 	if len(match) > 1 {
 		return match[1]
 
 	} else {
-		re := regexp.MustCompile(`{(.*)}`)
+		re := regexp.MustCompile(`^{(.*)}`)
 		match = re.FindStringSubmatch(value)
 		if len(match) > 1 {
 			return match[1]

@@ -44,3 +44,9 @@ docker-secret.yaml
 tenant_info.json
 example/repositories/local-tests
 example/gateway/local-tests
+
+# internal automation modified files
+deploy/no-crd.yaml
+deploy/only-crd.yaml
+example/gateway/portal-gateway-dev.yaml
+example/portal-integration/redis/redis-dev.yaml

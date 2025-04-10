@@ -18,7 +18,7 @@ var _ = Describe("Gateway controller", func() {
 	Context("When repo of type static is updated", func() {
 		var (
 			gwLicenseSecretName = "gateway-license"
-			repoSecretName      = "test-repository-secret"
+			repoSecretName      = "test-dynamic-repository-secret"
 			namespace           = "l7operator"
 			gatewayName         = "local-repo-ssg"
 			version             = "11.1.1"

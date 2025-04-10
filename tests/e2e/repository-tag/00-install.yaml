@@ -9,6 +9,3 @@ spec:
   tag: test1
   type: git
   auth: {}
-  # auth:
-  #   vendor: Github
-  #   existingSecretName: test-repository-secret

@@ -1030,6 +1030,54 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		Lifecycle:      &lifecycleHooks,
 	}
 
+	if gw.Spec.App.Otel.OtelSDKOnly.Enabled {
+		resourceAttributes := "k8s.container.name=$(CONTAINER_NAME),k8s.deployment.name=$(OTEL_SERVICE_NAME),service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(NAMESPACE),k8s.node.name=$(NODE_NAME),k8s.pod.name=$(POD_NAME),service.version='" + strings.Split(gw.Spec.App.Image, ":")[1] + "'"
+		if len(gw.Spec.App.Otel.AdditionalResourceAttritbutes) > 0 {
+			additionalResourceAttributes := []string{}
+			for _, attr := range gw.Spec.App.Otel.AdditionalResourceAttritbutes {
+				additionalResourceAttributes = append(additionalResourceAttributes, attr.Name+"="+attr.Value)
+			}
+			resourceAttributes = resourceAttributes + "," + strings.Join(additionalResourceAttributes, ",")
+		}
+
+		otelEnv := []corev1.EnvVar{
+			{
+				Name: "NODE_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "spec.nodeName",
+					},
+				},
+			},
+			{
+				Name: "POD_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			},
+			{
+				Name: "NAMESPACE",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.namespace",
+					},
+				},
+			},
+			{
+				Name:  "CONTAINER_NAME",
+				Value: "gateway",
+			},
+			{
+				Name:  "OTEL_RESOURCE_ATTRIBUTES",
+				Value: resourceAttributes,
+			},
+		}
+
+		gateway.Env = append(gateway.Env, otelEnv...)
+	}
+
 	secretRef := corev1.SecretEnvSource{}
 	if !gw.Spec.App.Management.DisklessConfig.Disabled {
 		secretRef = corev1.SecretEnvSource{
@@ -1037,7 +1085,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		}
 		gateway.EnvFrom = append(gateway.EnvFrom, corev1.EnvFromSource{SecretRef: &secretRef})
 	} else {
-		vs := corev1.VolumeSource{}
+		var vs corev1.VolumeSource
 
 		if !reflect.DeepEqual(gw.Spec.App.Management.DisklessConfig.Csi, securityv1.CSI{}) {
 

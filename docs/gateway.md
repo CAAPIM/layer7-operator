@@ -337,6 +337,13 @@ alive or ready to receive traffic.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappotel">otel</a></b></td>
+        <td>object</td>
+        <td>
+          Otel used when no dedicated OTel agent is present. This enriches the telemetry that the SDK is able to emit to your observability backend<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappotk">otk</a></b></td>
         <td>object</td>
         <td>
@@ -423,12 +430,7 @@ alive or ready to receive traffic.<br/>
         <td><b><a href="#gatewayspecapprepositoryreferencesindex">repositoryReferences</a></b></td>
         <td>[]object</td>
         <td>
-          RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.
-RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
-ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.
-ExternalSecretsSyncIntervalSeconds int `json:"externalSecretsSyncIntervalSeconds,omitempty"`
-ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.
-ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncIntervalSeconds,omitempty"`<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10385,6 +10387,110 @@ Default value is 10800(for 3 hours).<br/>
 </table>
 
 
+### Gateway.spec.app.otel
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+Otel used when no dedicated OTel agent is present. This enriches the telemetry that the SDK is able to emit to your observability backend
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappoteladditionalresourceattritbutesindex">additionalResourceAttritbutes</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotelsdkonly">sdkOnly</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otel.additionalResourceAttritbutes[index]
+<sup><sup>[↩ Parent](#gatewayspecappotel)</sup></sup>
+
+
+
+Property is a simple k/v pair
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otel.sdkOnly
+<sup><sup>[↩ Parent](#gatewayspecappotel)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable setting resource attributes
+when enabled the following variables are set in the container Gateway
+- NODE_NAME
+- POD_NAME
+- NAMESPACE
+- CONTAINER_NAME
+- OTEL_SERVICE_NAME
+These are then used to set
+- OTEL_RESOURCE_ATTRIBUTES
+This can be further extended with custom attributes using the additionalResourceAttritbutes field<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.otk
 <sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
 
@@ -10557,6 +10663,13 @@ Database configuration
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>createClientReadOnlySqlConnection</b></td>
+        <td>boolean</td>
+        <td>
+          CreateClientReadOnlySqlConnection<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>createReadOnlySqlConnection</b></td>
         <td>boolean</td>
         <td>
@@ -10582,6 +10695,20 @@ Database configuration
         <td>object</td>
         <td>
           SQL configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabasesqlclientreadonly">sqlClientReadOnly</a></b></td>
+        <td>object</td>
+        <td>
+          SqlClientReadOnly configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sqlClientReadOnlyConnectionName</b></td>
+        <td>string</td>
+        <td>
+          SqlClientReadOnlyConnectionName for the JDBC or Cassandra Connection Gateway entity<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10633,6 +10760,13 @@ Auth for the OTK Database
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabaseauthclientreadonly">clientReadOnly</a></b></td>
+        <td>object</td>
+        <td>
+          ClientReadOnlyUser for Oracle/MySQL<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>existingSecret</b></td>
         <td>string</td>
         <td>
@@ -10644,6 +10778,9 @@ OTK_DATABASE_PASSWORD
 Gateway Readonly user (typically otk_user_readonly)
 OTK_RO_DATABASE_USERNAME
 OTK_RO_DATABASE_PASSWORD
+Gateway Client Readonly user (typically otk_user_client_readonly)
+OTK_CLIENT_RO_DATABASE_USERNAME
+OTK_CLIENT_RO_DATABASE_PASSWORD
 Database admin credentials used to create or update the OTK database
 OTK_DATABASE_DDL_USERNAME
 OTK_DATABASE_DDL_PASSWORD<br/>
@@ -10673,6 +10810,40 @@ OTK_DATABASE_DDL_PASSWORD<br/>
 
 
 AdminUser for database creation
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>password</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.auth.clientReadOnly
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabaseauth)</sup></sup>
+
+
+
+ClientReadOnlyUser for Oracle/MySQL
 
 <table>
     <thead>
@@ -10848,6 +11019,84 @@ SQL configuration
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>databaseProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseWaitTimeout</b></td>
+        <td>integer</td>
+        <td>
+          DatabaseWaitTimeout applies to the db-initcontainer only<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcDriverClass</b></td>
+        <td>string</td>
+        <td>
+          JDBCDriverClass to use in the Gateway JDBC Connection entity
+defaults to com.mysql.jdbc.Driver<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcUrl</b></td>
+        <td>string</td>
+        <td>
+          JDBCUrl for the OTK<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>manageSchema</b></td>
+        <td>boolean</td>
+        <td>
+          ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database
+only supports MySQL and Oracle<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.sqlClientReadOnly
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabase)</sup></sup>
+
+
+
+SqlClientReadOnly configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>connectionProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseName</b></td>
+        <td>string</td>
+        <td>
+          ConnectionName string `json:"connectionName,omitempty"`<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>databaseWaitTimeout</b></td>
         <td>integer</td>
         <td>
@@ -10909,6 +11158,13 @@ SqlReadOnly configuration
         <td>string</td>
         <td>
           ConnectionName string `json:"connectionName,omitempty"`<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>

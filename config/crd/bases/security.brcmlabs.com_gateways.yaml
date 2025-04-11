@@ -3732,6 +3732,30 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  otel:
+                    description: Otel used when no dedicated OTel agent is present.
+                    properties:
+                      additionalResourceAttritbutes:
+                        items:
+                          description: Property is a simple k/v pair
+                          properties:
+                            name:
+                              description: Name
+                              type: string
+                            value:
+                              description: Value
+                              type: string
+                          type: object
+                        type: array
+                      sdkOnly:
+                        properties:
+                          enabled:
+                            description: |-
+                              Enable or disable setting resource attributes
+                              when enabled the following va
+                            type: boolean
+                        type: object
+                    type: object
                   otk:
                     properties:
                       database:
@@ -3742,6 +3766,14 @@ spec:
                             properties:
                               admin:
                                 description: AdminUser for database creation
+                                properties:
+                                  password:
+                                    type: string
+                                  username:
+                                    type: string
+                                type: object
+                              clientReadOnly:
+                                description: ClientReadOnlyUser for Oracle/MySQL
                                 properties:
                                   password:
                                     type: string
@@ -3792,6 +3824,9 @@ spec:
                             description: Create the OTK database. Only applies to
                               oracle and mysql
                             type: boolean
+                          createClientReadOnlySqlConnection:
+                            description: CreateClientReadOnlySqlConnection
+                            type: boolean
                           createReadOnlySqlConnection:
                             description: CreateReadOnlySqlConnection
                             type: boolean
@@ -3819,6 +3854,13 @@ spec:
                               databaseName:
                                 description: ConnectionName string `json:"connectionName,omitempty"`
                                 type: string
+                              databaseProperties:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
                               databaseWaitTimeout:
                                 description: DatabaseWaitTimeout applies to the db-initcontainer
                                   only
@@ -3836,6 +3878,47 @@ spec:
                                   for the OTK that connects '
                                 type: boolean
                             type: object
+                          sqlClientReadOnly:
+                            description: SqlClientReadOnly configuration
+                            properties:
+                              connectionProperties:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
+                              databaseName:
+                                description: ConnectionName string `json:"connectionName,omitempty"`
+                                type: string
+                              databaseProperties:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
+                              databaseWaitTimeout:
+                                description: DatabaseWaitTimeout applies to the db-initcontainer
+                                  only
+                                type: integer
+                              jdbcDriverClass:
+                                description: |-
+                                  JDBCDriverClass to use in the Gateway JDBC Connection entity
+                                  defaults to co
+                                type: string
+                              jdbcUrl:
+                                description: JDBCUrl for the OTK
+                                type: string
+                              manageSchema:
+                                description: 'ManageSchema appends an additional initContainer
+                                  for the OTK that connects '
+                                type: boolean
+                            type: object
+                          sqlClientReadOnlyConnectionName:
+                            description: SqlClientReadOnlyConnectionName for the JDBC
+                              or Cassandra Connection Gatewa
+                            type: string
                           sqlReadOnly:
                             description: SqlReadOnly configuration
                             properties:
@@ -3849,6 +3932,13 @@ spec:
                               databaseName:
                                 description: ConnectionName string `json:"connectionName,omitempty"`
                                 type: string
+                              databaseProperties:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
                               databaseWaitTimeout:
                                 description: DatabaseWaitTimeout applies to the db-initcontainer
                                   only
@@ -4746,8 +4836,6 @@ spec:
                     format: int32
                     type: integer
                   repositoryReferences:
-                    description: RepositorySyncIntervalSeconds is the period of time
-                      between attempts to app
                     items:
                       description: 'RepositoryReference is reference to a Git repository
                         or HTTP endpoint that '

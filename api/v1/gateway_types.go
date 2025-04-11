@@ -211,13 +211,7 @@ type App struct {
 	// this enables scheduled tasks that are set to execute on a single node and jms destinations that are outbound
 	// to be applied to one ephemeral gateway only.
 	// This works inconjunction with repository references and only supports dynamic repository references.
-	SingletonExtraction bool `json:"singletonExtraction,omitempty"`
-	// RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.
-	//RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
-	// ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.
-	//ExternalSecretsSyncIntervalSeconds int `json:"externalSecretsSyncIntervalSeconds,omitempty"`
-	// ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.
-	//ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncIntervalSeconds,omitempty"`
+	SingletonExtraction  bool                  `json:"singletonExtraction,omitempty"`
 	RepositoryReferences []RepositoryReference `json:"repositoryReferences,omitempty"`
 	Ingress              Ingress               `json:"ingress,omitempty"`
 	Sidecars             []corev1.Container    `json:"sidecars,omitempty"`
@@ -249,6 +243,27 @@ type App struct {
 	PreStopScript                 PreStopScript    `json:"preStopScript,omitempty"`
 	CustomHosts                   CustomHosts      `json:"customHosts,omitempty"`
 	Otk                           Otk              `json:"otk,omitempty"`
+	Otel                          Otel             `json:"otel,omitempty"`
+}
+
+// Otel used when no dedicated OTel agent is present. This enriches the telemetry that the SDK is able to emit to your observability backend
+type Otel struct {
+	OtelSDKOnly                   OtelSDKOnly `json:"sdkOnly,omitempty"`
+	AdditionalResourceAttritbutes []Property  `json:"additionalResourceAttritbutes,omitempty"`
+}
+
+type OtelSDKOnly struct {
+	// Enable or disable setting resource attributes
+	// when enabled the following variables are set in the container Gateway
+	// - NODE_NAME
+	// - POD_NAME
+	// - NAMESPACE
+	// - CONTAINER_NAME
+	// - OTEL_SERVICE_NAME
+	// These are then used to set
+	// - OTEL_RESOURCE_ATTRIBUTES
+	// This can be further extended with custom attributes using the additionalResourceAttritbutes field
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // PortalReference is for bulk syncing of Portal APIs via initContainer (bootstrap)
@@ -449,6 +464,12 @@ type OtkDatabase struct {
 	SqlReadOnly OtkSql `json:"sqlReadOnly,omitempty"`
 	// SqlReadOnlyConnectionName for the JDBC or Cassandra Connection Gateway entity
 	SqlReadOnlyConnectionName string `json:"sqlReadOnlyConnectionName,omitempty"`
+	// CreateClientReadOnlySqlConnection
+	CreateClientReadOnlySqlConnection bool `json:"createClientReadOnlySqlConnection,omitempty"`
+	// SqlClientReadOnly configuration
+	SqlClientReadOnly OtkSql `json:"sqlClientReadOnly,omitempty"`
+	// SqlClientReadOnlyConnectionName for the JDBC or Cassandra Connection Gateway entity
+	SqlClientReadOnlyConnectionName string `json:"sqlClientReadOnlyConnectionName,omitempty"`
 	// Properties
 	Properties map[string]intstr.IntOrString `json:"properties,omitempty"`
 }
@@ -462,6 +483,9 @@ type OtkDatabaseAuth struct {
 	// Gateway Readonly user (typically otk_user_readonly)
 	// OTK_RO_DATABASE_USERNAME
 	// OTK_RO_DATABASE_PASSWORD
+	// Gateway Client Readonly user (typically otk_user_client_readonly)
+	// OTK_CLIENT_RO_DATABASE_USERNAME
+	// OTK_CLIENT_RO_DATABASE_PASSWORD
 	// Database admin credentials used to create or update the OTK database
 	// OTK_DATABASE_DDL_USERNAME
 	// OTK_DATABASE_DDL_PASSWORD
@@ -470,6 +494,8 @@ type OtkDatabaseAuth struct {
 	GatewayUser OtkDatabaseAuthCredentials `json:"gateway,omitempty"`
 	// ReadOnlyUser for Oracle/MySQL
 	ReadOnlyUser OtkDatabaseAuthCredentials `json:"readOnly,omitempty"`
+	// ClientReadOnlyUser for Oracle/MySQL
+	ClientReadOnlyUser OtkDatabaseAuthCredentials `json:"clientReadOnly,omitempty"`
 	// AdminUser for database creation
 	AdminUser OtkDatabaseAuthCredentials `json:"admin,omitempty"`
 }
@@ -495,6 +521,7 @@ type OtkSql struct {
 	// JDBCDriverClass to use in the Gateway JDBC Connection entity
 	// defaults to com.mysql.jdbc.Driver
 	JDBCDriverClass      string                        `json:"jdbcDriverClass,omitempty"`
+	DatabaseProperties   map[string]intstr.IntOrString `json:"databaseProperties,omitempty"`
 	ConnectionProperties map[string]intstr.IntOrString `json:"connectionProperties,omitempty"`
 	// ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database
 	// only supports MySQL and Oracle

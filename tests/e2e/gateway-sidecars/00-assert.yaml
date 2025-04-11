@@ -21,7 +21,7 @@ spec:
             name: ssg-sidecar-test
         - secretRef:
             name: ssg-sidecar-test
-        image: docker.io/caapim/gateway:11.1.1
+        image: docker.io/caapim/gateway:11.1.2
         imagePullPolicy: IfNotPresent
         lifecycle: {}
         name: gateway

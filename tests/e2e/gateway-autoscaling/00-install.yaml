@@ -3,13 +3,13 @@ kind: Gateway
 metadata:
   name: ssg-autoscaling-test
 spec:
-  version: "11.1.1"
+  version: "11.1.2"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.1
+    image: docker.io/caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
     management:
       cluster:

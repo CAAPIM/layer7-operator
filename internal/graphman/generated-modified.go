@@ -85,6 +85,8 @@ type AuditConfigurationInput struct {
 	LookupPolicyName string `json:"lookupPolicyName"`
 	// The configuration checksum
 	Checksum string `json:"checksum"`
+	// Whether to save the audit records always to the internal database
+	AlwaysSaveInternal bool `json:"alwaysSaveInternal"`
 	// Sink Policy Name
 	SinkPolicyName string `json:"sinkPolicyName"`
 	// FTP Client Configuration
@@ -102,6 +104,9 @@ func (v *AuditConfigurationInput) GetLookupPolicyName() string { return v.Lookup
 
 // GetChecksum returns AuditConfigurationInput.Checksum, and is useful for accessing the field via an interface.
 func (v *AuditConfigurationInput) GetChecksum() string { return v.Checksum }
+
+// GetAlwaysSaveInternal returns AuditConfigurationInput.AlwaysSaveInternal, and is useful for accessing the field via an interface.
+func (v *AuditConfigurationInput) GetAlwaysSaveInternal() bool { return v.AlwaysSaveInternal }
 
 // GetSinkPolicyName returns AuditConfigurationInput.SinkPolicyName, and is useful for accessing the field via an interface.
 func (v *AuditConfigurationInput) GetSinkPolicyName() string { return v.SinkPolicyName }

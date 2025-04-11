@@ -173,8 +173,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["OTK_SK_UPGRADE"] = "true" // only applies when this runs as a job
 		data["OTK_UPDATE_DATABASE_CONNECTION"] = "true"
 		data["OTK_DATABASE_PROPERTIES"] = "na"
-		data["OTK_RO_DATABASE_PROPERTIES"] = "na"
-
 		if gw.Spec.App.Otk.Type != "" {
 			data["OTK_TYPE"] = strings.ToUpper(string(gw.Spec.App.Otk.Type))
 		}
@@ -183,15 +181,10 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			dbPropertyString := strings.ReplaceAll(string(dbPropertyBytes), "[", "")
 			dbPropertyString = strings.ReplaceAll(dbPropertyString, "]", "")
 			data["OTK_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
-			if gw.Spec.App.Otk.Database.CreateReadOnlySqlConnection {
-				data["OTK_RO_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
-			}
 		}
 
 		switch gw.Spec.App.Otk.Database.Type {
 		case securityv1.OtkDatabaseTypeMySQL, securityv1.OtkDatabaseTypeOracle:
-
-			/// client read only connection
 			data["OTK_DATABASE_CONN_PROPERTIES"] = "na"
 			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
 			data["OTK_DATABASE_NAME"] = gw.Spec.App.Otk.Database.Sql.DatabaseName
@@ -208,6 +201,67 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 				data["OTK_JDBC_DRIVER_CLASS"] = string(gw.Spec.App.Otk.Database.Sql.JDBCDriverClass)
 			}
 
+			if gw.Spec.App.Otk.Database.CreateReadOnlySqlConnection {
+				data["OTK_CREATE_RO_DATABASE_CONN"] = "false"
+				if !reflect.DeepEqual(gw.Spec.App.Otk.Database.SqlReadOnly, securityv1.OtkSql{}) {
+					data["OTK_RO_DATABASE_CONNECTION_NAME"] = "OAuth_ReadOnly"
+					data["OTK_RO_DATABASE_CONN_PROPERTIES"] = "na"
+					data["OTK_RO_DATABASE_PROPERTIES"] = "na"
+					data["OTK_CREATE_RO_DATABASE_CONN"] = "true"
+					data["OTK_RO_DATABASE_NAME"] = gw.Spec.App.Otk.Database.SqlReadOnly.DatabaseName
+					data["OTK_RO_JDBC_URL"] = gw.Spec.App.Otk.Database.SqlReadOnly.JDBCUrl
+					data["OTK_RO_JDBC_DRIVER_CLASS"] = gw.Spec.App.Otk.Database.SqlReadOnly.JDBCDriverClass
+
+					if gw.Spec.App.Otk.Database.SqlReadOnlyConnectionName != "" {
+						data["OTK_RO_DATABASE_CONNECTION_NAME"] = gw.Spec.App.Otk.Database.SqlReadOnlyConnectionName
+					}
+					if gw.Spec.App.Otk.Database.SqlReadOnly.ConnectionProperties != nil {
+						roDbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.SqlReadOnly.ConnectionProperties)
+						dbPropertyString := strings.Replace("[", string(roDbPropertyBytes), "", 1)
+						dbPropertyString = strings.Replace("]", dbPropertyString, "", 1)
+						data["OTK_RO_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
+					}
+
+					if gw.Spec.App.Otk.Database.SqlReadOnly.DatabaseProperties != nil {
+						dbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.Sql.DatabaseProperties)
+						dbPropertyString := strings.Replace(string(dbPropertyBytes), "[", "", 1)
+						dbPropertyString = strings.Replace(dbPropertyString, "]", "", 1)
+						data["OTK_RO_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
+					}
+				}
+			}
+			if gw.Spec.App.Otk.Database.CreateClientReadOnlySqlConnection {
+
+				data["OTK_CREATE_CLIENT_READ_DATABASE_CONN"] = "false"
+				if !reflect.DeepEqual(gw.Spec.App.Otk.Database.SqlClientReadOnly, securityv1.OtkSql{}) {
+					data["OTK_CLIENT_READ_DATABASE_CONNECTION_NAME"] = "OAuth_Client_Read"
+					data["OTK_CLIENT_READ_DATABASE_CONN_PROPERTIES"] = "na"
+					data["OTK_CLIENT_READ_DATABASE_PROPERTIES"] = "na"
+					data["OTK_CREATE_CLIENT_READ_DATABASE_CONN"] = "true"
+					data["OTK_CLIENT_READ_DATABASE_NAME"] = gw.Spec.App.Otk.Database.SqlClientReadOnly.DatabaseName
+					data["OTK_CLIENT_READ_JDBC_URL"] = gw.Spec.App.Otk.Database.SqlClientReadOnly.JDBCUrl
+					// set this default for driver class "com.mysql.cj.jdbc.Driver"
+					data["OTK_CLIENT_READ_JDBC_DRIVER_CLASS"] = gw.Spec.App.Otk.Database.SqlClientReadOnly.JDBCDriverClass
+
+					if gw.Spec.App.Otk.Database.SqlClientReadOnlyConnectionName != "" {
+						data["OTK_CLIENT_READ_DATABASE_CONNECTION_NAME"] = gw.Spec.App.Otk.Database.SqlClientReadOnlyConnectionName
+					}
+					if gw.Spec.App.Otk.Database.SqlClientReadOnly.ConnectionProperties != nil {
+						croDbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.SqlClientReadOnly.ConnectionProperties)
+						dbPropertyString := strings.Replace("[", string(croDbPropertyBytes), "", 1)
+						dbPropertyString = strings.Replace("]", dbPropertyString, "", 1)
+						data["OTK_CLIENT_READ_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
+					}
+
+					if gw.Spec.App.Otk.Database.SqlClientReadOnly.DatabaseProperties != nil {
+						dbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.Sql.DatabaseProperties)
+						dbPropertyString := strings.Replace(string(dbPropertyBytes), "[", "", 1)
+						dbPropertyString = strings.Replace(dbPropertyString, "]", "", 1)
+						data["OTK_CLIENT_READ_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
+					}
+				}
+			}
+
 		case securityv1.OtkDatabaseTypeCassandra:
 			data["OTK_CASSANDRA_DRIVER_CONFIG"] = "na"
 			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
@@ -219,36 +273,13 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			}
 		}
 
-		if gw.Spec.App.Otk.Database.CreateReadOnlySqlConnection {
-			data["OTK_CREATE_RO_DATABASE_CONN"] = "false"
-			if !reflect.DeepEqual(gw.Spec.App.Otk.Database.SqlReadOnly, securityv1.OtkSql{}) {
-				data["OTK_RO_DATABASE_CONNECTION_NAME"] = "OAuth_ReadOnly"
-
-				data["OTK_RO_DATABASE_CONN_PROPERTIES"] = "na"
-				data["OTK_CREATE_RO_DATABASE_CONN"] = "true"
-				data["OTK_RO_DATABASE_NAME"] = gw.Spec.App.Otk.Database.SqlReadOnly.DatabaseName
-				data["OTK_RO_JDBC_URL"] = gw.Spec.App.Otk.Database.SqlReadOnly.JDBCUrl
-				data["OTK_RO_JDBC_DRIVER_CLASS"] = gw.Spec.App.Otk.Database.SqlReadOnly.JDBCDriverClass
-
-				if gw.Spec.App.Otk.Database.SqlReadOnlyConnectionName != "" {
-					data["OTK_RO_DATABASE_CONNECTION_NAME"] = gw.Spec.App.Otk.Database.SqlReadOnlyConnectionName
-				}
-				if gw.Spec.App.Otk.Database.SqlReadOnly.ConnectionProperties != nil {
-					roDbPropertyBytes, _ := json.Marshal(gw.Spec.App.Otk.Database.SqlReadOnly.ConnectionProperties)
-					dbPropertyString := strings.Replace("[", string(roDbPropertyBytes), "", 1)
-					dbPropertyString = strings.Replace("]", dbPropertyString, "", 1)
-					data["OTK_RO_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte(dbPropertyString))
-				}
-			}
-		}
-
 	case gw.Name + "-otk-install-init-config":
 		data["OTK_INSTALL_MODE"] = "initContainer"
 		data["BOOTSTRAP_DIR"] = "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK"
 		data["OTK_INTEGRATE_WITH_PORTAL"] = "false"
 		data["OTK_SKIP_INTERNAL_SERVER_TOOLS"] = "false"
 		data["OTK_SKIP_POST_INSTALLATION_TASKS"] = "false"
-		data["OTK_DATABASE_UPGRADE"] = strconv.FormatBool(gw.Spec.App.Otk.Database.DbUpgrade)
+		data["OTK_DATABASE_UPGRADE"] = "false"
 		data["OTK_INTERNAL_CERT_ENCODED"] = ""
 		data["OTK_INTERNAL_CERT_ISS"] = ""
 		data["OTK_INTERNAL_CERT_SERIAL"] = "12345"
@@ -290,6 +321,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		switch gw.Spec.App.Otk.Database.Type {
 		case securityv1.OtkDatabaseTypeMySQL, securityv1.OtkDatabaseTypeOracle:
 			//data["OTK_DATABASE_CONN_PROPERTIES"] = "na"
+			data["OTK_DATABASE_UPGRADE"] = strconv.FormatBool(gw.Spec.App.Otk.Database.DbUpgrade)
 			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
 			data["OTK_DATABASE_NAME"] = gw.Spec.App.Otk.Database.Sql.DatabaseName
 			data["OTK_JDBC_URL"] = gw.Spec.App.Otk.Database.Sql.JDBCUrl
@@ -298,7 +330,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 				data["OTK_JDBC_DRIVER_CLASS"] = string(gw.Spec.App.Otk.Database.Sql.JDBCDriverClass)
 
 			}
-			data["OTK_DATABASE_UPGRADE"] = strconv.FormatBool(gw.Spec.App.Otk.Database.DbUpgrade)
 			data["OTK_CREATE_TEST_CLIENTS"] = "false"
 			data["OTK_TEST_CLIENTS_REDIRECT_URL_PREFIX"] = ""
 			//data["OTK_LIQUIBASE_OPERATION"] = "changelogSync"

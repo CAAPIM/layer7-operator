@@ -326,7 +326,7 @@ status:
     ready: true
     startTime: 2023-04-03 18:57:24 +0000 UTC
   host: gateway.brcmlabs.com
-  image: caapim/gateway:11.1.1
+  image: caapim/gateway:11.1.2
   ready: 1
   replicas: 1
 repositoryStatus:
@@ -355,7 +355,7 @@ repositoryStatus:
   storageSecretName: l7-gw-mysubscriptions-repository
   type: dynamic
 state: Ready
-version: 11.1.1
+version: 11.1.2
 ```
 
 ### Create Access Token

@@ -37,7 +37,7 @@ function copy() {
     echo "***************************************************************************"
     echo "scanning for $TYPE in $SOURCE_DIR"
     echo "***************************************************************************"
-    FILES=$(du -a $3 | grep -e ".\\$2$" | awk '{ print $2 }' 2>/dev/null)
+    FILES=$(du -a $3 | grep -e ".\\$2$" | sed 's/\S*\s*\(\S*\).*/\1/' 2>/dev/null)
     for file in $FILES; do
         name=$(basename "$file")
         cp $file $4/$name
@@ -53,7 +53,7 @@ function gunzip() {
     echo "***************************************************************************"
     echo "scanning for $TYPE in $SOURCE_DIR"
     echo "***************************************************************************"
-    FILES=$(du -a $3 | grep -e ".\\$2$" | awk '{ print $2 }' 2>/dev/null)
+    FILES=$(du -a $3 | grep -e ".\\$2$" | sed 's/\S*\s*\(\S*\).*/\1/' 2>/dev/null)
     for file in $FILES; do
         fullname=$(basename "$file")
         name="${fullname%.*}"
@@ -69,7 +69,7 @@ function run() {
     echo "***************************************************************************"
     echo "scanning for $TYPE in $SOURCE_DIR"
     echo "***************************************************************************"
-    FILES=$(du -a $3 | grep -e ".\\$2$" | awk '{ print $2 }' 2>/dev/null)
+    FILES=$(du -a $3 | grep -e ".\\$2$" | sed 's/\S*\s*\(\S*\).*/\1/' 2>/dev/null)
     for file in $FILES; do
         name=$(basename "$file")
         echo -e "running $name"

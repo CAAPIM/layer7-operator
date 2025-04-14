@@ -5,7 +5,7 @@ metadata:
 spec:
   version: "11.1.1"
   license:
-    accept: false
+    accept: true
     secretName: gateway-license
   app:
     replicas: 1
@@ -28,28 +28,12 @@ spec:
     #     description: test secret
     #     variableReferencable: true
     repositoryReferences:
-      - name: l7-gw-myframework
+      - name: oom-repo
         enabled: true
-        type: static
+        type: dynamic
         encryption:
           existingSecret: graphman-encryption-secret
           key: FRAMEWORK_ENCRYPTION_PASSPHRASE
-      - name: l7-gw-myapis
-        enabled: true
-        type: dynamic
-        encryption:
-          existingSecret: graphman-encryption-secret
-          key: APIS_ENCRYPTION_PASSPHRASE
-      - name: l7-gw-mysubscriptions
-        enabled: true
-        type: dynamic
-        encryption:
-          existingSecret: graphman-encryption-secret
-          key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
-      - name: local-reference-repository
-        enabled: true
-        type: dynamic
-        encryption: {}
     bootstrap:
       script:
         enabled: false
@@ -109,6 +93,8 @@ spec:
     cwp:
       enabled: true
       properties:
+        - name: io.xmlPartMaxBytes
+          value: "0"
         - name: io.httpsHostAllowWildcard
           value: "true"
         - name: log.levels

@@ -170,6 +170,10 @@ func syncRepository(ctx context.Context, params Params) error {
 	if err != nil {
 		params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 		storageSecretName = ""
+		if err.Error() == "exceededMaxSize" {
+			storageSecretName = "_"
+		}
+
 	}
 
 	repoStatus.Commit = commit
@@ -183,7 +187,9 @@ func syncRepository(ctx context.Context, params Params) error {
 		repoStatus.Summary = repository.Spec.Endpoint
 	}
 
-	repoStatus.StorageSecretName = storageSecretName
+	if repoStatus.StorageSecretName != "_" {
+		repoStatus.StorageSecretName = storageSecretName
+	}
 
 	if !reflect.DeepEqual(repoStatus, repository.Status) {
 		params.Log.Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)

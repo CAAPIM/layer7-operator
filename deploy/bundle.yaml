@@ -7226,7 +7226,7 @@ spec:
         - --metrics-bind-address=:8443
         - --leader-elect
         - --health-probe-bind-address=:8081
-        - --zap-log-level=info
+        - --zap-log-level=10
         - --zap-time-encoding=rfc3339nano
         command:
         - /manager
@@ -7249,8 +7249,8 @@ spec:
           value: localhost:4317
         - name: OTEL_METRIC_PREFIX
           value: layer7_
-        image: docker.io/layer7api/layer7-operator:main
-        imagePullPolicy: IfNotPresent
+        image: harbor.sutraone.com/operator/layer7-operator:hot_fix
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz

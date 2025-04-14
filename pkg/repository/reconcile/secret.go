@@ -2,9 +2,13 @@ package reconcile
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
 	v1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/repository"
@@ -54,7 +58,12 @@ func StorageSecret(ctx context.Context, params Params) error {
 	if ext == "" {
 		ext = params.Instance.Spec.Tag
 	}
-	switch strings.ToLower(params.Instance.Spec.Type) {
+
+	if params.Instance.Status.StorageSecretName == "_" {
+		return nil
+	}
+
+	switch strings.ToLower(string(params.Instance.Spec.Type)) {
 	case "http":
 		fileURL, err := url.Parse(params.Instance.Spec.Endpoint)
 		if err != nil {
@@ -75,7 +84,14 @@ func StorageSecret(ctx context.Context, params Params) error {
 	default:
 		params.Log.Info("repository type not set", "name", params.Instance.Name, "namespace", params.Instance.Name)
 		return nil
+	}
 
+	dirSize, err := getDirSize("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
+	if err != nil {
+		return err
+	}
+	if dirSize/1000.0/1000.0/3.5 > 0.9 {
+		return errors.New("exceededMaxSize")
 	}
 
 	bundleGzip, err := util.CompressGraphmanBundle("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
@@ -94,6 +110,46 @@ func StorageSecret(ctx context.Context, params Params) error {
 	}
 
 	return nil
+}
+
+func getDirSize(path string) (sizef float64, err error) {
+	var size int64
+	var mu sync.Mutex
+
+	var calculateSize func(string) error
+	calculateSize = func(p string) error {
+		fileInfo, err := os.Lstat(p)
+		if err != nil {
+			return err
+		}
+
+		if fileInfo.Mode()&os.ModeSymlink != 0 {
+			return nil
+		}
+
+		if fileInfo.IsDir() {
+			entries, err := os.ReadDir(p)
+			if err != nil {
+				return err
+			}
+			for _, entry := range entries {
+				if err := calculateSize(filepath.Join(p, entry.Name())); err != nil {
+					return err
+				}
+			}
+		} else {
+			mu.Lock()
+			size += fileInfo.Size()
+			mu.Unlock()
+		}
+		return nil
+	}
+
+	if err := calculateSize(path); err != nil {
+		return 0, err
+	}
+
+	return float64(size), nil
 }
 
 func reconcileSecret(ctx context.Context, params Params, desiredSecret *corev1.Secret) error {

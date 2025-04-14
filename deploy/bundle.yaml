@@ -7249,7 +7249,7 @@ spec:
           value: localhost:4317
         - name: OTEL_METRIC_PREFIX
           value: layer7_
-        image: harbor.sutraone.com/operator/layer7-operator:main
+        image: docker.io/layer7api/layer7-operator:main
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:

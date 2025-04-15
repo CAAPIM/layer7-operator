@@ -7,62 +7,54 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
-type CloneRepositoryOpts struct {
-	URL            string
-	Username       string
-	Token          string
-	PrivateKey     []byte
-	PrivateKeyPass string
-	Branch         string
-	Tag            string
-	RemoteName     string
-	Name           string
-	Vendor         string
-	AuthType       string
-	KnownHosts     []byte
-	Namespace      string
-}
-
-func CloneRepository(url string, opts *CloneRepositoryOpts) (string, error) {
-
-	if opts.RemoteName == "" {
-		opts.RemoteName = "origin"
+func CloneRepository(url string, username string, token string, privateKey []byte, privateKeyPass string, branch string, tag string, remoteName string, name string, vendor string, authType string, knownHosts []byte, namespace string) (string, error) {
+	if remoteName == "" {
+		remoteName = "origin"
 	}
 
 	cloneOpts := git.CloneOptions{
 		URL:        url,
-		RemoteName: opts.RemoteName,
+		RemoteName: remoteName,
 	}
 
 	pullOpts := git.PullOptions{
-		RemoteName: opts.RemoteName,
+		RemoteName: remoteName,
 	}
 
-	if !strings.Contains(url, ".git") {
+	if !strings.HasSuffix(url, ".git") {
 		cloneOpts.URL = url + ".git"
 	}
 
-	if opts.Tag != "" {
-		cloneOpts.ReferenceName = plumbing.ReferenceName(opts.Tag)
-		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + opts.Tag)
+	if vendor == "azure" {
+		transport.UnsupportedCapabilities = []capability.Capability{
+			capability.ThinPack,
+		}
+		cloneOpts.URL = url
+	}
+
+	if tag != "" {
+		cloneOpts.ReferenceName = plumbing.ReferenceName(tag)
+		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + tag)
 	}
 
 	// this supercedes tag if set.
-	if opts.Branch != "" {
-		cloneOpts.ReferenceName = plumbing.ReferenceName(opts.Branch)
-		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + opts.Branch)
+	if branch != "" {
+		cloneOpts.ReferenceName = plumbing.ReferenceName(branch)
+		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + branch)
 	}
 
-	switch strings.ToLower(opts.AuthType) {
+	switch strings.ToLower(authType) {
 	case "ssh":
 		if strings.Contains(url, "https") {
-			return "", fmt.Errorf("auth type %s is not valid for %s please use username,token instead", opts.AuthType, url)
+			return "", fmt.Errorf("auth type %s is not valid for %s please use username,token instead", authType, url)
 		}
-		publicKeys, err := ssh.NewPublicKeys("git", opts.PrivateKey, opts.PrivateKeyPass)
+		publicKeys, err := ssh.NewPublicKeys("git", privateKey, privateKeyPass)
 		if err != nil {
 			return "", err
 		}
@@ -75,13 +67,13 @@ func CloneRepository(url string, opts *CloneRepositoryOpts) (string, error) {
 		var newKnownHosts string
 		currentKnownHosts, err := os.ReadFile("/tmp/known_hosts")
 		if err != nil {
-			err = os.WriteFile("/tmp/known_hosts", opts.KnownHosts, 0644)
+			err = os.WriteFile("/tmp/known_hosts", knownHosts, 0644)
 			if err != nil {
 				return "", err
 			}
 		} else {
 			if len(currentKnownHosts) == 0 {
-				newKnownHosts = string(opts.KnownHosts)
+				newKnownHosts = string(knownHosts)
 			}
 			for _, c := range strings.Split(string(currentKnownHosts), "\n") {
 				if !strings.Contains(newKnownHosts, c) {
@@ -91,7 +83,7 @@ func CloneRepository(url string, opts *CloneRepositoryOpts) (string, error) {
 						newKnownHosts = newKnownHosts + "\n" + c
 					}
 
-					for _, n := range strings.Split(string(opts.KnownHosts), "\n") {
+					for _, n := range strings.Split(string(knownHosts), "\n") {
 						if !strings.Contains(newKnownHosts, n) {
 							if newKnownHosts == "" {
 								newKnownHosts = n
@@ -110,42 +102,42 @@ func CloneRepository(url string, opts *CloneRepositoryOpts) (string, error) {
 		}
 
 	case "basic":
-		if opts.Username != "" && opts.Token != "" {
-			cloneOpts.Auth = &http.BasicAuth{Username: opts.Username, Password: opts.Token}
-			pullOpts.Auth = &http.BasicAuth{Username: opts.Username, Password: opts.Token}
+		if username != "" && token != "" {
+			cloneOpts.Auth = &http.BasicAuth{Username: username, Password: token}
+			pullOpts.Auth = &http.BasicAuth{Username: username, Password: token}
 		}
 	}
 
 	ext := cloneOpts.ReferenceName.String()
 
-	r, err := git.PlainClone("/tmp/"+opts.Name+"-"+opts.Namespace+"-"+ext, false, &cloneOpts)
+	r, err := git.PlainClone("/tmp/"+name+"-"+namespace+"-"+ext, false, &cloneOpts)
 
 	if err == git.ErrRepositoryAlreadyExists {
-		r, _ := git.PlainOpen("/tmp/" + opts.Name + "-" + opts.Namespace + "-" + ext)
+		r, _ := git.PlainOpen("/tmp/" + name + "-" + namespace + "-" + ext)
 		w, _ := r.Worktree()
 
 		ref, _ := r.Head()
 
 		if ref == nil {
-			_ = os.RemoveAll("/tmp/" + opts.Name + "-" + opts.Namespace + "-" + ext)
-			return "", fmt.Errorf("ref is nil for %s", opts.Name)
+			_ = os.RemoveAll("/tmp/" + name + "-" + namespace + "-" + ext)
+			return "", fmt.Errorf("ref is nil for %s", name)
 		}
 		commit, err := r.CommitObject(ref.Hash())
 		if err != nil {
 			return "", err
 		}
 
-		if ext == opts.Tag {
+		if ext == tag {
 			return commit.Hash.String(), nil
 		}
 
-		gbytes, _ := os.ReadFile("/tmp/" + opts.Name + "-" + opts.Namespace + "-" + ext + "/.git/config")
+		gbytes, _ := os.ReadFile("/tmp/" + name + "-" + namespace + "-" + ext + "/.git/config")
 		if !strings.Contains(string(gbytes), cloneOpts.URL) {
-			err = os.RemoveAll("/tmp/" + opts.Name + "-" + opts.Namespace + "-" + ext)
+			err = os.RemoveAll("/tmp/" + name + "-" + namespace + "-" + ext)
 			if err != nil {
 				return "", err
 			}
-			return "", fmt.Errorf("invalid git config for %s removing temp storage", opts.Name)
+			return "", fmt.Errorf("invalid git config for %s removing temp storage", name)
 		}
 
 		err = w.Pull(&pullOpts)

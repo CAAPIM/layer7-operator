@@ -47,7 +47,7 @@ func LocalReference(ctx context.Context, params Params) error {
 
 	repoStatus.Commit = commit
 	repoStatus.Name = repository.Name
-	repoStatus.Vendor = repository.Spec.Auth.Vendor
+	repoStatus.Vendor = "kubernetes"
 	repoStatus.Ready = true
 
 	repoStatus.StorageSecretName = repository.Spec.LocalReference.SecretName

@@ -150,22 +150,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		storageSecretName = repository.Name + "-repository-" + folderName
 
 	case "git":
-		opts := util.CloneRepositoryOpts{
-			Username:       username,
-			Token:          token,
-			PrivateKey:     sshKey,
-			PrivateKeyPass: sshKeyPass,
-			Branch:         repository.Spec.Branch,
-			Tag:            repository.Spec.Tag,
-			RemoteName:     repository.Spec.RemoteName,
-			Name:           repository.Name,
-			Vendor:         repository.Spec.Auth.Vendor,
-			AuthType:       string(authType),
-			KnownHosts:     knownHosts,
-			Namespace:      repository.Namespace,
-		}
-
-		commit, err = util.CloneRepository(repository.Spec.Endpoint, &opts)
+		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
 
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)

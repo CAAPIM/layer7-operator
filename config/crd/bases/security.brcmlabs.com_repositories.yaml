@@ -77,7 +77,7 @@ spec:
                     description: Username repository username
                     type: string
                   vendor:
-                    description: Vendor i.e. Github, Gitlab, BitBucket
+                    description: Vendor i.e. Github, Gitlab, BitBucket, Azure
                     type: string
                 type: object
               branch:

@@ -261,7 +261,7 @@ none, basic or ssh<br/>
         <td><b>vendor</b></td>
         <td>string</td>
         <td>
-          Vendor i.e. Github, Gitlab, BitBucket<br/>
+          Vendor i.e. Github, Gitlab, BitBucket, Azure<br/>
         </td>
         <td>false</td>
       </tr></tbody>

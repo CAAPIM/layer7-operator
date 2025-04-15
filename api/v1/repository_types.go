@@ -113,7 +113,7 @@ type RepositorySyncConfig struct {
 
 // RepositoryAuth
 type RepositoryAuth struct {
-	// Vendor i.e. Github, Gitlab, BitBucket
+	// Vendor i.e. Github, Gitlab, BitBucket, Azure
 	Vendor string `json:"vendor,omitempty"`
 	// Auth Type defaults to basic, possible options are
 	// none, basic or ssh

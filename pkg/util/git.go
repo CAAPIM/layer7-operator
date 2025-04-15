@@ -31,7 +31,7 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 		cloneOpts.URL = url + ".git"
 	}
 
-	if vendor == "azure" {
+	if strings.ToLower(vendor) == "azure" {
 		transport.UnsupportedCapabilities = []capability.Capability{
 			capability.ThinPack,
 		}

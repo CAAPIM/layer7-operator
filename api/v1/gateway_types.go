@@ -128,6 +128,8 @@ type GatewayState struct {
 	Ready bool `json:"ready"`
 	// StartTime is when the Gateway pod was started
 	StartTime string `json:"startTime,omitempty"`
+	// Repositories
+	RepositoryStatus map[string]string `json:"repositoryStatus,omitempty"`
 }
 
 // GatewayRepositoryStatus tracks the status of which Graphman repositories have been applied to the Gateway Resource.
@@ -157,6 +159,14 @@ type GatewayRepositoryStatus struct {
 	StateStoreReference string `json:"stateStoreReference,omitempty"`
 	// StateStoreKey
 	StateStoreKey string `json:"stateStoreKey,omitempty"`
+	// Conditions
+	Conditions []RepositoryCondition `json:"conditions,omitempty"`
+}
+
+type RepositoryCondition struct {
+	Time   string `json:"time,omitempty"`
+	Status string `json:"status,omitempty"`
+	Reason string `json:"reason,omitempty"`
 }
 
 // PortalSyncStatus tracks the status of which portals are synced with a gateway.
@@ -484,8 +494,8 @@ type OtkDatabaseAuth struct {
 	// OTK_RO_DATABASE_USERNAME
 	// OTK_RO_DATABASE_PASSWORD
 	// Gateway Client Readonly user (typically otk_user_client_readonly)
-	// OTK_CLIENT_RO_DATABASE_USERNAME
-	// OTK_CLIENT_RO_DATABASE_PASSWORD
+	// OTK_CLIENT_READ_DATABASE_USERNAME
+	// OTK_CLIENT_READ_DATABASE_PASSWORD
 	// Database admin credentials used to create or update the OTK database
 	// OTK_DATABASE_DDL_USERNAME
 	// OTK_DATABASE_DDL_PASSWORD

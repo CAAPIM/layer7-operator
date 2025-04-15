@@ -86,6 +86,7 @@ type Bundle struct {
 	Roles                               []*RoleInput                              `json:"roles,omitempty"`
 	GenericEntities                     []*GenericEntityInput                     `json:"genericEntities,omitempty"`
 	AuditConfigurations                 []*AuditConfigurationInput                `json:"auditConfigurations,omitempty"`
+	KerberosConfigs                     []*KerberosConfigInput                    `json:"kerberosConfigs,omitempty"`
 	Properties                          *BundleProperties                         `json:"properties,omitempty"`
 }
 
@@ -226,6 +227,7 @@ type BundleResponseDetailedStatus struct {
 	Roles                               *MutationDetailedStatus `json:"setRoles,omitempty"`
 	GenericEntities                     *MutationDetailedStatus `json:"setGenericEntities,omitempty"`
 	AuditConfigurations                 *MutationDetailedStatus `json:"setAuditConfigurations,omitempty"`
+	KerberosConfigs                     *MutationDetailedStatus `json:"setKerberosConfigs,omitempty"`
 }
 
 type MutationError struct {
@@ -307,6 +309,7 @@ var entities = []string{
 	"roles",
 	"genericEntities",
 	"auditConfigurations",
+	"kerberosConfigs",
 }
 
 func ConcatBundle(src []byte, dest []byte) ([]byte, error) {

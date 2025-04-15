@@ -84,6 +84,7 @@ mutation installBundle (
     $webApiServices: [WebApiServiceInput!]!=[],
     $genericEntities: [GenericEntityInput!]!=[]
     $auditConfigurations: [AuditConfigurationInput!]!=[]
+    $kerberosConfigs:[KerberosConfigInput!]!=[]
     ) {
     setServerModuleFiles(input: $serverModuleFiles){detailedStatus {action status description source {name value} target {name value}}}
     setClusterProperties (input: $clusterProperties){detailedStatus {action status description source {name value} target {name value}}}
@@ -133,6 +134,7 @@ mutation installBundle (
     setGenericEntities(input: $genericEntities){detailedStatus {action status description source {name value} target {name value}}}
     setRoles (input: $roles) {detailedStatus {action status description source {name value} target {name value}}}
     setAuditConfigurations(input: $auditConfigurations){detailedStatus {action status description source {name value} target {name value}}}
+    setKerberosConfigs(input: $kerberosConfigs){detailedStatus {action status description source {name value} target {name value}}}
     # Keys must be mutated at the end
     setKeys (input: $keys) {detailedStatus {action status description source {name value} target {name value}}}
 }

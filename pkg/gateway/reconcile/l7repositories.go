@@ -91,13 +91,13 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 		return err
 	}
 
-	for _, sRepo := range gateway.Status.RepositoryStatus {
-		if sRepo.Name == repoRef.Name {
-			if sRepo.Commit != commit {
-				_ = GatewayStatus(ctx, params)
-			}
-		}
-	}
+	// for _, sRepo := range gateway.Status.RepositoryStatus {
+	// 	if sRepo.Name == repoRef.Name {
+	// 		if sRepo.Commit != commit {
+	// 			_ = GatewayStatus(ctx, params)
+	// 		}
+	// 	}
+	// }
 	gwUpdReq = nil
 	return nil
 }

@@ -55,7 +55,7 @@ func LocalReference(ctx context.Context, params Params) error {
 	if !reflect.DeepEqual(repoStatus, repository.Status) {
 
 		params.Log.Info("syncing repository", "name", repository.Name, "namespace", repository.Namespace)
-		repoStatus.Updated = time.Now().String()
+		repoStatus.Updated = time.Now().Format(time.RFC3339)
 		repository.Status = repoStatus
 		err = params.Client.Status().Update(ctx, &repository)
 		if err != nil {

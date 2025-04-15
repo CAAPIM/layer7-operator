@@ -1047,10 +1047,19 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				err = util.ApplyToGraphmanTarget(gwUpdReq.bundle, singleton, gwUpdReq.username, gwUpdReq.password, endpoint, gwUpdReq.graphmanEncryptionPassphrase, gwUpdReq.delete)
 				if err != nil {
 					params.Log.Info("failed to apply "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+					// add apply error
+					if gwUpdReq.bundleType == BundleTypeRepository {
+						_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
+					}
+
+					// also record
 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, true)
 					return err
 				}
 				params.Log.Info("applied latest "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "hash", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+				if gwUpdReq.bundleType == BundleTypeRepository {
+					_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
+				}
 				_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, false)
 
 				if err := params.Client.Patch(ctx, &gwUpdReq.podList.Items[i],
@@ -1395,6 +1404,116 @@ func ReconcileDBGateway(ctx context.Context, params Params, kind string, gateway
 			return err
 		}
 	}
+	return nil
+}
+
+func updateRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, referenceType securityv1.RepositoryReferenceType, commit string, applyError error) (err error) {
+	gatewayStatus := params.Instance.Status
+	var conditions []securityv1.RepositoryCondition
+	secretName := repository.Name
+	if repository.Spec.Auth.ExistingSecretName != "" {
+		secretName = repository.Spec.Auth.ExistingSecretName
+	}
+
+	if repository.Spec.Auth == (securityv1.RepositoryAuth{}) {
+		secretName = ""
+	}
+
+	nrs := securityv1.GatewayRepositoryStatus{
+		Commit:            commit,
+		Enabled:           true,
+		Name:              repository.Name,
+		Type:              string(referenceType),
+		SecretName:        secretName,
+		StorageSecretName: repository.Status.StorageSecretName,
+		Endpoint:          repository.Spec.Endpoint,
+	}
+
+	if repository.Spec.Tag != "" && repository.Spec.Branch == "" {
+		nrs.Tag = repository.Spec.Tag
+	}
+
+	if repository.Spec.Branch != "" {
+		nrs.Branch = repository.Spec.Branch
+	}
+
+	nrs.RemoteName = "origin"
+	if repository.Spec.RemoteName != "" {
+		nrs.RemoteName = repository.Spec.RemoteName
+	}
+
+	// cleanup old conditions
+	for _, ors := range gatewayStatus.RepositoryStatus {
+		if ors.Name == repository.Name {
+			nrs.Conditions = ors.Conditions
+		}
+	}
+
+	for _, condition := range nrs.Conditions {
+		t, err := time.Parse(time.RFC3339, condition.Time)
+
+		if err != nil {
+			return err
+		}
+		// if condition is older than 5 minutes, clean up
+		if t.Add(5 * time.Minute).Before(time.Now()) {
+			continue
+		}
+		conditions = append(conditions, condition)
+	}
+
+	if applyError != nil {
+		errorMsg := applyError.Error()
+
+		if len(errorMsg) > 200 {
+			errorMsg = "gateway failed to apply repository"
+		}
+
+		conditions = append(conditions, securityv1.RepositoryCondition{
+			Time:   time.Now().Format(time.RFC3339),
+			Status: "FAILURE",
+			Reason: errorMsg,
+		})
+	}
+
+	nrs.Conditions = conditions
+
+	if repository.Spec.StateStoreReference != "" {
+		nrs.StateStoreReference = repository.Spec.StateStoreReference
+
+		statestore := &securityv1alpha1.L7StateStore{}
+
+		err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Spec.StateStoreReference, Namespace: params.Instance.Namespace}, statestore)
+		if err != nil && k8serrors.IsNotFound(err) {
+			params.Log.Info("state store not found", "name", repository.Spec.StateStoreReference, "repository", repository.Name, "namespace", params.Instance.Namespace)
+			return err
+		}
+
+		nrs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + repository.Status.StorageSecretName + ":latest"
+		if repository.Spec.StateStoreKey != "" {
+			nrs.StateStoreKey = repository.Spec.StateStoreKey
+		}
+	}
+
+	found := false
+	for i, rs := range gatewayStatus.RepositoryStatus {
+		if rs.Name == nrs.Name {
+			gatewayStatus.RepositoryStatus[i] = nrs
+			found = true
+		}
+	}
+
+	if !found {
+		gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, nrs)
+	}
+
+	params.Instance.Status = gatewayStatus
+	err = params.Client.Status().Update(ctx, params.Instance)
+	if err != nil {
+		params.Log.V(2).Info("failed to update gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
+		return err
+	}
+	params.Log.V(2).Info("updated gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	return nil
 }
 

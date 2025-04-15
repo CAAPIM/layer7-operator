@@ -1575,6 +1575,19 @@ const (
 	JobTypeRecurring JobType = "RECURRING"
 )
 
+type KerberosConfigInput struct {
+	// The encrypted Kerberos keytab.
+	Keytab string `json:"keytab"`
+	// The Kerberos configuration, "krb5.conf" in its INI format.
+	Conf string `json:"conf,omitempty"`
+}
+
+// GetKeytab returns KerberosConfigInput.Keytab, and is useful for accessing the field via an interface.
+func (v *KerberosConfigInput) GetKeytab() string { return v.Keytab }
+
+// GetConf returns KerberosConfigInput.Conf, and is useful for accessing the field via an interface.
+func (v *KerberosConfigInput) GetConf() string { return v.Conf }
+
 type KeyInput struct {
 	KeystoreId string `json:"keystoreId"`
 	Alias      string `json:"alias"`
@@ -3536,6 +3549,7 @@ type __installBundleInput struct {
 	WebApiServices                      []*WebApiServiceInput                     `json:"webApiServices,omitempty"`
 	GenericEntities                     []*GenericEntityInput                     `json:"genericEntities,omitempty"`
 	AuditConfigurations                 []*AuditConfigurationInput                `json:"auditConfigurations,omitempty"`
+	KerberosConfigs                     []*KerberosConfigInput                    `json:"kerberosConfigs,omitempty"`
 }
 
 // GetActiveConnectors returns __installBundleInput.ActiveConnectors, and is useful for accessing the field via an interface.
@@ -3712,6 +3726,9 @@ func (v *__installBundleInput) GetGenericEntities() []*GenericEntityInput { retu
 func (v *__installBundleInput) GetAuditConfigurations() []*AuditConfigurationInput {
 	return v.AuditConfigurations
 }
+
+// GetKerberosConfigs returns __installBundleInput.KerberosConfigs, and is useful for accessing the field via an interface.
+func (v *__installBundleInput) GetKerberosConfigs() []*KerberosConfigInput { return v.KerberosConfigs }
 
 // deleteKeysDeleteKeysKeysPayload includes the requested fields of the GraphQL type KeysPayload.
 type deleteKeysDeleteKeysKeysPayload struct {
@@ -4067,6 +4084,12 @@ type installBundleResponse struct {
 	// Note: Creating a role is unsupported.
 	SetRoles               *installBundleSetRolesRolesPayload                             `json:"setRoles"`
 	SetAuditConfigurations *installBundleSetAuditConfigurationsAuditConfigurationsPayload `json:"setAuditConfigurations"`
+	// (Experimental)
+	// Create/update the Kerberos configurations.
+	// Automatically generates the Kerberos login config file, "login.config", and
+	// Kerberos config file, "krb5.conf" (unless the cluster-wide property
+	// kerberos.krb5Config.overwrite=false and it is set in the mutation).
+	SetKerberosConfigs *installBundleSetKerberosConfigsKerberosConfigPayload `json:"setKerberosConfigs"`
 	// Creates or updates one or more keys
 	SetKeys *installBundleSetKeysKeysPayload `json:"setKeys"`
 }
@@ -4220,6 +4243,12 @@ type deleteBundleResponse struct {
 	// Note: Creating a role is unsupported.
 	SetRoles               *installBundleSetRolesRolesPayload                             `json:"setRoles"`
 	SetAuditConfigurations *installBundleSetAuditConfigurationsAuditConfigurationsPayload `json:"setAuditConfigurations"`
+	// (Experimental)
+	// Create/update the Kerberos configurations.
+	// Automatically generates the Kerberos login config file, "login.config", and
+	// Kerberos config file, "krb5.conf" (unless the cluster-wide property
+	// kerberos.krb5Config.overwrite=false and it is set in the mutation).
+	SetKerberosConfigs *installBundleSetKerberosConfigsKerberosConfigPayload `json:"setKerberosConfigs"`
 	// Creates or updates one or more keys
 	SetKeys *installBundleSetKeysKeysPayload `json:"setKeys"`
 }
@@ -4454,6 +4483,11 @@ func (v *installBundleResponse) GetSetRoles() *installBundleSetRolesRolesPayload
 // GetSetAuditConfigurations returns installBundleResponse.SetAuditConfigurations, and is useful for accessing the field via an interface.
 func (v *installBundleResponse) GetSetAuditConfigurations() *installBundleSetAuditConfigurationsAuditConfigurationsPayload {
 	return v.SetAuditConfigurations
+}
+
+// GetSetKerberosConfigs returns installBundleResponse.SetKerberosConfigs, and is useful for accessing the field via an interface.
+func (v *installBundleResponse) GetSetKerberosConfigs() *installBundleSetKerberosConfigsKerberosConfigPayload {
+	return v.SetKerberosConfigs
 }
 
 // GetSetKeys returns installBundleResponse.SetKeys, and is useful for accessing the field via an interface.
@@ -6619,6 +6653,86 @@ func (v *installBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEnti
 	return v.Value
 }
 
+// installBundleSetKerberosConfigsKerberosConfigPayload includes the requested fields of the GraphQL type KerberosConfigPayload.
+type installBundleSetKerberosConfigsKerberosConfigPayload struct {
+	DetailedStatus []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns installBundleSetKerberosConfigsKerberosConfigPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayload) GetDetailedStatus() []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                               `json:"action"`
+	Status      EntityMutationStatus                                                                                               `json:"status"`
+	Description string                                                                                                             `json:"description"`
+	Source      []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
 // installBundleSetKeysKeysPayload includes the requested fields of the GraphQL type KeysPayload.
 type installBundleSetKeysKeysPayload struct {
 	DetailedStatus []*installBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
@@ -8512,7 +8626,7 @@ func deleteSecrets(
 
 // The query or mutation executed by installBundle.
 const installBundle_Operation = `
-mutation installBundle ($activeConnectors: [ActiveConnectorInput!]! = [], $administrativeUserAccountProperties: [AdministrativeUserAccountPropertyInput!]! = [], $backgroundTaskPolicies: [BackgroundTaskPolicyInput!]! = [], $cassandraConnections: [CassandraConnectionInput!]! = [], $clusterProperties: [ClusterPropertyInput!]! = [], $dtds: [DtdInput!]! = [], $emailListeners: [EmailListenerInput!]! = [], $encassConfigs: [EncassConfigInput!]! = [], $fipGroups: [FipGroupInput!]! = [], $fipUsers: [FipUserInput!]! = [], $fips: [FipInput!]! = [], $federatedGroups: [FederatedGroupInput!]! = [], $federatedUsers: [FederatedUserInput!]! = [], $internalIdps: [InternalIdpInput!] = [], $federatedIdps: [FederatedIdpInput!]! = [], $ldapIdps: [LdapIdpInput!] = [], $simpleLdapIdps: [SimpleLdapIdpInput!] = [], $policyBackedIdps: [PolicyBackedIdpInput!] = [], $globalPolicies: [GlobalPolicyInput!]! = [], $internalGroups: [InternalGroupInput!]! = [], $internalSoapServices: [SoapServiceInput!]! = [], $internalUsers: [InternalUserInput!]! = [], $internalWebApiServices: [WebApiServiceInput!]! = [], $jdbcConnections: [JdbcConnectionInput!]! = [], $jmsDestinations: [JmsDestinationInput!]! = [], $keys: [KeyInput!]! = [], $ldaps: [LdapInput!]! = [], $roles: [RoleInput!]! = [], $listenPorts: [ListenPortInput!]! = [], $passwordPolicies: [PasswordPolicyInput!]! = [], $policies: [L7PolicyInput!]! = [], $policyFragments: [PolicyFragmentInput!]! = [], $revocationCheckPolicies: [RevocationCheckPolicyInput!]! = [], $scheduledTasks: [ScheduledTaskInput!]! = [], $logSinks: [LogSinkInput!]! = [], $schemas: [SchemaInput!]! = [], $secrets: [SecretInput!]! = [], $httpConfigurations: [HttpConfigurationInput!]! = [], $customKeyValues: [CustomKeyValueInput!]! = [], $serverModuleFiles: [ServerModuleFileInput!]! = [], $serviceResolutionConfigs: [ServiceResolutionConfigInput!]! = [], $folders: [FolderInput!]! = [], $smConfigs: [SMConfigInput!]! = [], $services: [L7ServiceInput!]! = [], $soapServices: [SoapServiceInput!]! = [], $trustedCerts: [TrustedCertInput!]! = [], $webApiServices: [WebApiServiceInput!]! = [], $genericEntities: [GenericEntityInput!]! = [], $auditConfigurations: [AuditConfigurationInput!]! = []) {
+mutation installBundle ($activeConnectors: [ActiveConnectorInput!]! = [], $administrativeUserAccountProperties: [AdministrativeUserAccountPropertyInput!]! = [], $backgroundTaskPolicies: [BackgroundTaskPolicyInput!]! = [], $cassandraConnections: [CassandraConnectionInput!]! = [], $clusterProperties: [ClusterPropertyInput!]! = [], $dtds: [DtdInput!]! = [], $emailListeners: [EmailListenerInput!]! = [], $encassConfigs: [EncassConfigInput!]! = [], $fipGroups: [FipGroupInput!]! = [], $fipUsers: [FipUserInput!]! = [], $fips: [FipInput!]! = [], $federatedGroups: [FederatedGroupInput!]! = [], $federatedUsers: [FederatedUserInput!]! = [], $internalIdps: [InternalIdpInput!] = [], $federatedIdps: [FederatedIdpInput!]! = [], $ldapIdps: [LdapIdpInput!] = [], $simpleLdapIdps: [SimpleLdapIdpInput!] = [], $policyBackedIdps: [PolicyBackedIdpInput!] = [], $globalPolicies: [GlobalPolicyInput!]! = [], $internalGroups: [InternalGroupInput!]! = [], $internalSoapServices: [SoapServiceInput!]! = [], $internalUsers: [InternalUserInput!]! = [], $internalWebApiServices: [WebApiServiceInput!]! = [], $jdbcConnections: [JdbcConnectionInput!]! = [], $jmsDestinations: [JmsDestinationInput!]! = [], $keys: [KeyInput!]! = [], $ldaps: [LdapInput!]! = [], $roles: [RoleInput!]! = [], $listenPorts: [ListenPortInput!]! = [], $passwordPolicies: [PasswordPolicyInput!]! = [], $policies: [L7PolicyInput!]! = [], $policyFragments: [PolicyFragmentInput!]! = [], $revocationCheckPolicies: [RevocationCheckPolicyInput!]! = [], $scheduledTasks: [ScheduledTaskInput!]! = [], $logSinks: [LogSinkInput!]! = [], $schemas: [SchemaInput!]! = [], $secrets: [SecretInput!]! = [], $httpConfigurations: [HttpConfigurationInput!]! = [], $customKeyValues: [CustomKeyValueInput!]! = [], $serverModuleFiles: [ServerModuleFileInput!]! = [], $serviceResolutionConfigs: [ServiceResolutionConfigInput!]! = [], $folders: [FolderInput!]! = [], $smConfigs: [SMConfigInput!]! = [], $services: [L7ServiceInput!]! = [], $soapServices: [SoapServiceInput!]! = [], $trustedCerts: [TrustedCertInput!]! = [], $webApiServices: [WebApiServiceInput!]! = [], $genericEntities: [GenericEntityInput!]! = [], $auditConfigurations: [AuditConfigurationInput!]! = [], $kerberosConfigs: [KerberosConfigInput!]! = []) {
 	setServerModuleFiles(input: $serverModuleFiles) {
 		detailedStatus {
 			action
@@ -9233,6 +9347,21 @@ mutation installBundle ($activeConnectors: [ActiveConnectorInput!]! = [], $admin
 			}
 		}
 	}
+	setKerberosConfigs(input: $kerberosConfigs) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
 	setKeys(input: $keys) {
 		detailedStatus {
 			action
@@ -9303,6 +9432,7 @@ func installBundle(
 	webApiServices []*WebApiServiceInput,
 	genericEntities []*GenericEntityInput,
 	auditConfigurations []*AuditConfigurationInput,
+	kerberosConfigs []*KerberosConfigInput,
 ) (*installBundleResponse, error) {
 	req_ := &graphql.Request{
 		OpName: "installBundle",
@@ -9357,6 +9487,7 @@ func installBundle(
 			WebApiServices:                      webApiServices,
 			GenericEntities:                     genericEntities,
 			AuditConfigurations:                 auditConfigurations,
+			KerberosConfigs:                     kerberosConfigs,
 		},
 	}
 	var err_ error

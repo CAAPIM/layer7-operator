@@ -6367,6 +6367,11 @@ spec:
                     ready:
                       description: Ready is the state of the Gateway pod
                       type: boolean
+                    repositoryStatus:
+                      additionalProperties:
+                        type: string
+                      description: Repositories
+                      type: object
                     startTime:
                       description: StartTime is when the Gateway pod was started
                       type: string
@@ -6435,6 +6440,18 @@ spec:
                     commit:
                       description: Commit is the last commit that was applied
                       type: string
+                    conditions:
+                      description: Conditions
+                      items:
+                        properties:
+                          reason:
+                            type: string
+                          status:
+                            type: string
+                          time:
+                            type: string
+                        type: object
+                      type: array
                     enabled:
                       description: Enabled shows whether or not this repository reference
                         is enabled

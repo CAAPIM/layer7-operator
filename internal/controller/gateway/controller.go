@@ -87,10 +87,10 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.Route, "openshift route"},
 		{reconcile.HorizontalPodAutoscaler, "horizontalPodAutoscaler"},
 		{reconcile.PodDisruptionBudget, "podDisruptionBudget"},
-		{reconcile.GatewayStatus, "gatewayStatus"},
 		{reconcile.ConfigMaps, "configMaps"},
 		{reconcile.Deployment, "deployment"},
 		{reconcile.ManagementPod, "management pod"},
+		{reconcile.GatewayStatus, "gatewayStatus"},
 		{reconcile.ClusterProperties, "cluster properties"},
 		{reconcile.ListenPorts, "listen ports"},
 		{reconcile.ExternalRepository, "repository references"},
@@ -123,6 +123,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		err = op.Run(ctx, params)
 		if err != nil {
 			_ = captureMetrics(ctx, params, start, true, op.Name)
+			// record failures here
 			r.muTasks.Unlock()
 			return ctrl.Result{}, err
 		}

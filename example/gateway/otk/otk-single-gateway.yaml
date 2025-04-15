@@ -35,6 +35,7 @@ spec:
       enabled: true
       initContainerImage: docker.io/caapim/otk-install:4.6.3
       #initContainerImage: harbor.sutraone.com/operator/otk-install:4.6.4
+      initContainerImagePullPolicy: Always
       type: single
       port: 443
       healthCheck:

@@ -10779,8 +10779,8 @@ Gateway Readonly user (typically otk_user_readonly)
 OTK_RO_DATABASE_USERNAME
 OTK_RO_DATABASE_PASSWORD
 Gateway Client Readonly user (typically otk_user_client_readonly)
-OTK_CLIENT_RO_DATABASE_USERNAME
-OTK_CLIENT_RO_DATABASE_PASSWORD
+OTK_CLIENT_READ_DATABASE_USERNAME
+OTK_CLIENT_READ_DATABASE_PASSWORD
 Database admin credentials used to create or update the OTK database
 OTK_DATABASE_DDL_USERNAME
 OTK_DATABASE_DDL_PASSWORD<br/>
@@ -17942,6 +17942,13 @@ GatewayState tracks the status of Gateway Resources
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>repositoryStatus</b></td>
+        <td>map[string]string</td>
+        <td>
+          Repositories<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>startTime</b></td>
         <td>string</td>
         <td>
@@ -17987,6 +17994,13 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         <td>string</td>
         <td>
           Commit is the last commit that was applied<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewaystatusrepositorystatusindexconditionsindex">conditions</a></b></td>
+        <td>[]object</td>
+        <td>
+          Conditions<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -18051,6 +18065,47 @@ these will be less than 1mb in size<br/>
         <td>string</td>
         <td>
           Type is static or dynamic<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.status.repositoryStatus[index].conditions[index]
+<sup><sup>[↩ Parent](#gatewaystatusrepositorystatusindex)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>status</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>time</b></td>
+        <td>string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>

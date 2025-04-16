@@ -79,7 +79,7 @@ spec:
         enabled: true
     initContainers:
     - name: gateway-init
-      image: caapim/gateway-init-portal:0.0.1
+      image: apim-docker-dev-local.usw1.packages.broadcom.com/apim-gateway/gateway-init-portal:latest
       imagePullPolicy: Always
       volumeMounts:
       - name: config-directory

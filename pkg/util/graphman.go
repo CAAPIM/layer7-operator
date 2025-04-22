@@ -347,7 +347,7 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 	}
 	if buf.Len() > 900000 {
 		buf.Reset()
-		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size")
+		return nil, errors.New("exceededMaxSize")
 	}
 
 	compressedBundle := buf.Bytes()
@@ -356,23 +356,29 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 	return compressedBundle, nil
 }
 
-func ConcatBundles(bundleMap map[string][]byte) ([]byte, error) {
-	var combinedBundle []byte
-
+func ConcatBundles(bundleMap map[string][]byte) (combinedBundle []byte, err error) {
 	for k, bundle := range bundleMap {
 		if strings.HasSuffix(k, ".json") {
-			newBundle, err := graphman.ConcatBundle(combinedBundle, bundle)
+			combinedBundle, err = graphman.ConcatBundle(combinedBundle, bundle)
 			if err != nil {
 				return nil, err
 			}
-			combinedBundle = newBundle
+		}
+		if strings.HasSuffix(k, ".gz") {
+			bundle, err := GzipDecompress(bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle, err = graphman.ConcatBundle(combinedBundle, bundle)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if k == "bundle-properties.json" {
-			newBundle, err := graphman.AddMappings(combinedBundle, bundle)
+			combinedBundle, err = graphman.AddMappings(combinedBundle, bundle)
 			if err != nil {
 				return nil, err
 			}
-			combinedBundle = newBundle
 		}
 	}
 
@@ -380,16 +386,16 @@ func ConcatBundles(bundleMap map[string][]byte) ([]byte, error) {
 
 }
 
-func BuildAndValidateBundle(path string) ([]byte, error) {
+func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
 	if path == "" {
 		return nil, nil
 	}
-	bundle := graphman.Bundle{}
+
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
 	}
 
-	bundleBytes, err := graphman.Implode(path)
+	bundleBytes, err = graphman.Implode(path)
 	if err != nil {
 		return nil, err
 	}
@@ -402,16 +408,27 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") && !strings.Contains(strings.ToLower(d.Name()), "bundle-properties.json") {
-				//sbb := bundleBytes
 				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
 					return err
 				}
-				sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				tb := graphman.Bundle{}
+				err = json.Unmarshal(srcBundleBytes, &tb)
 				if err != nil {
 					return nil
 				}
-				bundleBytes = sbb
+				tbb, err := json.Marshal(tb)
+				if err != nil {
+					return nil
+				}
+
+				if len(tbb) > 2 {
+					sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+					if err != nil {
+						return nil
+					}
+					bundleBytes = sbb
+				}
 			}
 		}
 		return nil
@@ -422,12 +439,12 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 	if len(bundleBytes) <= 2 {
 		return nil, errors.New("no valid graphman bundles were found")
 	}
-
+	bundle := graphman.Bundle{}
 	r := bytes.NewReader(bundleBytes)
 	d := json.NewDecoder(r)
 	d.DisallowUnknownFields()
 	_ = json.Unmarshal(bundleBytes, &bundle)
-	// check the graphman bundle for errors
+
 	err = d.Decode(&bundle)
 	if err != nil {
 		return nil, err

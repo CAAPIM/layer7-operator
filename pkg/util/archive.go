@@ -3,6 +3,7 @@ package util
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -149,4 +150,38 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 		}
 	}
 	return nil
+}
+
+func GzipDecompress(gzipBundle []byte) (bundleBytes []byte, err error) {
+	r := bytes.NewReader(gzipBundle)
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	bundleBytes, err = io.ReadAll(gzr)
+	if err != nil {
+		return nil, err
+	}
+
+	return bundleBytes, nil
+}
+
+func GzipCompress(gzipBundle []byte) (gzipBytes []byte, err error) {
+
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	_, err = zw.Write(gzipBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+
+	gzipBytes = buf.Bytes()
+	buf.Reset()
+
+	return gzipBytes, nil
 }

@@ -3,6 +3,7 @@ package graphman
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -13,6 +14,7 @@ func Implode(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	properties, err := parseBundleProperties(path)
 	if err != nil {
 		return nil, err
@@ -21,9 +23,15 @@ func Implode(path string) ([]byte, error) {
 	bundle.Properties = &properties
 
 	bundleBytes, err := json.Marshal(bundle)
+
 	if err != nil {
 		return nil, err
 	}
+
+	if len(bundleBytes) <= 40 {
+		return nil, errors.New("repository not synced yet")
+	}
+
 	return bundleBytes, nil
 }
 

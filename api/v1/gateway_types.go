@@ -319,8 +319,6 @@ type Otk struct {
 	DmzOtkGatewayReference string `json:"dmzGatewayReference,omitempty"`
 	// OTKPort defaults to 8443
 	OTKPort int `json:"port,omitempty"`
-	// Healthcheck
-	HealthCheck OTKHealthCheck `json:"healthCheck,omitempty"`
 	// MaintenanceTasks for the OTK database are disabled by default
 	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
 	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
@@ -332,15 +330,6 @@ type Otk struct {
 type OtkMaintenanceTasks struct {
 	// Enable or disable database maintenance tasks
 	Enabled bool `json:"enabled,omitempty"`
-}
-
-// OTKHealthCheck allows loading a script into the Gateway Containers Healthcheck folder
-// this calls /auth/oauth/health on the Gateway on a specified port
-// if enabled they will be scheduled on the leader gateway node
-type OTKHealthCheck struct {
-	// Enable or disable database maintenance tasks
-	Enabled bool `json:"enabled,omitempty"`
-	Port    int  `json:"port,omitempty"`
 }
 
 type OtkOverrides struct {

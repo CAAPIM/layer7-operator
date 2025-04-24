@@ -179,11 +179,11 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 					}
 				}
 			}
-			if updCntr == len(gwUpdReq.podList.Items) || !ready {
+			if (updCntr == len(gwUpdReq.podList.Items) || !ready) && !gwUpdReq.delete {
 				return nil, nil
 			}
 		} else {
-			if gwUpdReq.deployment.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || gwUpdReq.deployment.Status.ReadyReplicas == 0 {
+			if (gwUpdReq.deployment.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || gwUpdReq.deployment.Status.ReadyReplicas == 0) && !gwUpdReq.delete {
 				return nil, nil
 			}
 		}
@@ -508,7 +508,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		gwUpdReq.graphmanEncryptionPassphrase = ""
 		gwUpdReq.bundleName = string(gwUpdReq.bundleType)
 		gwUpdReq.externalEntities = externalCerts
-
 	case BundleTypeExternalKey:
 		externalKeys := []ExternalEntity{}
 
@@ -802,7 +801,12 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 			ext = repository.Spec.Tag
 		}
 
-		gitPath = "/tmp/" + repoRef.Name + "-" + params.Instance.Namespace + "-" + ext + "/" + repoRef.Directories[d]
+		dir := repoRef.Directories[d]
+		if dir == "/" {
+			dir = ""
+		}
+
+		gitPath = "/tmp/" + repoRef.Name + "-" + params.Instance.Namespace + "-" + ext + "/" + dir
 
 		switch strings.ToLower(string(repository.Spec.Type)) {
 		case "http":
@@ -839,7 +843,6 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 
 		if gitPath != "" {
 			_, fErr := os.Stat(tmpPath + "/" + fileName)
-
 			if fErr != nil {
 				// remove existing bundles to avoid
 				// growing the ephemeral filesystem
@@ -959,29 +962,28 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 			}
 		}
 
-		//currentChecksum := pod.ObjectMeta.Annotations["security.brcmlabs.com/"+gwUpdReq.repositoryReference.Name+"-"+string(gwUpdReq.repositoryReference.Type)]
 		currentChecksum := pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
 
-		if gwUpdReq.bundleType == BundleTypeOTKDatabaseMaintenance {
-			if pod.ObjectMeta.Labels["management-access"] == "leader" {
-				checksum = gwUpdReq.checksum + "-leader"
-				singleton = true
-			}
-		}
+		// if gwUpdReq.bundleType == BundleTypeOTKDatabaseMaintenance {
+		// 	if pod.ObjectMeta.Labels["management-access"] == "leader" {
+		// 		checksum = gwUpdReq.checksum + "-leader"
+		// 		singleton = true
+		// 	}
+		// }
 
 		if gwUpdReq.bundleType == BundleTypeRepository {
 			if (currentChecksum == "deleted" && !gwUpdReq.repositoryReference.Enabled) || (currentChecksum == "" && (gwUpdReq.delete || !gwUpdReq.repositoryReference.Enabled)) {
 				return nil
 			}
 
-			if gwUpdReq.gateway.Spec.App.SingletonExtraction {
+			if gwUpdReq.gateway.Spec.App.SingletonExtraction || gwUpdReq.bundleType == BundleTypeOTKDatabaseMaintenance {
 				if pod.ObjectMeta.Labels["management-access"] == "leader" {
 					checksum = gwUpdReq.checksum + "-leader"
 					singleton = true
 				}
 			}
 
-			if gwUpdReq.referenceType == string(securityv1.RepositoryReferenceTypeStatic) {
+			if string(gwUpdReq.repositoryReference.Type) == string(securityv1.RepositoryReferenceTypeStatic) {
 				bundle := graphman.Bundle{}
 				singletonBundle := graphman.Bundle{}
 				err = json.Unmarshal(gwUpdReq.bundle, &bundle)
@@ -1051,15 +1053,10 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 					if gwUpdReq.bundleType == BundleTypeRepository {
 						_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
 					}
-
-					// also record
 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, true)
 					return err
 				}
 				params.Log.Info("applied latest "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "hash", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
-				if gwUpdReq.bundleType == BundleTypeRepository {
-					_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
-				}
 				_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, false)
 
 				if err := params.Client.Patch(ctx, &gwUpdReq.podList.Items[i],
@@ -1474,6 +1471,10 @@ func updateRepoRefStatus(ctx context.Context, params Params, repository security
 			Status: "FAILURE",
 			Reason: errorMsg,
 		})
+	}
+
+	if applyError == nil {
+		conditions = []securityv1.RepositoryCondition{}
 	}
 
 	nrs.Conditions = conditions

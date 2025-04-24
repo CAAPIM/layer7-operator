@@ -51,15 +51,23 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		return nil
 	}
 
+	// check for previous version - statestore may be empty
+	previousVersionGzip, err := rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest").Result()
+	if err != nil {
+		// if the previous version can't be retrieved, write the current version
+		rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", bundleGzip, 0)
+		if rs.Err() != nil {
+			return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
+		}
+		return nil
+	}
+
 	// calculate delta
 	currentVersion, err := util.GzipDecompress(bundleGzip)
 	if err != nil {
 		return fmt.Errorf("failed to decompress bundle: %w", err)
 	}
-	previousVersionGzip, err := rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest").Result()
-	if err != nil {
-		return fmt.Errorf("failed to retrieve previous version bundle from state store: %w", err)
-	}
+
 	previousVersion, err := util.GzipDecompress([]byte(previousVersionGzip))
 	if err != nil {
 		return fmt.Errorf("failed to decompress previous version bundle: %w", err)
@@ -85,7 +93,6 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 	rs = rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":delta", deltaGzip, 0)
 	if rs.Err() != nil {
 		return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
-
 	}
 	return nil
 }

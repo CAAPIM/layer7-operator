@@ -152,8 +152,19 @@ func syncRepository(ctx context.Context, params Params) error {
 	case "git":
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
 
+		stateStoreSynced := true
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+
+			if repository.Spec.StateStoreReference != "" && !repository.Status.StateStoreSynced {
+				err = StateStorage(ctx, params, statestore)
+				if err != nil {
+					params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+					stateStoreSynced = false
+				}
+			}
+			params.Instance.Status.StateStoreSynced = stateStoreSynced
+
 			updateErr := updateStatus(ctx, params, commit, storageSecretName)
 			if updateErr != nil {
 				_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
@@ -205,7 +216,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			err = StateStorage(ctx, params, statestore)
 			if err != nil {
 				params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
-				storageSecretName = "_"
+				params.Instance.Status.StateStoreSynced = false
 			}
 		} else {
 			err = StorageSecret(ctx, params)
@@ -216,7 +227,6 @@ func syncRepository(ctx context.Context, params Params) error {
 				if err.Error() == "exceededMaxSize" {
 					storageSecretName = "_"
 				}
-
 			}
 		}
 	}
@@ -282,11 +292,13 @@ func updateStatus(ctx context.Context, params Params, commit string, storageSecr
 		params.Log.Info("syncing repository", "name", r.Name, "namespace", r.Namespace)
 		rs.Updated = time.Now().String()
 
-		if r.Spec.StateStoreReference != "" {
-			if rs.StateStoreVersion == 0 {
-				rs.StateStoreVersion = 1
-			} else {
-				rs.StateStoreVersion = rs.StateStoreVersion + 1
+		if rs.StateStoreSynced {
+			if r.Spec.StateStoreReference != "" {
+				if rs.StateStoreVersion == 0 {
+					rs.StateStoreVersion = 1
+				} else {
+					rs.StateStoreVersion = rs.StateStoreVersion + 1
+				}
 			}
 		}
 

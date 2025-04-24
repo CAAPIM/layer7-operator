@@ -3970,15 +3970,6 @@ spec:
                       enabled:
                         description: Enable or disable the OTK initContainer
                         type: boolean
-                      healthCheck:
-                        description: Healthcheck
-                        properties:
-                          enabled:
-                            description: Enable or disable database maintenance tasks
-                            type: boolean
-                          port:
-                            type: integer
-                        type: object
                       initContainerImage:
                         description: InitContainerImage for the initContainer
                         type: string

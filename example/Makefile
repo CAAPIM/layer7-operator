@@ -32,7 +32,7 @@ basic:
 	@$(MAKE) --silent t=10 wait 
 	kubectl apply -f ./gateway/basic-gateway.yaml
 
-advanced:
+advanced: default-redis
 	kubectl apply -k ./repositories
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
@@ -40,7 +40,7 @@ advanced:
 otk-single:
 	kubectl apply -k ./repositories
 	@$(MAKE) --silent t=10 wait
-	kubectl apply -f ./gateway/otk/otk-single-gateway.yaml
+	kubectl apply -f ./gateway/otk/otk-single.yaml
 
 portal-example: redis
 	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml -n ${NAMESPACE}
@@ -72,6 +72,11 @@ redis:
 	helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis -n ${NAMESPACE}
 	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis -n ${NAMESPACE}
+
+default-redis:
+	helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis
+	@$(MAKE) --silent t=15 wait
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis
 	
 configure-nginx-ssl-passthrough:
 	kubectl -n ingress-nginx  get deployment ingress-nginx-controller -oyaml | sed -e "s/env:/\- \-\-enable\-ssl\-passthrough\n        env\:/g" | kubectl -n ingress-nginx apply -f -

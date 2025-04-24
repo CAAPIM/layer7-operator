@@ -154,8 +154,6 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Kind:    "repository",
 	})
 
-	///// make sure this actually works as intended.. getting complicated
-
 	builder.WatchesMetadata(repo,
 		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []creconcile.Request {
 			rb, err := json.Marshal(a.DeepCopyObject())
@@ -285,7 +283,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					if err != nil {
 						return true
 					}
-					if oldDep.Status.ReadyReplicas == newDep.Status.ReadyReplicas || oldDep.Status.ReadyReplicas > newDep.Status.ReadyReplicas || newDep.Status.ReadyReplicas == 0 {
+					if oldDep.Status.ReadyReplicas == newDep.Status.ReadyReplicas || newDep.Status.ReadyReplicas == 0 { //|| oldDep.Status.ReadyReplicas > newDep.Status.ReadyReplicas
 						return false
 					}
 					return true
@@ -293,7 +291,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 				if objType == "*v1.PodDisruptionBudget" {
 					oldPdb := policyv1.PodDisruptionBudget{}
-					newPdb := appsv1.Deployment{}
+					newPdb := policyv1.PodDisruptionBudget{}
 					oldPdbB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
 					if err != nil {
 						return true
@@ -312,6 +310,32 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 						return true
 					}
 					if reflect.DeepEqual(oldPdb.Spec, newPdb.Spec) {
+						return false
+					}
+
+					return true
+				}
+				if objType == "*v2.HorizontalPodAutoscaler" {
+					oldHpa := autoscalingv2.HorizontalPodAutoscaler{}
+					newHpa := autoscalingv2.HorizontalPodAutoscaler{}
+					oldHpaB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+					newHpaB, err := json.Marshal(e.ObjectNew.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+
+					err = json.Unmarshal(oldHpaB, &oldHpa)
+					if err != nil {
+						return true
+					}
+					err = json.Unmarshal(newHpaB, &newHpa)
+					if err != nil {
+						return true
+					}
+					if reflect.DeepEqual(oldHpa.Spec, newHpa.Spec) {
 						return false
 					}
 

@@ -2357,7 +2357,7 @@ type PolicyBackedIdpInput struct {
 	// Authentication Policy Name
 	AuthPolicyName string `json:"authPolicyName"`
 	// Default Role
-	DefaultRoleName string `json:"defaultRoleName"`
+	DefaultRoleName string `json:"defaultRoleName,omitempty"`
 	// Additional properties
 	Properties []*EntityPropertyInput `json:"properties,omitempty"`
 }

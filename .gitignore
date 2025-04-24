@@ -27,7 +27,6 @@ testbin/*
 
 
 operator.Dockerfile
-mysql-values.yaml
 example/tls.*
 portal-gateway.yaml
 demo-gateway.yaml
@@ -44,6 +43,7 @@ docker-secret.yaml
 tenant_info.json
 example/repositories/local-tests
 example/gateway/local-tests
+example/base/resources/configmaps/cassandra
 
 # internal automation modified files
 deploy/no-crd.yaml

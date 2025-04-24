@@ -71,14 +71,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			data["EXTRA_JAVA_ARGS"] = javaArgs + " -Dcom.l7tech.server.extension.sharedCounterProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedKeyValueStoreProvider=externalhazelcast -Dcom.l7tech.server.extension.sharedClusterInfoProvider=externalhazelcast"
 		}
 
-		if gw.Spec.App.Otk.Enabled && gw.Spec.App.Otk.HealthCheck.Enabled {
-			otkHealthCheckPort := 8443
-			if gw.Spec.App.Otk.HealthCheck.Port != 0 {
-				otkHealthCheckPort = gw.Spec.App.Otk.HealthCheck.Port
-			}
-			data["OTK_HEALTHCHECK_PORT"] = strconv.Itoa(otkHealthCheckPort)
-		}
-
 	case gw.Name + "-gateway-files":
 		if gw.Spec.App.Bootstrap.Script.Enabled {
 			f, _ := os.ReadFile("./003-parse-custom-files.sh")
@@ -87,11 +79,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		if gw.Spec.App.PreStopScript.Enabled {
 			f, _ := os.ReadFile("./graceful-shutdown.sh")
 			data["graceful-shutdown"] = string(f)
-		}
-
-		if gw.Spec.App.Otk.Enabled && gw.Spec.App.Otk.HealthCheck.Enabled {
-			f, _ := os.ReadFile("./otk-healthcheck.sh")
-			data["otk-healthcheck"] = string(f)
 		}
 
 		if gw.Spec.App.AutoMountServiceAccountToken {
@@ -172,7 +159,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["OTK_TYPE"] = strings.ToUpper(string(securityv1.OtkTypeSingle))
 		data["OTK_SK_UPGRADE"] = "true" // only applies when this runs as a job
 		data["OTK_UPDATE_DATABASE_CONNECTION"] = "true"
-		data["OTK_DATABASE_PROPERTIES"] = "na"
+		data["OTK_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte("\"na\""))
 		if gw.Spec.App.Otk.Type != "" {
 			data["OTK_TYPE"] = strings.ToUpper(string(gw.Spec.App.Otk.Type))
 		}
@@ -185,7 +172,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 
 		switch gw.Spec.App.Otk.Database.Type {
 		case securityv1.OtkDatabaseTypeMySQL, securityv1.OtkDatabaseTypeOracle:
-			data["OTK_DATABASE_CONN_PROPERTIES"] = "na"
+			data["OTK_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte("\"na\""))
 			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
 			data["OTK_DATABASE_NAME"] = gw.Spec.App.Otk.Database.Sql.DatabaseName
 			data["OTK_JDBC_URL"] = gw.Spec.App.Otk.Database.Sql.JDBCUrl
@@ -205,8 +192,8 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 				data["OTK_CREATE_RO_DATABASE_CONN"] = "false"
 				if !reflect.DeepEqual(gw.Spec.App.Otk.Database.SqlReadOnly, securityv1.OtkSql{}) {
 					data["OTK_RO_DATABASE_CONNECTION_NAME"] = "OAuth_ReadOnly"
-					data["OTK_RO_DATABASE_CONN_PROPERTIES"] = "na"
-					data["OTK_RO_DATABASE_PROPERTIES"] = "na"
+					data["OTK_RO_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte("\"na\""))
+					data["OTK_RO_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte("\"na\""))
 					data["OTK_CREATE_RO_DATABASE_CONN"] = "true"
 					data["OTK_RO_DATABASE_NAME"] = gw.Spec.App.Otk.Database.SqlReadOnly.DatabaseName
 					data["OTK_RO_JDBC_URL"] = gw.Spec.App.Otk.Database.SqlReadOnly.JDBCUrl
@@ -235,8 +222,8 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 				data["OTK_CREATE_CLIENT_READ_DATABASE_CONN"] = "false"
 				if !reflect.DeepEqual(gw.Spec.App.Otk.Database.SqlClientReadOnly, securityv1.OtkSql{}) {
 					data["OTK_CLIENT_READ_DATABASE_CONNECTION_NAME"] = "OAuth_Client_Read"
-					data["OTK_CLIENT_READ_DATABASE_CONN_PROPERTIES"] = "na"
-					data["OTK_CLIENT_READ_DATABASE_PROPERTIES"] = "na"
+					data["OTK_CLIENT_READ_DATABASE_CONN_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte("\"na\""))
+					data["OTK_CLIENT_READ_DATABASE_PROPERTIES"] = base64.StdEncoding.EncodeToString([]byte("\"na\""))
 					data["OTK_CREATE_CLIENT_READ_DATABASE_CONN"] = "true"
 					data["OTK_CLIENT_READ_DATABASE_NAME"] = gw.Spec.App.Otk.Database.SqlClientReadOnly.DatabaseName
 					data["OTK_CLIENT_READ_JDBC_URL"] = gw.Spec.App.Otk.Database.SqlClientReadOnly.JDBCUrl
@@ -263,7 +250,7 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 			}
 
 		case securityv1.OtkDatabaseTypeCassandra:
-			data["OTK_CASSANDRA_DRIVER_CONFIG"] = "na"
+			data["OTK_CASSANDRA_DRIVER_CONFIG"] = base64.StdEncoding.EncodeToString([]byte("\"na\""))
 			data["OTK_DATABASE_TYPE"] = string(gw.Spec.App.Otk.Database.Type)
 			data["OTK_CASSANDRA_CONNECTION_POINTS"] = gw.Spec.App.Otk.Database.Cassandra.ConnectionPoints
 			data["OTK_CASSANDRA_PORT"] = strconv.Itoa(gw.Spec.App.Otk.Database.Cassandra.Port)

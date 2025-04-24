@@ -367,10 +367,17 @@ Status - Repository Status
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateStoreSynced</b></td>
+        <td>boolean</td>
+        <td>
+          StateStoreSynced whether or not the state store has been written to correctly<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>stateStoreVersion</b></td>
         <td>integer</td>
         <td>
-          StateStoreVersion tracks where this is stored in the state store<br/>
+          StateStoreVersion tracks version in state store<br/>
         </td>
         <td>false</td>
       </tr><tr>

@@ -427,26 +427,26 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	////// OTK HEALTHCHECK
-	if gw.Spec.App.Otk.Enabled && gw.Spec.App.Otk.HealthCheck.Enabled {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      gw.Name + "-otk-healthcheck",
-			MountPath: "/opt/docker/rc.d/diagnostic/health_check/otk-healthcheck.sh",
-			SubPath:   "otk-healthcheck.sh",
-		})
-		volumes = append(volumes, corev1.Volume{
-			Name: gw.Name + "-otk-healthcheck",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
-					Items: []corev1.KeyToPath{{
-						Path: "otk-healthcheck.sh",
-						Key:  "otk-healthcheck"},
-					},
-					DefaultMode: &defaultMode,
-				},
-			},
-		})
-	}
+	// if gw.Spec.App.Otk.Enabled && gw.Spec.App.Otk.HealthCheck.Enabled {
+	// 	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+	// 		Name:      gw.Name + "-otk-healthcheck",
+	// 		MountPath: "/opt/docker/rc.d/diagnostic/health_check/otk-healthcheck.sh",
+	// 		SubPath:   "otk-healthcheck.sh",
+	// 	})
+	// 	volumes = append(volumes, corev1.Volume{
+	// 		Name: gw.Name + "-otk-healthcheck",
+	// 		VolumeSource: corev1.VolumeSource{
+	// 			ConfigMap: &corev1.ConfigMapVolumeSource{
+	// 				LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
+	// 				Items: []corev1.KeyToPath{{
+	// 					Path: "otk-healthcheck.sh",
+	// 					Key:  "otk-healthcheck"},
+	// 				},
+	// 				DefaultMode: &defaultMode,
+	// 			},
+	// 		},
+	// 	})
+	// }
 
 	if gw.Spec.App.Bootstrap.Script.Enabled {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -1068,6 +1068,10 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			{
 				Name:  "CONTAINER_NAME",
 				Value: "gateway",
+			},
+			{
+				Name:  "OTEL_SERVICE_NAME",
+				Value: gw.Name,
 			},
 			{
 				Name:  "OTEL_RESOURCE_ATTRIBUTES",

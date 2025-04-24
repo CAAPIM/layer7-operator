@@ -3978,15 +3978,6 @@ spec:
                       enabled:
                         description: Enable or disable the OTK initContainer
                         type: boolean
-                      healthCheck:
-                        description: Healthcheck
-                        properties:
-                          enabled:
-                            description: Enable or disable database maintenance tasks
-                            type: boolean
-                          port:
-                            type: integer
-                        type: object
                       initContainerImage:
                         description: InitContainerImage for the initContainer
                         type: string
@@ -7030,9 +7021,12 @@ spec:
               ready:
                 description: Ready to apply to Gateway Deployments
                 type: boolean
+              stateStoreSynced:
+                description: StateStoreSynced whether or not the state store has been
+                  written to correct
+                type: boolean
               stateStoreVersion:
-                description: StateStoreVersion tracks where this is stored in the
-                  state store
+                description: StateStoreVersion tracks version in state store
                 type: integer
               storageSecretName:
                 description: StorageSecretName is the Kubernetes Secret that this

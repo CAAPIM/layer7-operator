@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"maps"
-
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/gateway"
 	"github.com/caapim/layer7-operator/pkg/util"
@@ -32,6 +30,11 @@ func Deployment(ctx context.Context, params Params) error {
 	if err != nil && k8serrors.IsNotFound(err) {
 
 		desiredDeployment, err = setLabels(ctx, params, desiredDeployment)
+		if err != nil {
+			return err
+		}
+
+		desiredDeployment, err = setStateStoreConfig(ctx, params, desiredDeployment)
 		if err != nil {
 			return err
 		}
@@ -69,7 +72,10 @@ func Deployment(ctx context.Context, params Params) error {
 	for k, v := range desiredDeployment.ObjectMeta.Annotations {
 		updatedDeployment.ObjectMeta.Annotations[k] = v
 	}
-	maps.Copy(updatedDeployment.Spec.Template.ObjectMeta.Annotations, desiredDeployment.Spec.Template.ObjectMeta.Annotations)
+
+	for k, v := range desiredDeployment.Spec.Template.ObjectMeta.Annotations {
+		updatedDeployment.Spec.Template.ObjectMeta.Annotations[k] = v
+	}
 
 	for k, v := range desiredDeployment.ObjectMeta.Labels {
 		updatedDeployment.ObjectMeta.Labels[k] = v
@@ -158,18 +164,16 @@ func setLabels(ctx context.Context, params Params, dep *appsv1.Deployment) (*app
 	commits := ""
 	for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
 		for _, repoStatus := range params.Instance.Status.RepositoryStatus {
-			if repoRef.Name == repoStatus.Name && repoRef.Type == "static" && repoRef.Enabled {
+			if repoRef.Name == repoStatus.Name && repoRef.Type == securityv1.RepositoryReferenceTypeStatic && repoRef.Enabled {
 				commits = commits + repoStatus.Commit
 			}
 		}
 	}
-
 	h := sha1.New()
 	h.Write([]byte(commits))
 	commits = fmt.Sprintf("%x", h.Sum(nil))
 
 	dep.ObjectMeta.Labels["security.brcmlabs.com/static-repositories-checksum"] = commits
-
 	return dep, nil
 }
 
@@ -179,7 +183,6 @@ func setStateStoreConfig(ctx context.Context, params Params, dep *appsv1.Deploym
 	if len(params.Instance.Spec.App.RepositoryReferences) > 0 {
 		stateStores := []string{}
 		for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
-
 			repo := securityv1.Repository{}
 			err := params.Client.Get(ctx, types.NamespacedName{Name: repoRef.Name, Namespace: params.Instance.Namespace}, &repo)
 			if err != nil {

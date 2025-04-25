@@ -426,28 +426,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		})
 	}
 
-	////// OTK HEALTHCHECK
-	// if gw.Spec.App.Otk.Enabled && gw.Spec.App.Otk.HealthCheck.Enabled {
-	// 	volumeMounts = append(volumeMounts, corev1.VolumeMount{
-	// 		Name:      gw.Name + "-otk-healthcheck",
-	// 		MountPath: "/opt/docker/rc.d/diagnostic/health_check/otk-healthcheck.sh",
-	// 		SubPath:   "otk-healthcheck.sh",
-	// 	})
-	// 	volumes = append(volumes, corev1.Volume{
-	// 		Name: gw.Name + "-otk-healthcheck",
-	// 		VolumeSource: corev1.VolumeSource{
-	// 			ConfigMap: &corev1.ConfigMapVolumeSource{
-	// 				LocalObjectReference: corev1.LocalObjectReference{Name: gw.Name + "-gateway-files"},
-	// 				Items: []corev1.KeyToPath{{
-	// 					Path: "otk-healthcheck.sh",
-	// 					Key:  "otk-healthcheck"},
-	// 				},
-	// 				DefaultMode: &defaultMode,
-	// 			},
-	// 		},
-	// 	})
-	// }
-
 	if gw.Spec.App.Bootstrap.Script.Enabled {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      gw.Name + "-parse-custom-files-script",
@@ -649,13 +627,9 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		initContainers = append(initContainers, ic)
 	}
 
-	//graphmanInitContainer := false
-	//commits := ""
 	gmanInitContainerVolumeMounts := []corev1.VolumeMount{}
 	for _, staticRepository := range gw.Status.RepositoryStatus {
 		if staticRepository.Enabled && staticRepository.Type == "static" {
-			//commits = commits + staticRepository.Commit
-			//graphmanInitContainer = true
 			if staticRepository.SecretName != "" {
 				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 					Name:      staticRepository.SecretName,
@@ -691,8 +665,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		}
 	}
 
-	//if graphmanInitContainer {
-	// Config Mount
 	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 		Name:      gw.Name + "-repository-init-config",
 		MountPath: "/graphman/config.json",
@@ -710,8 +682,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		}},
 	})
 
-	/////// change the init container to always mount
-	// Target Bootstrap Mount
 	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 		Name:      gw.Name + "-repository-bundle-dest",
 		MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
@@ -724,10 +694,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	})
 
 	volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
-
-	// h := sha1.New()
-	// h.Write([]byte(commits))
-	// commits = fmt.Sprintf("%x", h.Sum(nil))
 
 	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.2"
 	graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
@@ -752,11 +718,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	if gw.Spec.App.Management.Graphman.InitContainerSecurityContext != (corev1.SecurityContext{}) {
 		graphmanInitContainerSecurityContext = gw.Spec.App.Management.Graphman.InitContainerSecurityContext
 	}
-	//gIcName := "graphman-static-init"
-
-	// if commits != "" {
-	// 	gIcName = "graphman-static-init-" + commits[30:]
-	// }
 
 	initContainers = append(initContainers, corev1.Container{
 		Name:            "graphman-static-init",
@@ -771,7 +732,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	})
-	//}
 
 	if gw.Spec.App.PortalReference.Enabled {
 		portalInitContainerVolumeMounts := []corev1.VolumeMount{}

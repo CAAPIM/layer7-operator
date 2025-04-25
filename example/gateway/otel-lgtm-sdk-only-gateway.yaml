@@ -5,113 +5,52 @@ metadata:
 spec:
   version: "11.1.2"
   license:
-    accept: true
+    accept: false
     secretName: gateway-license
   app:
-    replicas: 2
-    restartOnConfigChange: true
+    podAnnotations:
+      sidecar.opentelemetry.io/inject: "ssg-lgtm"
+    replicas: 1
     image: docker.io/caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
-    serviceAccount:
-      create: true
-      name: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 2
-    pdb:
-      enabled: true
-      minAvailable: 1
-      maxUnavailable: 0
     resources:
-      requests:
-        memory: 4Gi
-        cpu: 2
       limits:
-        memory: 4Gi
         cpu: 2
-    otk:
+        memory: 4Gi
+      requests:
+        cpu: 2
+        memory: 4Gi
+    autoscaling:
       enabled: true
-      #initContainerImage: docker.io/caapim/otk-install:4.6.3
-      initContainerImage: harbor.sutraone.com/operator/otk-install:4.6.4
-      initContainerImagePullPolicy: Always
-      type: single
-      port: 443
-      overrides:
-        enabled: true
-        createTestClients: true
-        testClientsRedirectUrlPrefix: https://gateway-otk-management.brcmlabs.com:443
-      database:
-        type: mysql
-        create: true
-        dbUpgrade: true
-        connectionName: OAuth
-        auth:
-          # A single secret containing all of the values defined here will be created
-          # if existingSecret is set the corresponding gateway, readOnly or admin will be omitted from the secret
-          # if no values are set, a secret will not be created or referenced and the deployment will be invalidated.
-          # existingSecret: otk-db-secret
-          gateway:
-            username: otk_user
-            password: 7layer
-          readOnly:
-            username: readonly_user
-            password: 7layer
-          clientReadOnly:
-            username: clientreadonly_user
-            password: 7layer
-          admin:
-            username: root
-            password: 7layer
-        properties:
-          minimumPoolSize: 10
-          maximumPoolSize: 15
-        sql:
-          databaseName: otk_db
-          jdbcUrl: jdbc:mysql://mysql:3306/otk_db?useSSL=true
-          jdbcDriverClass: com.mysql.cj.jdbc.Driver
-          connectionProperties:
-            c3p0.maxConnectionAge: "100"
-            c3p0.maxIdleTime: "1000"
-          manageSchema: true
-          databaseWaitTimeout: 60
-    singletonExtraction: true
-
-    # livenessProbe:
-    #   httpGet:
-    #     port: https
-    #     scheme: HTTPS
-    #     path: /auth/oauth/health
-    #     httpHeaders:
-    #       - name: Host
-    #         value: 127.0.0.1
-    #   failureThreshold: 25
-    #   initialDelaySeconds: 15
-    #   periodSeconds: 10
-    #   successThreshold: 1
-    #   timeoutSeconds: 1
-    # readinessProbe:
-    #   httpGet:
-    #     port: https
-    #     scheme: HTTPS
-    #     path: /auth/oauth/health
-    #     httpHeaders:
-    #       - name: Host
-    #         value: 127.0.0.1
-    #   failureThreshold: 25
-    #   initialDelaySeconds: 15
-    #   periodSeconds: 10
-    #   successThreshold: 1
-    #   timeoutSeconds: 1
-
-    bundle:
-      - type: restman
-        source: secret
-        name: restman-bootstrap-bundle
-      - type: graphman
-        source: secret
-        name: graphman-bootstrap-bundle
+      hpa:
+        minReplicas: 2
+        maxReplicas: 3
+        metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 60
+        behavior:
+          scaleDown:
+            stabilizationWindowSeconds: 300
+            policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 60
+          scaleUp:
+            stabilizationWindowSeconds: 0
+            policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+    bundle: []
     repositoryReferences:
       - name: l7-gw-myframework
         enabled: true
@@ -131,14 +70,6 @@ spec:
         encryption:
           existingSecret: graphman-encryption-secret
           key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
-      - name: local-reference-repository
-        enabled: true
-        type: dynamic
-        encryption: {}
-      - name: otk-customizations-single
-        enabled: true
-        type: dynamic
-        encryption: {}
     bootstrap:
       script:
         enabled: true
@@ -156,63 +87,29 @@ spec:
       secretName: gateway-secret
       service:
         enabled: true
-        type: ClusterIP
+        #annotations:
+          # cloud.google.com/load-balancer-type: "Internal"
+        type: LoadBalancer
         ports:
         - name: management
           port: 9443
           targetPort: 9443
           protocol: TCP   
       restman:
-        enabled: false
+        enabled: true
+      ## Reserved for future use
       graphman:
         enabled: true
-        initContainerImage: harbor.sutraone.com/operator/graphman-static-init:1.0.3
-        initContainerImagePullPolicy: Always
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
       cluster:
         hostname: gateway.brcmlabs.com
       database:
-        enabled: false
-    service:
-      # annotations:
-      type: LoadBalancer
-      ports:
-      - name: https
-        port: 8443
-        targetPort: 8443
-        protocol: TCP
-      # - name: management
-      #   port: 9443
-      #   targetPort: 9443
-      #   protocol: TCP
-    ingress:
-      enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        cert-manager.io/cluster-issuer: "brcmlabs-issuer"
-      tls:
-      - hosts: 
-        - gateway.brcmlabs.com
-        - gateway-otk-management.brcmlabs.com
-        secretName: brcmlabs
-      rules:
-      - host: gateway.brcmlabs.com
-      - host: gateway-otk-management.brcmlabs.com
-        http:
-          paths:
-          - backend:
-              service:
-                name: management
-                port:
-                  name: management
-
-            path: /
-            pathType: Prefix
+        enabled: false # this runs the gateway in dbbacked/ephemeral mode
+        #jdbcUrl: "jdbc:mysql://192.168.1.64:3306/ssg"
     java:
       jvmHeap:
         calculate: true
-        minPercentage: 25
-        maxPercentage: 75
+        percentage: 50
         default: 2g
       extraArgs:
       - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
@@ -223,10 +120,8 @@ spec:
       - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
       - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true 
       - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
-    # - -Dcom.l7tech.server.log.console.extraCats=AUDIT,LOG,TRAFFIC
     listenPorts:
-      harden: false
-      refreshOnKeyChanges: true
+      harden: true
       custom:
         enabled: true
       ports:
@@ -236,12 +131,15 @@ spec:
         protocol: HTTPS
         managementFeatures:
         - Published service message input
+        # - Administrative access
+        # - Browser-based administration
+        # - Built-in services
         properties:
         - name: server
           value: A
         tls:
           enabled: true
-          #privateKey: 00000000000000000000000000000002:ssl
+          privateKey: 00000000000000000000000000000002:ssl
           clientAuthentication: Optional
           versions:
           - TLSv1.2
@@ -278,6 +176,8 @@ spec:
         - Browser-based administration
         - Built-in services
         properties: []
+        # - name: server
+        #   value: B
         tls:
           enabled: true
         # privateKey: 00000000000000000000000000000002:ssl
@@ -313,13 +213,22 @@ spec:
         protocol: HTTP
         managementFeatures:
         - Published service message input
+        # - Administrative access
+        # - Browser-based administration
+        # - Built-in services
         tls:
           enabled: false
+    log:
+      override: true
+      properties: |-
+        handlers = com.l7tech.server.log.GatewayRootLoggingHandler, com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler
+        com.l7tech.server.log.GatewayRootLoggingHandler.formatter = com.l7tech.util.JsonLogFormatter
+        java.util.logging.SimpleFormatter.format=
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.formatter = com.l7tech.util.JsonLogFormatter
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.level = CONFIG
     cwp:
       enabled: true
       properties:
-        - name: abc
-          value: def
         - name: io.httpsHostAllowWildcard
           value: "true"
         - name: log.levels
@@ -331,6 +240,21 @@ spec:
             com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion.level = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
+        - name: otel.enabled
+          value: "true"
+        - name: otel.serviceMetricEnabled
+          value: "true"
+        - name: otel.traceEnabled
+          value: "true"
+        - name: otel.metricPrefix
+          value: l7_
+        - name: otel.traceConfig
+          value: |
+            {
+              "services": [
+                {"resolutionPath": ".*"}
+              ]
+            }
     system:
       properties: |-
         # Default Gateway system properties
@@ -345,13 +269,41 @@ spec:
         # Must be set correctly when Gateway is running in FIPS mode. If not specified it will default to PKCS12.
         javax.net.ssl.trustStoreType=jks
         com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
+        # OpenTelemetry Agent Configuration
+        otel.instrumentation.common.default-enabled=true
+        otel.instrumentation.opentelemetry-api.enabled=true
+        otel.instrumentation.runtime-metrics.enabled=true
+        otel.instrumentation.runtime-telemetry.enabled=true
+        otel.instrumentation.opentelemetry-instrumentation-annotations.enabled=true
+        otel.java.global-autoconfigure.enabled=true
         # Additional properties go here
-    log:
-      override: true
-      properties: |-
-        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.formatter = com.l7tech.util.JsonLogFormatter
-        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.level = CONFIG
-    affinity: {}
-    nodeSelector: {}
-    tolerations: []
-    topologySpreadConstraints: []
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+      - name: https
+        port: 8443
+        targetPort: 8443
+        protocol: TCP
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      tls:
+      - hosts: 
+        - gateway.brcmlabs.com
+        secretName: brcmlabs
+      rules:
+      - host: gateway.brcmlabs.com
+    # containerSecurityContext:
+    #   runAsNonRoot: true
+    #   runAsUser: 1000669998
+    #   capabilities:
+    #     drop:
+    #     - ALL
+    #   allowPrivilegeEscalation: false
+    # podSecurityContext:
+    #   runAsUser: 1000669998
+    #   runAsGroup: 1000669998

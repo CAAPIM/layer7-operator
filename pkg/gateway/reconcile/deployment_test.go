@@ -2,11 +2,9 @@ package reconcile
 
 import (
 	"context"
+	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
-
-	//"context"
-	"testing"
 
 	"k8s.io/apimachinery/pkg/types"
 )

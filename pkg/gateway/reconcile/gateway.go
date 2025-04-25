@@ -53,7 +53,6 @@ import (
 )
 
 type GatewayUpdateRequest struct {
-	singleton                    bool
 	checksum                     string
 	patchAnnotation              string
 	delete                       bool
@@ -66,7 +65,6 @@ type GatewayUpdateRequest struct {
 	password                     string
 	cacheEntry                   string
 	stateStore                   bool
-	referenceType                string
 	repositoryReference          *securityv1.RepositoryReference
 	repository                   *securityv1.Repository
 	gateway                      *securityv1.Gateway
@@ -140,14 +138,13 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		gwUpdReq.ephemeral = true
 	}
 
-	switch gwUpdReq.ephemeral {
-	case true:
-		podList, err := getGatewayPods(ctx, params)
-		if err != nil {
-			return nil, err
-		}
-		gwUpdReq.podList = podList
-	case false:
+	podList, err := getGatewayPods(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	gwUpdReq.podList = podList
+
+	if !gwUpdReq.ephemeral {
 		deployment, err := getGatewayDeployment(ctx, params)
 		if err != nil {
 			return nil, err
@@ -183,7 +180,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				return nil, nil
 			}
 		} else {
-			if (gwUpdReq.deployment.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || gwUpdReq.deployment.Status.ReadyReplicas == 0) && !gwUpdReq.delete {
+			if (gwUpdReq.deployment.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || gwUpdReq.repositoryReference.Type == securityv1.RepositoryReferenceTypeStatic) && !gwUpdReq.delete {
 				return nil, nil
 			}
 		}
@@ -249,7 +246,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		}
 
 		gwUpdReq.graphmanEncryptionPassphrase = graphmanEncryptionPassphrase
-		//gwUpdReq.bundle = bundle
 
 		gwUpdReq.cacheEntry = gwUpdReq.repositoryReference.Name + "-" + gwUpdReq.checksum
 		gwUpdReq.bundleName = gwUpdReq.repositoryReference.Name
@@ -380,7 +376,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			}
 
 			gwUpdReq.graphmanEncryptionPassphrase = ""
-			//gwUpdReq.bundle = bundleBytes
 			gwUpdReq.patchAnnotation = "security.brcmlabs.com/" + params.Instance.Name + "-listen-port-bundle"
 			gwUpdReq.checksum = checksum
 			gwUpdReq.cacheEntry = gateway.Name + "-" + string(gwUpdReq.bundleType) + "-" + gwUpdReq.checksum
@@ -873,11 +868,26 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 }
 
 func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *GatewayUpdateRequest) (err error) {
+	update := false
+	ready := false
+	endpoint := ""
 
-	endpoint := gwUpdReq.gateway.Name + "." + gwUpdReq.gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
-	if gwUpdReq.gateway.Spec.App.Management.Service.Enabled {
-		endpoint = gwUpdReq.gateway.Name + "-management-service." + gwUpdReq.gateway.Namespace + ".svc.cluster.local:9443/graphman"
+	leaderAvailable := false
+	for _, pod := range gwUpdReq.podList.Items {
+		if pod.ObjectMeta.Labels["management-access"] == "leader" {
+			endpoint = pod.Status.PodIP + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
+			leaderAvailable = true
+		}
 	}
+
+	if !leaderAvailable {
+		return nil
+	}
+
+	//endpoint = gwUpdReq.gateway.Name + "." + gwUpdReq.gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
+	// if gwUpdReq.gateway.Spec.App.Management.Service.Enabled {
+	// 	endpoint = gwUpdReq.gateway.Name + "-management-service." + gwUpdReq.gateway.Namespace + ".svc.cluster.local:9443/graphman"
+	// }
 
 	currentChecksum := gwUpdReq.deployment.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
 
@@ -887,13 +897,15 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 		}
 	}
 
-	ready := false
-
-	if gwUpdReq.deployment.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == currentChecksum {
+	if currentChecksum == gwUpdReq.checksum && !gwUpdReq.delete {
 		return nil
 	}
 
-	if gwUpdReq.deployment.Status.ReadyReplicas == gwUpdReq.deployment.Status.Replicas {
+	if currentChecksum != gwUpdReq.checksum || currentChecksum == "" || gwUpdReq.delete {
+		update = true
+	}
+
+	if gwUpdReq.deployment.Status.ReadyReplicas != 0 {
 		ready = true
 	}
 
@@ -902,18 +914,18 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 		patch = fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", gwUpdReq.patchAnnotation, "deleted")
 	}
 
-	requestCacheEntry := gwUpdReq.deployment.Name + "-" + gwUpdReq.cacheEntry
-	syncRequest, err := syncCache.Read(requestCacheEntry)
-	if err != nil {
-		params.Log.V(5).Info("request has not been attempted or cache was flushed", "type", string(gwUpdReq.bundleType), "bundle", gwUpdReq.bundleName, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
-	}
+	if ready && update {
+		requestCacheEntry := gwUpdReq.deployment.Name + "-" + gwUpdReq.cacheEntry
+		syncRequest, err := syncCache.Read(requestCacheEntry)
+		if err != nil {
+			params.Log.V(5).Info("request has not been attempted or cache was flushed", "type", string(gwUpdReq.bundleType), "bundle", gwUpdReq.bundleName, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+		}
 
-	if syncRequest.Attempts > 0 {
-		params.Log.V(5).Info("request has been attempted in the last 3 seconds, backing off", "type", string(gwUpdReq.bundleType), "bundle", gwUpdReq.bundleName, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
-		return errors.New("request has been attempted in the last 3 seconds, backing off")
-	}
+		if syncRequest.Attempts > 0 {
+			params.Log.V(5).Info("request has been attempted in the last 3 seconds, backing off", "type", string(gwUpdReq.bundleType), "bundle", gwUpdReq.bundleName, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+			return errors.New("request has been attempted in the last 3 seconds, backing off")
+		}
 
-	if ready {
 		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 		start := time.Now()
 		params.Log.V(5).Info("applying latest "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
@@ -936,8 +948,19 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 			params.Log.Error(err, "failed to update deployment annotations", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 			return err
 		}
+	} else {
+		// startTime := time.Now()
+		// if gwUpdReq.podList.Items[i].Status.StartTime != nil {
+		// 	startTime = gwUpdReq.podList.Items[i].Status.StartTime.Time
+		// }
+		if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) || (!ready && gwUpdReq.bundleType == BundleTypeListenPort) { //(startTime.Before(time.Now().Add(120*time.Second)) && gwUpdReq.stateStore) ||
+			if err := params.Client.Patch(ctx, gwUpdReq.deployment,
+				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
+				params.Log.Error(err, "failed to update deployment annotations", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+				return err
+			}
+		}
 	}
-
 	return nil
 }
 
@@ -964,23 +987,23 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 
 		currentChecksum := pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
 
-		// if gwUpdReq.bundleType == BundleTypeOTKDatabaseMaintenance {
-		// 	if pod.ObjectMeta.Labels["management-access"] == "leader" {
-		// 		checksum = gwUpdReq.checksum + "-leader"
-		// 		singleton = true
-		// 	}
-		// }
+		if gwUpdReq.bundleType == BundleTypeOTKDatabaseMaintenance {
+			if pod.ObjectMeta.Labels["management-access"] == "leader" {
+				checksum = gwUpdReq.checksum + "-leader"
+				singleton = true
+			} else {
+				continue
+			}
+		}
 
 		if gwUpdReq.bundleType == BundleTypeRepository {
 			if (currentChecksum == "deleted" && !gwUpdReq.repositoryReference.Enabled) || (currentChecksum == "" && (gwUpdReq.delete || !gwUpdReq.repositoryReference.Enabled)) {
 				return nil
 			}
 
-			if gwUpdReq.gateway.Spec.App.SingletonExtraction || gwUpdReq.bundleType == BundleTypeOTKDatabaseMaintenance {
-				if pod.ObjectMeta.Labels["management-access"] == "leader" {
-					checksum = gwUpdReq.checksum + "-leader"
-					singleton = true
-				}
+			if gwUpdReq.gateway.Spec.App.SingletonExtraction && pod.ObjectMeta.Labels["management-access"] == "leader" {
+				checksum = gwUpdReq.checksum + "-leader"
+				singleton = true
 			}
 
 			if string(gwUpdReq.repositoryReference.Type) == string(securityv1.RepositoryReferenceTypeStatic) {
@@ -1050,9 +1073,9 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				if err != nil {
 					params.Log.Info("failed to apply "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
 					// add apply error
-					if gwUpdReq.bundleType == BundleTypeRepository {
-						_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
-					}
+					// if gwUpdReq.bundleType == BundleTypeRepository {
+					// 	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
+					// }
 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, true)
 					return err
 				}

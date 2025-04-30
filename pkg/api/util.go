@@ -18,6 +18,8 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.
 		return nil, "", err
 	}
 
+	hasService := false
+	hasPolicy := false
 	/// convert items to graphman
 	for _, item := range restmanBundle.References.Item {
 		if item.Type == "POLICY" && item.Resource.Policy.PolicyDetail.PolicyType == "Include" {
@@ -33,6 +35,7 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.
 				Soap: false,
 			}
 			graphmanBundle.PolicyFragments = append(graphmanBundle.PolicyFragments, &policyFragment)
+			hasPolicy = true
 		}
 		if item.Type == "SERVICE" {
 
@@ -87,6 +90,7 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.
 				Policy:         &graphman.PolicyInput{Xml: item.Resource.Service.Resources.ResourceSet.Resource.Text},
 			}
 			graphmanBundle.WebApiServices = append(graphmanBundle.WebApiServices, &l7Service)
+			hasService = true
 		}
 	}
 
@@ -117,6 +121,22 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.
 				Source: graphman.MappingSource{
 					Name: secretToDelete,
 				},
+			})
+	}
+
+	if hasService {
+		graphmanBundle.Properties.Mappings.WebApiServices = append(graphmanBundle.Properties.Mappings.WebApiServices,
+			&graphman.MappingInstructionInput{
+				Action:  graphman.MappingActionNewOrUpdate,
+				Default: true,
+			})
+	}
+
+	if hasPolicy {
+		graphmanBundle.Properties.Mappings.PolicyFragments = append(graphmanBundle.Properties.Mappings.PolicyFragments,
+			&graphman.MappingInstructionInput{
+				Action:  graphman.MappingActionNewOrUpdate,
+				Default: true,
 			})
 	}
 

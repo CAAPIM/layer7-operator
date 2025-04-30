@@ -75,6 +75,7 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.
 
 			l7Service := graphman.WebApiServiceInput{
 				Name:           item.Name,
+				Goid:           item.ID,
 				FolderPath:     "/Portal APIs",
 				ResolutionPath: item.Resource.Service.ServiceDetail.ServiceMappings.HttpMapping.UrlPattern,
 				MethodsAllowed: methodsAllowed,

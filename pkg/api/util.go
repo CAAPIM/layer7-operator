@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/caapim/layer7-operator/internal/templategen"
+	"strings"
 )
 
 func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.SecurePassword, passwordUndeploymentIds []string) ([]byte, string, error) {
@@ -24,6 +25,7 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.
 			policyFragment := graphman.PolicyFragmentInput{
 				FolderPath: "/Portal APIs",
 				Name:       item.Name,
+				Goid:       item.ID,
 				Guid:       item.Resource.Policy.Guid,
 				Policy: &graphman.PolicyInput{
 					Xml: item.Resource.Policy.Resources.ResourceSet.Resource.Text,
@@ -72,10 +74,11 @@ func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.
 				properties = append(properties, &graphmanEntityProperty)
 
 			}
-
+			var serviceId string
+			serviceId = strings.ReplaceAll(item.ID, "-", "")
 			l7Service := graphman.WebApiServiceInput{
 				Name:           item.Name,
-				Goid:           item.ID,
+				Goid:           serviceId,
 				FolderPath:     "/Portal APIs",
 				ResolutionPath: item.Resource.Service.ServiceDetail.ServiceMappings.HttpMapping.UrlPattern,
 				MethodsAllowed: methodsAllowed,

@@ -1427,6 +1427,28 @@ func ReconcileDBGateway(ctx context.Context, params Params, kind string, gateway
 	return nil
 }
 
+func disabledOrDeleteRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, disabled bool) (err error) {
+	repositoryStatuses := params.Instance.Status.RepositoryStatus
+	for i, repositoryStatus := range repositoryStatuses {
+		if repositoryStatus.Name == repository.Name {
+			if disabled {
+				repositoryStatuses[i].Enabled = false
+			} else {
+				repositoryStatuses = append(repositoryStatuses[:i], repositoryStatuses[i+1:]...)
+			}
+			break
+		}
+	}
+
+	params.Instance.Status.RepositoryStatus = repositoryStatuses
+	err = params.Client.Status().Update(ctx, params.Instance)
+	if err != nil {
+		params.Log.V(2).Info("failed to disabled/delete gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
+		return err
+	}
+	return nil
+}
+
 func updateRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, referenceType securityv1.RepositoryReferenceType, commit string, applyError error) (err error) {
 	gatewayStatus := params.Instance.Status
 	var conditions []securityv1.RepositoryCondition

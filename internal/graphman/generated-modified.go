@@ -9535,10 +9535,10 @@ func installBundleGeneric(
 	return &data_, err_
 }
 
-// The query or mutation executed by installBundleGeneric.
+// The query or mutation executed by deleteBundleGeneric.
 const deleteBundleGeneric_Operation = `
-mutation installBundleGeneric {
-	installBundleEntities {
+mutation deleteBundle {
+	deleteBundleEntities {
 		summary
 	}
 }

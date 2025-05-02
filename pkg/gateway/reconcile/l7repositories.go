@@ -112,7 +112,11 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 	err = SyncGateway(ctx, params, *gwUpdReq)
 
-	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
+	if delete && err == nil {
+		_ = deleteRepoRefStatus(ctx, params, *gwUpdReq.repository)
+	} else {
+		_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
+	}
 	gwUpdReq = nil
 	if err != nil {
 		return err

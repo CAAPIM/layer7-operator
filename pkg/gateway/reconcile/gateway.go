@@ -1441,7 +1441,7 @@ func disabledOrDeleteRepoRefStatus(ctx context.Context, params Params, repositor
 	return nil
 }
 
-func updateRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, referenceType securityv1.RepositoryReferenceType, commit string, applyError error) (err error) {
+func updateRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, referenceType securityv1.RepositoryReferenceType, commit string, applyError error, delete bool) (err error) {
 	gatewayStatus := params.Instance.Status
 	var conditions []securityv1.RepositoryCondition
 	secretName := repository.Name
@@ -1455,7 +1455,7 @@ func updateRepoRefStatus(ctx context.Context, params Params, repository security
 
 	nrs := securityv1.GatewayRepositoryStatus{
 		Commit:            commit,
-		Enabled:           true,
+		Enabled:           !delete,
 		Name:              repository.Name,
 		Type:              string(referenceType),
 		SecretName:        secretName,

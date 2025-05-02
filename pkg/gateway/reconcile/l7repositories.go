@@ -38,7 +38,7 @@ func ExternalRepository(ctx context.Context, params Params) error {
 
 	for _, repoRef := range gateway.Spec.App.RepositoryReferences {
 		if repoRef.Enabled {
-			err := reconcileDynamicRepository(ctx, params, repoRef, false, false)
+			err := reconcileDynamicRepository(ctx, params, repoRef, false)
 			if err != nil {
 				params.Log.Error(err, "failed to reconcile repository reference", "name", gateway.Name, "repository", repoRef.Name, "namespace", gateway.Namespace)
 				return err
@@ -59,7 +59,7 @@ func ExternalRepository(ctx context.Context, params Params) error {
 		}
 		if !found || disabled {
 			repoRef := securityv1.RepositoryReference{Name: repoStatus.Name, Type: "dynamic", Encryption: securityv1.BundleEncryption{Passphrase: "delete"}}
-			err := reconcileDynamicRepository(ctx, params, repoRef, true, disabled)
+			err := reconcileDynamicRepository(ctx, params, repoRef, true)
 			if err != nil {
 				params.Log.Error(err, "failed to remove repository reference", "name", gateway.Name, "repository", repoRef.Name, "namespace", gateway.Namespace)
 				return err
@@ -70,7 +70,7 @@ func ExternalRepository(ctx context.Context, params Params) error {
 	return nil
 }
 
-func reconcileDynamicRepository(ctx context.Context, params Params, repoRef securityv1.RepositoryReference, delete bool, disabled bool) (err error) {
+func reconcileDynamicRepository(ctx context.Context, params Params, repoRef securityv1.RepositoryReference, delete bool) (err error) {
 	gateway := params.Instance
 
 	repository := &securityv1.Repository{}
@@ -112,11 +112,7 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 	err = SyncGateway(ctx, params, *gwUpdReq)
 
-	if delete && err == nil {
-		_ = disabledOrDeleteRepoRefStatus(ctx, params, *gwUpdReq.repository, disabled)
-	} else {
-		_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
-	}
+	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err, delete)
 	gwUpdReq = nil
 	if err != nil {
 		return err

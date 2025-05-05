@@ -145,7 +145,9 @@ func deployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gatewa
 			}
 
 			portalMeta.LocationUrl = base64.StdEncoding.EncodeToString([]byte(portalMeta.LocationUrl))
-			portalMeta.SsgUrlBase64 = base64.StdEncoding.EncodeToString([]byte(portalMeta.SsgUrl))
+			//trim wildcard char for usage in policy context var: serviceUrl
+			serviceUrl, _ := strings.CutSuffix(portalMeta.SsgUrl, "*")
+			portalMeta.SsgUrlBase64 = base64.StdEncoding.EncodeToString([]byte(serviceUrl))
 
 			portalMeta.ApiEnabled = false
 			if params.Instance.Spec.PortalMeta.ApiEnabled {
@@ -276,7 +278,7 @@ func undeployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gate
 
 				params.Log.V(2).Info("removing api", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 				var errorMessage string
-				err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl+"*", params.Instance.Spec.PortalMeta.Name+"-fragment", secretNames)
+				err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl, params.Instance.Spec.PortalMeta.Name+"-fragment", secretNames)
 				if err != nil {
 					status = FAILURE
 					errorMessage = err.Error()

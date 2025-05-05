@@ -57,7 +57,7 @@ Variables Used:
             <l7:Enabled>true</l7:Enabled>
             <l7:ServiceMappings>
               <l7:HttpMapping>
-                <l7:UrlPattern>/{%s portalApi.SsgUrl %}*</l7:UrlPattern>
+                <l7:UrlPattern>/{%s portalApi.SsgUrl %}</l7:UrlPattern>
                 <l7:Verbs>
                   {% if isSoapApi == "true" %}
                     <l7:Verb>GET</l7:Verb>

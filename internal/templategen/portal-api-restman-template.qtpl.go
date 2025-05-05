@@ -140,7 +140,7 @@ func StreamFromRestmamTemplate(qw422016 *qt422016.Writer, portalApi PortalAPI, a
 //line portal-api-restman-template.qtpl:60
 	qw422016.E().S(portalApi.SsgUrl)
 //line portal-api-restman-template.qtpl:60
-	qw422016.N().S(`*</l7:UrlPattern>
+	qw422016.N().S(`</l7:UrlPattern>
                 <l7:Verbs>
                   `)
 //line portal-api-restman-template.qtpl:62

@@ -92,6 +92,8 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 
 		if defaultRedisConfig.KeyPrefixGroupName == "" {
 			defaultRedisConfig.KeyPrefixGroupName = redisGroupName
+		} else {
+			defaultRedisConfig.KeyPrefixGroupName = gw.Spec.App.Redis.Default.GroupName
 		}
 
 		if gw.Spec.App.Redis.Default.CommandTimeout == 0 {

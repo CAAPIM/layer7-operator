@@ -648,7 +648,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			// if the repository compressed is less than 1mb in size it will be
 			// available as an existing Kubernetes secret which reduces reliance on an external Git repository for Gateway boot.
 			// these secrets are managed by the Repository controller.
-			if staticRepository.StorageSecretName != "" {
+			if staticRepository.StorageSecretName != "" && staticRepository.StorageSecretName != "_" {
 				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 					Name:      staticRepository.StorageSecretName,
 					MountPath: "/graphman/localref/" + staticRepository.StorageSecretName,

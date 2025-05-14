@@ -1006,7 +1006,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				singleton = true
 			}
 
-			if string(gwUpdReq.repositoryReference.Type) == string(securityv1.RepositoryReferenceTypeStatic) {
+			if gwUpdReq.repositoryReference.Type == securityv1.RepositoryReferenceTypeStatic {
 				bundle := graphman.Bundle{}
 				singletonBundle := graphman.Bundle{}
 				err = json.Unmarshal(gwUpdReq.bundle, &bundle)
@@ -1072,10 +1072,6 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				err = util.ApplyToGraphmanTarget(gwUpdReq.bundle, singleton, gwUpdReq.username, gwUpdReq.password, endpoint, gwUpdReq.graphmanEncryptionPassphrase, gwUpdReq.delete)
 				if err != nil {
 					params.Log.Info("failed to apply "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
-					// add apply error
-					// if gwUpdReq.bundleType == BundleTypeRepository {
-					// 	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
-					// }
 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, true)
 					return err
 				}
@@ -1089,11 +1085,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				}
 			}
 		} else {
-			// startTime := time.Now()
-			// if gwUpdReq.podList.Items[i].Status.StartTime != nil {
-			// 	startTime = gwUpdReq.podList.Items[i].Status.StartTime.Time
-			// }
-			if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) || (!ready && gwUpdReq.bundleType == BundleTypeListenPort) { //(startTime.Before(time.Now().Add(120*time.Second)) && gwUpdReq.stateStore) ||
+			if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) || (!ready && gwUpdReq.bundleType == BundleTypeListenPort) {
 				if err := params.Client.Patch(ctx, &gwUpdReq.podList.Items[i],
 					client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 					params.Log.Error(err, "failed to update pod label", "Name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)

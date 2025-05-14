@@ -30,6 +30,22 @@ func GatewayStatus(ctx context.Context, params Params) error {
 		params.Log.V(2).Info("pods aren't available yet", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 
+	if len(params.Instance.Spec.App.RepositoryReferences) < len(gatewayStatus.RepositoryStatus) {
+		for i, repoStatus := range gatewayStatus.RepositoryStatus {
+			found := false
+			for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
+				if repoStatus.Name == repoRef.Name {
+					gatewayStatus.RepositoryStatus[i].Enabled = repoRef.Enabled
+					found = true
+				}
+			}
+			if !found {
+				gatewayStatus.RepositoryStatus[i].Enabled = false
+				gatewayStatus.RepositoryStatus[i].Commit = ""
+			}
+		}
+	}
+
 	for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
 		repository := &securityv1.Repository{}
 
@@ -47,6 +63,7 @@ func GatewayStatus(ctx context.Context, params Params) error {
 		for i, repoStatus := range gatewayStatus.RepositoryStatus {
 			if repoStatus.Name == repository.Name {
 				gatewayStatus.RepositoryStatus[i].Enabled = repoRef.Enabled
+				gatewayStatus.RepositoryStatus[i].Commit = repository.Status.Commit
 				found = true
 			}
 		}

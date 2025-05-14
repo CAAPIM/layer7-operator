@@ -17,7 +17,7 @@ type ActiveConnectorInput struct {
 	// The active connector type Examples:- KAFKA, SFTP_POLLING_LISTENER, MQ_NATIVE
 	ConnectorType string `json:"connectorType"`
 	// The name of the published service hardwired to the active connector
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// The active connector properties
 	Properties []*EntityPropertyInput `json:"properties,omitempty"`
 	// The advanced properties for active connector
@@ -82,13 +82,13 @@ type AuditConfigurationInput struct {
 	// log sink unique name
 	Name string `json:"name"`
 	// Lookup Policy Name
-	LookupPolicyName string `json:"lookupPolicyName"`
+	LookupPolicyName string `json:"lookupPolicyName,omitempty"`
 	// The configuration checksum
 	Checksum string `json:"checksum"`
 	// Whether to save the audit records always to the internal database
 	AlwaysSaveInternal bool `json:"alwaysSaveInternal"`
 	// Sink Policy Name
-	SinkPolicyName string `json:"sinkPolicyName"`
+	SinkPolicyName string `json:"sinkPolicyName,omitempty"`
 	// FTP Client Configuration
 	FtpConfig *AuditFtpConfigurationInput `json:"ftpConfig,omitempty"`
 }
@@ -448,7 +448,7 @@ type EmailListenerInput struct {
 	// Email account password. The password could be in plain text or secure password reference
 	Password string `json:"password"`
 	// The name of the published service hardwired to the email listener
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// Permitted maximum size of the message
 	SizeLimit int `json:"sizeLimit"`
 	// [Optional] The Email listener Properties excluding sizeLimit and
@@ -865,7 +865,7 @@ type FipInput struct {
 	Goid                     string                    `json:"goid"`
 	EnableCredentialTypeSaml bool                      `json:"enableCredentialTypeSaml"`
 	EnableCredentialTypeX509 bool                      `json:"enableCredentialTypeX509"`
-	CertificateValidation    CertificateValidationType `json:"certificateValidation"`
+	CertificateValidation    CertificateValidationType `json:"certificateValidation,omitempty"`
 	// The certificates in the trusted certificate table that establish the trust for this FIP
 	CertificateReferences []*FipCertInput `json:"certificateReferences,omitempty"`
 	// The optional checksum is ignored during the mutation but can be used to compare bundle content
@@ -2029,7 +2029,7 @@ type ListenPortInput struct {
 	// it may conflict with the default SSH port 22 on Linux or Unix systems.
 	Port int `json:"port"`
 	// The name of the published service hardwired to the listen port
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// Which Gateway services can be accessed through this listen port
 	EnabledFeatures []ListenPortFeature `json:"enabledFeatures"`
 	// The listen port tls settings
@@ -9537,8 +9537,8 @@ func installBundleGeneric(
 
 // The query or mutation executed by installBundleGeneric.
 const deleteBundleGeneric_Operation = `
-mutation installBundleGeneric {
-	installBundleEntities {
+mutation deleteBundleGeneric {
+	deleteBundleEntities {
 		summary
 	}
 }

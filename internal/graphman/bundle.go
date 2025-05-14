@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -438,7 +439,14 @@ func parsePacCode(p *PolicyInput, file string) (PolicyInput, error) {
 // this works with a static list of globally defined entities
 func parseEntity(path string) (string, bool) {
 	for _, e := range entities {
-		if strings.Contains(path, e) {
+		entityName := e
+		filePath := path
+		if !strings.HasPrefix(e, ".") {
+			entityName = fmt.Sprintf("/%s/", e)
+		} else {
+			filePath = strings.Split(path, "/")[len(strings.Split(path, "/"))-1]
+		}
+		if strings.Contains(filePath, entityName) {
 			return e, true
 		}
 	}
@@ -870,6 +878,9 @@ func implodeBundle(path string) (Bundle, error) {
 	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+		if strings.Contains(path, "/.git") {
+			return nil
 		}
 		if !d.IsDir() {
 			name, isEntity := parseEntity(path)

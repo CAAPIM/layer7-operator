@@ -193,6 +193,9 @@ func validateGraphmanBundle(fileName string, folderName string) error {
 		if err != nil {
 			return err
 		}
+		if strings.Contains(path, "/.git") {
+			return nil
+		}
 		if !d.IsDir() {
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]

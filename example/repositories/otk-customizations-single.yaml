@@ -4,7 +4,7 @@ metadata:
   name: otk-customizations-single
 spec:
   enabled: true
-  endpoint: https://gitea.sutraone.com/gazza/otk-customizations-single
+  endpoint: https://github.com/Layer7-Community/otk-customizations-single
   branch: main
   type: git
   auth: {}

@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "layer7-operator.fullname" . }}-l7statestore-editor-role
+  labels:
+  {{- include "layer7-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores/status
+  verbs:
+  - get

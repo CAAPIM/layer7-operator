@@ -11,6 +11,9 @@ spec:
     kind: L7Portal
     listKind: L7PortalList
     plural: l7portals
+    shortNames:
+    - portal
+    - portals
     singular: l7portal
   scope: Namespaced
   versions:

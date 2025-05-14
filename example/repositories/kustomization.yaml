@@ -7,4 +7,3 @@ resources:
   - ./local-reference-repository.yaml
   - ./otk-customizations-single.yaml
   - ../base
-  - ../state-store

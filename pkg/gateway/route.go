@@ -8,55 +8,81 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func NewRoute(gw *securityv1.Gateway) routev1.Route {
+func NewRoute(gw *securityv1.Gateway, routeSpec securityv1.RouteSpec, suffix string, managementRoute bool) *routev1.Route {
 
 	labels := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
 
-	defaultPort := routev1.RoutePort{TargetPort: intstr.FromString("https")}
+	defaultPort := &routev1.RoutePort{TargetPort: intstr.FromString("https")}
+	defaultWeight := int32(100)
+	serviceName := gw.Name
+
+	if managementRoute {
+		defaultPort = &routev1.RoutePort{TargetPort: intstr.FromString("management")}
+		serviceName = gw.Name + "-management-service"
+	}
+
+	if routeSpec.Port != nil {
+		if routeSpec.Port.TargetPort.StrVal != "" || routeSpec.Port.TargetPort.IntVal != 0 {
+			defaultPort = routeSpec.Port
+		}
+	}
+
 	defaultTls := routev1.TLSConfig{
 		Termination:                   routev1.TLSTerminationPassthrough,
 		InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyNone,
 	}
+
+	if routeSpec.TLS != nil {
+		defaultTls = *routeSpec.TLS
+	}
+
 	defaultWildcardPolicy := routev1.WildcardPolicyNone
 
-	routeSpec := routev1.RouteSpec{
+	defaultRouteSpec := routev1.RouteSpec{
 		To: routev1.RouteTargetReference{
-			Kind: "Service",
-			Name: gw.Name,
+			Kind:   "Service",
+			Name:   serviceName,
+			Weight: &defaultWeight,
 		},
-		Port: &defaultPort,
-		// default to passthrough
-		// will be updated to reencrypt in the future
-		// can be overriden
+		Port:           defaultPort,
 		TLS:            &defaultTls,
 		WildcardPolicy: defaultWildcardPolicy,
 	}
 
-	routeOverrides := gw.Spec.App.Ingress.Route
+	routeOverrides := routeSpec
+
+	if routeOverrides.To != nil {
+		if routeOverrides.To.Name != "" {
+			defaultRouteSpec.To.Name = routeSpec.To.Name
+		}
+		if routeOverrides.To.Weight != nil {
+			defaultRouteSpec.To.Weight = routeSpec.To.Weight
+		}
+	}
 
 	if routeOverrides.Host != "" {
-		routeSpec.Host = routeOverrides.Host
+		defaultRouteSpec.Host = routeOverrides.Host
 	}
 
 	if routeOverrides.Path != "" {
-		routeSpec.Path = routeOverrides.Path
+		defaultRouteSpec.Path = routeOverrides.Path
 	}
 
 	if routeOverrides.Port != nil {
-		routeSpec.Port = routeOverrides.Port
+		defaultRouteSpec.Port = routeOverrides.Port
 	}
 
 	if routeOverrides.TLS != nil {
-		routeSpec.TLS = routeOverrides.TLS
+		defaultRouteSpec.TLS = routeOverrides.TLS
 	}
 
 	if routeOverrides.WildcardPolicy != "" {
-		routeSpec.WildcardPolicy = routeOverrides.WildcardPolicy
+		defaultRouteSpec.WildcardPolicy = routeOverrides.WildcardPolicy
 	}
 
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        gw.Name,
+			Name:        gw.Name + "-" + suffix,
 			Namespace:   gw.Namespace,
 			Labels:      labels,
 			Annotations: gw.Spec.App.Ingress.Annotations,
@@ -65,9 +91,9 @@ func NewRoute(gw *securityv1.Gateway) routev1.Route {
 			APIVersion: "route.openshift.io/v1",
 			Kind:       "Route",
 		},
-		Spec: routeSpec,
+		Spec: defaultRouteSpec,
 	}
 
-	return *route
+	return route
 
 }

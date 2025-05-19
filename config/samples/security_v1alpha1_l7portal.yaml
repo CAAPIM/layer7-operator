@@ -9,7 +9,4 @@ spec:
   enrollmentBundle: ""
   deploymentTags:
   - ssg
-  auth:
-    endpoint: dev-ssg.brcmlabs.com
-    clientId: 3d8f8967b8e54909b5e9a86e09063406
-    clientSecret: b40a829f046a451db15aa8be503ea7b3
+  auth: {}

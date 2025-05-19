@@ -132,10 +132,6 @@ func NewManagementService(gw *securityv1.Gateway) *corev1.Service {
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
 	mls := map[string]string{"management-access": "leader"}
 
-	// for k, v := range mls {
-	// 	ls[k] = v
-	// }
-
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        gw.Name + "-management-service",

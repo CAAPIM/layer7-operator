@@ -10,6 +10,7 @@ spec:
   app:
     replicas: 1
     restartOnConfigChange: true
+    singletonExtraction: true
     image: docker.io/caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
     serviceAccount:

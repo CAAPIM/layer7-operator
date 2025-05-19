@@ -5,7 +5,7 @@ metadata:
 spec:
   version: "11.1.2"
   license:
-    accept: true
+    accept: false
     secretName: gateway-license
   app:
     replicas: 2
@@ -186,10 +186,15 @@ spec:
       #   protocol: TCP
     ingress:
       enabled: true
+      # type: route
+      # routes:
+      # - host: gateway.brcmlabs.com
+      # - host: gateway-otk-management.brcmlabs.com
+      #   port:
+      #     targetPort: management
       ingressClassName: nginx
       annotations:
         nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        cert-manager.io/cluster-issuer: "brcmlabs-issuer"
       tls:
       - hosts: 
         - gateway.brcmlabs.com

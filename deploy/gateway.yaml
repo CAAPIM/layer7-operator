@@ -57,10 +57,7 @@ kind: L7Portal
 metadata:
   name: dev-portal
 spec:
-  auth:
-    clientId: 3d8f8967b8e54909b5e9a86e09063406
-    clientSecret: b40a829f046a451db15aa8be503ea7b3
-    endpoint: dev-ssg.brcmlabs.com
+  auth: {}
   deploymentTags:
   - ssg
   enabled: true
@@ -75,11 +72,11 @@ metadata:
 spec:
   redis:
     database: 0
-    groupName: l7tests
+    groupName: l7gw
     masterPassword: 7layer
     standalone:
-      host: 192.168.1.10
-      port: 30036
+      host: redis-standalone
+      port: 6379
     storeId: test
     type: standalone
   type: redis

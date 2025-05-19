@@ -84,7 +84,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.Services, "services"},
 		{reconcile.ServiceAccount, "service account"},
 		{reconcile.Ingress, "ingress"},
-		{reconcile.Route, "openshift route"},
+		{reconcile.Routes, "openshift routes"},
 		{reconcile.HorizontalPodAutoscaler, "horizontalPodAutoscaler"},
 		{reconcile.PodDisruptionBudget, "podDisruptionBudget"},
 		{reconcile.GatewayStatus, "gatewayStatus"},

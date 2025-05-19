@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   creationTimestamp: null
   name: repositories.security.brcmlabs.com
 spec:
@@ -78,7 +78,7 @@ spec:
                     description: Username repository username
                     type: string
                   vendor:
-                    description: Vendor i.e. Github, Gitlab, BitBucket
+                    description: Vendor i.e. Github, Gitlab, BitBucket, Azure
                     type: string
                 type: object
               branch:
@@ -99,15 +99,21 @@ spec:
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
-                  Kubernetes Config
+                  Kubernetes Secret
                 properties:
-                  configMapName:
-                    type: string
                   secretName:
                     type: string
                 type: object
               remoteName:
                 description: Remote Name - defaults to "origin"
+                type: string
+              stateStoreKey:
+                description: "StateStoreKey where the repository is stored in the
+                  L7StateStore\nthis only "
+                type: string
+              stateStoreReference:
+                description: StateStoreReference which L7StateStore connection should
+                  be used to store o
                 type: string
               sync:
                 description: RepositorySyncConfig defines how often this repository
@@ -122,10 +128,8 @@ spec:
                 description: Tag - clone a specific tag.
                 type: string
               type:
-                description: Type of Repository - Git or HTTP
+                description: Type of Repository - git, http, local, statestore
                 type: string
-            required:
-            - endpoint
             type: object
           status:
             description: Status - Repository Status
@@ -142,6 +146,13 @@ spec:
               ready:
                 description: Ready to apply to Gateway Deployments
                 type: boolean
+              stateStoreSynced:
+                description: StateStoreSynced whether or not the state store has been
+                  written to correct
+                type: boolean
+              stateStoreVersion:
+                description: StateStoreVersion tracks version in state store
+                type: integer
               storageSecretName:
                 description: StorageSecretName is the Kubernetes Secret that this
                   repository is stored i

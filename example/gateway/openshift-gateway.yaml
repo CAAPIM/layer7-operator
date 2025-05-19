@@ -9,6 +9,8 @@ spec:
     secretName: gateway-license
   app:
     replicas: 1
+    restartOnConfigChange: true
+    singletonExtraction: true
     image: docker.io/caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
     serviceAccount:
@@ -142,6 +144,8 @@ spec:
       enabled: false
       ingressClassName: nginx
       type: route
+      route:
+        host: gateway.brcmlabs.com
       annotations:
        # nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
         # nginx.ingress.kubernetes.io/ssl-passthrough: "true"

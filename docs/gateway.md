@@ -4587,11 +4587,11 @@ More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/nam
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappingressroute">route</a></b></td>
-        <td>object</td>
+        <td><b><a href="#gatewayspecappingressroutesindex">routes</a></b></td>
+        <td>[]object</td>
         <td>
-          Route for Openshift
-This acts as an override<br/>
+          Routes for Openshift
+This allows for customization of the default route and adding of an additional route for the management service<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4619,13 +4619,13 @@ This acts as an override<br/>
 </table>
 
 
-### Gateway.spec.app.ingress.route
+### Gateway.spec.app.ingress.routes[index]
 <sup><sup>[↩ Parent](#gatewayspecappingress)</sup></sup>
 
 
 
-Route for Openshift
-This acts as an override
+RouteSpec from https://pkg.go.dev/github.com/openshift/api/route/v1#RouteSpec
+The Operator determines where to route to
 
 <table>
     <thead>
@@ -4651,19 +4651,27 @@ This acts as an override
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappingressrouteport">port</a></b></td>
+        <td><b><a href="#gatewayspecappingressroutesindexport">port</a></b></td>
         <td>object</td>
         <td>
           RoutePort defines a port mapping from a router to an endpoint in the service endpoints.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappingressroutetls">tls</a></b></td>
+        <td><b><a href="#gatewayspecappingressroutesindextls">tls</a></b></td>
         <td>object</td>
         <td>
           TLSConfig defines config used to secure a route and provide termination<br/>
           <br/>
             <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressroutesindexto">to</a></b></td>
+        <td>object</td>
+        <td>
+          RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
+kind is allowed. Use 'weight' field to emphasize one over others.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4677,8 +4685,8 @@ This acts as an override
 </table>
 
 
-### Gateway.spec.app.ingress.route.port
-<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+### Gateway.spec.app.ingress.routes[index].port
+<sup><sup>[↩ Parent](#gatewayspecappingressroutesindex)</sup></sup>
 
 
 
@@ -4706,8 +4714,8 @@ endpoints port list. Required<br/>
 </table>
 
 
-### Gateway.spec.app.ingress.route.tls
-<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+### Gateway.spec.app.ingress.routes[index].tls
+<sup><sup>[↩ Parent](#gatewayspecappingressroutesindex)</sup></sup>
 
 
 
@@ -4764,7 +4772,7 @@ verify.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappingressroutetlsexternalcertificate">externalCertificate</a></b></td>
+        <td><b><a href="#gatewayspecappingressroutesindextlsexternalcertificate">externalCertificate</a></b></td>
         <td>object</td>
         <td>
           externalCertificate provides certificate contents as a secret reference.
@@ -4803,8 +4811,8 @@ If a route does not specify insecureEdgeTerminationPolicy, then the default beha
 </table>
 
 
-### Gateway.spec.app.ingress.route.tls.externalCertificate
-<sup><sup>[↩ Parent](#gatewayspecappingressroutetls)</sup></sup>
+### Gateway.spec.app.ingress.routes[index].tls.externalCertificate
+<sup><sup>[↩ Parent](#gatewayspecappingressroutesindextls)</sup></sup>
 
 
 
@@ -4829,6 +4837,57 @@ Forbidden when `certificate` is set.
         <td>
           name of the referent.
 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.routes[index].to
+<sup><sup>[↩ Parent](#gatewayspecappingressroutesindex)</sup></sup>
+
+
+
+RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
+kind is allowed. Use 'weight' field to emphasize one over others.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          The kind of target that the route is referring to. Currently, only 'Service' is allowed<br/>
+          <br/>
+            <i>Enum</i>: Service, <br/>
+            <i>Default</i>: Service<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          name of the service/target that is being referred to. e.g. name of the service<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>weight</b></td>
+        <td>integer</td>
+        <td>
+          weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
+against other target reference objects. 0 suppresses requests to this backend.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: 100<br/>
+            <i>Minimum</i>: 0<br/>
+            <i>Maximum</i>: 256<br/>
         </td>
         <td>false</td>
       </tr></tbody>

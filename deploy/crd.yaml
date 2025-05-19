@@ -1674,88 +1674,120 @@ spec:
                       ingressClassName:
                         description: IngressClassName
                         type: string
-                      route:
+                      routes:
                         description: |-
-                          Route for Openshift
-                          This acts as an override
-                        properties:
-                          host:
-                            type: string
-                          path:
-                            type: string
-                          port:
-                            description: RoutePort defines a port mapping from a router
-                              to an endpoint in the servic
-                            properties:
-                              targetPort:
-                                anyOf:
-                                - type: integer
-                                - type: string
-                                description: The target port on pods selected by the
-                                  service this route points to.
-                                x-kubernetes-int-or-string: true
-                            required:
-                            - targetPort
-                            type: object
-                          tls:
-                            description: TLSConfig defines config used to secure a
-                              route and provide termination
-                            properties:
-                              caCertificate:
-                                description: caCertificate provides the cert authority
-                                  certificate contents
-                                type: string
-                              certificate:
-                                description: certificate provides certificate contents.
-                                type: string
-                              destinationCACertificate:
-                                description: destinationCACertificate provides the
-                                  contents of the ca certificate of the
-                                type: string
-                              externalCertificate:
-                                description: externalCertificate provides certificate
-                                  contents as a secret reference.
-                                properties:
-                                  name:
-                                    description: |-
-                                      name of the referent.
-                                      More info: https://kubernetes.
-                                    type: string
-                                type: object
-                                x-kubernetes-map-type: atomic
-                              insecureEdgeTerminationPolicy:
-                                description: insecureEdgeTerminationPolicy indicates
-                                  the desired behavior for insecure c
-                                enum:
-                                - Allow
-                                - None
-                                - Redirect
-                                - ""
-                                type: string
-                              key:
-                                description: key provides key file contents
-                                type: string
-                              termination:
-                                description: termination indicates termination type.
-                                enum:
-                                - edge
-                                - reencrypt
-                                - passthrough
-                                type: string
-                            required:
-                            - termination
-                            type: object
-                            x-kubernetes-validations:
-                            - message: 'cannot have both spec.tls.termination: passthrough
-                                and spec.tls.insecureEdgeTerminationPolicy: Allow'
-                              rule: 'has(self.termination) && has(self.insecureEdgeTerminationPolicy)
-                                ? !((self.termination==''passthrough'') && (self.insecureEdgeTerminationPolicy==''Allow''))
-                                : true'
-                          wildcardPolicy:
-                            description: WildcardPolicyType indicates the type of
-                              wildcard support needed by routes.
-                            type: string
-                        type: object
+                          Routes for Openshift
+                          This allows for customization of the default route and
+                        items:
+                          description: RouteSpec from https://pkg.go.dev/github.
+                          properties:
+                            host:
+                              type: string
+                            path:
+                              type: string
+                            port:
+                              description: RoutePort defines a port mapping from a
+                                router to an endpoint in the servic
+                              properties:
+                                targetPort:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: The target port on pods selected by
+                                    the service this route points to.
+                                  x-kubernetes-int-or-string: true
+                              required:
+                              - targetPort
+                              type: object
+                            tls:
+                              description: TLSConfig defines config used to secure
+                                a route and provide termination
+                              properties:
+                                caCertificate:
+                                  description: caCertificate provides the cert authority
+                                    certificate contents
+                                  type: string
+                                certificate:
+                                  description: certificate provides certificate contents.
+                                  type: string
+                                destinationCACertificate:
+                                  description: destinationCACertificate provides the
+                                    contents of the ca certificate of the
+                                  type: string
+                                externalCertificate:
+                                  description: externalCertificate provides certificate
+                                    contents as a secret reference.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        name of the referent.
+                                        More info: https://kubernetes.
+                                      type: string
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                insecureEdgeTerminationPolicy:
+                                  description: insecureEdgeTerminationPolicy indicates
+                                    the desired behavior for insecure c
+                                  enum:
+                                  - Allow
+                                  - None
+                                  - Redirect
+                                  - ""
+                                  type: string
+                                key:
+                                  description: key provides key file contents
+                                  type: string
+                                termination:
+                                  description: termination indicates termination type.
+                                  enum:
+                                  - edge
+                                  - reencrypt
+                                  - passthrough
+                                  type: string
+                              required:
+                              - termination
+                              type: object
+                              x-kubernetes-validations:
+                              - message: 'cannot have both spec.tls.termination: passthrough
+                                  and spec.tls.insecureEdgeTerminationPolicy: Allow'
+                                rule: 'has(self.termination) && has(self.insecureEdgeTerminationPolicy)
+                                  ? !((self.termination==''passthrough'') && (self.insecureEdgeTerminationPolicy==''Allow''))
+                                  : true'
+                            to:
+                              description: RouteTargetReference specifies the target
+                                that resolve into endpoints.
+                              properties:
+                                kind:
+                                  default: Service
+                                  description: The kind of target that the route is
+                                    referring to.
+                                  enum:
+                                  - Service
+                                  - ""
+                                  type: string
+                                name:
+                                  description: name of the service/target that is
+                                    being referred to. e.g.
+                                  minLength: 1
+                                  type: string
+                                weight:
+                                  default: 100
+                                  description: weight as an integer between 0 and
+                                    256, default 100, that specifies the tar
+                                  format: int32
+                                  maximum: 256
+                                  minimum: 0
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            wildcardPolicy:
+                              description: WildcardPolicyType indicates the type of
+                                wildcard support needed by routes.
+                              type: string
+                          type: object
+                        type: array
                       rules:
                         description: Rules
                         items:

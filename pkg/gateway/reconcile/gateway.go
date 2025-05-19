@@ -1486,10 +1486,13 @@ func updateRepoRefStatus(ctx context.Context, params Params, repository security
 			Status: "FAILURE",
 			Reason: errorMsg,
 		})
-	}
-
-	if applyError == nil {
+	} else {
 		conditions = []securityv1.RepositoryCondition{}
+		conditions = append(conditions, securityv1.RepositoryCondition{
+			Time:   time.Now().Format(time.RFC3339),
+			Status: "SUCCESS",
+			Reason: "",
+		})
 	}
 
 	nrs.Conditions = conditions

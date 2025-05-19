@@ -780,7 +780,13 @@ func (in *Ingress) DeepCopyInto(out *Ingress) {
 			(*out)[key] = val
 		}
 	}
-	in.Route.DeepCopyInto(&out.Route)
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]RouteSpec, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.TLS != nil {
 		in, out := &in.TLS, &out.TLS
 		*out = make([]networkingv1.IngressTLS, len(*in))
@@ -1622,6 +1628,11 @@ func (in *RouteSpec) DeepCopyInto(out *RouteSpec) {
 	if in.TLS != nil {
 		in, out := &in.TLS, &out.TLS
 		*out = new(routev1.TLSConfig)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.To != nil {
+		in, out := &in.To, &out.To
+		*out = new(routev1.RouteTargetReference)
 		(*in).DeepCopyInto(*out)
 	}
 }

@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   creationTimestamp: null
   name: l7apis.security.brcmlabs.com
 spec:
@@ -12,6 +12,9 @@ spec:
     kind: L7Api
     listKind: L7ApiList
     plural: l7apis
+    shortNames:
+    - api
+    - apis
     singular: l7api
   scope: Namespaced
   versions:
@@ -31,6 +34,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: L7ApiSpec defines the desired state of L7Api
             properties:
               deploymentTags:
                 description: DeploymentTags target Gateway deployments that this API

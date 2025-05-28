@@ -88,7 +88,9 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 			return nil, err
 		}
 
-		if gw.Spec.App.Redis.Default.GroupName == "" {
+		defaultRedisConfig.KeyPrefixGroupName = gw.Spec.App.Redis.Default.GroupName
+
+		if defaultRedisConfig.KeyPrefixGroupName == "" {
 			defaultRedisConfig.KeyPrefixGroupName = redisGroupName
 		}
 
@@ -148,7 +150,9 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 					if err != nil {
 						return nil, err
 					}
-					if rc.GroupName == "" {
+
+					redisConfig.KeyPrefixGroupName = rc.GroupName
+					if redisConfig.KeyPrefixGroupName == "" {
 						redisConfig.KeyPrefixGroupName = redisGroupName
 					}
 

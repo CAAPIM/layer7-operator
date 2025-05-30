@@ -5,4 +5,5 @@ resources:
   - ./subscriptions-repository.yaml
   - ./apis-repository.yaml
   - ./local-reference-repository.yaml
+  - ./otk-customizations-single.yaml
   - ../base

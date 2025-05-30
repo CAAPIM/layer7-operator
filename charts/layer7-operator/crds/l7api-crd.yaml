@@ -11,6 +11,9 @@ spec:
     kind: L7Api
     listKind: L7ApiList
     plural: l7apis
+    shortNames:
+    - api
+    - apis
     singular: l7api
   scope: Namespaced
   versions:

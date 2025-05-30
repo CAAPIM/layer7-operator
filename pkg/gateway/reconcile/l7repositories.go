@@ -1,20 +1,36 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package reconcile
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"net/url"
-	"strconv"
-	"strings"
-	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/util"
-	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func ExternalRepository(ctx context.Context, params Params) error {
@@ -22,21 +38,44 @@ func ExternalRepository(ctx context.Context, params Params) error {
 
 	for _, repoRef := range gateway.Spec.App.RepositoryReferences {
 		if repoRef.Enabled {
-			err := reconcileDynamicRepository(ctx, params, repoRef)
+			err := reconcileDynamicRepository(ctx, params, repoRef, false)
 			if err != nil {
 				params.Log.Error(err, "failed to reconcile repository reference", "name", gateway.Name, "repository", repoRef.Name, "namespace", gateway.Namespace)
 				return err
 			}
 		}
 	}
+
+	for _, repoStatus := range gateway.Status.RepositoryStatus {
+		found := false
+		disabled := false
+		for _, repoRef := range gateway.Spec.App.RepositoryReferences {
+			if repoStatus.Name == repoRef.Name {
+				found = true
+				if !repoRef.Enabled {
+					disabled = true
+				}
+			}
+		}
+		if !found || disabled {
+			repoRef := securityv1.RepositoryReference{Name: repoStatus.Name, Type: "dynamic", Encryption: securityv1.BundleEncryption{Passphrase: "delete"}}
+			err := reconcileDynamicRepository(ctx, params, repoRef, true)
+			if err != nil {
+				params.Log.Error(err, "failed to remove repository reference", "name", gateway.Name, "repository", repoRef.Name, "namespace", gateway.Namespace)
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
-func reconcileDynamicRepository(ctx context.Context, params Params, repoRef securityv1.RepositoryReference) error {
+func reconcileDynamicRepository(ctx context.Context, params Params, repoRef securityv1.RepositoryReference, delete bool) (err error) {
 	gateway := params.Instance
+
 	repository := &securityv1.Repository{}
 
-	err := params.Client.Get(ctx, types.NamespacedName{Name: repoRef.Name, Namespace: gateway.Namespace}, repository)
+	err = params.Client.Get(ctx, types.NamespacedName{Name: repoRef.Name, Namespace: gateway.Namespace}, repository)
 	if err != nil && k8serrors.IsNotFound(err) {
 		return err
 	}
@@ -47,327 +86,37 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 	}
 
 	commit := repository.Status.Commit
-
-	switch repoRef.Type {
-	case "dynamic":
-		if !gateway.Spec.App.Management.Database.Enabled {
-			err = applyEphemeral(ctx, params, repository, repoRef, commit)
-			if err != nil {
-				params.Log.Info("failed to apply commit", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
-				return err
-			}
-
-		} else {
-			err = applyDbBacked(ctx, params, repository, repoRef, commit)
-			if err != nil {
-				params.Log.Info("failed to apply commit", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
-				return err
-			}
-		}
+	// only support delete if a statestore is used
+	if repository.Spec.StateStoreReference == "" {
+		delete = false
 	}
 
-	for _, sRepo := range gateway.Status.RepositoryStatus {
-		if sRepo.Name == repoRef.Name {
-			if sRepo.Commit != commit {
-				_ = GatewayStatus(ctx, params)
-			}
-		}
-	}
-
-	return nil
-}
-
-func applyEphemeral(ctx context.Context, params Params, repository *securityv1.Repository, repoRef securityv1.RepositoryReference, commit string) error {
-	gateway := params.Instance
-	secretBundle := []byte{}
-	graphmanPort := 9443
-
-	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
-		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
-	}
-
-	name := params.Instance.Name
-	if gateway.Spec.App.Management.DisklessConfig.Disabled {
-		name = gateway.Name + "-node-properties"
-	}
-	if gateway.Spec.App.Management.SecretName != "" {
-		name = gateway.Spec.App.Management.SecretName
-	}
-	gwSecret, err := getGatewaySecret(ctx, params, name)
-	if err != nil {
-		return err
-	}
-
-	username, password := parseGatewaySecret(gwSecret)
-	if username == "" || password == "" {
-		return fmt.Errorf("could not retrieve gateway credentials for %s", repository.Name)
-	}
-
-	podList, err := getGatewayPods(ctx, params)
-	if err != nil {
-		return err
-	}
-
-	graphmanEncryptionPassphrase := repoRef.Encryption.Passphrase
-
-	if repoRef.Encryption.ExistingSecret != "" {
-		graphmanEncryptionPassphrase, err = getGraphmanEncryptionPassphrase(ctx, params, repoRef.Encryption.ExistingSecret, repoRef.Encryption.Key)
-		if err != nil {
-			return err
-		}
-	}
-
-	singleton := false
-	if !gateway.Spec.App.SingletonExtraction {
-		singleton = true
-	}
-
-	for i, pod := range podList.Items {
-
-		update := false
-		ready := false
-
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.Name == "gateway" {
-				ready = containerStatus.Ready
-			}
-		}
-		latestCommit := commit
-		currentCommit := pod.ObjectMeta.Annotations["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
-
-		if gateway.Spec.App.SingletonExtraction {
-			if pod.ObjectMeta.Labels["management-access"] == "leader" {
-				latestCommit = commit + "-leader"
-				singleton = true
-			}
-		}
-
-		patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, latestCommit)
-
-		if currentCommit != latestCommit || currentCommit == "" {
-			update = true
-		}
-
-		if update && ready {
-			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"
-			if len(repoRef.Directories) == 0 {
-				repoRef.Directories = []string{"/"}
-			}
-			for d := range repoRef.Directories {
-				ext := repository.Spec.Branch
-				if ext == "" {
-					ext = repository.Spec.Tag
-				}
-
-				gitPath := "/tmp/" + repoRef.Name + "-" + gateway.Namespace + "-" + ext + "/" + repoRef.Directories[d]
-
-				switch strings.ToLower(repository.Spec.Type) {
-				case "http":
-					fileURL, err := url.Parse(repository.Spec.Endpoint)
-					if err != nil {
-						return err
-					}
-					path := fileURL.Path
-					segments := strings.Split(path, "/")
-					fileName := segments[len(segments)-1]
-					ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
-					folderName := strings.ReplaceAll(fileName, "."+ext, "")
-					if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
-						folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
-					}
-					gitPath = "/tmp/" + repository.Name + "-" + gateway.Namespace + "-" + folderName
-				case "local":
-					gitPath = ""
-					secretBundle, err = readLocalReference(ctx, repository, params)
-					if err != nil {
-						return err
-					}
-
-				}
-
-				requestCacheEntry := pod.Name + "-" + repoRef.Name + "-" + latestCommit
-				syncRequest, err := syncCache.Read(requestCacheEntry)
-				tryRequest := true
-				if err != nil {
-					params.Log.V(2).Info("request has not been attempted or cache was flushed", "repo", repoRef.Name, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-				}
-
-				if syncRequest.Attempts > 0 {
-					params.Log.V(2).Info("request has been attempted in the last 3 seconds, backing off", "repo", repoRef.Name, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-					tryRequest = false
-					return errors.New("request has been attempted in the last 3 seconds, backing off")
-				}
-
-				if tryRequest {
-					syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
-					start := time.Now()
-					params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-					err = util.ApplyToGraphmanTarget(gitPath, secretBundle, singleton, username, password, endpoint, graphmanEncryptionPassphrase)
-					if err != nil {
-						params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-						_ = captureGraphmanMetrics(ctx, params, start, pod.Name, "repository", repoRef.Name, latestCommit, true)
-						return err
-					}
-
-					params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", latestCommit, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, "repository", repoRef.Name, latestCommit, false)
-
-					if err := params.Client.Patch(ctx, &podList.Items[i],
-						client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-						params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
-						return err
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func applyDbBacked(ctx context.Context, params Params, repository *securityv1.Repository, repoRef securityv1.RepositoryReference, commit string) error {
-	gateway := params.Instance
-	secretBundle := []byte{}
-	graphmanPort := 9443
-
-	if params.Instance.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
-		graphmanPort = params.Instance.Spec.App.Management.Graphman.DynamicSyncPort
-	}
-
-	name := params.Instance.Name
-	if gateway.Spec.App.Management.DisklessConfig.Disabled {
-		name = gateway.Name + "-node-properties"
-	}
-	if gateway.Spec.App.Management.SecretName != "" {
-		name = gateway.Spec.App.Management.SecretName
-	}
-	gwSecret, err := getGatewaySecret(ctx, params, name)
+	gwUpdReq, err := NewGwUpdateRequest(
+		ctx,
+		gateway,
+		params,
+		WithChecksum(commit),
+		WithDelete(delete),
+		WithBundleType(BundleTypeRepository),
+		WithRepositoryReference(repoRef),
+		WithRepository(repository),
+	)
 
 	if err != nil {
 		return err
 	}
 
-	username, password := parseGatewaySecret(gwSecret)
-	if username == "" || password == "" {
-		return fmt.Errorf("could not retrieve gateway credentials for %s", repository.Name)
-	}
-
-	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", "security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type, commit)
-
-	gatewayDeployment, err := getGatewayDeployment(ctx, params)
-	if err != nil {
-		return err
-	}
-
-	graphmanEncryptionPassphrase := repoRef.Encryption.Passphrase
-
-	if repoRef.Encryption.ExistingSecret != "" {
-		graphmanEncryptionPassphrase, err = getGraphmanEncryptionPassphrase(ctx, params, repoRef.Encryption.ExistingSecret, repoRef.Encryption.Key)
-		if err != nil {
-			return err
-		}
-	}
-
-	if gatewayDeployment.Status.ReadyReplicas != gatewayDeployment.Status.Replicas {
+	if gwUpdReq == nil {
 		return nil
 	}
 
-	currentCommit := gatewayDeployment.ObjectMeta.Annotations["security.brcmlabs.com/"+repoRef.Name+"-"+repoRef.Type]
-	if currentCommit == commit {
-		return nil
-	}
+	err = SyncGateway(ctx, params, *gwUpdReq)
 
-	endpoint := params.Instance.Name + "." + params.Instance.Namespace + ".svc.cluster.local:" + strconv.Itoa(graphmanPort) + "/graphman"
-	if params.Instance.Spec.App.Management.Service.Enabled {
-		endpoint = params.Instance.Name + "-management-service." + params.Instance.Namespace + ".svc.cluster.local:9443/graphman"
-	}
-
-	if len(repoRef.Directories) == 0 {
-		repoRef.Directories = []string{"/"}
-	}
-	for d := range repoRef.Directories {
-		ext := repository.Spec.Branch
-
-		if ext == "" {
-			ext = repository.Spec.Tag
-		}
-		gitPath := "/tmp/" + repoRef.Name + "-" + gateway.Namespace + "-" + ext + "/" + repoRef.Directories[d]
-
-		switch strings.ToLower(repository.Spec.Type) {
-		case "http":
-			fileURL, err := url.Parse(repository.Spec.Endpoint)
-			if err != nil {
-				return err
-			}
-			path := fileURL.Path
-			segments := strings.Split(path, "/")
-			fileName := segments[len(segments)-1]
-			ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
-			folderName := strings.ReplaceAll(fileName, "."+ext, "")
-			if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
-				folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
-			}
-			gitPath = "/tmp/" + repository.Name + "-" + gateway.Namespace + "-" + folderName
-		case "local":
-			gitPath = ""
-			secretBundle, err = readLocalReference(ctx, repository, params)
-			if err != nil {
-				return err
-			}
-
-		}
-
-		requestCacheEntry := gatewayDeployment.Name + "-" + repoRef.Name + "-" + commit
-		syncRequest, err := syncCache.Read(requestCacheEntry)
-		tryRequest := true
-		if err != nil {
-			params.Log.V(2).Info("request has not been attempted or cache was flushed", "repo", repoRef.Name, "deployment", gatewayDeployment.Name, "nam", gateway.Name, "Namespace", gateway.Namespace)
-		}
-
-		if syncRequest.Attempts > 0 {
-			params.Log.V(2).Info("request has been attempted in the last 3 seconds, backing off", "Repo", repoRef.Name, "deployment", gatewayDeployment.Name, "Name", gateway.Name, "Namespace", gateway.Namespace)
-			tryRequest = false
-		}
-
-		if tryRequest {
-			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
-			start := time.Now()
-			params.Log.V(2).Info("applying latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-			err = util.ApplyToGraphmanTarget(gitPath, secretBundle, true, username, password, endpoint, graphmanEncryptionPassphrase)
-			if err != nil {
-				params.Log.Info("failed to apply latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-				_ = captureGraphmanMetrics(ctx, params, start, gatewayDeployment.Name, "repository", repoRef.Name, commit, true)
-
-				return err
-			}
-			params.Log.Info("applied latest commit", "repo", repoRef.Name, "directory", repoRef.Directories[d], "commit", commit, "deployment", gatewayDeployment.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-			_ = captureGraphmanMetrics(ctx, params, start, gatewayDeployment.Name, "repository", repoRef.Name, commit, false)
-
-			if err := params.Client.Patch(ctx, &gatewayDeployment,
-				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-				params.Log.Error(err, "Failed to update deployment annotations", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
-				return err
-			}
-		}
+	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err)
+	gwUpdReq = nil
+	if err != nil {
+		return err
 	}
 
 	return nil
-}
-
-func readLocalReference(ctx context.Context, repository *securityv1.Repository, params Params) ([]byte, error) {
-	if repository.Spec.LocalReference.SecretName == "" {
-		return nil, fmt.Errorf("%s localReference secret name must be set", repository.Name)
-	}
-
-	localReference := &corev1.Secret{}
-	err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Spec.LocalReference.SecretName, Namespace: repository.Namespace}, localReference)
-	if err != nil {
-		return nil, err
-	}
-
-	bundleBytes, err := util.ConcatBundles(localReference.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	return bundleBytes, nil
 }

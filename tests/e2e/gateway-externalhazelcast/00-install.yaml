@@ -1,25 +1,27 @@
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
-  name: ssg
+  name: ssg-hazelcast-test
 spec:
-  version: "11.1.1"
+  version: "11.1.2"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.1
+    image: docker.io/caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
     #serviceAccountName: ssg-serviceaccount
     management:
       cluster:
         hostname: gateway.brcmlabs.com
+      username: admin
+      password: 7layer
     autoscaling:
       enabled: false
     hazelcast:
       external: true
-      url: my.hazelcast:5701
+      endpoint: my.hazelcast:5701
     listenPorts:
       harden: true
       custom:
@@ -37,3 +39,23 @@ spec:
           port: 9443
           targetPort: 9443
           protocol: TCP
+    livenessProbe:
+      exec:
+        command:
+        - /bin/bash
+        - /opt/docker/rc.d/diagnostic/health_check.sh
+      failureThreshold: 25
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    readinessProbe:
+      exec:
+        command:
+        - /bin/bash
+        - /opt/docker/rc.d/diagnostic/health_check.sh
+      failureThreshold: 25
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1

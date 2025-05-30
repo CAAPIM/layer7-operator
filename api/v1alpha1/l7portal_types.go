@@ -62,6 +62,7 @@ type L7PortalStatus struct {
 //+kubebuilder:object:root=true
 // +operator-sdk:csv:customresourcedefinitions:resources={{ConfigMaps,v1}}
 //+kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=portal;portals
 
 // L7Portal is the Schema for the l7portals API
 type L7Portal struct {

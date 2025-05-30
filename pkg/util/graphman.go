@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package util
 
 import (
@@ -67,19 +92,12 @@ type MappingSource struct {
 	Alias          string `json:"alias,omitempty"`
 	KeystoreId     string `json:"keystoreId,omitempty"`
 	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
+	SystemId       string `json:"systemId,omitempty"`
 }
 
-func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, username string, password string, target string, encpass string) error {
+func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, password string, target string, encpass string, delete bool) error {
 	bundle := graphman.Bundle{}
-
-	bundleBytes, err := BuildAndValidateBundle(path)
-	if err != nil {
-		return err
-	}
-
-	if bundleBytes == nil && len(secretBundle) > 0 {
-		bundleBytes = secretBundle
-	}
+	var err error
 
 	if !singleton {
 		scheduledTasks := []*graphman.ScheduledTaskInput{}
@@ -111,10 +129,22 @@ func ApplyToGraphmanTarget(path string, secretBundle []byte, singleton bool, use
 		}
 	}
 
-	_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
-	if err != nil {
-		return err
+	if !delete {
+		_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = graphman.DeleteDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+		if err != nil {
+			return err
+		}
 	}
+
+	// _, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
@@ -329,6 +359,25 @@ func RemoveL7API(username string, password string, target string, apiName string
 	return nil
 }
 
+func DeleteBundle(src []byte) (bundle []byte, err error) {
+	srcBundle := graphman.Bundle{}
+
+	err = json.Unmarshal(src, &srcBundle)
+
+	if err != nil {
+		return nil, err
+	}
+
+	srcBundle.Properties = &graphman.BundleProperties{DefaultAction: graphman.MappingActionDelete}
+
+	bundle, err = json.Marshal(srcBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	return bundle, nil
+}
+
 func CompressGraphmanBundle(path string) ([]byte, error) {
 	bundleBytes, err := BuildAndValidateBundle(path)
 	if err != nil {
@@ -347,7 +396,7 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 	}
 	if buf.Len() > 900000 {
 		buf.Reset()
-		return nil, errors.New("this bundle would exceed the maximum Kubernetes secret size")
+		return nil, errors.New("exceededMaxSize")
 	}
 
 	compressedBundle := buf.Bytes()
@@ -356,23 +405,30 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 	return compressedBundle, nil
 }
 
-func ConcatBundles(bundleMap map[string][]byte) ([]byte, error) {
-	var combinedBundle []byte
+func ConcatBundles(bundleMap map[string][]byte) (combinedBundle []byte, err error) {
 
 	for k, bundle := range bundleMap {
 		if strings.HasSuffix(k, ".json") {
-			newBundle, err := graphman.ConcatBundle(combinedBundle, bundle)
+			combinedBundle, err = graphman.ConcatBundle(combinedBundle, bundle)
 			if err != nil {
 				return nil, err
 			}
-			combinedBundle = newBundle
+		}
+		if strings.HasSuffix(k, ".gz") {
+			bundle, err := GzipDecompress(bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle, err = graphman.ConcatBundle(combinedBundle, bundle)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if k == "bundle-properties.json" {
-			newBundle, err := graphman.AddMappings(combinedBundle, bundle)
+			combinedBundle, err = graphman.AddMappings(combinedBundle, bundle)
 			if err != nil {
 				return nil, err
 			}
-			combinedBundle = newBundle
 		}
 	}
 
@@ -380,16 +436,16 @@ func ConcatBundles(bundleMap map[string][]byte) ([]byte, error) {
 
 }
 
-func BuildAndValidateBundle(path string) ([]byte, error) {
+func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
 	if path == "" {
 		return nil, nil
 	}
-	bundle := graphman.Bundle{}
+
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
 	}
 
-	bundleBytes, err := graphman.Implode(path)
+	bundleBytes, err = graphman.Implode(path)
 	if err != nil {
 		return nil, err
 	}
@@ -398,20 +454,34 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 		if err != nil {
 			return err
 		}
+		if strings.Contains(path, "/.git") {
+			return nil
+		}
 		if !d.IsDir() {
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") && !strings.Contains(strings.ToLower(d.Name()), "bundle-properties.json") {
-				//sbb := bundleBytes
 				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
 					return err
 				}
-				sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				tb := graphman.Bundle{}
+				err = json.Unmarshal(srcBundleBytes, &tb)
 				if err != nil {
 					return nil
 				}
-				bundleBytes = sbb
+				tbb, err := json.Marshal(tb)
+				if err != nil {
+					return nil
+				}
+
+				if len(tbb) > 2 {
+					sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+					if err != nil {
+						return nil
+					}
+					bundleBytes = sbb
+				}
 			}
 		}
 		return nil
@@ -422,12 +492,12 @@ func BuildAndValidateBundle(path string) ([]byte, error) {
 	if len(bundleBytes) <= 2 {
 		return nil, errors.New("no valid graphman bundles were found")
 	}
-
+	bundle := graphman.Bundle{}
 	r := bytes.NewReader(bundleBytes)
 	d := json.NewDecoder(r)
 	d.DisallowUnknownFields()
 	_ = json.Unmarshal(bundleBytes, &bundle)
-	// check the graphman bundle for errors
+
 	err = d.Decode(&bundle)
 	if err != nil {
 		return nil, err
@@ -465,13 +535,13 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 			}
 		}
 
-		bundle.Fips = append(bundle.Fips, &graphman.FipInput{
-			Name:                     "otk-fips-provider",
-			Goid:                     fipsProviderGuid,
-			EnableCredentialTypeSaml: false,
-			EnableCredentialTypeX509: true,
-			CertificateValidation:    graphman.CertificateValidationTypeCertificateOnly,
-			CertificateReferences:    []*graphman.FipCertInput{},
+		bundle.FederatedIdps = append(bundle.FederatedIdps, &graphman.FederatedIdpInput{
+			Name:           "otk-fips-provider",
+			Goid:           fipsProviderGuid,
+			SupportsSAML:   false,
+			SupportsX509:   true,
+			CertValidation: graphman.CertValidationTypeUseDefault,
+			TrustedCerts:   []*graphman.TrustedCertPartialInput{},
 		})
 	case "DMZ":
 		for _, externalPolicy := range externalPolicies {

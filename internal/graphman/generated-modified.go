@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package graphman
 
 import (
@@ -17,7 +42,7 @@ type ActiveConnectorInput struct {
 	// The active connector type Examples:- KAFKA, SFTP_POLLING_LISTENER, MQ_NATIVE
 	ConnectorType string `json:"connectorType"`
 	// The name of the published service hardwired to the active connector
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// The active connector properties
 	Properties []*EntityPropertyInput `json:"properties,omitempty"`
 	// The advanced properties for active connector
@@ -82,11 +107,13 @@ type AuditConfigurationInput struct {
 	// log sink unique name
 	Name string `json:"name"`
 	// Lookup Policy Name
-	LookupPolicyName string `json:"lookupPolicyName"`
+	LookupPolicyName string `json:"lookupPolicyName,omitempty"`
 	// The configuration checksum
 	Checksum string `json:"checksum"`
+	// Whether to save the audit records always to the internal database
+	AlwaysSaveInternal bool `json:"alwaysSaveInternal"`
 	// Sink Policy Name
-	SinkPolicyName string `json:"sinkPolicyName"`
+	SinkPolicyName string `json:"sinkPolicyName,omitempty"`
 	// FTP Client Configuration
 	FtpConfig *AuditFtpConfigurationInput `json:"ftpConfig,omitempty"`
 }
@@ -102,6 +129,9 @@ func (v *AuditConfigurationInput) GetLookupPolicyName() string { return v.Lookup
 
 // GetChecksum returns AuditConfigurationInput.Checksum, and is useful for accessing the field via an interface.
 func (v *AuditConfigurationInput) GetChecksum() string { return v.Checksum }
+
+// GetAlwaysSaveInternal returns AuditConfigurationInput.AlwaysSaveInternal, and is useful for accessing the field via an interface.
+func (v *AuditConfigurationInput) GetAlwaysSaveInternal() bool { return v.AlwaysSaveInternal }
 
 // GetSinkPolicyName returns AuditConfigurationInput.SinkPolicyName, and is useful for accessing the field via an interface.
 func (v *AuditConfigurationInput) GetSinkPolicyName() string { return v.SinkPolicyName }
@@ -443,7 +473,7 @@ type EmailListenerInput struct {
 	// Email account password. The password could be in plain text or secure password reference
 	Password string `json:"password"`
 	// The name of the published service hardwired to the email listener
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// Permitted maximum size of the message
 	SizeLimit int `json:"sizeLimit"`
 	// [Optional] The Email listener Properties excluding sizeLimit and
@@ -860,7 +890,7 @@ type FipInput struct {
 	Goid                     string                    `json:"goid"`
 	EnableCredentialTypeSaml bool                      `json:"enableCredentialTypeSaml"`
 	EnableCredentialTypeX509 bool                      `json:"enableCredentialTypeX509"`
-	CertificateValidation    CertificateValidationType `json:"certificateValidation"`
+	CertificateValidation    CertificateValidationType `json:"certificateValidation,omitempty"`
 	// The certificates in the trusted certificate table that establish the trust for this FIP
 	CertificateReferences []*FipCertInput `json:"certificateReferences,omitempty"`
 	// The optional checksum is ignored during the mutation but can be used to compare bundle content
@@ -1570,6 +1600,19 @@ const (
 	JobTypeRecurring JobType = "RECURRING"
 )
 
+type KerberosConfigInput struct {
+	// The encrypted Kerberos keytab.
+	Keytab string `json:"keytab"`
+	// The Kerberos configuration, "krb5.conf" in its INI format.
+	Conf string `json:"conf,omitempty"`
+}
+
+// GetKeytab returns KerberosConfigInput.Keytab, and is useful for accessing the field via an interface.
+func (v *KerberosConfigInput) GetKeytab() string { return v.Keytab }
+
+// GetConf returns KerberosConfigInput.Conf, and is useful for accessing the field via an interface.
+func (v *KerberosConfigInput) GetConf() string { return v.Conf }
+
 type KeyInput struct {
 	KeystoreId string `json:"keystoreId"`
 	Alias      string `json:"alias"`
@@ -2011,7 +2054,7 @@ type ListenPortInput struct {
 	// it may conflict with the default SSH port 22 on Linux or Unix systems.
 	Port int `json:"port"`
 	// The name of the published service hardwired to the listen port
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// Which Gateway services can be accessed through this listen port
 	EnabledFeatures []ListenPortFeature `json:"enabledFeatures"`
 	// The listen port tls settings
@@ -2339,7 +2382,7 @@ type PolicyBackedIdpInput struct {
 	// Authentication Policy Name
 	AuthPolicyName string `json:"authPolicyName"`
 	// Default Role
-	DefaultRoleName string `json:"defaultRoleName"`
+	DefaultRoleName string `json:"defaultRoleName,omitempty"`
 	// Additional properties
 	Properties []*EntityPropertyInput `json:"properties,omitempty"`
 }
@@ -3531,6 +3574,7 @@ type __installBundleInput struct {
 	WebApiServices                      []*WebApiServiceInput                     `json:"webApiServices,omitempty"`
 	GenericEntities                     []*GenericEntityInput                     `json:"genericEntities,omitempty"`
 	AuditConfigurations                 []*AuditConfigurationInput                `json:"auditConfigurations,omitempty"`
+	KerberosConfigs                     []*KerberosConfigInput                    `json:"kerberosConfigs,omitempty"`
 }
 
 // GetActiveConnectors returns __installBundleInput.ActiveConnectors, and is useful for accessing the field via an interface.
@@ -3707,6 +3751,9 @@ func (v *__installBundleInput) GetGenericEntities() []*GenericEntityInput { retu
 func (v *__installBundleInput) GetAuditConfigurations() []*AuditConfigurationInput {
 	return v.AuditConfigurations
 }
+
+// GetKerberosConfigs returns __installBundleInput.KerberosConfigs, and is useful for accessing the field via an interface.
+func (v *__installBundleInput) GetKerberosConfigs() []*KerberosConfigInput { return v.KerberosConfigs }
 
 // deleteKeysDeleteKeysKeysPayload includes the requested fields of the GraphQL type KeysPayload.
 type deleteKeysDeleteKeysKeysPayload struct {
@@ -4062,6 +4109,171 @@ type installBundleResponse struct {
 	// Note: Creating a role is unsupported.
 	SetRoles               *installBundleSetRolesRolesPayload                             `json:"setRoles"`
 	SetAuditConfigurations *installBundleSetAuditConfigurationsAuditConfigurationsPayload `json:"setAuditConfigurations"`
+	// (Experimental)
+	// Create/update the Kerberos configurations.
+	// Automatically generates the Kerberos login config file, "login.config", and
+	// Kerberos config file, "krb5.conf" (unless the cluster-wide property
+	// kerberos.krb5Config.overwrite=false and it is set in the mutation).
+	SetKerberosConfigs *installBundleSetKerberosConfigsKerberosConfigPayload `json:"setKerberosConfigs"`
+	// Creates or updates one or more keys
+	SetKeys *installBundleSetKeysKeysPayload `json:"setKeys"`
+}
+
+// deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload includes the requested fields of the GraphQL type BundleEntitiesPayload.
+type deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload struct {
+	Summary bool `json:"summary"`
+}
+
+// GetSummary returns deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload.Summary, and is useful for accessing the field via an interface.
+func (v *deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload) GetDeleteSummary() bool {
+	return v.Summary
+}
+
+// deleteBundleGenericResponse is returned by installBundleGeneric on success.
+type deleteBundleGenericResponse struct {
+	// Installs bundle of entities using set-based mutation operations
+	DeleteBundleEntities *deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload `json:"deleteBundleEntities"`
+}
+
+// GetInstallBundleEntities returns installBundleGenericResponse.InstallBundleEntities, and is useful for accessing the field via an interface.
+func (v *deleteBundleGenericResponse) GetDeleteBundleEntities() *deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload {
+	return v.DeleteBundleEntities
+}
+
+// installBundleResponse is returned by installBundle on success.
+type deleteBundleResponse struct {
+	// Sets Server module files. Updating the existing server module file is unsupported.
+	SetServerModuleFiles *installBundleSetServerModuleFilesServerModuleFilesPayload `json:"setServerModuleFiles"`
+	// Create or update existing cluster properties.  If a cluster property with the given name does not
+	// exist, one will be created, otherwise the existing one will be updated. This returns the list of
+	// entities created and/or updated
+	SetClusterProperties *installBundleSetClusterPropertiesClusterPropertiesPayload `json:"setClusterProperties"`
+	// Update Service Resolution Configs
+	SetServiceResolutionConfigs *installBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoad `json:"setServiceResolutionConfigs"`
+	// Set/Update the Password Policies
+	SetPasswordPolicies *installBundleSetPasswordPoliciesPasswordPoliciesPayLoad `json:"setPasswordPolicies"`
+	// Create or update existing Administrative User Account Minimum cluster properties.
+	// If Administrative User Account Minimum cluster property with the given name
+	// does not exist, one will be created, otherwise the existing one will be updated.
+	// This returns the list of entities created and/or updated.
+	// Below are the allowed Administrative User Account Minimum properties
+	// logonMaxAllowableAttempts : Logon attempts must be between 1 and 20
+	// logonLockoutTime : Lockout period must be between 1 and 86400 seconds
+	// logonSessionExpiry : Expiry period must be between 1 and 86400 seconds
+	// logonInactivityPeriod : Inactivity period must be between 1 and 365 days
+	SetAdministrativeUserAccountProperties *installBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayload `json:"setAdministrativeUserAccountProperties"`
+	// Set the Folders
+	SetFolders *installBundleSetFoldersFoldersPayload `json:"setFolders"`
+	// Create or update existing revocation check policies.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetRevocationCheckPolicies *installBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayload `json:"setRevocationCheckPolicies"`
+	// Create or update trusted certificates.
+	// If a certificate with the same sha1 thumbprint already exist, it will be updated.
+	SetTrustedCerts *installBundleSetTrustedCertsTrustedCertsPayload `json:"setTrustedCerts"`
+	// Creates or updates one or more secrets
+	SetSecrets *installBundleSetSecretsSecretsPayload `json:"setSecrets"`
+	// Create or update existing http configuration.
+	SetHttpConfigurations *installBundleSetHttpConfigurationsHttpConfigurationsPayload `json:"setHttpConfigurations"`
+	// Create or update existing custom key values data.  If a custom key value with the given key does not
+	// exist, one will be created, otherwise the existing one will be updated. This returns the list of
+	// entities created and/or updated
+	SetCustomKeyValues *installBundleSetCustomKeyValuesCustomKeyValuePayload `json:"setCustomKeyValues"`
+	// Create or Update multiple XML schemas
+	SetSchemas *installBundleSetSchemasSchemasPayload `json:"setSchemas"`
+	// Create or Update multiple DTD resources
+	SetDtds *installBundleSetDtdsDtdsPayload `json:"setDtds"`
+	// Create or update JDBC connections.
+	// If JDBC connection with the same name exist, the JDBC connection will be updated.
+	// If no JDBC connection with the name exist, a new JDBC connection will be created.
+	SetJdbcConnections *installBundleSetJdbcConnectionsJdbcConnectionsPayload `json:"setJdbcConnections"`
+	// Creates or updates one ore more internal IDP configurations
+	SetInternalIdps *installBundleSetInternalIdpsInternalIdpsPayload `json:"setInternalIdps"`
+	// Creates or updates one or more fips
+	SetFederatedIdps *installBundleSetFederatedIdpsFederatedIdpsPayload `json:"setFederatedIdps"`
+	// Creates or updates one or more ldaps
+	SetLdapIdps *installBundleSetLdapIdpsLdapIdpsPayload `json:"setLdapIdps"`
+	// Creates or updates one or more simple ldaps
+	SetSimpleLdapIdps *installBundleSetSimpleLdapIdpsSimpleLdapIdpsPayload `json:"setSimpleLdapIdps"`
+	// Creates or updates one or more fips
+	SetFips *installBundleSetFipsFipsPayload `json:"setFips"`
+	// Creates or updates one or more ldaps
+	SetLdaps *installBundleSetLdapsLdapsPayload `json:"setLdaps"`
+	// Creates or updates one or more fip groups
+	SetFederatedGroups *installBundleSetFederatedGroupsFederatedGroupsPayload `json:"setFederatedGroups"`
+	// Creates or updates one or more fip groups
+	SetFipGroups *installBundleSetFipGroupsFipGroupsPayload `json:"setFipGroups"`
+	// Creates or updates one or more internal groups
+	SetInternalGroups *installBundleSetInternalGroupsInternalGroupsPayload `json:"setInternalGroups"`
+	// Creates or updates one or more fip users.
+	// NOTE: Existing user will be found by either login or subjectDn or name.
+	SetFederatedUsers *installBundleSetFederatedUsersFederatedUsersPayload `json:"setFederatedUsers"`
+	// Creates or updates one or more fip users.
+	// NOTE: Existing user will be found by either login or subjectDn or name.
+	SetFipUsers *installBundleSetFipUsersFipUsersPayload `json:"setFipUsers"`
+	// Creates or updates one or more internal users
+	SetInternalUsers *installBundleSetInternalUsersInternalUsersPayload `json:"setInternalUsers"`
+	// Create or update Cassandra connections.
+	// If Cassandra connection with the same name exist, the Cassandra connection will be updated.
+	// If no Cassandra connection with the name exist, a new Cassandra connection will be created.
+	SetCassandraConnections *installBundleSetCassandraConnectionsCassandraConnectionsPayload `json:"setCassandraConnections"`
+	// Create or update existing siteminder configurations.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created
+	SetSMConfigs *installBundleSetSMConfigsSMConfigsPayload `json:"setSMConfigs"`
+	// Create or update policies
+	SetPolicies *installBundleSetPoliciesL7PoliciesPayload `json:"setPolicies"`
+	// Create or update policy fragments
+	SetPolicyFragments *installBundleSetPolicyFragmentsPolicyFragmentsPayload `json:"setPolicyFragments"`
+	// Create or update Encapsulated Assertion Configurations
+	SetEncassConfigs *installBundleSetEncassConfigsEncassConfigsPayload `json:"setEncassConfigs"`
+	// Create or update global policies
+	SetGlobalPolicies *installBundleSetGlobalPoliciesGlobalPoliciesPayload `json:"setGlobalPolicies"`
+	// Creates or updates one or more background task policies
+	SetBackgroundTaskPolicies *installBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload `json:"setBackgroundTaskPolicies"`
+	// Create or update services
+	SetServices *installBundleSetServicesL7ServicesPayload `json:"setServices"`
+	// Create or update web api services
+	SetWebApiServices *installBundleSetWebApiServicesWebApiServicesPayload `json:"setWebApiServices"`
+	// Create or update soap services
+	SetSoapServices *installBundleSetSoapServicesSoapServicesPayload `json:"setSoapServices"`
+	// Create or update Internal web api services
+	SetInternalWebApiServices *installBundleSetInternalWebApiServicesInternalWebApiServicesPayload `json:"setInternalWebApiServices"`
+	// Create or update Internal soap services
+	SetInternalSoapServices *installBundleSetInternalSoapServicesInternalSoapServicesPayload `json:"setInternalSoapServices"`
+	// Creates or updates one or more policy backed ldaps
+	SetPolicyBackedIdps *installBundleSetPolicyBackedIdpsPolicyBackedIdpsPayload `json:"setPolicyBackedIdps"`
+	// Create or update JMS destinations.
+	// If JMS destination exists, the JMS destination will be updated.
+	// If no JMS destination with given name, direction, providerType exist, a new JMS destination will be created.
+	SetJmsDestinations *installBundleSetJmsDestinationsJmsDestinationsPayload `json:"setJmsDestinations"`
+	// Create or update existing email listeners.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetEmailListeners *installBundleSetEmailListenersEmailListenersPayload `json:"setEmailListeners"`
+	// Create or update Listen Ports.
+	// If Listen Port with the same name exist, the Listen Port will be updated.
+	// If no Listen Port with the name exist, a new Listen Port will be created.
+	SetListenPorts *installBundleSetListenPortsListenPortsPayload `json:"setListenPorts"`
+	// Create or update existing active connector.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetActiveConnectors *installBundleSetActiveConnectorsActiveConnectorsPayload `json:"setActiveConnectors"`
+	// Creates or updates one or more scheduled tasks
+	SetScheduledTasks *installBundleSetScheduledTasksScheduledTasksPayload `json:"setScheduledTasks"`
+	// Create or update Log Sinks.
+	// If Log Sink with the same name exist, the Log Sink will be updated.
+	// If no Log Sink with the name exist, a new Log Sink will be created.
+	SetLogSinks *installBundleSetLogSinksLogSinksPayload `json:"setLogSinks"`
+	// Create or update existing generic entities.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetGenericEntities *installBundleSetGenericEntitiesGenericEntitiesPayload `json:"setGenericEntities"`
+	// Update Roles with user/group assignees.
+	// Note: Creating a role is unsupported.
+	SetRoles               *installBundleSetRolesRolesPayload                             `json:"setRoles"`
+	SetAuditConfigurations *installBundleSetAuditConfigurationsAuditConfigurationsPayload `json:"setAuditConfigurations"`
+	// (Experimental)
+	// Create/update the Kerberos configurations.
+	// Automatically generates the Kerberos login config file, "login.config", and
+	// Kerberos config file, "krb5.conf" (unless the cluster-wide property
+	// kerberos.krb5Config.overwrite=false and it is set in the mutation).
+	SetKerberosConfigs *installBundleSetKerberosConfigsKerberosConfigPayload `json:"setKerberosConfigs"`
 	// Creates or updates one or more keys
 	SetKeys *installBundleSetKeysKeysPayload `json:"setKeys"`
 }
@@ -4296,6 +4508,11 @@ func (v *installBundleResponse) GetSetRoles() *installBundleSetRolesRolesPayload
 // GetSetAuditConfigurations returns installBundleResponse.SetAuditConfigurations, and is useful for accessing the field via an interface.
 func (v *installBundleResponse) GetSetAuditConfigurations() *installBundleSetAuditConfigurationsAuditConfigurationsPayload {
 	return v.SetAuditConfigurations
+}
+
+// GetSetKerberosConfigs returns installBundleResponse.SetKerberosConfigs, and is useful for accessing the field via an interface.
+func (v *installBundleResponse) GetSetKerberosConfigs() *installBundleSetKerberosConfigsKerberosConfigPayload {
+	return v.SetKerberosConfigs
 }
 
 // GetSetKeys returns installBundleResponse.SetKeys, and is useful for accessing the field via an interface.
@@ -6461,6 +6678,86 @@ func (v *installBundleSetJmsDestinationsJmsDestinationsPayloadDetailedStatusEnti
 	return v.Value
 }
 
+// installBundleSetKerberosConfigsKerberosConfigPayload includes the requested fields of the GraphQL type KerberosConfigPayload.
+type installBundleSetKerberosConfigsKerberosConfigPayload struct {
+	DetailedStatus []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
+}
+
+// GetDetailedStatus returns installBundleSetKerberosConfigsKerberosConfigPayload.DetailedStatus, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayload) GetDetailedStatus() []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus {
+	return v.DetailedStatus
+}
+
+// installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus includes the requested fields of the GraphQL type EntityMutationDetailedStatus.
+type installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus struct {
+	Action      EntityMutationAction                                                                                               `json:"action"`
+	Status      EntityMutationStatus                                                                                               `json:"status"`
+	Description string                                                                                                             `json:"description"`
+	Source      []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty `json:"source"`
+	Target      []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty `json:"target"`
+}
+
+// GetAction returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Action, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetAction() EntityMutationAction {
+	return v.Action
+}
+
+// GetStatus returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Status, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetStatus() EntityMutationStatus {
+	return v.Status
+}
+
+// GetDescription returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Description, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetDescription() string {
+	return v.Description
+}
+
+// GetSource returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Source, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetSource() []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty {
+	return v.Source
+}
+
+// GetTarget returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus.Target, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatus) GetTarget() []*installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty {
+	return v.Target
+}
+
+// installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusSourceAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
+// installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty includes the requested fields of the GraphQL type AnyProperty.
+type installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty struct {
+	// The name of property
+	Name string `json:"name"`
+	// The value of the property
+	Value interface{} `json:"value"`
+}
+
+// GetName returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Name, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetName() string {
+	return v.Name
+}
+
+// GetValue returns installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty.Value, and is useful for accessing the field via an interface.
+func (v *installBundleSetKerberosConfigsKerberosConfigPayloadDetailedStatusEntityMutationDetailedStatusTargetAnyProperty) GetValue() interface{} {
+	return v.Value
+}
+
 // installBundleSetKeysKeysPayload includes the requested fields of the GraphQL type KeysPayload.
 type installBundleSetKeysKeysPayload struct {
 	DetailedStatus []*installBundleSetKeysKeysPayloadDetailedStatusEntityMutationDetailedStatus `json:"detailedStatus"`
@@ -8354,7 +8651,7 @@ func deleteSecrets(
 
 // The query or mutation executed by installBundle.
 const installBundle_Operation = `
-mutation installBundle ($activeConnectors: [ActiveConnectorInput!]! = [], $administrativeUserAccountProperties: [AdministrativeUserAccountPropertyInput!]! = [], $backgroundTaskPolicies: [BackgroundTaskPolicyInput!]! = [], $cassandraConnections: [CassandraConnectionInput!]! = [], $clusterProperties: [ClusterPropertyInput!]! = [], $dtds: [DtdInput!]! = [], $emailListeners: [EmailListenerInput!]! = [], $encassConfigs: [EncassConfigInput!]! = [], $fipGroups: [FipGroupInput!]! = [], $fipUsers: [FipUserInput!]! = [], $fips: [FipInput!]! = [], $federatedGroups: [FederatedGroupInput!]! = [], $federatedUsers: [FederatedUserInput!]! = [], $internalIdps: [InternalIdpInput!] = [], $federatedIdps: [FederatedIdpInput!]! = [], $ldapIdps: [LdapIdpInput!] = [], $simpleLdapIdps: [SimpleLdapIdpInput!] = [], $policyBackedIdps: [PolicyBackedIdpInput!] = [], $globalPolicies: [GlobalPolicyInput!]! = [], $internalGroups: [InternalGroupInput!]! = [], $internalSoapServices: [SoapServiceInput!]! = [], $internalUsers: [InternalUserInput!]! = [], $internalWebApiServices: [WebApiServiceInput!]! = [], $jdbcConnections: [JdbcConnectionInput!]! = [], $jmsDestinations: [JmsDestinationInput!]! = [], $keys: [KeyInput!]! = [], $ldaps: [LdapInput!]! = [], $roles: [RoleInput!]! = [], $listenPorts: [ListenPortInput!]! = [], $passwordPolicies: [PasswordPolicyInput!]! = [], $policies: [L7PolicyInput!]! = [], $policyFragments: [PolicyFragmentInput!]! = [], $revocationCheckPolicies: [RevocationCheckPolicyInput!]! = [], $scheduledTasks: [ScheduledTaskInput!]! = [], $logSinks: [LogSinkInput!]! = [], $schemas: [SchemaInput!]! = [], $secrets: [SecretInput!]! = [], $httpConfigurations: [HttpConfigurationInput!]! = [], $customKeyValues: [CustomKeyValueInput!]! = [], $serverModuleFiles: [ServerModuleFileInput!]! = [], $serviceResolutionConfigs: [ServiceResolutionConfigInput!]! = [], $folders: [FolderInput!]! = [], $smConfigs: [SMConfigInput!]! = [], $services: [L7ServiceInput!]! = [], $soapServices: [SoapServiceInput!]! = [], $trustedCerts: [TrustedCertInput!]! = [], $webApiServices: [WebApiServiceInput!]! = [], $genericEntities: [GenericEntityInput!]! = [], $auditConfigurations: [AuditConfigurationInput!]! = []) {
+mutation installBundle ($activeConnectors: [ActiveConnectorInput!]! = [], $administrativeUserAccountProperties: [AdministrativeUserAccountPropertyInput!]! = [], $backgroundTaskPolicies: [BackgroundTaskPolicyInput!]! = [], $cassandraConnections: [CassandraConnectionInput!]! = [], $clusterProperties: [ClusterPropertyInput!]! = [], $dtds: [DtdInput!]! = [], $emailListeners: [EmailListenerInput!]! = [], $encassConfigs: [EncassConfigInput!]! = [], $fipGroups: [FipGroupInput!]! = [], $fipUsers: [FipUserInput!]! = [], $fips: [FipInput!]! = [], $federatedGroups: [FederatedGroupInput!]! = [], $federatedUsers: [FederatedUserInput!]! = [], $internalIdps: [InternalIdpInput!] = [], $federatedIdps: [FederatedIdpInput!]! = [], $ldapIdps: [LdapIdpInput!] = [], $simpleLdapIdps: [SimpleLdapIdpInput!] = [], $policyBackedIdps: [PolicyBackedIdpInput!] = [], $globalPolicies: [GlobalPolicyInput!]! = [], $internalGroups: [InternalGroupInput!]! = [], $internalSoapServices: [SoapServiceInput!]! = [], $internalUsers: [InternalUserInput!]! = [], $internalWebApiServices: [WebApiServiceInput!]! = [], $jdbcConnections: [JdbcConnectionInput!]! = [], $jmsDestinations: [JmsDestinationInput!]! = [], $keys: [KeyInput!]! = [], $ldaps: [LdapInput!]! = [], $roles: [RoleInput!]! = [], $listenPorts: [ListenPortInput!]! = [], $passwordPolicies: [PasswordPolicyInput!]! = [], $policies: [L7PolicyInput!]! = [], $policyFragments: [PolicyFragmentInput!]! = [], $revocationCheckPolicies: [RevocationCheckPolicyInput!]! = [], $scheduledTasks: [ScheduledTaskInput!]! = [], $logSinks: [LogSinkInput!]! = [], $schemas: [SchemaInput!]! = [], $secrets: [SecretInput!]! = [], $httpConfigurations: [HttpConfigurationInput!]! = [], $customKeyValues: [CustomKeyValueInput!]! = [], $serverModuleFiles: [ServerModuleFileInput!]! = [], $serviceResolutionConfigs: [ServiceResolutionConfigInput!]! = [], $folders: [FolderInput!]! = [], $smConfigs: [SMConfigInput!]! = [], $services: [L7ServiceInput!]! = [], $soapServices: [SoapServiceInput!]! = [], $trustedCerts: [TrustedCertInput!]! = [], $webApiServices: [WebApiServiceInput!]! = [], $genericEntities: [GenericEntityInput!]! = [], $auditConfigurations: [AuditConfigurationInput!]! = [], $kerberosConfigs: [KerberosConfigInput!]! = []) {
 	setServerModuleFiles(input: $serverModuleFiles) {
 		detailedStatus {
 			action
@@ -9075,6 +9372,21 @@ mutation installBundle ($activeConnectors: [ActiveConnectorInput!]! = [], $admin
 			}
 		}
 	}
+	setKerberosConfigs(input: $kerberosConfigs) {
+		detailedStatus {
+			action
+			status
+			description
+			source {
+				name
+				value
+			}
+			target {
+				name
+				value
+			}
+		}
+	}
 	setKeys(input: $keys) {
 		detailedStatus {
 			action
@@ -9145,6 +9457,7 @@ func installBundle(
 	webApiServices []*WebApiServiceInput,
 	genericEntities []*GenericEntityInput,
 	auditConfigurations []*AuditConfigurationInput,
+	kerberosConfigs []*KerberosConfigInput,
 ) (*installBundleResponse, error) {
 	req_ := &graphql.Request{
 		OpName: "installBundle",
@@ -9199,6 +9512,7 @@ func installBundle(
 			WebApiServices:                      webApiServices,
 			GenericEntities:                     genericEntities,
 			AuditConfigurations:                 auditConfigurations,
+			KerberosConfigs:                     kerberosConfigs,
 		},
 	}
 	var err_ error
@@ -9235,6 +9549,37 @@ func installBundleGeneric(
 	var err_ error
 
 	var data_ installBundleGenericResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by installBundleGeneric.
+const deleteBundleGeneric_Operation = `
+mutation deleteBundleGeneric {
+	deleteBundleEntities {
+		summary
+	}
+}
+`
+
+func deleteBundleGeneric(
+	ctx_ context.Context,
+	client_ graphql.Client,
+) (*deleteBundleGenericResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "deleteBundleGeneric",
+		Query:  deleteBundleGeneric_Operation,
+	}
+	var err_ error
+
+	var data_ deleteBundleGenericResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(

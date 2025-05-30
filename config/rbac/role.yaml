@@ -1,3 +1,4 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -228,6 +229,7 @@ rules:
   - "route.openshift.io"
   resources:
   - routes
+  - routes/custom-host
   verbs:
   - create
   - delete
@@ -236,3 +238,29 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores/status
+  verbs:
+  - get
+  - patch
+  - update

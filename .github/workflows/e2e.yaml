@@ -46,8 +46,6 @@ jobs:
       - name: "run tests"
         env:
           KUBE_VERSION: ${{ matrix.kube-version }}
-          TESTREPO_USER: ${{ secrets.TESTREPO_USER }}
-          TESTREPO_TOKEN: ${{ secrets.TESTREPO_TOKEN }}
         run: | 
            make prepare-e2e ${{ matrix.group }} KUBE_VERSION=$KUBE_VERSION VERSION=${GITHUB_HEAD_REF}
            rm ./testdata/license.xml

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ssg
+  name: ssg-secret-test
 data:
   SSG_ADMIN_PASSWORD: N2xheWVy
   SSG_ADMIN_USERNAME: YWRtaW4=

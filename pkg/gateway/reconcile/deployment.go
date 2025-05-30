@@ -1,10 +1,39 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package reconcile
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
+	"strings"
 
+	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/gateway"
+	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,6 +55,11 @@ func Deployment(ctx context.Context, params Params) error {
 	if err != nil && k8serrors.IsNotFound(err) {
 
 		desiredDeployment, err = setLabels(ctx, params, desiredDeployment)
+		if err != nil {
+			return err
+		}
+
+		desiredDeployment, err = setStateStoreConfig(ctx, params, desiredDeployment)
 		if err != nil {
 			return err
 		}
@@ -63,6 +97,7 @@ func Deployment(ctx context.Context, params Params) error {
 	for k, v := range desiredDeployment.ObjectMeta.Annotations {
 		updatedDeployment.ObjectMeta.Annotations[k] = v
 	}
+
 	for k, v := range desiredDeployment.Spec.Template.ObjectMeta.Annotations {
 		updatedDeployment.Spec.Template.ObjectMeta.Annotations[k] = v
 	}
@@ -74,6 +109,14 @@ func Deployment(ctx context.Context, params Params) error {
 	for k, v := range desiredDeployment.Spec.Template.ObjectMeta.Labels {
 		updatedDeployment.Spec.Template.ObjectMeta.Labels[k] = v
 	}
+
+	desiredDeployment, err = setStateStoreConfig(ctx, params, desiredDeployment)
+	if err != nil {
+		return err
+	}
+
+	updatedDeployment.Spec.Template.Spec.InitContainers = desiredDeployment.Spec.Template.Spec.InitContainers
+	updatedDeployment.Spec.Template.Spec.Volumes = desiredDeployment.Spec.Template.Spec.Volumes
 
 	patch := client.MergeFrom(currentDeployment)
 
@@ -97,7 +140,10 @@ func setLabels(ctx context.Context, params Params, dep *appsv1.Deployment) (*app
 		configMaps := []string{params.Instance.Name, params.Instance.Name + "-system", params.Instance.Name + "-gateway-files"}
 
 		if params.Instance.Spec.App.Otk.Enabled && !params.Instance.Spec.App.Management.Database.Enabled {
-			configMaps = append(configMaps, params.Instance.Name+"-otk-shared-init-config", params.Instance.Name+"-otk-install-init-config", params.Instance.Name+"-otk-db-init-config")
+			configMaps = append(configMaps, params.Instance.Name+"-otk-shared-init-config", params.Instance.Name+"-otk-install-init-config")
+			if params.Instance.Spec.App.Otk.Database.Type != securityv1.OtkDatabaseTypeCassandra {
+				configMaps = append(configMaps, params.Instance.Name+"-otk-db-init-config")
+			}
 		}
 
 		for _, cmName := range configMaps {
@@ -114,13 +160,11 @@ func setLabels(ctx context.Context, params Params, dep *appsv1.Deployment) (*app
 		}
 
 		secrets := []string{}
-		if !params.Instance.Spec.App.Management.Database.Enabled {
-			if params.Instance.Spec.App.Management.SecretName == "" {
-				if !params.Instance.Spec.App.Management.DisklessConfig.Disabled {
-					secrets = append(secrets, params.Instance.Name+"-node-properties")
-				} else {
-					secrets = append(secrets, params.Instance.Name)
-				}
+		if params.Instance.Spec.App.Management.SecretName == "" {
+			if params.Instance.Spec.App.Management.DisklessConfig.Disabled {
+				secrets = append(secrets, params.Instance.Name+"-node-properties")
+			} else {
+				secrets = append(secrets, params.Instance.Name)
 			}
 		}
 		if params.Instance.Spec.App.Redis.Enabled && params.Instance.Spec.App.Redis.ExistingSecret == "" {
@@ -136,6 +180,82 @@ func setLabels(ctx context.Context, params Params, dep *appsv1.Deployment) (*app
 			for k, v := range secret.ObjectMeta.Annotations {
 				if k == "checksum/data" {
 					dep.ObjectMeta.Labels[secretName+"-checksum"] = v
+				}
+			}
+		}
+	}
+	commits := ""
+	for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
+		for _, repoStatus := range params.Instance.Status.RepositoryStatus {
+			if repoRef.Name == repoStatus.Name && repoRef.Type == securityv1.RepositoryReferenceTypeStatic && repoRef.Enabled {
+				commits = commits + repoStatus.Commit
+			}
+		}
+	}
+	h := sha1.New()
+	h.Write([]byte(commits))
+	commits = fmt.Sprintf("%x", h.Sum(nil))
+
+	dep.ObjectMeta.Labels["security.brcmlabs.com/static-repositories-checksum"] = commits
+	return dep, nil
+}
+
+func setStateStoreConfig(ctx context.Context, params Params, dep *appsv1.Deployment) (*appsv1.Deployment, error) {
+	defaultMode := int32(0755)
+	optional := false
+	if len(params.Instance.Spec.App.RepositoryReferences) > 0 {
+		stateStores := []string{}
+		for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
+			repo := securityv1.Repository{}
+			err := params.Client.Get(ctx, types.NamespacedName{Name: repoRef.Name, Namespace: params.Instance.Namespace}, &repo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to retrieve repository: %s", repoRef.Name)
+			}
+			if repo.Spec.StateStoreReference != "" {
+				if !util.Contains(stateStores, repo.Spec.StateStoreReference) {
+					stateStores = append(stateStores, repo.Spec.StateStoreReference)
+				}
+			}
+		}
+
+		for i, ic := range dep.Spec.Template.Spec.InitContainers {
+			if strings.Contains(ic.Name, "graphman-static-init") {
+				for _, stateStore := range stateStores {
+					dep.Spec.Template.Spec.InitContainers[i].VolumeMounts = append(dep.Spec.Template.Spec.InitContainers[i].VolumeMounts, corev1.VolumeMount{
+						Name:      stateStore + "-secret",
+						MountPath: "/graphman/statestore-secret/" + stateStore,
+					})
+					vs := corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+						SecretName:  stateStore + "-secret",
+						DefaultMode: &defaultMode,
+						Optional:    &optional,
+					}}
+
+					dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
+						Name:         stateStore + "-secret",
+						VolumeSource: vs,
+					})
+
+					dep.Spec.Template.Spec.InitContainers[i].VolumeMounts = append(dep.Spec.Template.Spec.InitContainers[i].VolumeMounts, corev1.VolumeMount{
+						Name:      stateStore + "-config-secret",
+						MountPath: "/graphman/statestore-config/" + stateStore + "/config.json",
+						SubPath:   "config.json",
+					})
+					vs = corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+						SecretName:  stateStore + "-config-secret",
+						DefaultMode: &defaultMode,
+						Optional:    &optional,
+						Items: []corev1.KeyToPath{{
+							Path: "config.json",
+							Key:  "config.json"},
+						}},
+					}
+
+					dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
+						Name:         stateStore + "-config-secret",
+						VolumeSource: vs,
+					})
+
 				}
 			}
 		}

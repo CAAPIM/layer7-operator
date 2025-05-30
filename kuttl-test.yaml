@@ -5,5 +5,5 @@ testDirs:
   - ./tests/e2e
 crdDir: ./config/crd/bases/
 namespace: l7operator
-#skipDelete: true
-parallel: 1
+skipDelete: false
+#parallel: 4

@@ -16,6 +16,7 @@ spec:
     protocol: TCP
     targetPort: 9443
   selector:
+    app.kubernetes.io/name: layer7-operator
     control-plane: controller-manager
 status:
   loadBalancer: {}

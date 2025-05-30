@@ -337,6 +337,13 @@ alive or ready to receive traffic.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappotel">otel</a></b></td>
+        <td>object</td>
+        <td>
+          Otel used when no dedicated OTel agent is present. This enriches the telemetry that the SDK is able to emit to your observability backend<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecappotk">otk</a></b></td>
         <td>object</td>
         <td>
@@ -423,12 +430,7 @@ alive or ready to receive traffic.<br/>
         <td><b><a href="#gatewayspecapprepositoryreferencesindex">repositoryReferences</a></b></td>
         <td>[]object</td>
         <td>
-          RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.
-RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
-ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.
-ExternalSecretsSyncIntervalSeconds int `json:"externalSecretsSyncIntervalSeconds,omitempty"`
-ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.
-ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncIntervalSeconds,omitempty"`<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3503,7 +3505,7 @@ Bundle A Restman or Graphman bundle
         <td><b><a href="#gatewayspecappbundleindexcsi">csi</a></b></td>
         <td>object</td>
         <td>
-          ConfigMap ConfigMap `json:"configMap,omitempty"`<br/>
+          CSI volume configuration<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3536,7 +3538,7 @@ Bundle A Restman or Graphman bundle
 
 
 
-ConfigMap ConfigMap `json:"configMap,omitempty"`
+CSI volume configuration
 
 <table>
     <thead>
@@ -4585,11 +4587,11 @@ More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/nam
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappingressroute">route</a></b></td>
-        <td>object</td>
+        <td><b><a href="#gatewayspecappingressroutesindex">routes</a></b></td>
+        <td>[]object</td>
         <td>
-          Route for Openshift
-This acts as an override<br/>
+          Routes for Openshift
+This allows for customization of the default route and adding of an additional route for the management service<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4617,13 +4619,13 @@ This acts as an override<br/>
 </table>
 
 
-### Gateway.spec.app.ingress.route
+### Gateway.spec.app.ingress.routes[index]
 <sup><sup>[↩ Parent](#gatewayspecappingress)</sup></sup>
 
 
 
-Route for Openshift
-This acts as an override
+RouteSpec from https://pkg.go.dev/github.com/openshift/api/route/v1#RouteSpec
+The Operator determines where to route to
 
 <table>
     <thead>
@@ -4649,19 +4651,27 @@ This acts as an override
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappingressrouteport">port</a></b></td>
+        <td><b><a href="#gatewayspecappingressroutesindexport">port</a></b></td>
         <td>object</td>
         <td>
           RoutePort defines a port mapping from a router to an endpoint in the service endpoints.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappingressroutetls">tls</a></b></td>
+        <td><b><a href="#gatewayspecappingressroutesindextls">tls</a></b></td>
         <td>object</td>
         <td>
           TLSConfig defines config used to secure a route and provide termination<br/>
           <br/>
             <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappingressroutesindexto">to</a></b></td>
+        <td>object</td>
+        <td>
+          RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
+kind is allowed. Use 'weight' field to emphasize one over others.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4675,8 +4685,8 @@ This acts as an override
 </table>
 
 
-### Gateway.spec.app.ingress.route.port
-<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+### Gateway.spec.app.ingress.routes[index].port
+<sup><sup>[↩ Parent](#gatewayspecappingressroutesindex)</sup></sup>
 
 
 
@@ -4704,8 +4714,8 @@ endpoints port list. Required<br/>
 </table>
 
 
-### Gateway.spec.app.ingress.route.tls
-<sup><sup>[↩ Parent](#gatewayspecappingressroute)</sup></sup>
+### Gateway.spec.app.ingress.routes[index].tls
+<sup><sup>[↩ Parent](#gatewayspecappingressroutesindex)</sup></sup>
 
 
 
@@ -4762,7 +4772,7 @@ verify.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#gatewayspecappingressroutetlsexternalcertificate">externalCertificate</a></b></td>
+        <td><b><a href="#gatewayspecappingressroutesindextlsexternalcertificate">externalCertificate</a></b></td>
         <td>object</td>
         <td>
           externalCertificate provides certificate contents as a secret reference.
@@ -4801,8 +4811,8 @@ If a route does not specify insecureEdgeTerminationPolicy, then the default beha
 </table>
 
 
-### Gateway.spec.app.ingress.route.tls.externalCertificate
-<sup><sup>[↩ Parent](#gatewayspecappingressroutetls)</sup></sup>
+### Gateway.spec.app.ingress.routes[index].tls.externalCertificate
+<sup><sup>[↩ Parent](#gatewayspecappingressroutesindextls)</sup></sup>
 
 
 
@@ -4827,6 +4837,57 @@ Forbidden when `certificate` is set.
         <td>
           name of the referent.
 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.ingress.routes[index].to
+<sup><sup>[↩ Parent](#gatewayspecappingressroutesindex)</sup></sup>
+
+
+
+RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
+kind is allowed. Use 'weight' field to emphasize one over others.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          The kind of target that the route is referring to. Currently, only 'Service' is allowed<br/>
+          <br/>
+            <i>Enum</i>: Service, <br/>
+            <i>Default</i>: Service<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          name of the service/target that is being referred to. e.g. name of the service<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>weight</b></td>
+        <td>integer</td>
+        <td>
+          weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
+against other target reference objects. 0 suppresses requests to this backend.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: 100<br/>
+            <i>Minimum</i>: 0<br/>
+            <i>Maximum</i>: 256<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10385,6 +10446,110 @@ Default value is 10800(for 3 hours).<br/>
 </table>
 
 
+### Gateway.spec.app.otel
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+Otel used when no dedicated OTel agent is present. This enriches the telemetry that the SDK is able to emit to your observability backend
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappoteladditionalresourceattritbutesindex">additionalResourceAttritbutes</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotelsdkonly">sdkOnly</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otel.additionalResourceAttritbutes[index]
+<sup><sup>[↩ Parent](#gatewayspecappotel)</sup></sup>
+
+
+
+Property is a simple k/v pair
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otel.sdkOnly
+<sup><sup>[↩ Parent](#gatewayspecappotel)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable setting resource attributes
+when enabled the following variables are set in the container Gateway
+- NODE_NAME
+- POD_NAME
+- NAMESPACE
+- CONTAINER_NAME
+- OTEL_SERVICE_NAME
+These are then used to set
+- OTEL_RESOURCE_ATTRIBUTES
+This can be further extended with custom attributes using the additionalResourceAttritbutes field<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.otk
 <sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
 
@@ -10463,7 +10628,7 @@ This configures a relationship between DMZ and Internal Gateways.<br/>
         <td><b><a href="#gatewayspecappotkmaintenancetasks">maintenanceTasks</a></b></td>
         <td>object</td>
         <td>
-          MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds<br/>
+          MaintenanceTasks for the OTK database are disabled by default<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10477,7 +10642,7 @@ This configures a relationship between DMZ and Internal Gateways.<br/>
         <td><b>port</b></td>
         <td>integer</td>
         <td>
-          defaults to 8443<br/>
+          OTKPort defaults to 8443<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10550,10 +10715,24 @@ Database configuration
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>createClientReadOnlySqlConnection</b></td>
+        <td>boolean</td>
+        <td>
+          CreateClientReadOnlySqlConnection<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>createReadOnlySqlConnection</b></td>
         <td>boolean</td>
         <td>
           CreateReadOnlySqlConnection<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>dbUpgrade</b></td>
+        <td>boolean</td>
+        <td>
+          DbUpgrade only applies to oracle and mysql<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10568,6 +10747,20 @@ Database configuration
         <td>object</td>
         <td>
           SQL configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabasesqlclientreadonly">sqlClientReadOnly</a></b></td>
+        <td>object</td>
+        <td>
+          SqlClientReadOnly configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sqlClientReadOnlyConnectionName</b></td>
+        <td>string</td>
+        <td>
+          SqlClientReadOnlyConnectionName for the JDBC or Cassandra Connection Gateway entity<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10619,6 +10812,13 @@ Auth for the OTK Database
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappotkdatabaseauthclientreadonly">clientReadOnly</a></b></td>
+        <td>object</td>
+        <td>
+          ClientReadOnlyUser for Oracle/MySQL<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>existingSecret</b></td>
         <td>string</td>
         <td>
@@ -10630,6 +10830,9 @@ OTK_DATABASE_PASSWORD
 Gateway Readonly user (typically otk_user_readonly)
 OTK_RO_DATABASE_USERNAME
 OTK_RO_DATABASE_PASSWORD
+Gateway Client Readonly user (typically otk_user_client_readonly)
+OTK_CLIENT_READ_DATABASE_USERNAME
+OTK_CLIENT_READ_DATABASE_PASSWORD
 Database admin credentials used to create or update the OTK database
 OTK_DATABASE_DDL_USERNAME
 OTK_DATABASE_DDL_PASSWORD<br/>
@@ -10659,6 +10862,40 @@ OTK_DATABASE_DDL_PASSWORD<br/>
 
 
 AdminUser for database creation
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>password</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.auth.clientReadOnly
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabaseauth)</sup></sup>
+
+
+
+ClientReadOnlyUser for Oracle/MySQL
 
 <table>
     <thead>
@@ -10780,13 +11017,13 @@ Cassandra configuration
         <td>false</td>
       </tr><tr>
         <td><b>driverConfig</b></td>
-        <td>map[string]int or string</td>
+        <td>string</td>
         <td>
           DriverConfig is supported from GW 11.x<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>keySpace</b></td>
+        <td><b>keyspace</b></td>
         <td>string</td>
         <td>
           <br/>
@@ -10794,7 +11031,7 @@ Cassandra configuration
         <td>false</td>
       </tr><tr>
         <td><b>port</b></td>
-        <td>string</td>
+        <td>integer</td>
         <td>
           <br/>
         </td>
@@ -10831,6 +11068,84 @@ SQL configuration
         <td>string</td>
         <td>
           ConnectionName string `json:"connectionName,omitempty"`<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseWaitTimeout</b></td>
+        <td>integer</td>
+        <td>
+          DatabaseWaitTimeout applies to the db-initcontainer only<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcDriverClass</b></td>
+        <td>string</td>
+        <td>
+          JDBCDriverClass to use in the Gateway JDBC Connection entity
+defaults to com.mysql.jdbc.Driver<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcUrl</b></td>
+        <td>string</td>
+        <td>
+          JDBCUrl for the OTK<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>manageSchema</b></td>
+        <td>boolean</td>
+        <td>
+          ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database
+only supports MySQL and Oracle<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.database.sqlClientReadOnly
+<sup><sup>[↩ Parent](#gatewayspecappotkdatabase)</sup></sup>
+
+
+
+SqlClientReadOnly configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>connectionProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseName</b></td>
+        <td>string</td>
+        <td>
+          ConnectionName string `json:"connectionName,omitempty"`<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10895,6 +11210,13 @@ SqlReadOnly configuration
         <td>string</td>
         <td>
           ConnectionName string `json:"connectionName,omitempty"`<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>databaseProperties</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11321,7 +11643,7 @@ PodSecurityContext, the value specified in SecurityContext takes precedence.<br/
 
 
 
-MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds
+MaintenanceTasks for the OTK database are disabled by default
 
 <table>
     <thead>
@@ -11337,30 +11659,6 @@ MaintenanceTasks for the OTK database - these are run by calling a Gateway endpo
         <td>boolean</td>
         <td>
           Enable or disable database maintenance tasks<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>operatorManaged</b></td>
-        <td>boolean</td>
-        <td>
-          OperatorManaged lets the Operator configure a hardened version of the db-maintenance policy<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>periodSeconds</b></td>
-        <td>integer</td>
-        <td>
-          Period in seconds between maintenance task runs<br/>
-          <br/>
-            <i>Format</i>: int64<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>uri</b></td>
-        <td>string</td>
-        <td>
-          Uri for custom db-maintenance services
-Corresponding maintenance policy must support a parameter called task<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11398,6 +11696,14 @@ Overrides default OTK install functionality
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>enablePortalIntegration</b></td>
+        <td>boolean</td>
+        <td>
+          EnablePortalIntegration subSolutionKit install. This does not perform portal integration
+defaults to false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
@@ -11423,14 +11729,6 @@ This should be disabled if you intend to manage these via Graphman/Restman bundl
         <td>
           SkipInternalServerTools subSolutionKit install
 defaults to false<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>skipPortalIntegrationComponents</b></td>
-        <td>boolean</td>
-        <td>
-          SkipPortalIntegrationComponents subSolutionKit install. This does not perform portal integration
-defaults to true<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17662,6 +17960,13 @@ GatewayState tracks the status of Gateway Resources
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>repositoryStatus</b></td>
+        <td>map[string]string</td>
+        <td>
+          Repositories<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>startTime</b></td>
         <td>string</td>
         <td>
@@ -17710,10 +18015,17 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewaystatusrepositorystatusindexconditionsindex">conditions</a></b></td>
+        <td>[]object</td>
+        <td>
+          Conditions<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>endpoint</b></td>
         <td>string</td>
         <td>
-          Endoint is the Git repo<br/>
+          Endoint is the Git or HTTP repo<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17738,6 +18050,20 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateStoreKey</b></td>
+        <td>string</td>
+        <td>
+          StateStoreKey<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateStoreReference</b></td>
+        <td>string</td>
+        <td>
+          StateStoreReference<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>storageSecretName</b></td>
         <td>string</td>
         <td>
@@ -17757,6 +18083,47 @@ these will be less than 1mb in size<br/>
         <td>string</td>
         <td>
           Type is static or dynamic<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.status.repositoryStatus[index].conditions[index]
+<sup><sup>[↩ Parent](#gatewaystatusrepositorystatusindex)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>status</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>time</b></td>
+        <td>string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>

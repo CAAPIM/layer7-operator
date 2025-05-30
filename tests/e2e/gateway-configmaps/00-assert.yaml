@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ssg
+  name: ssg-configmap-test
 data:
   ACCEPT_LICENSE: "true"
   EXTRA_JAVA_ARGS: -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
@@ -16,12 +16,12 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ssg-cwp-bundle
+  name: ssg-configmap-test-cwp-bundle
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ssg-system
+  name: ssg-configmap-test-system
 data:
   system.properties: |-
     com.l7tech.server.extension.sharedKeyValueStoreProvider=embeddedhazelcast
@@ -29,12 +29,12 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ssg-listen-port-bundle
+  name: ssg-configmap-test-listen-port-bundle
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ssg-gateway-files
+  name: ssg-configmap-test-gateway-files
 data:
   log-override-properties: |-
     com.l7tech.level = INFO

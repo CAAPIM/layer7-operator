@@ -26,9 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// log is for logging in this package.
-//var repositorylog = logf.Log.WithName("repository-resource")
-
 func (r *Repository) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -44,7 +41,6 @@ func (r *Repository) Default() {
 	//repositorylog.Info("default", "name", r.Name)
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-security-brcmlabs-com-v1-repository,mutating=false,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=repositories,verbs=create;update,versions=v1,name=vrepository.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Repository{}
@@ -75,7 +71,7 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 
 	if r.Spec.Enabled {
 
-		if r.Spec.Branch == "" && r.Spec.Tag == "" && r.Spec.Type == "git" {
+		if r.Spec.Branch == "" && r.Spec.Tag == "" && string(r.Spec.Type) == "git" {
 			return warnings, fmt.Errorf("please set a repository branch or tag. name: %s ", r.Name)
 		}
 
@@ -84,12 +80,12 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 		}
 
 		if r.Spec.Endpoint == "" {
-			if strings.ToLower(r.Spec.Type) != "local" {
+			if strings.ToLower(string(r.Spec.Type)) != "local" && strings.ToLower(string(r.Spec.Type)) != "statestore" {
 				return warnings, fmt.Errorf("please set a repository endpoint. name: %s ", r.Name)
 			}
 		}
 
-		switch strings.ToLower(r.Spec.Type) {
+		switch strings.ToLower(string(r.Spec.Type)) {
 		case "git":
 			if !strings.HasPrefix(r.Spec.Endpoint, "https://") && !strings.HasPrefix(r.Spec.Endpoint, "ssh://") {
 				return warnings, fmt.Errorf("repository endpoint must start with https:// or ssh://. name: %s ", r.Name)
@@ -112,14 +108,21 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 			if r.Spec.LocalReference.SecretName == "" {
 				return warnings, fmt.Errorf("local repository type must reference an existing kubernetes secret. name: %s ", r.Name)
 			}
+		case "statestore":
+			if r.Spec.StateStoreReference == "" {
+				return warnings, fmt.Errorf("statestore repository type must reference an existing L7StateStore. name: %s ", r.Name)
+			}
+			if r.Spec.StateStoreKey == "" {
+				return warnings, fmt.Errorf("statestore repository type must reference an existing key in the L7StateStore. name: %s ", r.Name)
+			}
 		default:
-			return warnings, fmt.Errorf("please set a repository type, valid types are git and http. name: %s ", r.Name)
+			return warnings, fmt.Errorf("please set a repository type, valid types are git, http, local and statestore. name: %s ", r.Name)
 		}
 
 		if r.Spec.Auth != (RepositoryAuth{}) {
 			switch strings.ToLower(string(r.Spec.Auth.Type)) {
 			case string(RepositoryAuthTypeNone):
-				if strings.ToLower(r.Spec.Type) != "local" {
+				if strings.ToLower(string(r.Spec.Type)) != "local" {
 					warnings = append(warnings, "it is strongly recommend using authentication for your remote repository "+r.Name)
 				}
 			case string(RepositoryAuthTypeBasic):
@@ -147,7 +150,10 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 				}
 			}
 		} else {
-			warnings = append(warnings, "using authentication for your remote repository is strongly recommended. repository: "+r.Name)
+			if r.Spec.StateStoreKey == "" {
+				warnings = append(warnings, "using authentication for your remote repository is strongly recommended. repository: "+r.Name)
+			}
+
 		}
 
 	}

@@ -50,6 +50,10 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 			data["OTK_RO_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Username)
 			data["OTK_RO_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Password)
 		}
+		if gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser != (securityv1.OtkDatabaseAuthCredentials{}) {
+			data["OTK_CLIENT_READ_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser.Username)
+			data["OTK_CLIENT_READ_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser.Password)
+		}
 
 	case gw.Name + "-shared-state-client-configuration":
 		redisGroupName := "l7GW"
@@ -84,7 +88,9 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 			return nil, err
 		}
 
-		if gw.Spec.App.Redis.Default.GroupName == "" {
+		defaultRedisConfig.KeyPrefixGroupName = gw.Spec.App.Redis.Default.GroupName
+
+		if defaultRedisConfig.KeyPrefixGroupName == "" {
 			defaultRedisConfig.KeyPrefixGroupName = redisGroupName
 		}
 
@@ -144,7 +150,9 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 					if err != nil {
 						return nil, err
 					}
-					if rc.GroupName == "" {
+
+					redisConfig.KeyPrefixGroupName = rc.GroupName
+					if redisConfig.KeyPrefixGroupName == "" {
 						redisConfig.KeyPrefixGroupName = redisGroupName
 					}
 

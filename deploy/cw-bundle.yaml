@@ -1307,7 +1307,7 @@ spec:
                       description: Bundle A Restman or Graphman bundle
                       properties:
                         csi:
-                          description: ConfigMap ConfigMap `json:"configMap,omitempty"`
+                          description: CSI volume configuration
                           properties:
                             driver:
                               description: Driver is the secretstore csi driver
@@ -1683,88 +1683,120 @@ spec:
                       ingressClassName:
                         description: IngressClassName
                         type: string
-                      route:
+                      routes:
                         description: |-
-                          Route for Openshift
-                          This acts as an override
-                        properties:
-                          host:
-                            type: string
-                          path:
-                            type: string
-                          port:
-                            description: RoutePort defines a port mapping from a router
-                              to an endpoint in the servic
-                            properties:
-                              targetPort:
-                                anyOf:
-                                - type: integer
-                                - type: string
-                                description: The target port on pods selected by the
-                                  service this route points to.
-                                x-kubernetes-int-or-string: true
-                            required:
-                            - targetPort
-                            type: object
-                          tls:
-                            description: TLSConfig defines config used to secure a
-                              route and provide termination
-                            properties:
-                              caCertificate:
-                                description: caCertificate provides the cert authority
-                                  certificate contents
-                                type: string
-                              certificate:
-                                description: certificate provides certificate contents.
-                                type: string
-                              destinationCACertificate:
-                                description: destinationCACertificate provides the
-                                  contents of the ca certificate of the
-                                type: string
-                              externalCertificate:
-                                description: externalCertificate provides certificate
-                                  contents as a secret reference.
-                                properties:
-                                  name:
-                                    description: |-
-                                      name of the referent.
-                                      More info: https://kubernetes.
-                                    type: string
-                                type: object
-                                x-kubernetes-map-type: atomic
-                              insecureEdgeTerminationPolicy:
-                                description: insecureEdgeTerminationPolicy indicates
-                                  the desired behavior for insecure c
-                                enum:
-                                - Allow
-                                - None
-                                - Redirect
-                                - ""
-                                type: string
-                              key:
-                                description: key provides key file contents
-                                type: string
-                              termination:
-                                description: termination indicates termination type.
-                                enum:
-                                - edge
-                                - reencrypt
-                                - passthrough
-                                type: string
-                            required:
-                            - termination
-                            type: object
-                            x-kubernetes-validations:
-                            - message: 'cannot have both spec.tls.termination: passthrough
-                                and spec.tls.insecureEdgeTerminationPolicy: Allow'
-                              rule: 'has(self.termination) && has(self.insecureEdgeTerminationPolicy)
-                                ? !((self.termination==''passthrough'') && (self.insecureEdgeTerminationPolicy==''Allow''))
-                                : true'
-                          wildcardPolicy:
-                            description: WildcardPolicyType indicates the type of
-                              wildcard support needed by routes.
-                            type: string
-                        type: object
+                          Routes for Openshift
+                          This allows for customization of the default route and
+                        items:
+                          description: RouteSpec from https://pkg.go.dev/github.
+                          properties:
+                            host:
+                              type: string
+                            path:
+                              type: string
+                            port:
+                              description: RoutePort defines a port mapping from a
+                                router to an endpoint in the servic
+                              properties:
+                                targetPort:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: The target port on pods selected by
+                                    the service this route points to.
+                                  x-kubernetes-int-or-string: true
+                              required:
+                              - targetPort
+                              type: object
+                            tls:
+                              description: TLSConfig defines config used to secure
+                                a route and provide termination
+                              properties:
+                                caCertificate:
+                                  description: caCertificate provides the cert authority
+                                    certificate contents
+                                  type: string
+                                certificate:
+                                  description: certificate provides certificate contents.
+                                  type: string
+                                destinationCACertificate:
+                                  description: destinationCACertificate provides the
+                                    contents of the ca certificate of the
+                                  type: string
+                                externalCertificate:
+                                  description: externalCertificate provides certificate
+                                    contents as a secret reference.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        name of the referent.
+                                        More info: https://kubernetes.
+                                      type: string
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                insecureEdgeTerminationPolicy:
+                                  description: insecureEdgeTerminationPolicy indicates
+                                    the desired behavior for insecure c
+                                  enum:
+                                  - Allow
+                                  - None
+                                  - Redirect
+                                  - ""
+                                  type: string
+                                key:
+                                  description: key provides key file contents
+                                  type: string
+                                termination:
+                                  description: termination indicates termination type.
+                                  enum:
+                                  - edge
+                                  - reencrypt
+                                  - passthrough
+                                  type: string
+                              required:
+                              - termination
+                              type: object
+                              x-kubernetes-validations:
+                              - message: 'cannot have both spec.tls.termination: passthrough
+                                  and spec.tls.insecureEdgeTerminationPolicy: Allow'
+                                rule: 'has(self.termination) && has(self.insecureEdgeTerminationPolicy)
+                                  ? !((self.termination==''passthrough'') && (self.insecureEdgeTerminationPolicy==''Allow''))
+                                  : true'
+                            to:
+                              description: RouteTargetReference specifies the target
+                                that resolve into endpoints.
+                              properties:
+                                kind:
+                                  default: Service
+                                  description: The kind of target that the route is
+                                    referring to.
+                                  enum:
+                                  - Service
+                                  - ""
+                                  type: string
+                                name:
+                                  description: name of the service/target that is
+                                    being referred to. e.g.
+                                  minLength: 1
+                                  type: string
+                                weight:
+                                  default: 100
+                                  description: weight as an integer between 0 and
+                                    256, default 100, that specifies the tar
+                                  format: int32
+                                  maximum: 256
+                                  minimum: 0
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            wildcardPolicy:
+                              description: WildcardPolicyType indicates the type of
+                                wildcard support needed by routes.
+                              type: string
+                          type: object
+                        type: array
                       rules:
                         description: Rules
                         items:
@@ -3740,6 +3772,30 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  otel:
+                    description: Otel used when no dedicated OTel agent is present.
+                    properties:
+                      additionalResourceAttritbutes:
+                        items:
+                          description: Property is a simple k/v pair
+                          properties:
+                            name:
+                              description: Name
+                              type: string
+                            value:
+                              description: Value
+                              type: string
+                          type: object
+                        type: array
+                      sdkOnly:
+                        properties:
+                          enabled:
+                            description: |-
+                              Enable or disable setting resource attributes
+                              when enabled the following va
+                            type: boolean
+                        type: object
+                    type: object
                   otk:
                     properties:
                       database:
@@ -3750,6 +3806,14 @@ spec:
                             properties:
                               admin:
                                 description: AdminUser for database creation
+                                properties:
+                                  password:
+                                    type: string
+                                  username:
+                                    type: string
+                                type: object
+                              clientReadOnly:
+                                description: ClientReadOnlyUser for Oracle/MySQL
                                 properties:
                                   password:
                                     type: string
@@ -3785,17 +3849,12 @@ spec:
                               connectionPoints:
                                 type: string
                               driverConfig:
-                                additionalProperties:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  x-kubernetes-int-or-string: true
                                 description: DriverConfig is supported from GW 11.x
-                                type: object
-                              keySpace:
+                                type: string
+                              keyspace:
                                 type: string
                               port:
-                                type: string
+                                type: integer
                             type: object
                           connectionName:
                             description: ConnectionName for the JDBC or Cassandra
@@ -3805,8 +3864,14 @@ spec:
                             description: Create the OTK database. Only applies to
                               oracle and mysql
                             type: boolean
+                          createClientReadOnlySqlConnection:
+                            description: CreateClientReadOnlySqlConnection
+                            type: boolean
                           createReadOnlySqlConnection:
                             description: CreateReadOnlySqlConnection
+                            type: boolean
+                          dbUpgrade:
+                            description: DbUpgrade only applies to oracle and mysql
                             type: boolean
                           properties:
                             additionalProperties:
@@ -3829,6 +3894,13 @@ spec:
                               databaseName:
                                 description: ConnectionName string `json:"connectionName,omitempty"`
                                 type: string
+                              databaseProperties:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
                               databaseWaitTimeout:
                                 description: DatabaseWaitTimeout applies to the db-initcontainer
                                   only
@@ -3846,6 +3918,47 @@ spec:
                                   for the OTK that connects '
                                 type: boolean
                             type: object
+                          sqlClientReadOnly:
+                            description: SqlClientReadOnly configuration
+                            properties:
+                              connectionProperties:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
+                              databaseName:
+                                description: ConnectionName string `json:"connectionName,omitempty"`
+                                type: string
+                              databaseProperties:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
+                              databaseWaitTimeout:
+                                description: DatabaseWaitTimeout applies to the db-initcontainer
+                                  only
+                                type: integer
+                              jdbcDriverClass:
+                                description: |-
+                                  JDBCDriverClass to use in the Gateway JDBC Connection entity
+                                  defaults to co
+                                type: string
+                              jdbcUrl:
+                                description: JDBCUrl for the OTK
+                                type: string
+                              manageSchema:
+                                description: 'ManageSchema appends an additional initContainer
+                                  for the OTK that connects '
+                                type: boolean
+                            type: object
+                          sqlClientReadOnlyConnectionName:
+                            description: SqlClientReadOnlyConnectionName for the JDBC
+                              or Cassandra Connection Gatewa
+                            type: string
                           sqlReadOnly:
                             description: SqlReadOnly configuration
                             properties:
@@ -3859,6 +3972,13 @@ spec:
                               databaseName:
                                 description: ConnectionName string `json:"connectionName,omitempty"`
                                 type: string
+                              databaseProperties:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
                               databaseWaitTimeout:
                                 description: DatabaseWaitTimeout applies to the db-initcontainer
                                   only
@@ -4033,26 +4153,12 @@ spec:
                           Gateway deployment that '
                         type: string
                       maintenanceTasks:
-                        description: 'MaintenanceTasks for the OTK database - these
-                          are run by calling a Gateway '
+                        description: MaintenanceTasks for the OTK database are disabled
+                          by default
                         properties:
                           enabled:
                             description: Enable or disable database maintenance tasks
                             type: boolean
-                          operatorManaged:
-                            description: OperatorManaged lets the Operator configure
-                              a hardened version of the db-ma
-                            type: boolean
-                          periodSeconds:
-                            description: Period in seconds between maintenance task
-                              runs
-                            format: int64
-                            type: integer
-                          uri:
-                            description: |-
-                              Uri for custom db-maintenance services
-                              Corresponding maintenance policy mus
-                            type: string
                         type: object
                       overrides:
                         description: Overrides default OTK install functionality
@@ -4064,6 +4170,9 @@ spec:
                           createTestClients:
                             description: CreateTestClients for mysql & oracle setup
                               test clients
+                            type: boolean
+                          enablePortalIntegration:
+                            description: EnablePortalIntegration subSolutionKit install.
                             type: boolean
                           enabled:
                             description: Enable or disable otk overrides
@@ -4077,17 +4186,13 @@ spec:
                               SkipInternalServerTools subSolutionKit install
                               defaults to false
                             type: boolean
-                          skipPortalIntegrationComponents:
-                            description: SkipPortalIntegrationComponents subSolutionKit
-                              install.
-                            type: boolean
                           testClientsRedirectUrlPrefix:
                             description: TestClientsRedirectUrlPrefix. Required if
                               createTestClients is true.
                             type: string
                         type: object
                       port:
-                        description: defaults to 8443
+                        description: OTKPort defaults to 8443
                         type: integer
                       runtimeSyncIntervalSeconds:
                         description: RuntimeSyncIntervalSeconds how often OTK Gateways
@@ -4762,8 +4867,6 @@ spec:
                     format: int32
                     type: integer
                   repositoryReferences:
-                    description: RepositorySyncIntervalSeconds is the period of time
-                      between attempts to app
                     items:
                       description: 'RepositoryReference is reference to a Git repository
                         or HTTP endpoint that '
@@ -6296,6 +6399,11 @@ spec:
                     ready:
                       description: Ready is the state of the Gateway pod
                       type: boolean
+                    repositoryStatus:
+                      additionalProperties:
+                        type: string
+                      description: Repositories
+                      type: object
                     startTime:
                       description: StartTime is when the Gateway pod was started
                       type: string
@@ -6364,12 +6472,24 @@ spec:
                     commit:
                       description: Commit is the last commit that was applied
                       type: string
+                    conditions:
+                      description: Conditions
+                      items:
+                        properties:
+                          reason:
+                            type: string
+                          status:
+                            type: string
+                          time:
+                            type: string
+                        type: object
+                      type: array
                     enabled:
                       description: Enabled shows whether or not this repository reference
                         is enabled
                       type: boolean
                     endpoint:
-                      description: Endoint is the Git repo
+                      description: Endoint is the Git or HTTP repo
                       type: string
                     name:
                       description: Name of the Repository Reference
@@ -6380,6 +6500,12 @@ spec:
                     secretName:
                       description: SecretName is used to mount the correct repository
                         secret to the initContai
+                      type: string
+                    stateStoreKey:
+                      description: StateStoreKey
+                      type: string
+                    stateStoreReference:
+                      description: StateStoreReference
                       type: string
                     storageSecretName:
                       description: StorageSecretName is used to mount existing repository
@@ -6421,6 +6547,9 @@ spec:
     kind: L7Api
     listKind: L7ApiList
     plural: l7apis
+    shortNames:
+    - api
+    - apis
     singular: l7api
   scope: Namespaced
   versions:
@@ -6572,6 +6701,9 @@ spec:
     kind: L7Portal
     listKind: L7PortalList
     plural: l7portals
+    shortNames:
+    - portal
+    - portals
     singular: l7portal
   scope: Namespaced
   versions:
@@ -6691,6 +6823,95 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
     controller-gen.kubebuilder.io/version: v0.16.5
+  name: l7statestores.security.brcmlabs.com
+spec:
+  group: security.brcmlabs.com
+  names:
+    kind: L7StateStore
+    listKind: L7StateStoreList
+    plural: l7statestores
+    singular: l7statestore
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: L7StateStore is the Schema for the l7statestores API
+        properties:
+          apiVersion:
+            description: APIVersion defines the versioned schema of this representation
+              of an object
+            type: string
+          kind:
+            description: Kind is a string value representing the REST resource this
+              object represent
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: L7StateStoreSpec defines the desired state of L7StateStore
+            properties:
+              redis:
+                description: Redis state store configuration
+                properties:
+                  database:
+                    type: integer
+                  existingSecret:
+                    type: string
+                  groupName:
+                    type: string
+                  masterPassword:
+                    type: string
+                  sentinel:
+                    properties:
+                      master:
+                        type: string
+                      nodes:
+                        items:
+                          properties:
+                            host:
+                              type: string
+                            port:
+                              type: integer
+                          type: object
+                        type: array
+                    type: object
+                  standalone:
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        type: integer
+                    type: object
+                  storeId:
+                    type: string
+                  type:
+                    type: string
+                  username:
+                    type: string
+                type: object
+              type:
+                description: StateStoreType currently only supports Redis
+                type: string
+            type: object
+          status:
+            description: L7StateStoreStatus defines the observed state of L7StateStore
+            properties:
+              ready:
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: repositories.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6764,7 +6985,7 @@ spec:
                     description: Username repository username
                     type: string
                   vendor:
-                    description: Vendor i.e. Github, Gitlab, BitBucket
+                    description: Vendor i.e. Github, Gitlab, BitBucket, Azure
                     type: string
                 type: object
               branch:
@@ -6793,6 +7014,14 @@ spec:
               remoteName:
                 description: Remote Name - defaults to "origin"
                 type: string
+              stateStoreKey:
+                description: "StateStoreKey where the repository is stored in the
+                  L7StateStore\nthis only "
+                type: string
+              stateStoreReference:
+                description: StateStoreReference which L7StateStore connection should
+                  be used to store o
+                type: string
               sync:
                 description: RepositorySyncConfig defines how often this repository
                   is synced
@@ -6806,7 +7035,7 @@ spec:
                 description: Tag - clone a specific tag.
                 type: string
               type:
-                description: Type of Repository - Git, HTTP, Local
+                description: Type of Repository - git, http, local, statestore
                 type: string
             type: object
           status:
@@ -6824,6 +7053,13 @@ spec:
               ready:
                 description: Ready to apply to Gateway Deployments
                 type: boolean
+              stateStoreSynced:
+                description: StateStoreSynced whether or not the state store has been
+                  written to correct
+                type: boolean
+              stateStoreVersion:
+                description: StateStoreVersion tracks version in state store
+                type: integer
               storageSecretName:
                 description: StorageSecretName is the Kubernetes Secret that this
                   repository is stored i
@@ -7117,6 +7353,7 @@ rules:
   - route.openshift.io
   resources:
   - routes
+  - routes/custom-host
   verbs:
   - create
   - delete
@@ -7125,6 +7362,32 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - security.brcmlabs.com
+  resources:
+  - l7statestores/status
+  verbs:
+  - get
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

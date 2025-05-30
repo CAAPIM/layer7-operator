@@ -3,7 +3,7 @@ PERIOD_SECONDS=$1
 CHECK_INTERVAL=$2
 EXCLUDE="${@:3}"
 
-PORTS=$(netstat -an | awk '/LISTEN/ { n = split($4, a, ":"); print a[n] }')
+PORTS=$(netstat -an | grep LISTEN | tr -s " " | cut -d " " -f4 | cut -d ":" -f2)
 
 if [ -z $PERIOD_SECONDS ]; then
 PERIOD_SECONDS=30
@@ -20,7 +20,7 @@ while [ $(date +%s) -lt $TIMEOUT_TS ]; do
     BUSY_PORTS=0
     for p in $PORTS; do
         # Check open connections
-        CONNECTIONS=$(netstat -anp | grep ESTABLISHED | grep java | awk '{ print $4 }' | grep :$p | wc -l)
+        CONNECTIONS=$(netstat -anp | grep ESTABLISHED | grep java | tr -s " " | cut -d " " -f4 | grep :$p | wc -l)
         if [ $CONNECTIONS -gt 0 ]; then
             let BUSY_PORTS++
             echo Port $p has $CONNECTIONS connection open

@@ -3,13 +3,15 @@ kind: Gateway
 metadata:
   name: ssg
 spec:
-  version: "11.1.1"
+  version: "11.1.2"
   license:
     accept: false
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.1
+    restartOnConfigChange: true
+    singletonExtraction: true
+    image: docker.io/caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
     serviceAccount:
       create: true
@@ -113,7 +115,7 @@ spec:
         enabled: false
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.3
         # initContainerSecurityContext:
         #   runAsNonRoot: true
         #   runAsUser: 1000670001
@@ -142,6 +144,8 @@ spec:
       enabled: false
       ingressClassName: nginx
       type: route
+      route:
+        host: gateway.brcmlabs.com
       annotations:
        # nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
         # nginx.ingress.kubernetes.io/ssl-passthrough: "true"

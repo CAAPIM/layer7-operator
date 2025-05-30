@@ -51,7 +51,7 @@ prometheus-grafana   nginx   grafana.brcmlabs.com   <ip-address>   80, 443   57m
 ```
 
 ### Getting started
-1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/otel-lgtm-gateway.yaml)
   - update license.accept to true before proceeding
@@ -304,7 +304,7 @@ kubectl apply -f ./otel-lgtm/
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml
 ```
 
 #### Open Telemetry Support
@@ -446,7 +446,7 @@ status:
     ready: true
     startTime: 2023-04-03 18:57:24 +0000 UTC
   host: gateway.brcmlabs.com
-  image: caapim/gateway:11.1.1
+  image: caapim/gateway:11.1.2
   ready: 1
   replicas: 1
 repositoryStatus:
@@ -475,7 +475,7 @@ repositoryStatus:
   storageSecretName: l7-gw-mysubscriptions-repository
   type: dynamic
 state: Ready
-version: 11.1.1
+version: 11.1.2
 ```
 
 #### Repository CR

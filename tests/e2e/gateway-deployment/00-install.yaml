@@ -16,17 +16,16 @@ data:
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
-  name: ssg
+  name: ssg-deployment-test
 spec:
-  version: "11.1.1"
+  version: "11.1.2"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.1
+    image: docker.io/caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
-    #serviceAccountName: ssg-serviceaccount
     lifecycleHooks:
       postStart:
         exec:
@@ -37,6 +36,8 @@ spec:
     management:
       cluster:
         hostname: gateway.brcmlabs.com
+      username: admin
+      password: 7layer
       restman:
         enabled: true
       graphman:
@@ -54,7 +55,7 @@ spec:
         whenUnsatisfiable: ScheduleAnyway
         labelSelector:
           matchLabels:
-            app.kubernetes.io/name: ssg
+            app.kubernetes.io/name: ssg-deployment-test
     tolerations:
       - key: "key1"
         operator: "Equal"
@@ -96,21 +97,23 @@ spec:
     livenessProbe:
       exec:
         command:
-          - /opt/docker/rc.d/diagnostic/health_check.sh
-      initialDelaySeconds: 40
-      timeoutSeconds: 1
-      periodSeconds: 15
-      successThreshold: 1
+        - /bin/bash
+        - /opt/docker/rc.d/diagnostic/health_check.sh
       failureThreshold: 25
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
     readinessProbe:
       exec:
         command:
-          - /opt/docker/rc.d/diagnostic/health_check.sh
-      initialDelaySeconds: 40
-      timeoutSeconds: 1
-      periodSeconds: 15
-      successThreshold: 1
+        - /bin/bash
+        - /opt/docker/rc.d/diagnostic/health_check.sh
       failureThreshold: 25
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
     autoscaling:
       enabled: false
     customConfig:

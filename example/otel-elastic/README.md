@@ -25,7 +25,7 @@ We make use of Filebeat for container log files (the Gateway + everything else) 
 
 ## Prerequisites
 - Kubernetes v1.25+
-- Gateway v10/11.x License
+- Gateway v11.x License
 - Ingress Controller (for kibana)
 
 This OTel Elastic Example requires multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc.
@@ -94,7 +94,7 @@ kubectl config set-context --current --namespace=yournamespace
 If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.io/) to try out this example!
 
 ### Getting started
-1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/otel-elastic-gateway.yaml)
   - update license.accept to true before proceeding
@@ -162,7 +162,7 @@ spec:
     - name: OTEL_TRACES_EXPORTER
       value: otlp
     - name: OTEL_RESOURCE_ATTRIBUTES
-      value: service.version=11.1.1,deployment.environment=development
+      value: service.version=11.1.2,deployment.environment=development
   exporter:
     endpoint: http://localhost:4317
   propagators:
@@ -578,7 +578,7 @@ There are additional APM Components that need to be installed via Kibana in a br
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml
 ```
 
 #### Verify the Operator is up and running
@@ -716,7 +716,7 @@ status:
     ready: true
     startTime: 2023-04-03 18:57:24 +0000 UTC
   host: gateway.brcmlabs.com
-  image: caapim/gateway:11.1.1
+  image: caapim/gateway:11.1.2
   ready: 1
   replicas: 1
 repositoryStatus:
@@ -745,7 +745,7 @@ repositoryStatus:
   storageSecretName: l7-gw-mysubscriptions-repository
   type: dynamic
 state: Ready
-version: 11.1.1
+version: 11.1.2
 ```
 
 #### Repository CR
@@ -872,5 +872,5 @@ kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/mai
 
 ### Uninstall the Operator
 ```
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml
 ```

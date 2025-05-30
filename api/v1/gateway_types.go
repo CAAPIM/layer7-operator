@@ -128,6 +128,8 @@ type GatewayState struct {
 	Ready bool `json:"ready"`
 	// StartTime is when the Gateway pod was started
 	StartTime string `json:"startTime,omitempty"`
+	// Repositories
+	RepositoryStatus map[string]string `json:"repositoryStatus,omitempty"`
 }
 
 // GatewayRepositoryStatus tracks the status of which Graphman repositories have been applied to the Gateway Resource.
@@ -151,8 +153,20 @@ type GatewayRepositoryStatus struct {
 	Branch string `json:"branch,omitempty"`
 	// Tag is the git tag in the Git repo
 	Tag string `json:"tag,omitempty"`
-	// Endoint is the Git repo
+	// Endoint is the Git or HTTP repo
 	Endpoint string `json:"endpoint,omitempty"`
+	// StateStoreReference
+	StateStoreReference string `json:"stateStoreReference,omitempty"`
+	// StateStoreKey
+	StateStoreKey string `json:"stateStoreKey,omitempty"`
+	// Conditions
+	Conditions []RepositoryCondition `json:"conditions,omitempty"`
+}
+
+type RepositoryCondition struct {
+	Time   string `json:"time,omitempty"`
+	Status string `json:"status,omitempty"`
+	Reason string `json:"reason,omitempty"`
 }
 
 // PortalSyncStatus tracks the status of which portals are synced with a gateway.
@@ -165,7 +179,7 @@ type PortalSyncStatus struct {
 	LastUpdated string `json:"lastUpdated,omitempty"`
 }
 
-// License is reference to a Kubernetes Secret Containing a Gateway v10/11.x license.
+// License is reference to a Kubernetes Secret Containing a Gateway v11.x license.
 // license.accept must be set to true or the Gateway will not start.
 type License struct {
 	Accept bool `json:"accept"`
@@ -207,13 +221,7 @@ type App struct {
 	// this enables scheduled tasks that are set to execute on a single node and jms destinations that are outbound
 	// to be applied to one ephemeral gateway only.
 	// This works inconjunction with repository references and only supports dynamic repository references.
-	SingletonExtraction bool `json:"singletonExtraction,omitempty"`
-	// RepositorySyncIntervalSeconds is the period of time between attempts to apply repository references to gateways.
-	//RepositorySyncIntervalSeconds int `json:"repositorySyncIntervalSeconds,omitempty"`
-	// ExternalSecretsSyncIntervalSeconds is the period of time between attempts to apply external secrets to gateways.
-	//ExternalSecretsSyncIntervalSeconds int `json:"externalSecretsSyncIntervalSeconds,omitempty"`
-	// ExternalKeysSyncIntervalSeconds is the period of time between attempts to apply external keys to gateways.
-	//ExternalKeysSyncIntervalSeconds int                   `json:"externalKeysSyncIntervalSeconds,omitempty"`
+	SingletonExtraction  bool                  `json:"singletonExtraction,omitempty"`
 	RepositoryReferences []RepositoryReference `json:"repositoryReferences,omitempty"`
 	Ingress              Ingress               `json:"ingress,omitempty"`
 	Sidecars             []corev1.Container    `json:"sidecars,omitempty"`
@@ -245,6 +253,27 @@ type App struct {
 	PreStopScript                 PreStopScript    `json:"preStopScript,omitempty"`
 	CustomHosts                   CustomHosts      `json:"customHosts,omitempty"`
 	Otk                           Otk              `json:"otk,omitempty"`
+	Otel                          Otel             `json:"otel,omitempty"`
+}
+
+// Otel used when no dedicated OTel agent is present. This enriches the telemetry that the SDK is able to emit to your observability backend
+type Otel struct {
+	OtelSDKOnly                   OtelSDKOnly `json:"sdkOnly,omitempty"`
+	AdditionalResourceAttritbutes []Property  `json:"additionalResourceAttritbutes,omitempty"`
+}
+
+type OtelSDKOnly struct {
+	// Enable or disable setting resource attributes
+	// when enabled the following variables are set in the container Gateway
+	// - NODE_NAME
+	// - POD_NAME
+	// - NAMESPACE
+	// - CONTAINER_NAME
+	// - OTEL_SERVICE_NAME
+	// These are then used to set
+	// - OTEL_RESOURCE_ATTRIBUTES
+	// This can be further extended with custom attributes using the additionalResourceAttritbutes field
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // PortalReference is for bulk syncing of Portal APIs via initContainer (bootstrap)
@@ -288,27 +317,19 @@ type Otk struct {
 	// sets host_oauth2_auth_server port in #OTK Client Context Variables
 	// TODO: Make this an array for many dmz deployments to one internal
 	DmzOtkGatewayReference string `json:"dmzGatewayReference,omitempty"`
-	// defaults to 8443
+	// OTKPort defaults to 8443
 	OTKPort int `json:"port,omitempty"`
-	// MaintenanceTasks for the OTK database - these are run by calling a Gateway endpoint every x seconds
+	// MaintenanceTasks for the OTK database are disabled by default
 	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
 	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
 	RuntimeSyncIntervalSeconds int `json:"runtimeSyncIntervalSeconds,omitempty"`
 }
 
-// OtkMaintenanceTasks are run via API Call to Layer7 API Gateways
-// in ephemeral mode these tasks will run against one Gateway node automatically selected by the Operator.
-// This configuration allows that functionality to be disabled or customized.
+// OtkMaintenanceTasks are included in the install bundle as disabled scheduled tasks
+// if enabled they will be scheduled on the leader gateway node
 type OtkMaintenanceTasks struct {
 	// Enable or disable database maintenance tasks
 	Enabled bool `json:"enabled,omitempty"`
-	// OperatorManaged lets the Operator configure a hardened version of the db-maintenance policy
-	OperatorManaged bool `json:"operatorManaged,omitempty"`
-	// Uri for custom db-maintenance services
-	// Corresponding maintenance policy must support a parameter called task
-	Uri string `json:"uri,omitempty"`
-	// Period in seconds between maintenance task runs
-	Period int64 `json:"periodSeconds,omitempty"`
 }
 
 type OtkOverrides struct {
@@ -319,9 +340,9 @@ type OtkOverrides struct {
 	// SkipInternalServerTools subSolutionKit install
 	// defaults to false
 	SkipInternalServerTools bool `json:"skipInternalServerTools,omitempty"`
-	// SkipPortalIntegrationComponents subSolutionKit install. This does not perform portal integration
-	// defaults to true
-	SkipPortalIntegrationComponents bool `json:"skipPortalIntegrationComponents,omitempty"`
+	// EnablePortalIntegration subSolutionKit install. This does not perform portal integration
+	// defaults to false
+	EnablePortalIntegration bool `json:"enablePortalIntegration,omitempty"`
 	// CreateTestClients for mysql & oracle setup test clients
 	CreateTestClients bool `json:"createTestClients,omitempty"`
 	// TestClientsRedirectUrlPrefix. Required if createTestClients is true.
@@ -426,6 +447,8 @@ type OtkDatabase struct {
 	Type OtkDatabaseType `json:"type,omitempty"`
 	// Create the OTK database. Only applies to oracle and mysql
 	Create bool `json:"create,omitempty"`
+	// DbUpgrade only applies to oracle and mysql
+	DbUpgrade bool `json:"dbUpgrade,omitempty"`
 	// ConnectionName for the JDBC or Cassandra Connection Gateway entity
 	ConnectionName string `json:"connectionName,omitempty"`
 	// Auth for the OTK Database
@@ -440,6 +463,12 @@ type OtkDatabase struct {
 	SqlReadOnly OtkSql `json:"sqlReadOnly,omitempty"`
 	// SqlReadOnlyConnectionName for the JDBC or Cassandra Connection Gateway entity
 	SqlReadOnlyConnectionName string `json:"sqlReadOnlyConnectionName,omitempty"`
+	// CreateClientReadOnlySqlConnection
+	CreateClientReadOnlySqlConnection bool `json:"createClientReadOnlySqlConnection,omitempty"`
+	// SqlClientReadOnly configuration
+	SqlClientReadOnly OtkSql `json:"sqlClientReadOnly,omitempty"`
+	// SqlClientReadOnlyConnectionName for the JDBC or Cassandra Connection Gateway entity
+	SqlClientReadOnlyConnectionName string `json:"sqlClientReadOnlyConnectionName,omitempty"`
 	// Properties
 	Properties map[string]intstr.IntOrString `json:"properties,omitempty"`
 }
@@ -453,6 +482,9 @@ type OtkDatabaseAuth struct {
 	// Gateway Readonly user (typically otk_user_readonly)
 	// OTK_RO_DATABASE_USERNAME
 	// OTK_RO_DATABASE_PASSWORD
+	// Gateway Client Readonly user (typically otk_user_client_readonly)
+	// OTK_CLIENT_READ_DATABASE_USERNAME
+	// OTK_CLIENT_READ_DATABASE_PASSWORD
 	// Database admin credentials used to create or update the OTK database
 	// OTK_DATABASE_DDL_USERNAME
 	// OTK_DATABASE_DDL_PASSWORD
@@ -461,6 +493,8 @@ type OtkDatabaseAuth struct {
 	GatewayUser OtkDatabaseAuthCredentials `json:"gateway,omitempty"`
 	// ReadOnlyUser for Oracle/MySQL
 	ReadOnlyUser OtkDatabaseAuthCredentials `json:"readOnly,omitempty"`
+	// ClientReadOnlyUser for Oracle/MySQL
+	ClientReadOnlyUser OtkDatabaseAuthCredentials `json:"clientReadOnly,omitempty"`
 	// AdminUser for database creation
 	AdminUser OtkDatabaseAuthCredentials `json:"admin,omitempty"`
 }
@@ -472,10 +506,10 @@ type OtkDatabaseAuthCredentials struct {
 
 type OtkCassandra struct {
 	ConnectionPoints string `json:"connectionPoints,omitempty"`
-	Port             string `json:"port,omitempty"`
-	Keyspace         string `json:"keySpace,omitempty"`
+	Port             int    `json:"port,omitempty"`
+	Keyspace         string `json:"keyspace,omitempty"`
 	// DriverConfig is supported from GW 11.x
-	DriverConfig map[string]intstr.IntOrString `json:"driverConfig,omitempty"`
+	DriverConfig string `json:"driverConfig,omitempty"`
 }
 
 type OtkSql struct {
@@ -486,6 +520,7 @@ type OtkSql struct {
 	// JDBCDriverClass to use in the Gateway JDBC Connection entity
 	// defaults to com.mysql.jdbc.Driver
 	JDBCDriverClass      string                        `json:"jdbcDriverClass,omitempty"`
+	DatabaseProperties   map[string]intstr.IntOrString `json:"databaseProperties,omitempty"`
 	ConnectionProperties map[string]intstr.IntOrString `json:"connectionProperties,omitempty"`
 	// ManageSchema appends an additional initContainer for the OTK that connects to and updates the OTK database
 	// only supports MySQL and Oracle
@@ -658,8 +693,7 @@ type Bundle struct {
 	// Source
 	Source string `json:"source,omitempty"`
 	Name   string `json:"name,omitempty"`
-	// ConfigMap ConfigMap `json:"configMap,omitempty"`
-	CSI CSI `json:"csi,omitempty"`
+	CSI    CSI    `json:"csi,omitempty"`
 }
 
 // CSI volume configuration
@@ -982,6 +1016,13 @@ type System struct {
 	Properties string `json:"properties,omitempty"`
 }
 
+type RepositoryReferenceType string
+
+const (
+	RepositoryReferenceTypeDynamic RepositoryReferenceType = "dynamic"
+	RepositoryReferenceTypeStatic  RepositoryReferenceType = "static"
+)
+
 // RepositoryReference is reference to a Git repository or HTTP endpoint that contains graphman bundles
 type RepositoryReference struct {
 	// Enabled or disabled
@@ -996,9 +1037,9 @@ type RepositoryReference struct {
 	// it is recommended that these stay under 1mb in size when compressed
 	// for larger static repositories it is recommended that you use a dedicated initContainer
 	// dynamic repositories are applied directly to the gateway whenever the commit of a repository changes
-	Type         string           `json:"type,omitempty"`
-	Encryption   BundleEncryption `json:"encryption,omitempty"`
-	Notification Notification     `json:"notification,omitempty"`
+	Type         RepositoryReferenceType `json:"type,omitempty"`
+	Encryption   BundleEncryption        `json:"encryption,omitempty"`
+	Notification Notification            `json:"notification,omitempty"`
 }
 
 // BundleEncryption allows setting an encryption passphrase per repository or external secret/key reference
@@ -1057,9 +1098,9 @@ type Ingress struct {
 	Type string `json:"type,omitempty"`
 	// Annotations for the ingress resource
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// Route for Openshift
-	// This acts as an override
-	Route RouteSpec `json:"route,omitempty"`
+	// Routes for Openshift
+	// This allows for customization of the default route and adding of an additional route for the management service
+	Routes []RouteSpec `json:"routes,omitempty"`
 	// IngressClassName
 	IngressClassName string `json:"ingressClassName,omitempty"`
 	// TLS
@@ -1071,11 +1112,12 @@ type Ingress struct {
 // RouteSpec from https://pkg.go.dev/github.com/openshift/api/route/v1#RouteSpec
 // The Operator determines where to route to
 type RouteSpec struct {
-	Host           string                     `json:"host,omitempty"`
-	Path           string                     `json:"path,omitempty"`
-	Port           *routev1.RoutePort         `json:"port,omitempty"`
-	TLS            *routev1.TLSConfig         `json:"tls,omitempty"`
-	WildcardPolicy routev1.WildcardPolicyType `json:"wildcardPolicy,omitempty"`
+	Host           string                        `json:"host,omitempty"`
+	Path           string                        `json:"path,omitempty"`
+	Port           *routev1.RoutePort            `json:"port,omitempty"`
+	TLS            *routev1.TLSConfig            `json:"tls,omitempty"`
+	To             *routev1.RouteTargetReference `json:"to,omitempty"`
+	WildcardPolicy routev1.WildcardPolicyType    `json:"wildcardPolicy,omitempty"`
 }
 
 // Java configuration for the Gateway

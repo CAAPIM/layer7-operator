@@ -131,8 +131,7 @@ if branch and tag are both missing the entire repository will be cloned<br/>
         <td><b><a href="#repositoryspeclocalreference">localReference</a></b></td>
         <td>object</td>
         <td>
-          LocalReference lets the Repository controller use a local Kubernetes Secret as a repository source
-This is not currently implemented<br/>
+          LocalReference lets the Repository controller use a local Kubernetes Secret as a repository source<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -140,6 +139,22 @@ This is not currently implemented<br/>
         <td>string</td>
         <td>
           Remote Name - defaults to "origin"<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateStoreKey</b></td>
+        <td>string</td>
+        <td>
+          StateStoreKey where the repository is stored in the L7StateStore
+this only takes effect if type is statestore<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateStoreReference</b></td>
+        <td>string</td>
+        <td>
+          StateStoreReference which L7StateStore connection should be used to store or retrieve this key
+if type is statestore this reference will read everything from the state store<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -161,7 +176,7 @@ tags do not change, once cloned this will not be checked for updates<br/>
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          Type of Repository - Git, HTTP, Local<br/>
+          Type of Repository - git, http, local, statestore<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -246,7 +261,7 @@ none, basic or ssh<br/>
         <td><b>vendor</b></td>
         <td>string</td>
         <td>
-          Vendor i.e. Github, Gitlab, BitBucket<br/>
+          Vendor i.e. Github, Gitlab, BitBucket, Azure<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -259,7 +274,6 @@ none, basic or ssh<br/>
 
 
 LocalReference lets the Repository controller use a local Kubernetes Secret as a repository source
-This is not currently implemented
 
 <table>
     <thead>
@@ -350,6 +364,20 @@ Status - Repository Status
         <td>boolean</td>
         <td>
           Ready to apply to Gateway Deployments<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateStoreSynced</b></td>
+        <td>boolean</td>
+        <td>
+          StateStoreSynced whether or not the state store has been written to correctly<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateStoreVersion</b></td>
+        <td>integer</td>
+        <td>
+          StateStoreVersion tracks version in state store<br/>
         </td>
         <td>false</td>
       </tr><tr>

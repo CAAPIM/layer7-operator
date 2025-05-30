@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package reconcile
 
 import (
@@ -33,7 +58,6 @@ func syncOtkCertificates(ctx context.Context, params Params) {
 	if err != nil {
 		params.Log.Info("failed to reconcile otk certificates", "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
 	}
-
 }
 
 func applyOtkCertificates(ctx context.Context, params Params, gateway *securityv1.Gateway) error {
@@ -111,7 +135,7 @@ func applyOtkCertificates(ctx context.Context, params Params, gateway *securityv
 		if err != nil {
 			return err
 		}
-		err = ReconcileDBGateway(ctx, params, "otk certificates", gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, "otk certificates", bundleBytes)
+		err = ReconcileDBGateway(ctx, params, "otk certificates", *gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, "otk certificates", bundleBytes)
 		if err != nil {
 			return err
 		}
@@ -231,16 +255,3 @@ func retrieveCertificate(host string, port string) ([]byte, error) {
 	cert := conn.ConnectionState().PeerCertificates[0].Raw
 	return cert, nil
 }
-
-// func getSha1Thumbprint(rawCert []byte) (string, error) {
-// 	fingerprint := sha1.Sum(rawCert)
-// 	var buf bytes.Buffer
-// 	for _, f := range fingerprint {
-// 		fmt.Fprintf(&buf, "%02X", f)
-// 	}
-// 	hexDump, err := hex.DecodeString(buf.String())
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return base64.StdEncoding.EncodeToString(hexDump), nil
-// }

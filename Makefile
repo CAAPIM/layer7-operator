@@ -68,7 +68,7 @@ START_KIND_CLUSTER ?= true
 KUBE_VERSION ?= 1.30
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
-GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.1
+GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.2
 GO_BUILD_IMG ?= golang:1.23
 DISTROLESS_IMG ?= gcr.io/distroless/static:nonroot
 GO_PROXY ?= ""
@@ -165,8 +165,6 @@ prepare-e2e: kuttl docker-build start-kind
 	sed -i 's+docker.io/layer7api/layer7-operator:main+$(IMG)+g' deploy/bundle.yaml
 	kubectl apply -f deploy/bundle.yaml --namespace l7operator
 	kubectl create secret generic gateway-license --from-file=./testdata/license.xml --namespace l7operator
-	kubectl create secret generic test-repository-secret --from-literal=USERNAME=${TESTREPO_USER} --from-literal=TOKEN=${TESTREPO_TOKEN} --namespace l7operator
-	kubectl create secret generic graphman-encryption-secret --from-literal=FRAMEWORK_ENCRYPTION_PASSPHRASE=7layer -n l7operator
 	kubectl apply -f ./testdata/metallb-native.yaml
 	sleep 15s
 	kubectl wait --for=condition=ready --timeout=600s pod -l component=controller -n metallb-system
@@ -330,7 +328,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.20
 
 .PHONY: operator-sdk
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -423,6 +421,7 @@ generate-docs: controller-gen
 	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_repositories.yaml --output docs/repository.md
 	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7portals.yaml --output docs/l7portals.md
 	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7apis.yaml --output docs/l7apis.md
+	crdoc --resources ./tmp/crd/bases/security.brcmlabs.com_l7statestores.yaml --output docs/l7statestores.md
 	rm -r ./tmp/
 
 helmify:

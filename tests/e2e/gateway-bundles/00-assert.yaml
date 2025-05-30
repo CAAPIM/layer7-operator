@@ -1,11 +1,7 @@
-apiVersion: kuttl.dev/v1beta1
-kind: TestAssert
-timeout: 100
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ssg
+  name: ssg-bundle-test
 spec:
   strategy:
     rollingUpdate:
@@ -18,10 +14,10 @@ spec:
       containers:
       - envFrom:
         - configMapRef:
-            name: ssg
+            name: ssg-bundle-test
         - secretRef:
-            name: ssg
-        image: docker.io/caapim/gateway:11.1.1
+            name: ssg-bundle-test
+        image: docker.io/caapim/gateway:11.1.2
         imagePullPolicy: IfNotPresent
         lifecycle: {}
         livenessProbe:
@@ -30,8 +26,18 @@ spec:
             - /bin/bash
             - /opt/docker/rc.d/diagnostic/health_check.sh
           failureThreshold: 25
-          initialDelaySeconds: 30
-          periodSeconds: 15
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - /opt/docker/rc.d/diagnostic/health_check.sh
+          failureThreshold: 25
+          initialDelaySeconds: 15
+          periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
         name: gateway
@@ -42,16 +48,6 @@ spec:
         - containerPort: 9443
           name: management
           protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-            - /bin/bash
-            - /opt/docker/rc.d/diagnostic/health_check.sh
-          failureThreshold: 25
-          initialDelaySeconds: 30
-          periodSeconds: 15
-          successThreshold: 1
-          timeoutSeconds: 1
         resources: {}
         securityContext: {}
         terminationMessagePath: /dev/termination-log
@@ -60,8 +56,8 @@ spec:
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
           name: gateway-license
           subPath: license.xml
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-listen-port-bundle
-          name: ssg-listen-port-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-bundle-test-listen-port-bundle
+          name: ssg-bundle-test-listen-port-bundle
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/restman-bootstrap-bundle
           name: restman-bootstrap-bundle
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/restman-bootstrap-secret-bundle
@@ -70,6 +66,11 @@ spec:
           name: graphman-bootstrap-bundle
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/3
           name: graphman-bootstrap-secret-bundle
+        - mountPath: /graphman/config.json
+          name: ssg-bundle-test-repository-init-config
+          subPath: config.json
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
+          name: ssg-bundle-test-repository-bundle-dest
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -88,9 +89,9 @@ spec:
           secretName: gateway-license
       - configMap:
           defaultMode: 493
-          name: ssg-listen-port-bundle
+          name: ssg-bundle-test-listen-port-bundle
           optional: false
-        name: ssg-listen-port-bundle
+        name: ssg-bundle-test-listen-port-bundle
       - configMap:
           defaultMode: 444
           name: restman-bootstrap-bundle
@@ -109,3 +110,12 @@ spec:
         secret:
           defaultMode: 444
           secretName: graphman-bootstrap-secret-bundle
+      - configMap:
+          defaultMode: 493
+          name: ssg-bundle-test-repository-init-config
+          optional: false
+        name: ssg-bundle-test-repository-init-config
+      - emptyDir: {}
+        name: ssg-bundle-test-repository-bundle-dest
+
+

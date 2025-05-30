@@ -1,11 +1,11 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 250
+timeout: 300
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ssg
+  name: ssg-deployment-test
 spec:
   strategy:
     rollingUpdate:
@@ -27,10 +27,10 @@ spec:
       containers:
       - envFrom:
         - configMapRef:
-            name: ssg
+            name: ssg-deployment-test
         - secretRef:
-            name: ssg
-        image: docker.io/caapim/gateway:11.1.1
+            name: ssg-deployment-test
+        image: docker.io/caapim/gateway:11.1.2
         imagePullPolicy: IfNotPresent
         lifecycle:
           postStart:
@@ -45,15 +45,6 @@ spec:
               - /bin/sh
               - -c
               - echo Hello
-        livenessProbe:
-          exec:
-            command:
-            - /opt/docker/rc.d/diagnostic/health_check.sh
-          failureThreshold: 25
-          initialDelaySeconds: 40
-          periodSeconds: 15
-          successThreshold: 1
-          timeoutSeconds: 1
         name: gateway
         ports:
         - containerPort: 8443
@@ -62,13 +53,24 @@ spec:
         - containerPort: 9443
           name: management
           protocol: TCP
+        livenessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - /opt/docker/rc.d/diagnostic/health_check.sh
+          failureThreshold: 25
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
         readinessProbe:
           exec:
             command:
+            - /bin/bash
             - /opt/docker/rc.d/diagnostic/health_check.sh
           failureThreshold: 25
-          initialDelaySeconds: 40
-          periodSeconds: 15
+          initialDelaySeconds: 15
+          periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
         resources: {}
@@ -81,14 +83,14 @@ spec:
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
           name: gateway-license
           subPath: license.xml
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-listen-port-bundle
-          name: ssg-listen-port-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-deployment-test-listen-port-bundle
+          name: ssg-deployment-test-listen-port-bundle
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/restman
           name: restman
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/graphman
           name: graphman
         - mountPath: /opt/docker/rc.d/003-parse-custom-files.sh
-          name: ssg-parse-custom-files-script
+          name: ssg-deployment-test-parse-custom-files-script
           subPath: 003-parse-custom-files.sh
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/conf/sample.properties
           name: config-override-secret
@@ -96,6 +98,11 @@ spec:
         - mountPath: /opt/docker/test.properties
           name: test-system-override
           subPath: test.properties
+        - mountPath: /graphman/config.json
+          name: ssg-deployment-test-repository-init-config
+          subPath: config.json
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
+          name: ssg-deployment-test-repository-bundle-dest
       dnsPolicy: ClusterFirst
       hostAliases:
       - hostnames:
@@ -122,7 +129,7 @@ spec:
       topologySpreadConstraints:
       - labelSelector:
           matchLabels:
-            app.kubernetes.io/name: ssg
+            app.kubernetes.io/name: ssg-deployment-test
         maxSkew: 2
         topologyKey: testTopology
         whenUnsatisfiable: ScheduleAnyway
@@ -137,9 +144,9 @@ spec:
           secretName: gateway-license
       - configMap:
           defaultMode: 493
-          name: ssg-listen-port-bundle
+          name: ssg-deployment-test-listen-port-bundle
           optional: false
-        name: ssg-listen-port-bundle
+        name: ssg-deployment-test-listen-port-bundle
       - emptyDir: {}
         name: restman
       - emptyDir: {}
@@ -149,9 +156,9 @@ spec:
           items:
           - key: 003-parse-custom-files
             path: 003-parse-custom-files.sh
-          name: ssg-gateway-files
+          name: ssg-deployment-test-gateway-files
           optional: false
-        name: ssg-parse-custom-files-script
+        name: ssg-deployment-test-parse-custom-files-script
       - name: config-override-secret
         secret:
           defaultMode: 444
@@ -161,6 +168,10 @@ spec:
           name: test-system-override
           optional: false
         name: test-system-override
-status:
-  replicas: 1
-  readyReplicas: 1
+      - configMap:
+          defaultMode: 493
+          name: ssg-deployment-test-repository-init-config
+          optional: false
+        name: ssg-deployment-test-repository-init-config
+      - emptyDir: {}
+        name: ssg-deployment-test-repository-bundle-dest

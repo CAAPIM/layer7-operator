@@ -1,10 +1,39 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package reconcile
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
 	v1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/repository"
@@ -54,7 +83,12 @@ func StorageSecret(ctx context.Context, params Params) error {
 	if ext == "" {
 		ext = params.Instance.Spec.Tag
 	}
-	switch strings.ToLower(params.Instance.Spec.Type) {
+
+	if params.Instance.Status.StorageSecretName == "_" {
+		return nil
+	}
+
+	switch strings.ToLower(string(params.Instance.Spec.Type)) {
 	case "http":
 		fileURL, err := url.Parse(params.Instance.Spec.Endpoint)
 		if err != nil {
@@ -75,7 +109,14 @@ func StorageSecret(ctx context.Context, params Params) error {
 	default:
 		params.Log.Info("repository type not set", "name", params.Instance.Name, "namespace", params.Instance.Name)
 		return nil
+	}
 
+	dirSize, err := getDirSize("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
+	if err != nil {
+		return err
+	}
+	if dirSize/1000.0/1000.0/3.5 > 0.9 {
+		return errors.New("exceededMaxSize")
 	}
 
 	bundleGzip, err := util.CompressGraphmanBundle("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
@@ -94,6 +135,46 @@ func StorageSecret(ctx context.Context, params Params) error {
 	}
 
 	return nil
+}
+
+func getDirSize(path string) (sizef float64, err error) {
+	var size int64
+	var mu sync.Mutex
+
+	var calculateSize func(string) error
+	calculateSize = func(p string) error {
+		fileInfo, err := os.Lstat(p)
+		if err != nil {
+			return err
+		}
+
+		if fileInfo.Mode()&os.ModeSymlink != 0 {
+			return nil
+		}
+
+		if fileInfo.IsDir() {
+			entries, err := os.ReadDir(p)
+			if err != nil {
+				return err
+			}
+			for _, entry := range entries {
+				if err := calculateSize(filepath.Join(p, entry.Name())); err != nil {
+					return err
+				}
+			}
+		} else {
+			mu.Lock()
+			size += fileInfo.Size()
+			mu.Unlock()
+		}
+		return nil
+	}
+
+	if err := calculateSize(path); err != nil {
+		return 0, err
+	}
+
+	return float64(size), nil
 }
 
 func reconcileSecret(ctx context.Context, params Params, desiredSecret *corev1.Secret) error {

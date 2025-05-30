@@ -1,10 +1,6 @@
 package tests
 
 import (
-	"crypto/tls"
-	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -15,15 +11,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("Gateway controller support for http repo", func() {
+var _ = Describe("Gateway controller", func() {
 	Context("When repo of type static is updated", func() {
 		var (
 			gwLicenseSecretName = "gateway-license"
-			encSecretName       = "graphman-encryption-secret"
 			namespace           = "l7operator"
-			gatewayName         = "ssg-repo"
-			version             = "11.1.1"
-			image               = "docker.io/caapim/gateway:11.1.1"
+			gatewayName         = "http-repo-ssg"
+			version             = "11.1.2"
+			image               = "docker.io/caapim/gateway:11.1.2"
 			repoName            = "http-repo"
 		)
 
@@ -44,7 +39,7 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			})
 		})
 
-		It("Should be able to pick up changes from http type repo", func() {
+		It("Should apply http type repo", func() {
 			By("Creating repository CRD")
 			//Repository resource
 			repo := securityv1.Repository{
@@ -60,19 +55,8 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			}
 			Expect(k8sClient.Create(ctx, &repo)).Should(Succeed())
 
-			var repository securityv1.Repository
-			repoReq := types.NamespacedName{
-				Name:      repoName,
-				Namespace: namespace,
-			}
-			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, repoReq, &repository); err != nil {
-					return false
-				}
-				return repository.Status.Ready
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
-
 			By("Creating Gateway custom resource with a repository")
+			Expect(createGatewayLicenseSecret(Secret{k8sClient, ctx, gwLicenseSecretName, namespace})).Should(Succeed())
 			gw := securityv1.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      gatewayName,
@@ -110,10 +94,6 @@ var _ = Describe("Gateway controller support for http repo", func() {
 								Name:    repoName,
 								Enabled: true,
 								Type:    "dynamic",
-								Encryption: securityv1.BundleEncryption{
-									ExistingSecret: encSecretName,
-									Key:            "FRAMEWORK_ENCRYPTION_PASSPHRASE",
-								},
 							},
 						},
 						Management: securityv1.Management{
@@ -122,7 +102,7 @@ var _ = Describe("Gateway controller support for http repo", func() {
 							},
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
-								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.2",
+								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.3",
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",
@@ -136,68 +116,38 @@ var _ = Describe("Gateway controller support for http repo", func() {
 			}
 			Expect(k8sClient.Create(ctx, &gw)).Should(Succeed())
 
-			gwRequest := types.NamespacedName{
-				Name:      gatewayName,
-				Namespace: namespace,
-			}
-
-			By("Verify Gateway status")
-
+			By("Verify Gateway Pod has been updated")
 			Eventually(func() bool {
-				var gateway securityv1.Gateway
-				if err := k8sClient.Get(ctx, gwRequest, &gateway); err != nil {
+
+				var repository securityv1.Repository
+				repoReq := types.NamespacedName{
+					Name:      repoName,
+					Namespace: namespace,
+				}
+				if err := k8sClient.Get(ctx, repoReq, &repository); err != nil {
 					return false
 				}
 
-				for _, rs := range gateway.Status.RepositoryStatus {
-					if rs.Enabled {
-						return true
-					}
+				if !repository.Status.Ready {
+					return false
 				}
 
-				return false
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
-
-			By("Verify service deployed to Gateway")
-			currentService := &corev1.Service{}
-			Eventually(func() int {
-				if err := k8sClient.Get(ctx, gwRequest, currentService); err != nil {
-					return 0
-				}
-				return len(currentService.Status.LoadBalancer.Ingress)
-			}).WithTimeout(time.Second * 120).Should(BeNumerically("==", 1))
-
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			}
-			httpclient := &http.Client{
-				CheckRedirect: redirectPolicyFunc,
-				Transport:     tr,
-			}
-
-			Eventually(func() bool {
-				requestURL := fmt.Sprintf("https://%s:8443/restman/1.0/services/84449671abe2a5b143051dbdfdf7e684", currentService.Status.LoadBalancer.Ingress[0].IP)
-				req, err := http.NewRequest("GET", requestURL, nil)
+				podList, err := getGatewayPods(ctx, gatewayName, namespace, k8sClient)
 				if err != nil {
 					return false
 				}
-				req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
-				_, err = httpclient.Do(req)
 
-				return err == nil
-
-			}).WithTimeout(time.Second * 180).Should(BeTrue())
-
-			requestURL := fmt.Sprintf("https://%s:8443/api3", currentService.Status.LoadBalancer.Ingress[0].IP)
-			req, err := http.NewRequest("GET", requestURL, nil)
-			Expect(err).ToNot(HaveOccurred())
-			req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
-			resp, err := httpclient.Do(req)
-			Expect(err).ToNot(HaveOccurred())
-			resBody, err := io.ReadAll(resp.Body)
-			Expect(err).ToNot(HaveOccurred())
-			GinkgoWriter.Printf("Response %s", resBody)
-
+				for _, pod := range podList.Items {
+					for _, podStatus := range pod.Status.ContainerStatuses {
+						if podStatus.Ready {
+							if pod.ObjectMeta.Annotations["security.brcmlabs.com/http-repo-dynamic"] == repository.Status.Commit {
+								return true
+							}
+						}
+					}
+				}
+				return false
+			}).Within(time.Second * 180).WithPolling(3 * time.Second).Should(BeTrue())
 		})
 	})
 })

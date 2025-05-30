@@ -1,23 +1,36 @@
 /*
-Copyright 2021.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 
 package gateway
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -43,7 +56,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	creconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -79,7 +94,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.Services, "services"},
 		{reconcile.ServiceAccount, "service account"},
 		{reconcile.Ingress, "ingress"},
-		{reconcile.Route, "openshift route"},
+		{reconcile.Routes, "openshift routes"},
 		{reconcile.HorizontalPodAutoscaler, "horizontalPodAutoscaler"},
 		{reconcile.PodDisruptionBudget, "podDisruptionBudget"},
 		{reconcile.GatewayStatus, "gatewayStatus"},
@@ -95,7 +110,12 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if gw.Spec.App.Otk.Enabled {
-		ops = append(ops, ReconcileOperations{reconcile.ScheduledJobs, "scheduled jobs"})
+		if gw.Spec.App.Otk.Type == securityv1.OtkTypeDMZ || gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal {
+			ops = append(ops, ReconcileOperations{reconcile.ScheduledJobs, "scheduled jobs"})
+		}
+		if gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle && !gw.Spec.App.Management.Database.Enabled {
+			ops = append(ops, ReconcileOperations{reconcile.OTKDatabaseMaintenanceTasks, "otk-db-maintenance-tasks"})
+		}
 	}
 
 	params := reconcile.Params{
@@ -109,11 +129,15 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	start := time.Now()
 	for _, op := range ops {
+		r.muTasks.Lock()
 		err = op.Run(ctx, params)
 		if err != nil {
 			_ = captureMetrics(ctx, params, start, true, op.Name)
+			// record failures here
+			r.muTasks.Unlock()
 			return ctrl.Result{}, err
 		}
+		r.muTasks.Unlock()
 	}
 
 	_ = captureMetrics(ctx, params, start, false, "")
@@ -142,11 +166,22 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	builder.WatchesMetadata(repo,
 		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []creconcile.Request {
+			rb, err := json.Marshal(a.DeepCopyObject())
+			var repository securityv1.Repository
+			if err != nil {
+				return []creconcile.Request{}
+			}
+
+			err = json.Unmarshal(rb, &repository)
+			if err != nil {
+				return []creconcile.Request{}
+			}
+
 			gatewayList := &securityv1.GatewayList{}
 			listOpts := []client.ListOption{
 				client.InNamespace(a.GetNamespace()),
 			}
-			err := r.List(ctx, gatewayList, listOpts...)
+			err = r.List(ctx, gatewayList, listOpts...)
 
 			if err != nil {
 				if k8serrors.IsNotFound(err) {
@@ -156,7 +191,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			req := []creconcile.Request{}
 			for _, gateway := range gatewayList.Items {
 				for _, repoRef := range gateway.Spec.App.RepositoryReferences {
-					if repoRef.Name == a.GetName() {
+					if repoRef.Name == repository.Name {
 						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
 					}
 				}
@@ -203,7 +238,133 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			}
 			return req
 		}),
-	)
+	).WithEventFilter(predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectNew.GetObjectKind().GroupVersionKind().Kind == "gateway" {
+				oldGwGen := e.ObjectOld.GetGeneration()
+				newGwGen := e.ObjectNew.GetGeneration()
+				return oldGwGen != newGwGen
+			}
+			objType := fmt.Sprintf("%v", reflect.TypeOf(e.ObjectNew))
+			if e.ObjectNew.GetObjectKind().GroupVersionKind().Kind == "" {
+				if objType == "*v1.Gateway" {
+					oldGw := securityv1.Gateway{}
+					newGw := securityv1.Gateway{}
+					oldGwB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+					newGwB, err := json.Marshal(e.ObjectNew.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+
+					err = json.Unmarshal(oldGwB, &oldGw)
+					if err != nil {
+						return true
+					}
+					err = json.Unmarshal(newGwB, &newGw)
+					if err != nil {
+						return true
+					}
+
+					if reflect.DeepEqual(oldGw.Spec, newGw.Spec) {
+						return false
+					}
+				}
+
+				if objType == "*v1.Deployment" {
+					oldDep := appsv1.Deployment{}
+					newDep := appsv1.Deployment{}
+					oldDepB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+					newDepB, err := json.Marshal(e.ObjectNew.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+
+					err = json.Unmarshal(oldDepB, &oldDep)
+					if err != nil {
+						return true
+					}
+					err = json.Unmarshal(newDepB, &newDep)
+					if err != nil {
+						return true
+					}
+					if oldDep.Status.ReadyReplicas == newDep.Status.ReadyReplicas || newDep.Status.ReadyReplicas == 0 { //|| oldDep.Status.ReadyReplicas > newDep.Status.ReadyReplicas
+						return false
+					}
+					return true
+				}
+
+				if objType == "*v1.PodDisruptionBudget" {
+					oldPdb := policyv1.PodDisruptionBudget{}
+					newPdb := policyv1.PodDisruptionBudget{}
+					oldPdbB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+					newPdbB, err := json.Marshal(e.ObjectNew.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+
+					err = json.Unmarshal(oldPdbB, &oldPdb)
+					if err != nil {
+						return true
+					}
+					err = json.Unmarshal(newPdbB, &newPdb)
+					if err != nil {
+						return true
+					}
+					if reflect.DeepEqual(oldPdb.Spec, newPdb.Spec) {
+						return false
+					}
+
+					return true
+				}
+				if objType == "*v2.HorizontalPodAutoscaler" {
+					oldHpa := autoscalingv2.HorizontalPodAutoscaler{}
+					newHpa := autoscalingv2.HorizontalPodAutoscaler{}
+					oldHpaB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+					newHpaB, err := json.Marshal(e.ObjectNew.DeepCopyObject())
+					if err != nil {
+						return true
+					}
+
+					err = json.Unmarshal(oldHpaB, &oldHpa)
+					if err != nil {
+						return true
+					}
+					err = json.Unmarshal(newHpaB, &newHpa)
+					if err != nil {
+						return true
+					}
+					if reflect.DeepEqual(oldHpa.Spec, newHpa.Spec) {
+						return false
+					}
+
+					return true
+				}
+
+			}
+			return true
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return true
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return true
+		},
+	})
 
 	if r.Platform == "openshift" {
 		builder.Owns(&routev1.Route{})
@@ -242,10 +403,6 @@ func captureMetrics(ctx context.Context, params reconcile.Params, start time.Tim
 	hostname, err := util.GetHostname()
 	if err != nil {
 		params.Log.Error(err, "failed to retrieve operator hostname")
-		return err
-	}
-	if err != nil {
-		params.Log.Error(err, "failed to retrieve operator namespace")
 		return err
 	}
 

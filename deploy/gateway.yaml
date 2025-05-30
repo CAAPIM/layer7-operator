@@ -4,7 +4,7 @@ metadata:
   name: ssg
 spec:
   app:
-    image: docker.io/caapim/gateway:11.1.1
+    image: docker.io/caapim/gateway:11.1.2
     management:
       cluster:
         hostname: gateway.brcmlabs.com
@@ -26,7 +26,7 @@ spec:
   license:
     accept: false
     secretName: gateway-license
-  version: 11.1.1
+  version: 11.1.2
 status: {}
 ---
 apiVersion: security.brcmlabs.com/v1
@@ -57,13 +57,26 @@ kind: L7Portal
 metadata:
   name: dev-portal
 spec:
-  auth:
-    clientId: 3d8f8967b8e54909b5e9a86e09063406
-    clientSecret: b40a829f046a451db15aa8be503ea7b3
-    endpoint: dev-ssg.brcmlabs.com
+  auth: {}
   deploymentTags:
   - ssg
   enabled: true
   endpoint: dev-ssg.brcmlabs.com
   enrollmentBundle: ""
   portalTenant: portal
+---
+apiVersion: security.brcmlabs.com/v1alpha1
+kind: L7StateStore
+metadata:
+  name: state-store-example
+spec:
+  redis:
+    database: 0
+    groupName: l7gw
+    masterPassword: 7layer
+    standalone:
+      host: redis-standalone
+      port: 6379
+    storeId: test
+    type: standalone
+  type: redis

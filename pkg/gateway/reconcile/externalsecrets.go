@@ -1,14 +1,32 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package reconcile
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/json"
-	"fmt"
-	"strings"
-
-	"github.com/caapim/layer7-operator/pkg/util"
-	corev1 "k8s.io/api/core/v1"
 )
 
 func ExternalSecrets(ctx context.Context, params Params) error {
@@ -22,157 +40,30 @@ func ExternalSecrets(ctx context.Context, params Params) error {
 		}
 	}
 
-	name := gateway.Name
-	if gateway.Spec.App.Management.DisklessConfig.Disabled {
-		name = gateway.Name + "-node-properties"
-	}
-	if gateway.Spec.App.Management.SecretName != "" {
-		name = gateway.Spec.App.Management.SecretName
-	}
-	gwSecret, err := getGatewaySecret(ctx, params, name)
+	gwUpdReq, err := NewGwUpdateRequest(
+		ctx,
+		gateway,
+		params,
+		WithBundleType(BundleTypeExternalSecret),
+	)
 
 	if err != nil {
 		return err
 	}
 
-	podList, err := getGatewayPods(ctx, params)
-	if err != nil {
-		return err
-	}
-
-	gatewayDeployment, err := getGatewayDeployment(ctx, params)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range gateway.Status.LastAppliedExternalSecrets {
-		found := false
-		notFound := []string{}
-
-		for _, es := range gateway.Spec.App.ExternalSecrets {
-			if k == es.Name {
-				found = true
-			}
-		}
-		if !found {
-			notFound = append(notFound, v...)
-			bundleBytes, err := util.ConvertOpaqueMapToGraphmanBundle(nil, notFound)
-			if err != nil {
-				return err
-			}
-			annotation := "security.brcmlabs.com/external-secret-" + k
-			if !gateway.Spec.App.Management.Database.Enabled {
-				err = ReconcileEphemeralGateway(ctx, params, "external secrets", *podList, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
-				if err != nil {
-					return err
-				}
-			} else {
-				err = ReconcileDBGateway(ctx, params, "external secrets", gatewayDeployment, gateway, gwSecret, "", annotation, "deleted", false, k, bundleBytes)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-	}
-
-	for _, es := range gateway.Spec.App.ExternalSecrets {
-		var sha1Sum string
-		opaqueSecretMap := []util.GraphmanSecret{}
-		if es.Enabled {
-			secret, err := getGatewaySecret(ctx, params, es.Name)
-			if err != nil {
-				return err
-			}
-
-			switch secret.Type {
-			case corev1.SecretTypeOpaque:
-				for k, v := range secret.Data {
-					opaqueSecretMap = append(opaqueSecretMap, util.GraphmanSecret{
-						Name:                 k,
-						Secret:               string(v),
-						Description:          es.Description,
-						VariableReferencable: es.VariableReferencable,
-					})
-				}
-			case corev1.SecretTypeServiceAccountToken, corev1.SecretTypeBasicAuth:
-				for k, v := range secret.Data {
-					opaqueSecretMap = append(opaqueSecretMap, util.GraphmanSecret{
-						Name:                 es.Name + "-" + k,
-						Secret:               string(v),
-						Description:          es.Description,
-						VariableReferencable: es.VariableReferencable,
-					})
-				}
-			case corev1.SecretTypeDockercfg, corev1.SecretTypeDockerConfigJson:
-				for k, v := range secret.Data {
-					opaqueSecretMap = append(opaqueSecretMap, util.GraphmanSecret{
-						Name:                 es.Name + "-" + strings.Split(k, ".")[1],
-						Secret:               string(v),
-						Description:          es.Description,
-						VariableReferencable: es.VariableReferencable,
-					})
-				}
-			default:
-				params.Log.V(2).Info("not a supported secret type", "secret name", es.Name, "secret type", secret.Type, "name", gateway.Name, "namespace", gateway.Namespace)
-			}
-
-			dataBytes, _ := json.Marshal(&secret.Data)
-			h := sha1.New()
-			h.Write(dataBytes)
-			sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
-		}
-
-		notFound := []string{}
-		if gateway.Status.LastAppliedExternalSecrets != nil && gateway.Status.LastAppliedExternalSecrets[es.Name] != nil {
-
-			for _, appliedSecret := range gateway.Status.LastAppliedExternalSecrets[es.Name] {
-				found := false
-				for _, desiredSecret := range opaqueSecretMap {
-					if appliedSecret == desiredSecret.Name {
-						found = true
-					}
-				}
-				if !found {
-					notFound = append(notFound, appliedSecret)
-				}
-			}
-		}
-
-		if len(opaqueSecretMap) < 1 && len(notFound) < 1 {
-			continue
-		}
-
-		bundleBytes, err := util.ConvertOpaqueMapToGraphmanBundle(opaqueSecretMap, notFound)
+	for _, extSecret := range gwUpdReq.externalEntities {
+		extSecretUpdReq := gwUpdReq
+		extSecretUpdReq.bundle = extSecret.Bundle
+		extSecretUpdReq.bundleName = extSecret.Name
+		extSecretUpdReq.checksum = extSecret.Checksum
+		extSecretUpdReq.cacheEntry = extSecret.CacheEntry
+		extSecretUpdReq.patchAnnotation = extSecret.Annotation
+		extSecretUpdReq.graphmanEncryptionPassphrase = extSecret.EncryptionPassphrase
+		err = SyncGateway(ctx, params, *extSecretUpdReq)
 		if err != nil {
 			return err
 		}
-
-		graphmanEncryptionPassphrase := es.Encryption.Passphrase
-		if es.Encryption.ExistingSecret != "" {
-			graphmanEncryptionPassphrase, err = getGraphmanEncryptionPassphrase(ctx, params, es.Encryption.ExistingSecret, es.Encryption.Key)
-			if err != nil {
-				return err
-			}
-		}
-
-		if sha1Sum == "" {
-			sha1Sum = "deleted"
-		}
-
-		annotation := "security.brcmlabs.com/external-secret-" + es.Name
-
-		if !gateway.Spec.App.Management.Database.Enabled {
-			err = ReconcileEphemeralGateway(ctx, params, "external secrets", *podList, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, es.Name, bundleBytes)
-			if err != nil {
-				return err
-			}
-		} else {
-			err = ReconcileDBGateway(ctx, params, "external secrets", gatewayDeployment, gateway, gwSecret, graphmanEncryptionPassphrase, annotation, sha1Sum, false, es.Name, bundleBytes)
-			if err != nil {
-				return err
-			}
-		}
 	}
+
 	return nil
 }

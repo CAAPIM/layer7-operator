@@ -1,8 +1,31 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package gateway
 
 import (
-	"crypto/sha1"
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -629,14 +652,9 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		initContainers = append(initContainers, ic)
 	}
 
-	graphmanInitContainer := false
-	commits := ""
 	gmanInitContainerVolumeMounts := []corev1.VolumeMount{}
 	for _, staticRepository := range gw.Status.RepositoryStatus {
 		if staticRepository.Enabled && staticRepository.Type == "static" {
-			commits = commits + staticRepository.Commit
-			graphmanInitContainer = true
-
 			if staticRepository.SecretName != "" {
 				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 					Name:      staticRepository.SecretName,
@@ -655,7 +673,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			// if the repository compressed is less than 1mb in size it will be
 			// available as an existing Kubernetes secret which reduces reliance on an external Git repository for Gateway boot.
 			// these secrets are managed by the Repository controller.
-			if staticRepository.StorageSecretName != "" {
+			if staticRepository.StorageSecretName != "" && staticRepository.StorageSecretName != "_" {
 				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 					Name:      staticRepository.StorageSecretName,
 					MountPath: "/graphman/localref/" + staticRepository.StorageSecretName,
@@ -672,81 +690,73 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		}
 	}
 
-	if graphmanInitContainer {
-		// Config Mount
-		gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-			Name:      gw.Name + "-repository-init-config",
-			MountPath: "/graphman/config.json",
-			SubPath:   "config.json",
-		})
+	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+		Name:      gw.Name + "-repository-init-config",
+		MountPath: "/graphman/config.json",
+		SubPath:   "config.json",
+	})
 
-		volumes = append(volumes, corev1.Volume{
-			Name: gw.Name + "-repository-init-config",
-			VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: gw.Name + "-repository-init-config",
-				},
-				DefaultMode: &defaultMode,
-				Optional:    &optional,
-			}},
-		})
-
-		// Target Bootstrap Mount
-		gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-			Name:      gw.Name + "-repository-bundle-dest",
-			MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
-		})
-		volumes = append(volumes, corev1.Volume{
-			Name: gw.Name + "-repository-bundle-dest",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+	volumes = append(volumes, corev1.Volume{
+		Name: gw.Name + "-repository-init-config",
+		VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: gw.Name + "-repository-init-config",
 			},
-		})
+			DefaultMode: &defaultMode,
+			Optional:    &optional,
+		}},
+	})
 
-		volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
+	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+		Name:      gw.Name + "-repository-bundle-dest",
+		MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
+	})
+	volumes = append(volumes, corev1.Volume{
+		Name: gw.Name + "-repository-bundle-dest",
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	})
 
-		h := sha1.New()
-		h.Write([]byte(commits))
-		commits = fmt.Sprintf("%x", h.Sum(nil))
+	volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
 
-		graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.2"
-		graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
-		graphmanInitContainerSecurityContext := corev1.SecurityContext{}
+	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.3"
+	graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
+	graphmanInitContainerSecurityContext := corev1.SecurityContext{}
 
-		if gw.Spec.App.Management.Graphman.InitContainerImage != "" {
-			graphmanInitContainerImage = gw.Spec.App.Management.Graphman.InitContainerImage
-		}
-
-		if gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy != "" {
-			graphmanInitContainerImagePullPolicy = gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy
-		}
-
-		if platform == "openshift" {
-			graphmanInitContainerSecurityContext = ocContainerSecurityContext
-		}
-
-		if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
-			graphmanInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
-		}
-
-		if gw.Spec.App.Management.Graphman.InitContainerSecurityContext != (corev1.SecurityContext{}) {
-			graphmanInitContainerSecurityContext = gw.Spec.App.Management.Graphman.InitContainerSecurityContext
-		}
-
-		initContainers = append(initContainers, corev1.Container{
-			Name:            "graphman-static-init-" + commits[30:],
-			Image:           graphmanInitContainerImage,
-			ImagePullPolicy: graphmanInitContainerImagePullPolicy,
-			SecurityContext: &graphmanInitContainerSecurityContext,
-			VolumeMounts:    gmanInitContainerVolumeMounts,
-			Env: []corev1.EnvVar{{
-				Name:  "BOOTSTRAP_BASE",
-				Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
-			}},
-			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-		})
+	if gw.Spec.App.Management.Graphman.InitContainerImage != "" {
+		graphmanInitContainerImage = gw.Spec.App.Management.Graphman.InitContainerImage
 	}
+
+	if gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy != "" {
+		graphmanInitContainerImagePullPolicy = gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy
+	}
+
+	if platform == "openshift" {
+		graphmanInitContainerSecurityContext = ocContainerSecurityContext
+	}
+
+	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
+		graphmanInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
+	}
+
+	if gw.Spec.App.Management.Graphman.InitContainerSecurityContext != (corev1.SecurityContext{}) {
+		graphmanInitContainerSecurityContext = gw.Spec.App.Management.Graphman.InitContainerSecurityContext
+	}
+
+	initContainers = append(initContainers, corev1.Container{
+		Name:            "graphman-static-init",
+		Image:           graphmanInitContainerImage,
+		ImagePullPolicy: graphmanInitContainerImagePullPolicy,
+		SecurityContext: &graphmanInitContainerSecurityContext,
+		VolumeMounts:    gmanInitContainerVolumeMounts,
+		Env: []corev1.EnvVar{{
+			Name:  "BOOTSTRAP_BASE",
+			Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
+		}},
+		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+	})
 
 	if gw.Spec.App.PortalReference.Enabled {
 		portalInitContainerVolumeMounts := []corev1.VolumeMount{}
@@ -922,7 +932,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		})
 	}
 
-	if otkDbInitContainer && (gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle) {
+	if otkDbInitContainer && gw.Spec.App.Otk.Database.Type != securityv1.OtkDatabaseTypeCassandra && (gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle) {
 		initContainers = append(initContainers, corev1.Container{
 			Name:            "otk-db-init",
 			Image:           otkInitContainerImage,
@@ -1005,6 +1015,58 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		Lifecycle:      &lifecycleHooks,
 	}
 
+	if gw.Spec.App.Otel.OtelSDKOnly.Enabled {
+		resourceAttributes := "k8s.container.name=$(CONTAINER_NAME),k8s.deployment.name=$(OTEL_SERVICE_NAME),service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(NAMESPACE),k8s.node.name=$(NODE_NAME),k8s.pod.name=$(POD_NAME),service.version='" + strings.Split(gw.Spec.App.Image, ":")[1] + "'"
+		if len(gw.Spec.App.Otel.AdditionalResourceAttritbutes) > 0 {
+			additionalResourceAttributes := []string{}
+			for _, attr := range gw.Spec.App.Otel.AdditionalResourceAttritbutes {
+				additionalResourceAttributes = append(additionalResourceAttributes, attr.Name+"="+attr.Value)
+			}
+			resourceAttributes = resourceAttributes + "," + strings.Join(additionalResourceAttributes, ",")
+		}
+
+		otelEnv := []corev1.EnvVar{
+			{
+				Name: "NODE_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "spec.nodeName",
+					},
+				},
+			},
+			{
+				Name: "POD_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			},
+			{
+				Name: "NAMESPACE",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.namespace",
+					},
+				},
+			},
+			{
+				Name:  "CONTAINER_NAME",
+				Value: "gateway",
+			},
+			{
+				Name:  "OTEL_SERVICE_NAME",
+				Value: gw.Name,
+			},
+			{
+				Name:  "OTEL_RESOURCE_ATTRIBUTES",
+				Value: resourceAttributes,
+			},
+		}
+
+		gateway.Env = append(gateway.Env, otelEnv...)
+	}
+
 	secretRef := corev1.SecretEnvSource{}
 	if !gw.Spec.App.Management.DisklessConfig.Disabled {
 		secretRef = corev1.SecretEnvSource{
@@ -1012,7 +1074,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		}
 		gateway.EnvFrom = append(gateway.EnvFrom, corev1.EnvFromSource{SecretRef: &secretRef})
 	} else {
-		vs := corev1.VolumeSource{}
+		var vs corev1.VolumeSource
 
 		if !reflect.DeepEqual(gw.Spec.App.Management.DisklessConfig.Csi, securityv1.CSI{}) {
 

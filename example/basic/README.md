@@ -3,7 +3,7 @@ By the end of this example you should have a better understanding of the Layer7 
 
 
 ### Getting started
-1. Place a gateway v10 or v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 2. Accept the Gateway License
   - license.accept defaults to false in [Gateway examples](../gateway/basic-gateway.yaml)
   - update license.accept to true before proceeding
@@ -59,7 +59,7 @@ ssg-64ccd9dd48-bqstf                                  1/1     Running   0       
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml
 ```
 
 ##### Verify the Operator is up and running
@@ -205,7 +205,7 @@ status:
     ready: true
     startTime: 2023-04-03 18:57:24 +0000 UTC
   host: gateway.brcmlabs.com
-  image: caapim/gateway:11.1.1
+  image: caapim/gateway:11.1.2
   ready: 1
   replicas: 1
 repositoryStatus:
@@ -234,7 +234,7 @@ repositoryStatus:
   storageSecretName: l7-gw-mysubscriptions-repository
   type: dynamic
 state: Ready
-version: 11.1.1
+version: 11.1.2
 ```
 
 ### Test your Gateway Deployment
@@ -322,5 +322,5 @@ kubectl delete -k ./example/repositories/
 
 ### Uninstall the Operator
 ```
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.1.1/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml
 ```

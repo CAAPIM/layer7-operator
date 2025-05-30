@@ -20,6 +20,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type RepositoryType string
+
+const (
+	RepositoryTypeGit        RepositoryType = "git"
+	RepositoryTypeLocal      RepositoryType = "local"
+	RepositoryTypeHttp       RepositoryType = "http"
+	RepositoryTypeStateStore RepositoryType = "statestore"
+)
+
 // RepositorySpec defines the desired state of Repository
 type RepositorySpec struct {
 	//Labels - Custom Labels
@@ -34,11 +43,18 @@ type RepositorySpec struct {
 	// Endoint - Git repository endpoint
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Endpoint"
 	Endpoint string `json:"endpoint,omitempty"`
-	// Type of Repository - Git, HTTP, Local
+	// Type of Repository - git, http, local, statestore
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Type"
-	Type string `json:"type,omitempty"`
+	Type RepositoryType `json:"type,omitempty"`
+	// StateStoreReference which L7StateStore connection should be used to store or retrieve this key
+	// if type is statestore this reference will read everything from the state store
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="StateStoreReference"
+	StateStoreReference string `json:"stateStoreReference,omitempty"`
+	// StateStoreKey where the repository is stored in the L7StateStore
+	// this only takes effect if type is statestore
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="StateStoreReference"
+	StateStoreKey string `json:"stateStoreKey,omitempty"`
 	// LocalReference lets the Repository controller use a local Kubernetes Secret as a repository source
-	// This is not currently implemented
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="LocalReference"
 	LocalReference LocalReference `json:"localReference,omitempty"`
 	// RepositorySyncConfig defines how often this repository is synced
@@ -97,7 +113,7 @@ type RepositorySyncConfig struct {
 
 // RepositoryAuth
 type RepositoryAuth struct {
-	// Vendor i.e. Github, Gitlab, BitBucket
+	// Vendor i.e. Github, Gitlab, BitBucket, Azure
 	Vendor string `json:"vendor,omitempty"`
 	// Auth Type defaults to basic, possible options are
 	// none, basic or ssh
@@ -150,6 +166,14 @@ type RepositoryStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:displayName="StorageSecretName"
 	StorageSecretName string `json:"storageSecretName,omitempty"`
+	// StateStoreVersion tracks version in state store
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="StateStoreVersion"
+	StateStoreVersion int `json:"stateStoreVersion,omitempty"`
+	// StateStoreSynced whether or not the state store has been written to correctly
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="StateStoreVersion"
+	StateStoreSynced bool `json:"stateStoreSynced,omitempty"`
 }
 
 func init() {

@@ -1,27 +1,74 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+ */
 package reconcile
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 func GatewayStatus(ctx context.Context, params Params) error {
 	gatewayStatus := params.Instance.Status
-	gatewayStatus.RepositoryStatus = []securityv1.GatewayRepositoryStatus{}
 	gatewayStatus.Host = params.Instance.Spec.App.Management.Cluster.Hostname
 	gatewayStatus.Image = params.Instance.Spec.App.Image
 	gatewayStatus.Version = params.Instance.Spec.Version
 	gatewayStatus.Gateway = []securityv1.GatewayState{}
 
 	dep, err := getGatewayDeployment(ctx, params)
-	if err != nil || k8serrors.IsNotFound(err) {
+	if err != nil {
 		params.Log.V(2).Info("deployment hasn't been created yet", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	} else {
 		gatewayStatus.Replicas = dep.Status.Replicas
+	}
+
+	podList, err := getGatewayPods(ctx, params)
+	if err != nil {
+		params.Log.V(2).Info("pods aren't available yet", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+	}
+
+	if len(params.Instance.Spec.App.RepositoryReferences) < len(gatewayStatus.RepositoryStatus) {
+		for i, repoStatus := range gatewayStatus.RepositoryStatus {
+			found := false
+			for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
+				if repoStatus.Name == repoRef.Name {
+					gatewayStatus.RepositoryStatus[i].Enabled = repoRef.Enabled
+					found = true
+				}
+			}
+			if !found {
+				gatewayStatus.RepositoryStatus[i].Enabled = false
+				gatewayStatus.RepositoryStatus[i].Commit = ""
+			}
+		}
 	}
 
 	for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
@@ -33,50 +80,74 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			return err
 		}
 
-		secretName := repository.Name
-		if repository.Spec.Auth.ExistingSecretName != "" {
-			secretName = repository.Spec.Auth.ExistingSecretName
+		if repository.Status.Commit == "" {
+			return fmt.Errorf("repository %s is not ready yet", repository.Name)
 		}
 
-		if repository.Spec.Auth == (securityv1.RepositoryAuth{}) {
-			secretName = ""
+		found := false
+		for i, repoStatus := range gatewayStatus.RepositoryStatus {
+			if repoStatus.Name == repository.Name {
+				gatewayStatus.RepositoryStatus[i].Enabled = repoRef.Enabled
+				gatewayStatus.RepositoryStatus[i].Commit = repository.Status.Commit
+				found = true
+			}
 		}
 
-		commit := repository.Status.Commit
+		if !found {
+			secretName := repository.Name
+			if repository.Spec.Auth.ExistingSecretName != "" {
+				secretName = repository.Spec.Auth.ExistingSecretName
+			}
 
-		newRepoStatus := securityv1.GatewayRepositoryStatus{
-			Commit:            commit,
-			Enabled:           repoRef.Enabled,
-			Name:              repoRef.Name,
-			Type:              repoRef.Type,
-			SecretName:        secretName,
-			StorageSecretName: repository.Status.StorageSecretName,
-			Endpoint:          repository.Spec.Endpoint,
-		}
+			if repository.Spec.Auth == (securityv1.RepositoryAuth{}) {
+				secretName = ""
+			}
 
-		if repository.Spec.Tag != "" && repository.Spec.Branch == "" {
-			newRepoStatus.Tag = repository.Spec.Tag
-		}
+			rs := securityv1.GatewayRepositoryStatus{
+				Commit:            repository.Status.Commit,
+				Enabled:           repoRef.Enabled,
+				Name:              repoRef.Name,
+				Type:              string(repoRef.Type),
+				SecretName:        secretName,
+				StorageSecretName: repository.Status.StorageSecretName,
+				Endpoint:          repository.Spec.Endpoint,
+			}
 
-		if repository.Spec.Branch != "" {
-			newRepoStatus.Branch = repository.Spec.Branch
-		}
+			if repository.Spec.Tag != "" && repository.Spec.Branch == "" {
+				rs.Tag = repository.Spec.Tag
+			}
 
-		newRepoStatus.RemoteName = "origin"
-		if repository.Spec.RemoteName != "" {
-			newRepoStatus.RemoteName = repository.Spec.RemoteName
+			if repository.Spec.Branch != "" {
+				rs.Branch = repository.Spec.Branch
+			}
+
+			rs.RemoteName = "origin"
+			if repository.Spec.RemoteName != "" {
+				rs.RemoteName = repository.Spec.RemoteName
+			}
+
+			if repository.Spec.StateStoreReference != "" {
+				rs.StateStoreReference = repository.Spec.StateStoreReference
+				statestore := &securityv1alpha1.L7StateStore{}
+				err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Spec.StateStoreReference, Namespace: params.Instance.Namespace}, statestore)
+				if err != nil && k8serrors.IsNotFound(err) {
+					params.Log.Info("state store not found", "name", repository.Spec.StateStoreReference, "repository", repository.Name, "namespace", params.Instance.Namespace)
+					return err
+				}
+				rs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + repository.Status.StorageSecretName + ":latest"
+				if repository.Spec.StateStoreKey != "" {
+					rs.StateStoreKey = repository.Spec.StateStoreKey
+				}
+			}
+			gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, rs)
 		}
-		gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, newRepoStatus)
 	}
 
-	podList, err := getGatewayPods(ctx, params)
-	if err != nil {
-		return err
-	}
-
-	for _, p := range podList.Items {
-		if p.ObjectMeta.Labels["management-access"] == "leader" {
-			gatewayStatus.ManagementPod = p.Name
+	if podList != nil {
+		for _, p := range podList.Items {
+			if p.ObjectMeta.Labels["management-access"] == "leader" {
+				gatewayStatus.ManagementPod = p.Name
+			}
 		}
 	}
 
@@ -88,7 +159,6 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			return err
 		}
 		params.Log.V(2).Info("updated gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-
 	}
 	return nil
 }

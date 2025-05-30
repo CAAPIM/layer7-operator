@@ -2,10 +2,10 @@ package reconcile
 
 import (
 	"context"
-	policyv1 "k8s.io/api/policy/v1"
-	//"context"
-	"k8s.io/apimachinery/pkg/types"
 	"testing"
+
+	policyv1 "k8s.io/api/policy/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestNewPDB(t *testing.T) {

@@ -33,8 +33,7 @@ spec:
         cpu: 2
     otk:
       enabled: true
-      #initContainerImage: docker.io/caapim/otk-install:4.6.3
-      initContainerImage: harbor.sutraone.com/operator/otk-install:4.6.4
+      initContainerImage: docker.io/caapim/otk-install:4.6.4
       initContainerImagePullPolicy: Always
       type: single
       port: 443
@@ -69,7 +68,7 @@ spec:
           maximumPoolSize: 15
         sql:
           databaseName: otk_db
-          jdbcUrl: jdbc:mysql://mysql:3306/otk_db?useSSL=true
+          jdbcUrl: jdbc:mysql://mysql.default.svc.cluster.local:3306/otk_db?allowPublicKeyRetrieval=true
           jdbcDriverClass: com.mysql.cj.jdbc.Driver
           connectionProperties:
             c3p0.maxConnectionAge: "100"
@@ -166,7 +165,7 @@ spec:
         enabled: false
       graphman:
         enabled: true
-        initContainerImage: harbor.sutraone.com/operator/graphman-static-init:1.0.3
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.3
         initContainerImagePullPolicy: Always
       cluster:
         hostname: gateway.brcmlabs.com

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2024 Broadcom. All rights reserved.
+* Copyright (c) 2025 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -1350,7 +1350,6 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 }
 
 func ReconcileDBGateway(ctx context.Context, params Params, kind string, gatewayDeployment appsv1.Deployment, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
-	// TODO: Make sure status updates happen here too for CWPs, listen ports, keys, certs, etc..
 	graphmanPort := 9443
 
 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {

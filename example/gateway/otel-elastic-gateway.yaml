@@ -8,6 +8,8 @@ spec:
     accept: false
     secretName: gateway-license
   app:
+    restartOnConfigChange: true
+    singletonExtraction: true
     podAnnotations:
       sidecar.opentelemetry.io/inject: "ssg-eck"
       instrumentation.opentelemetry.io/inject-java: "true"
@@ -102,10 +104,9 @@ spec:
           protocol: TCP   
       restman:
         enabled: true
-      ## Reserved for future use
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.3
       cluster:
         hostname: gateway.brcmlabs.com
       database:
@@ -251,6 +252,8 @@ spec:
           value: "true"
         - name: otel.traceEnabled
           value: "true"
+        - name: otel.attributePrefix
+          value: l7_
         - name: otel.metricPrefix
           value: l7_
         - name: otel.traceConfig

@@ -50,7 +50,7 @@ spec:
       - env:
         - name: BOOTSTRAP_BASE
           value: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
-        image: docker.io/caapim/graphman-static-init:1.0.2
+        image: docker.io/caapim/graphman-static-init:1.0.3
         imagePullPolicy: IfNotPresent
         name: graphman-static-init
       restartPolicy: Always

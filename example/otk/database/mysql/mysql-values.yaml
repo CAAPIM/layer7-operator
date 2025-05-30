@@ -5,10 +5,12 @@ image:
   tag: 8.4.3-debian-12-r5
   pullPolicy: IfNotPresent
 auth:
-  username: otk_user
-  password: 7layer
-  database: otk_db
   rootPassword: 7layer
+initdbScripts:
+  otk_user.sql: |
+      CREATE USER 'otk_user'@'%' identified by '7layer';
+      GRANT ALL ON *.* TO 'otk_user'@'%';
+      flush privileges;
 primary:
   persistence:
     enabled: true

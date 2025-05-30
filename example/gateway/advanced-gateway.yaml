@@ -146,7 +146,7 @@ spec:
         enabled: false
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.3
       cluster:
         hostname: gateway.brcmlabs.com
       database:

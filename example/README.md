@@ -37,5 +37,5 @@ Other examples
 - [Elastic Stack](./otel-elastic)
 - [Prometheus](./otel-prometheus)
 
-Repositories (used in both examples)
+Repositories (used in most of the examples)
 - [Repositories](./repositories/)

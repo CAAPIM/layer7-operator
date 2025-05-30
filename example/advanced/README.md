@@ -465,6 +465,8 @@ spec:
 These are defined in your Gateway CR spec. External Keys reference existing Kubernetes Secrets, the Operator watches these secrets and will automatically
 - Update your Gateways if a referenced secret changes
 - Update your Gateways if the CR spec changes
+
+##### Note that the kubernetes.io/tls secret brcmlabs does not exist in this example. If you would like to try out this functionality you will need to create and reference a kubernetes.io/tls secret.
 ```
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway

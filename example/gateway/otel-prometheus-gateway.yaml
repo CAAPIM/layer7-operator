@@ -72,10 +72,9 @@ spec:
           protocol: TCP   
       restman:
         enabled: false
-      ## Reserved for future use
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.2
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.3
       cluster:
         #password: 7layer
         hostname: gateway.brcmlabs.com

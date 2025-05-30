@@ -1,5 +1,5 @@
 # OTK Single Mode Install
-By the end of this example you should have a better understanding of the Layer7 Operator and ways you can use the OTK with Ephemeral Gateways. This example builds on the advanced example with a stronger focus on the OTK configuration in the Gateway Custom Resource. This example focuses on MySQL as the OTK Token store.
+By the end of this example you should have a better understanding of the Layer7 Operator and ways you can use the OTK with Ephemeral Gateways. This example builds on the advanced example with a stronger focus on the OTK configuration in the Gateway Custom Resource. This example uses MySQL as the OTK Token store.
 
 ### Getting started
 1. Place a gateway v11 license in [base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.

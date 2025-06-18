@@ -87,17 +87,17 @@ Variables Used:
               <l7:Property key="wssProcessingEnabled">
                 <l7:BooleanValue>false</l7:BooleanValue>
               </l7:Property>
-              <l7:Property key="property.portalID">
+              <l7:Property key="portalID">
                 <l7:StringValue>{%s portalApi.Uuid %}</l7:StringValue>
               </l7:Property>
-              <l7:Property key="property.internal.portalAPIEnabled">
+              <l7:Property key="internal.portalAPIEnabled">
                 <l7:StringValue>{%v portalApi.ApiEnabled %}</l7:StringValue>
               </l7:Property>
-              <l7:Property key="property.portalModifyTS">
+              <l7:Property key="portalModifyTS">
                 <l7:StringValue>{%d portalApi.ModifyTs %}</l7:StringValue>
               </l7:Property>
               {% for _, customField := range portalApi.CustomFields %}
-              <l7:Property key="property.{%s customField.Name %}" xmlns:l7="http://ns.l7tech.com/2010/04/gateway-management">
+              <l7:Property key="{%s customField.Name %}" xmlns:l7="http://ns.l7tech.com/2010/04/gateway-management">
                   <l7:StringValue>{%s customField.Value %}</l7:StringValue>
               </l7:Property>
               {% endfor %}

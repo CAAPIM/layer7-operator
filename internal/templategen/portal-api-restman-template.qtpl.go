@@ -186,21 +186,21 @@ func StreamFromRestmamTemplate(qw422016 *qt422016.Writer, portalApi PortalAPI, a
               <l7:Property key="wssProcessingEnabled">
                 <l7:BooleanValue>false</l7:BooleanValue>
               </l7:Property>
-              <l7:Property key="property.portalID">
+              <l7:Property key="portalID">
                 <l7:StringValue>`)
 //line portal-api-restman-template.qtpl:91
 	qw422016.E().S(portalApi.Uuid)
 //line portal-api-restman-template.qtpl:91
 	qw422016.N().S(`</l7:StringValue>
               </l7:Property>
-              <l7:Property key="property.internal.portalAPIEnabled">
+              <l7:Property key="internal.portalAPIEnabled">
                 <l7:StringValue>`)
 //line portal-api-restman-template.qtpl:94
 	qw422016.E().V(portalApi.ApiEnabled)
 //line portal-api-restman-template.qtpl:94
 	qw422016.N().S(`</l7:StringValue>
               </l7:Property>
-              <l7:Property key="property.portalModifyTS">
+              <l7:Property key="portalModifyTS">
                 <l7:StringValue>`)
 //line portal-api-restman-template.qtpl:97
 	qw422016.N().D(portalApi.ModifyTs)
@@ -212,7 +212,7 @@ func StreamFromRestmamTemplate(qw422016 *qt422016.Writer, portalApi PortalAPI, a
 	for _, customField := range portalApi.CustomFields {
 //line portal-api-restman-template.qtpl:99
 		qw422016.N().S(`
-              <l7:Property key="property.`)
+              <l7:Property key="`)
 //line portal-api-restman-template.qtpl:100
 		qw422016.E().S(customField.Name)
 //line portal-api-restman-template.qtpl:100

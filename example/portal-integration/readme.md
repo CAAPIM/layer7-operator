@@ -91,14 +91,21 @@ If you deploy the nginx ingress controller as part of this example, it will use 
   - [Deploy Redis](#deploy-redis)
   - [Deploy the Developer Portal](#deploy-the-developer-portal)
   - [Deploy the Operator](#deploy-the-layer7-operator)
+  - [Create a Portal specific State Store](#create-a-portal-specific-state-store)
   - [Create a Gateway](#create-a-gateway)
 - [Configure the Developer Portal](#configure-the-developer-portal)
   - [Connect to the Developer Portal](#connect-to-the-developer-portal)
+  - [Enable the requisite feature flags](#enable-the-requisite-feature-flags)
   - [Create an API](#create-an-api)
   - [Create an Application](#create-an-application)
-  - [Create an Environment (Kubernetes Proxy)](#create-an-environment)
+  - [Create a Remote Key Store](#create-a-remote-key-store)
+  - [Configure the g2cA (Ground 2 Cloud Agent)](#configure-the-g2ca-ground-2-cloud-agent)
   - [Deploy the G2C(Ground 2 Cloud) Agent](#deploy-the-g2c-ground-2-cloud-agent)
   - [Deploy Application and API](#deploy-application-and-api)
+  - [View Custom Resources](#view-custom-resources)
+  - [View the L7Portal](#view-the-l7portal)
+  - [View the Repositories](#view-the-repositories)
+  - [View the Gateway](#view-the-gateway)
   - [Test your API](#test-your-api)
 - [Cleanup](#cleanup)
   - [Remove Kind Cluster](#remove-kind-cluster)
@@ -176,7 +183,8 @@ kubectl get pods
 ```
 
 ### Deploy the Developer Portal
-The Portal is based on 5.2.3 with custom images for dispatcher, db-upgrade and portal-data. These faciliate creating a Kubernetes Proxy. The Portal is deployed to the default namespace and uses the following [portal-values.yaml](../portal-integration/portal-values.yaml)
+The Portal deployed is version 5.3.3 which supports layer7-operator gateways enroled with the portal as a proxy. 
+The Portal is deployed to the default namespace and uses the following [portal-values.yaml](../portal-integration/portal-values.yaml)
 
 You can deploy the portal using the following commands
 ```
@@ -222,14 +230,29 @@ Portal Configured to use Redis
 ``` -->
 
 ### Deploy the Layer7 Operator
-This integration example uses v1.2.0 of the Layer7 Operator
+This integration example uses v1.2.1 of the Layer7 Operator
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml -n ${NAMESPACE}
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.1/bundle.yaml -n ${NAMESPACE}
 kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 ```
 
+### Create a Portal specific State Store
+The [State Store Custom Resource](../state-store/portal-state-store.yaml) is configured to use
+Redis for the storage of bundles created and deployed to an enroled proxy. This state store is configured
+to use the Redis used in this example.
+
+Deploy the state store:
+```
+kubectl apply -f state-store/portal-state-store.yaml
+```
+
+Verify it is created:
+```
+kubectl get l7statestores
+```
+
 ### Create a Gateway
-The [Gateway Custom Resource](../gateway/portal-gateway.yaml) is configured to use Redis and Gateway version 11.0.00_CR2
+The [Gateway Custom Resource](../gateway/portal-gateway.yaml) is configured to use Redis and Gateway version 11.1.2
 
 Make sure that you've accepted the license in [portal-gateway.yaml](../gateway/portal-gateway.yaml) and placed a gateway v11 license in [example/base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 ```
@@ -281,6 +304,23 @@ Now that all of the Required Components have been deployed we can proceed to con
   - password: 7layer
 
 ![portal-login](../images/portal-login.gif)
+
+### Enable the requisite feature flags
+
+To use this preview feature, two feature flags must be enabled by setting their values to 'true':
+- FEATURE_FLAG_L7_OPERATOR
+- FEATURE_FLAG_REMOTE_KEY_STORE
+
+Do the above via the 'Portal API' link found at the top of the portal navigation.
+- Click 'Portal API'
+- From the 'Application' drop-down select the 'Portal API App for...'
+- From the 'API Key' drop-down select 'api key 1'
+- Scroll down to the 'Settings' API and expand it
+- Expand the GET request, setting the 'name' param of the feature flag to one of the above and execute the request
+- Copy the response
+- Expand the PUT request, setting the 'name' and param and body to the copied value. Update the value from 'false' -> 'true' and execute the request
+- Repeat the same for the other feature flag
+![portal-feature-flags](../images/set-feature-flags.gif)
 
 ### Create an API
 This example includes a sample API definition and a simple mock server that you can call to test the integration.
@@ -343,35 +383,72 @@ In the same browser
 
 ![create-portal-application](../images/create-portal-application.gif)
 
-### Create an Environment
+### Create a Remote Key Store
+A remote key store is required to be configured in the Portal to represent the API Keys 
+deployed to it. This remote key store will be associated with your proxy later.
+
 In the same browser
 - Click 'Manage' in the center of the top navigation bar.
-- Click 'Environment'
-- Set 'CLOUD NATIVE ENVIRONMENT' to
-  - `example-k8` <== in the experimental version of this integration the name needs to include k8
-- Set 'Workspace' (namespace). If you are not using the default namespace, use the namespace you selected earlier
+- Click 'Key Stores' and then 'Add Key Store'
+- Set 'Name'
+- Select `Remote Key Store` as the 'Key Store Type'
+- Set 'Key Store Id' to a value from the list of values set in spec.app.system.properties 
+com.l7tech.external.assertions.keyvaluestore.storeIdList property in the portal-gateway.yaml. 
+If unmodified, this value should be `GW_STORE_ID`
+- Set the 'Key Deployment Type' to either `Automatic` or `On Demand`
+
+![create-remote-key-store](../images/create-remote-key-store.gif)
+
+### Create a Proxy
+In the same browser
+- Click 'Manage' in the center of the top navigation bar.
+- Click 'Proxies' and then 'Add Proxy'
+- Set 'Proxy Name'
+- Click the L7 Operator toggle
+- Set 'Namespace'. If you are not using the default namespace, use the namespace you selected earlier
   - `default`
-- Set 'Deployment Tags' (these target Operator Managed Gateways)
+- Set 'Deployment Tag'. This needs to match metadata.name in the portal-gateway.yaml. In this example, it is portal-ssg.
   - `portal-ssg`
-- Click 'Save'
-- Click the 'Proxies' tab
-- Click 'example-k8 (portal-ssg)'
+- Select the remote key store you created earlier from the 'Key Store' list
+- Click 'Save & Next' and 'Save' after configuring any organizations
 - Copy the Enrollment URL
 - Keep this tab open for later
+
+![create-proxy](../images/create-l7op-proxy.gif)
+
+### Configure the g2cA (Ground 2 Cloud Agent)
 - Modify [g2c-agent/agent.env](./g2c-agent/agent.env)
   - ENROLMENT_ENDPOINT=Copied Enrollment URL
+
   - Example
   ```
   ENROLMENT_ENDPOINT=https://dev-portal-enroll.brcmlabs.com:443/enroll/portal/?sckh=jacg-kDSrS50zujw6QsPwqd-Lw1TuW7eoEagV0_8SpY&token=3acb385f-5d65-47ea-ab2f-51f15369de43
   ```
-
-![create-portal-environment](../images/create-portal-environment.gif)
+  - Create Redis settings in a separate text file. The configuration should appear as a JSON string, similar to the following which is configured to use the redis in this example:
+  ```  
+  {
+    "type": "standalone",
+    "masterPassword": "7layer",
+    "groupName": "l7GW",
+    "storeId": "GW_STORE_ID",
+    "standalone": {
+      "host": "standalone-redis-master",
+      "port": 6379
+    },
+    "database": 0
+  }
+  ```
+ - Base64 the content of the above file `base64 -i <FILE_PATH>` and update REDIS_CONFIG with it 
+ - Example
+ ```
+REDIS_CONFIG=ewoJInR5cGUiOiAiYXNkZmFzZCIsCgkibWFzdGVyUGFzc3dvcmQiOiAiNz...
+```
 
 
 ### Deploy the G2C (Ground 2 Cloud) Agent
 Make sure that you set the ENROLMENT_ENDPOINT above
 
-- Deploy the agent
+- Deploy the agent via make which will configure the necessary hostAliases
 ```
 make g2c-agent
 ```
@@ -381,9 +458,14 @@ kubectl logs -f -l app=portal-g2c-agent
 ```
 output
 ```
-info: 2024/11/05 17:03:42 broker: wss://dev-portal-broker.brcmlabs.com:443
-portal proxy uuid: dd5a958c-83ce-43dc-9fd8-72aa95bad8fb
-info: 2024/11/05 17:03:42 Connected to wss://dev-portal-broker.brcmlabs.com:443
+{"level":"info","timestamp":"2025-06-23T17:24:53.325Z","caller":"workspace/portal.go:76","msg":"working namespace","traceId":"3eda9791374b6cc6fb51e331547a929a","namespace":"jb533l7op1"}
+{"level":"info","timestamp":"2025-06-23T17:25:11.030Z","caller":"workspace/portal.go:120","msg":"Enrolment URL: https://dev-portal-enroll.brcmlabs.com:443/enroll/portal/?sckh=URgzT5IHMhntoqDYQGRJtiOUvjxoxb74I-WkRKfn540&token=f2b1f5be-8574-45a9-a482-417565bd6f9b","traceId":"3eda9791374b6cc6fb51e331547a929a"}
+{"level":"info","timestamp":"2025-06-23T17:25:11.652Z","caller":"workspace/reconcile.go:104","msg":"repository record updated","traceId":"3eda9791374b6cc6fb51e331547a929a","repository":"graphman-enrol-bundle"}
+W0623 17:25:11.679508       1 warnings.go:70] unknown field "spec.app.otk.healthCheck"
+{"level":"info","timestamp":"2025-06-23T17:25:11.680Z","caller":"workspace/reconcile.go:212","msg":"Updated gateway for enrolment","traceId":"3eda9791374b6cc6fb51e331547a929a","gateway":"jb533l7op1l7gw"}
+{"level":"info","timestamp":"2025-06-23T17:25:13.704Z","caller":"workspace/portal.go:426","msg":"broker: wss://broker.brcmlabs.com:443\nportal proxy uuid: 5e08ae7c-8f4d-4ef8-9579-d3aebb17ca3f","traceId":"3eda9791374b6cc6fb51e331547a929a"}
+...
+...
 ```
 
 - Verify the agent is connected
@@ -399,22 +481,26 @@ Deploy your Application to your new Kubernetes Proxy
 - Click 'Applications'
 - Click 'Example App'
 - Click the 'Key Deployments' tab
-- Deploy to the example-k8 Proxy
-  - Click 'Deploy'
+- If you selected 'Automatic' deployment mode for your key store, the API key should show as deployed otherwise 'Deploy' it
 
 Deploy your API to your new Kubernetes Proxy
 - Click 'Manage' in the center of the top navigation bar.
 - Click 'APIs'
 - Click 'Shipping API'
 - Click the 'Deployments' tab
-- Deploy to the example-k8 Proxy
-  - Click 'Deploy'
+- If you selected 'Automatic' deployment mode for your proxy, the API should show as deployed otherwise 'Deploy' it
 
 ![publish-application-api](../images/publish-application-api.gif)
 
 
 ### View Custom Resources
-The Portal will create two resources in Kubernetes, an l7Portal (created when you defined your environment) and an l7Api (created when you published your API)
+During proxy enrolment a few kubernetes custom resources will be created
+- an l7Portal (created when you defined your environment)
+- repositories representing the Portal-specific Graphman bundles deployed to the Portal state store
+- and any APIs automatically deployed.
+
+The Gateway custom resource will also be modified to add the required repository mappings during enrolment
+as well as a tls key called 'portalman' to support portal analytics.
 
 #### View the L7Portal
 ```
@@ -449,6 +535,143 @@ status:
   lastUpdated: 1730826734793
 ```
 
+#### View the repositories
+```
+kubectl get repositories
+```
+- view a specific repository
+```k get repository graphman-enrol-bundle -oyaml```
+- output: 
+```
+apiVersion: security.brcmlabs.com/v1
+kind: Repository
+metadata:
+  annotations:
+    app.l7.deployedTime: 2025-06-23T17.25.11Z
+  creationTimestamp: "2025-06-23T17:19:32Z"
+  generation: 2
+  labels:
+    app.l7.deployedTime: 2025-06-23T17.25.11Z
+    app.l7.traceId: 3eda9791374b6cc6fb51e331547a929a
+  name: graphman-enrol-bundle
+  namespace: default
+  resourceVersion: "1688411538"
+  uid: 552d5514-97ad-4cab-a117-818da9ea8c79
+spec:
+  auth: {}
+  enabled: true
+  localReference: {}
+  stateStoreKey: portal-store:default:portal-ssg:enrol-bundle
+  stateStoreReference: portal-state-store
+  sync: {}
+  type: statestore
+status:
+  commit: 7b9b5c599a14222d941e3b6d39cb55d3cbc75d63
+  name: graphman-enrol-bundle
+  ready: true
+  storageSecretName: _
+  updated: 2025-06-23 17:25:12.122473376 +0000 UTC m=+453.747444400
+  ```
+#### View the Gateway
+```
+kubectl get gw portal-ssg -oyaml
+```
+output
+```
+Name:         portal-ssg
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+API Version:  security.brcmlabs.com/v1
+Kind:         Gateway
+...
+    External Keys:
+      Alias:           portalman
+      Enabled:         true
+      Key Usage Type:  SSL
+      Name:            g2c-agent-tls
+...
+Repository Status:
+    Commit:  7b9b5c599a14222d941e3b6d39cb55d3cbc75d63
+    Conditions:
+      Status:               SUCCESS
+      Time:                 2025-06-23T18:45:59Z
+    Enabled:                true
+    Name:                   graphman-enrol-bundle
+    Remote Name:            origin
+    State Store Key:        portal-store:default:portal-ssg:enrol-bundle
+    State Store Reference:  portal-state-store
+    Storage Secret Name:    _
+    Type:                   dynamic
+    Commit:                 7573c0617e3c69b39de9c2581f22346a98029c32
+    Conditions:
+      Status:               SUCCESS
+      Time:                 2025-06-23T18:46:00Z
+    Enabled:                true
+    Name:                   graphman-key-store-type-bundle
+    Remote Name:            origin
+    State Store Key:        portal-store:default:portal-ssg:graphman-key-store-type-bundle
+    State Store Reference:  portal-state-store
+    Storage Secret Name:    _
+    Type:                   dynamic
+    Commit:                 915f6a7e8e407fa083803462da6adc1f8ff7f598
+    Conditions:
+      Status:               SUCCESS
+      Time:                 2025-06-23T18:46:00Z
+    Enabled:                true
+    Name:                   graphman-account-plan-bundle
+    Remote Name:            origin
+    State Store Key:        portal-store:default:portal-ssg:graphman-account-plan-bundle
+    State Store Reference:  portal-state-store
+    Storage Secret Name:    _
+    Type:                   dynamic
+    Commit:                 a83099d797733be056233f80b316df09d3b2df43
+    Conditions:
+      Status:               SUCCESS
+      Time:                 2025-06-23T18:46:00Z
+    Enabled:                true
+    Name:                   graphman-rate-quota-bundle
+    Remote Name:            origin
+    State Store Key:        portal-store:default:portal-ssg:graphman-rate-quota-bundle
+    State Store Reference:  portal-state-store
+    Storage Secret Name:    _
+    Type:                   dynamic
+    Commit:                 f2cbc910bf9e36880f2b0b479eb957432a080b9a
+    Conditions:
+      Status:               SUCCESS
+      Time:                 2025-06-23T18:46:00Z
+    Enabled:                true
+    Name:                   graphman-api-org-rate-quota-bundle
+    Remote Name:            origin
+    State Store Key:        portal-store:default:portal-ssg:graphman-api-org-rate-quota-bundle
+    State Store Reference:  portal-state-store
+    Storage Secret Name:    _
+    Type:                   dynamic
+    Commit:                 b27ee6625d5cdaf9ea3ae86f2347ee9c6fcea4f5
+    Conditions:
+      Status:               SUCCESS
+      Time:                 2025-06-23T18:46:00Z
+    Enabled:                true
+    Name:                   graphman-product-tiers-bundle
+    Remote Name:            origin
+    State Store Key:        portal-store:default:portal-ssg:graphman-product-tiers-bundle
+    State Store Reference:  portal-state-store
+    Storage Secret Name:    _
+    Type:                   dynamic
+    Commit:                 cc3347dada7d745dc4528107e36ba840438d44a3
+    Conditions:
+      Status:               SUCCESS
+      Time:                 2025-06-23T18:46:00Z
+    Enabled:                true
+    Name:                   graphman-api-rate-quota-bundle
+    Remote Name:            origin
+    State Store Key:        portal-store:default:portal-ssg:graphman-api-rate-quota-bundle
+    State Store Reference:  portal-state-store
+    Storage Secret Name:    _
+    Type:                   dynamic
+  Version:                  11.1.2
+Events:                     <none>
+```
 #### View the L7Api
 ```
 kubectl get l7api shipping-api -oyaml
@@ -634,5 +857,5 @@ helm del portal
 kubectl delete statefulset portal-mysql
 kubectl delete pvc data-portal-mysql-0 data-rabbitmq-0
 helm del redis
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml -n ${NAMESPACE}
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.1/bundle.yaml -n ${NAMESPACE}
 ```

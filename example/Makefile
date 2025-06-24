@@ -23,7 +23,7 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.1/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
@@ -43,7 +43,7 @@ otk-single:
 	kubectl apply -f ./gateway/otk/otk-single.yaml
 
 portal-example: redis
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml -n ${NAMESPACE}
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.1/bundle.yaml -n ${NAMESPACE}
 	@$(MAKE) --silent t=15 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 	kubectl apply -k ./base -n ${NAMESPACE}
@@ -237,7 +237,7 @@ uninstall:
 	-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 	-kubectl delete ns observability
 	-kubectl delete ns monitoring
-	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.0/bundle.yaml
+	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.1/bundle.yaml
 	-helm uninstall mysql
 	-helm uninstall cassandra
 

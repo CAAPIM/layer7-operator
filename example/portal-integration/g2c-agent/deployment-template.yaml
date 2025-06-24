@@ -23,7 +23,7 @@ spec:
         - "dev-portal-ssg.brcmlabs.com"
       containers:
       - name: portal-g2c-agent
-        image: caapim/portal-g2c-agent:0.0.1
+        image: caapim/portal-g2c-agent:5.3.3
         imagePullPolicy: Always
         resources:
           requests:

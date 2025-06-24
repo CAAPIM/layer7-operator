@@ -119,14 +119,14 @@ metadata:
       ]
     capabilities: Basic Install
     certified: "false"
-    containerImage: docker.io/caapim/layer7-operator:v1.2.0
-    createdAt: "2025-05-19T10:22:16Z"
+    containerImage: docker.io/caapim/layer7-operator:v1.2.1
+    createdAt: "2025-06-24T12:00:00Z"
     operatorframework.io/suggested-namespace: layer7-operator-system
     operators.operatorframework.io/builder: operator-sdk-v1.38.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community
-  name: layer7-operator.v1.2.0
+  name: layer7-operator.v1.2.1
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -699,7 +699,7 @@ spec:
                   value: localhost:4317
                 - name: OTEL_METRIC_PREFIX
                   value: layer7_
-                image: docker.io/caapim/layer7-operator:v1.2.0
+                image: docker.io/caapim/layer7-operator:v1.2.1
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -788,7 +788,7 @@ spec:
   provider:
     name: Broadcom
     url: https://www.broadcom.com/
-  version: 1.2.0
+  version: 1.2.1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1

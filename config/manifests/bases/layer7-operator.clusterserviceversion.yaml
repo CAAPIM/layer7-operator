@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     certified: "false"
-    containerImage: docker.io/caapim/layer7-operator:v1.2.0
+    containerImage: docker.io/caapim/layer7-operator:v1.2.1
     operatorframework.io/suggested-namespace: layer7-operator-system
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community

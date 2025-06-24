@@ -3,7 +3,7 @@ kind: Gateway
 metadata:
   name: portal-ssg
 spec:
-  version: "11.1.1"
+  version: "11.1.2"
   license:
     accept: false
     secretName: gateway-license
@@ -13,7 +13,7 @@ spec:
       minAvailable: 2
     replicas: 1
     restartOnConfigChange: true
-    image: caapim/gateway:11.1.1
+    image: caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
     updateStrategy:
       type: rollingUpdate
@@ -72,14 +72,14 @@ spec:
     portalReference:
       enabled: true
       portalName: example-k8
-      initContainerImage:  caapim/portal-bulk-sync:0.0.1
+      initContainerImage:  caapim/portal-bulk-sync:5.3.3
       initContainerImagePullPolicy: Always
     bootstrap:
       script:
         enabled: true
     initContainers:
     - name: gateway-init
-      image: apim-docker-dev-local.usw1.packages.broadcom.com/apim-gateway/gateway-init-portal:latest
+      image: caapim/gateway-init-portal:5.3.3
       imagePullPolicy: Always
       volumeMounts:
       - name: config-directory

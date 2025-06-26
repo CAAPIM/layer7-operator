@@ -9425,3 +9425,34 @@ func installBundleGeneric(
 
 	return &data_, err_
 }
+
+// The query or mutation executed by deleteBundleGeneric.
+const deleteBundleGeneric_Operation = `
+mutation deleteBundleGeneric {
+	deleteBundleEntities {
+		summary
+	}
+}
+`
+
+func deleteBundleGeneric(
+	ctx_ context.Context,
+	client_ graphql.Client,
+) (*deleteBundleGenericResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "deleteBundleGeneric",
+		Query:  deleteBundleGeneric_Operation,
+	}
+	var err_ error
+
+	var data_ deleteBundleGenericResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}

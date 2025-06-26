@@ -4137,6 +4137,165 @@ type installBundleResponse struct {
 	SetKeys *installBundleSetKeysKeysPayload `json:"setKeys"`
 }
 
+// deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload includes the requested fields of the GraphQL type BundleEntitiesPayload.
+type deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload struct {
+	Summary bool `json:"summary"`
+}
+
+// GetSummary returns deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload.Summary, and is useful for accessing the field via an interface.
+func (v *deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload) GetDeleteSummary() bool {
+	return v.Summary
+}
+
+// deleteBundleGenericResponse is returned by installBundleGeneric on success.
+type deleteBundleGenericResponse struct {
+	// Installs bundle of entities using set-based mutation operations
+	DeleteBundleEntities *deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload `json:"deleteBundleEntities"`
+}
+
+// GetInstallBundleEntities returns installBundleGenericResponse.InstallBundleEntities, and is useful for accessing the field via an interface.
+func (v *deleteBundleGenericResponse) GetDeleteBundleEntities() *deleteBundleGenericDeleteBundleEntitiesBundleEntitiesPayload {
+	return v.DeleteBundleEntities
+}
+
+// installBundleResponse is returned by installBundle on success.
+type deleteBundleResponse struct {
+	// Sets Server module files. Updating the existing server module file is unsupported.
+	SetServerModuleFiles *installBundleSetServerModuleFilesServerModuleFilesPayload `json:"setServerModuleFiles"`
+	// Create or update existing cluster properties.  If a cluster property with the given name does not
+	// exist, one will be created, otherwise the existing one will be updated. This returns the list of
+	// entities created and/or updated
+	SetClusterProperties *installBundleSetClusterPropertiesClusterPropertiesPayload `json:"setClusterProperties"`
+	// Update Service Resolution Configs
+	SetServiceResolutionConfigs *installBundleSetServiceResolutionConfigsServiceResolutionConfigsPayLoad `json:"setServiceResolutionConfigs"`
+	// Set/Update the Password Policies
+	SetPasswordPolicies *installBundleSetPasswordPoliciesPasswordPoliciesPayLoad `json:"setPasswordPolicies"`
+	// Create or update existing Administrative User Account Minimum cluster properties.
+	// If Administrative User Account Minimum cluster property with the given name
+	// does not exist, one will be created, otherwise the existing one will be updated.
+	// This returns the list of entities created and/or updated.
+	// Below are the allowed Administrative User Account Minimum properties
+	// logonMaxAllowableAttempts : Logon attempts must be between 1 and 20
+	// logonLockoutTime : Lockout period must be between 1 and 86400 seconds
+	// logonSessionExpiry : Expiry period must be between 1 and 86400 seconds
+	// logonInactivityPeriod : Inactivity period must be between 1 and 365 days
+	SetAdministrativeUserAccountProperties *installBundleSetAdministrativeUserAccountPropertiesAdministrativeUserAccountPropertiesPayload `json:"setAdministrativeUserAccountProperties"`
+	// Set the Folders
+	SetFolders *installBundleSetFoldersFoldersPayload `json:"setFolders"`
+	// Create or update existing revocation check policies.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetRevocationCheckPolicies *installBundleSetRevocationCheckPoliciesRevocationCheckPoliciesPayload `json:"setRevocationCheckPolicies"`
+	// Create or update trusted certificates.
+	// If a certificate with the same sha1 thumbprint already exist, it will be updated.
+	SetTrustedCerts *installBundleSetTrustedCertsTrustedCertsPayload `json:"setTrustedCerts"`
+	// Creates or updates one or more secrets
+	SetSecrets *installBundleSetSecretsSecretsPayload `json:"setSecrets"`
+	// Create or update existing http configuration.
+	SetHttpConfigurations *installBundleSetHttpConfigurationsHttpConfigurationsPayload `json:"setHttpConfigurations"`
+	// Create or update existing custom key values data.  If a custom key value with the given key does not
+	// exist, one will be created, otherwise the existing one will be updated. This returns the list of
+	// entities created and/or updated
+	SetCustomKeyValues *installBundleSetCustomKeyValuesCustomKeyValuePayload `json:"setCustomKeyValues"`
+	// Create or Update multiple XML schemas
+	SetSchemas *installBundleSetSchemasSchemasPayload `json:"setSchemas"`
+	// Create or Update multiple DTD resources
+	SetDtds *installBundleSetDtdsDtdsPayload `json:"setDtds"`
+	// Create or update JDBC connections.
+	// If JDBC connection with the same name exist, the JDBC connection will be updated.
+	// If no JDBC connection with the name exist, a new JDBC connection will be created.
+	SetJdbcConnections *installBundleSetJdbcConnectionsJdbcConnectionsPayload `json:"setJdbcConnections"`
+	// Creates or updates one ore more internal IDP configurations
+	SetInternalIdps *installBundleSetInternalIdpsInternalIdpsPayload `json:"setInternalIdps"`
+	// Creates or updates one or more fips
+	SetFederatedIdps *installBundleSetFederatedIdpsFederatedIdpsPayload `json:"setFederatedIdps"`
+	// Creates or updates one or more ldaps
+	SetLdapIdps *installBundleSetLdapIdpsLdapIdpsPayload `json:"setLdapIdps"`
+	// Creates or updates one or more simple ldaps
+	SetSimpleLdapIdps *installBundleSetSimpleLdapIdpsSimpleLdapIdpsPayload `json:"setSimpleLdapIdps"`
+	// Creates or updates one or more fips
+	SetFips *installBundleSetFipsFipsPayload `json:"setFips"`
+	// Creates or updates one or more ldaps
+	SetLdaps *installBundleSetLdapsLdapsPayload `json:"setLdaps"`
+	// Creates or updates one or more fip groups
+	SetFederatedGroups *installBundleSetFederatedGroupsFederatedGroupsPayload `json:"setFederatedGroups"`
+	// Creates or updates one or more fip groups
+	SetFipGroups *installBundleSetFipGroupsFipGroupsPayload `json:"setFipGroups"`
+	// Creates or updates one or more internal groups
+	SetInternalGroups *installBundleSetInternalGroupsInternalGroupsPayload `json:"setInternalGroups"`
+	// Creates or updates one or more fip users.
+	// NOTE: Existing user will be found by either login or subjectDn or name.
+	SetFederatedUsers *installBundleSetFederatedUsersFederatedUsersPayload `json:"setFederatedUsers"`
+	// Creates or updates one or more fip users.
+	// NOTE: Existing user will be found by either login or subjectDn or name.
+	SetFipUsers *installBundleSetFipUsersFipUsersPayload `json:"setFipUsers"`
+	// Creates or updates one or more internal users
+	SetInternalUsers *installBundleSetInternalUsersInternalUsersPayload `json:"setInternalUsers"`
+	// Create or update Cassandra connections.
+	// If Cassandra connection with the same name exist, the Cassandra connection will be updated.
+	// If no Cassandra connection with the name exist, a new Cassandra connection will be created.
+	SetCassandraConnections *installBundleSetCassandraConnectionsCassandraConnectionsPayload `json:"setCassandraConnections"`
+	// Create or update existing siteminder configurations.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created
+	SetSMConfigs *installBundleSetSMConfigsSMConfigsPayload `json:"setSMConfigs"`
+	// Create or update policies
+	SetPolicies *installBundleSetPoliciesL7PoliciesPayload `json:"setPolicies"`
+	// Create or update policy fragments
+	SetPolicyFragments *installBundleSetPolicyFragmentsPolicyFragmentsPayload `json:"setPolicyFragments"`
+	// Create or update Encapsulated Assertion Configurations
+	SetEncassConfigs *installBundleSetEncassConfigsEncassConfigsPayload `json:"setEncassConfigs"`
+	// Create or update global policies
+	SetGlobalPolicies *installBundleSetGlobalPoliciesGlobalPoliciesPayload `json:"setGlobalPolicies"`
+	// Creates or updates one or more background task policies
+	SetBackgroundTaskPolicies *installBundleSetBackgroundTaskPoliciesBackgroundTaskPoliciesPayload `json:"setBackgroundTaskPolicies"`
+	// Create or update services
+	SetServices *installBundleSetServicesL7ServicesPayload `json:"setServices"`
+	// Create or update web api services
+	SetWebApiServices *installBundleSetWebApiServicesWebApiServicesPayload `json:"setWebApiServices"`
+	// Create or update soap services
+	SetSoapServices *installBundleSetSoapServicesSoapServicesPayload `json:"setSoapServices"`
+	// Create or update Internal web api services
+	SetInternalWebApiServices *installBundleSetInternalWebApiServicesInternalWebApiServicesPayload `json:"setInternalWebApiServices"`
+	// Create or update Internal soap services
+	SetInternalSoapServices *installBundleSetInternalSoapServicesInternalSoapServicesPayload `json:"setInternalSoapServices"`
+	// Creates or updates one or more policy backed ldaps
+	SetPolicyBackedIdps *installBundleSetPolicyBackedIdpsPolicyBackedIdpsPayload `json:"setPolicyBackedIdps"`
+	// Create or update JMS destinations.
+	// If JMS destination exists, the JMS destination will be updated.
+	// If no JMS destination with given name, direction, providerType exist, a new JMS destination will be created.
+	SetJmsDestinations *installBundleSetJmsDestinationsJmsDestinationsPayload `json:"setJmsDestinations"`
+	// Create or update existing email listeners.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetEmailListeners *installBundleSetEmailListenersEmailListenersPayload `json:"setEmailListeners"`
+	// Create or update Listen Ports.
+	// If Listen Port with the same name exist, the Listen Port will be updated.
+	// If no Listen Port with the name exist, a new Listen Port will be created.
+	SetListenPorts *installBundleSetListenPortsListenPortsPayload `json:"setListenPorts"`
+	// Create or update existing active connector.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetActiveConnectors *installBundleSetActiveConnectorsActiveConnectorsPayload `json:"setActiveConnectors"`
+	// Creates or updates one or more scheduled tasks
+	SetScheduledTasks *installBundleSetScheduledTasksScheduledTasksPayload `json:"setScheduledTasks"`
+	// Create or update Log Sinks.
+	// If Log Sink with the same name exist, the Log Sink will be updated.
+	// If no Log Sink with the name exist, a new Log Sink will be created.
+	SetLogSinks *installBundleSetLogSinksLogSinksPayload `json:"setLogSinks"`
+	// Create or update existing generic entities.
+	// Match is carried by name. If match is found, it will be updated. Otherwise, it will be created.
+	SetGenericEntities *installBundleSetGenericEntitiesGenericEntitiesPayload `json:"setGenericEntities"`
+	// Update Roles with user/group assignees.
+	// Note: Creating a role is unsupported.
+	SetRoles               *installBundleSetRolesRolesPayload                             `json:"setRoles"`
+	SetAuditConfigurations *installBundleSetAuditConfigurationsAuditConfigurationsPayload `json:"setAuditConfigurations"`
+	// (Experimental)
+	// Create/update the Kerberos configurations.
+	// Automatically generates the Kerberos login config file, "login.config", and
+	// Kerberos config file, "krb5.conf" (unless the cluster-wide property
+	// kerberos.krb5Config.overwrite=false and it is set in the mutation).
+	SetKerberosConfigs *installBundleSetKerberosConfigsKerberosConfigPayload `json:"setKerberosConfigs"`
+	// Creates or updates one or more keys
+	SetKeys *installBundleSetKeysKeysPayload `json:"setKeys"`
+}
+
 // GetSetServerModuleFiles returns installBundleResponse.SetServerModuleFiles, and is useful for accessing the field via an interface.
 func (v *installBundleResponse) GetSetServerModuleFiles() *installBundleSetServerModuleFilesServerModuleFilesPayload {
 	return v.SetServerModuleFiles

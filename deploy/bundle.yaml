@@ -7546,7 +7546,7 @@ spec:
           value: localhost:4317
         - name: OTEL_METRIC_PREFIX
           value: layer7_
-        image: docker.io/layer7api/layer7-operator:main
+        image: apim-docker-dev-local.usw1.packages.broadcom.com/apim-gateway/layer7-operator:jdtest
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -7570,6 +7570,8 @@ spec:
             memory: 64Mi
         securityContext:
           allowPrivilegeEscalation: false
+      imagePullSecrets:
+        - name: my-secret
       securityContext:
         runAsNonRoot: true
       serviceAccountName: layer7-operator-controller-manager

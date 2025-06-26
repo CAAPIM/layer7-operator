@@ -20,7 +20,7 @@ type ActiveConnectorInput struct {
 	// The active connector type Examples:- KAFKA, SFTP_POLLING_LISTENER, MQ_NATIVE
 	ConnectorType string `json:"connectorType"`
 	// The name of the published service hardwired to the active connector
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// The active connector properties
 	Properties []*EntityPropertyInput `json:"properties,omitempty"`
 	// The advanced properties for active connector
@@ -85,13 +85,13 @@ type AuditConfigurationInput struct {
 	// log sink unique name
 	Name string `json:"name"`
 	// Lookup Policy Name
-	LookupPolicyName string `json:"lookupPolicyName"`
+	LookupPolicyName string `json:"lookupPolicyName,omitempty"`
 	// The configuration checksum
 	Checksum string `json:"checksum"`
 	// Whether to save the audit records always to the internal database
 	AlwaysSaveInternal bool `json:"alwaysSaveInternal"`
 	// Sink Policy Name
-	SinkPolicyName string `json:"sinkPolicyName"`
+	SinkPolicyName string `json:"sinkPolicyName,omitempty"`
 	// FTP Client Configuration
 	FtpConfig *AuditFtpConfigurationInput `json:"ftpConfig,omitempty"`
 }
@@ -451,7 +451,7 @@ type EmailListenerInput struct {
 	// Email account password. The password could be in plain text or secure password reference
 	Password string `json:"password"`
 	// The name of the published service hardwired to the email listener
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// Permitted maximum size of the message
 	SizeLimit int `json:"sizeLimit"`
 	// [Optional] The Email listener Properties excluding sizeLimit and
@@ -868,7 +868,7 @@ type FipInput struct {
 	Goid                     string                    `json:"goid"`
 	EnableCredentialTypeSaml bool                      `json:"enableCredentialTypeSaml"`
 	EnableCredentialTypeX509 bool                      `json:"enableCredentialTypeX509"`
-	CertificateValidation    CertificateValidationType `json:"certificateValidation"`
+	CertificateValidation    CertificateValidationType `json:"certificateValidation,omitempty"`
 	// The certificates in the trusted certificate table that establish the trust for this FIP
 	CertificateReferences []*FipCertInput `json:"certificateReferences,omitempty"`
 	// The optional checksum is ignored during the mutation but can be used to compare bundle content
@@ -1027,7 +1027,7 @@ type GlobalPolicyInput struct {
 	// post-service
 	// pre-security
 	// pre-service
-	Tag string `json:"tag"`
+	Tag string `json:"tag,omitempty"`
 	// The policy
 	Policy *PolicyInput `json:"policy,omitempty"`
 	Soap   bool         `json:"soap"`
@@ -1582,7 +1582,7 @@ type KerberosConfigInput struct {
 	// The encrypted Kerberos keytab.
 	Keytab string `json:"keytab"`
 	// The Kerberos configuration, "krb5.conf" in its INI format.
-	Conf string `json:"conf"`
+	Conf string `json:"conf,omitempty"`
 }
 
 // GetKeytab returns KerberosConfigInput.Keytab, and is useful for accessing the field via an interface.
@@ -1608,7 +1608,7 @@ type KeyInput struct {
 	// The Key usage types. (Note that, the key usage will not be reset when this field is not specified)
 	UsageTypes []KeyUsageType `json:"usageTypes"`
 	// The certificate chain in PEM format. (Note that, this field has no effect on the mutation)
-	CertChain []string `json:"certChain"`
+	CertChain interface{} `json:"certChain"`
 	// Ignored at entity creation time but declared here so you can embed checksums in graphman bundles
 	Checksum string `json:"checksum"`
 }
@@ -1638,7 +1638,7 @@ func (v *KeyInput) GetKeyType() string { return v.KeyType }
 func (v *KeyInput) GetUsageTypes() []KeyUsageType { return v.UsageTypes }
 
 // GetCertChain returns KeyInput.CertChain, and is useful for accessing the field via an interface.
-func (v *KeyInput) GetCertChain() []string { return v.CertChain }
+func (v *KeyInput) GetCertChain() interface{} { return v.CertChain }
 
 // GetChecksum returns KeyInput.Checksum, and is useful for accessing the field via an interface.
 func (v *KeyInput) GetChecksum() string { return v.Checksum }
@@ -1671,10 +1671,10 @@ type L7PolicyInput struct {
 	PolicyRevisions []*PolicyRevisionInput `json:"policyRevisions,omitempty"`
 	Soap            bool                   `json:"soap"`
 	PolicyType      L7PolicyType           `json:"policyType"`
-	Tag             string                 `json:"tag"`
-	SubTag          string                 `json:"subTag"`
+	Tag             string                 `json:"tag,omitempty"`
+	SubTag          string                 `json:"subTag,omitempty"`
 	// Ignored at creation time but can be used to compare bundle with gw state
-	Checksum string `json:"checksum"`
+	Checksum string `json:"checksum,omitempty"`
 }
 
 // GetGoid returns L7PolicyInput.Goid, and is useful for accessing the field via an interface.
@@ -1752,16 +1752,16 @@ type L7ServiceInput struct {
 	// The folder path where to create this service.  If the path does not exist, it will be created
 	FolderPath string `json:"folderPath"`
 	// Which SOAP version
-	SoapVersion SoapVersion `json:"soapVersion"`
+	SoapVersion SoapVersion `json:"soapVersion,omitempty"`
 	// Which http methods are allowed
 	MethodsAllowed       []HttpMethod `json:"methodsAllowed"`
 	TracingEnabled       bool         `json:"tracingEnabled"`
-	WssProcessingEnabled bool         `json:"wssProcessingEnabled"`
+	WssProcessingEnabled bool         `json:"wssProcessingEnabled,omitempty"`
 	// Allow requests intended for operations not supported by the WSDL
-	LaxResolution bool                   `json:"laxResolution"`
+	LaxResolution bool                   `json:"laxResolution,omitempty"`
 	Properties    []*EntityPropertyInput `json:"properties,omitempty"`
 	// The WSDL of the soap service
-	Wsdl string `json:"wsdl"`
+	Wsdl string `json:"wsdl,omitempty"`
 	// URL for the protected service WSDL document
 	WsdlUrl string `json:"wsdlUrl"`
 	// One or more additional WSDL resources
@@ -2032,7 +2032,7 @@ type ListenPortInput struct {
 	// it may conflict with the default SSH port 22 on Linux or Unix systems.
 	Port int `json:"port"`
 	// The name of the published service hardwired to the listen port
-	HardwiredServiceName string `json:"hardwiredServiceName"`
+	HardwiredServiceName string `json:"hardwiredServiceName,omitempty"`
 	// Which Gateway services can be accessed through this listen port
 	EnabledFeatures []ListenPortFeature `json:"enabledFeatures"`
 	// The listen port tls settings
@@ -2360,7 +2360,7 @@ type PolicyBackedIdpInput struct {
 	// Authentication Policy Name
 	AuthPolicyName string `json:"authPolicyName"`
 	// Default Role
-	DefaultRoleName string `json:"defaultRoleName"`
+	DefaultRoleName string `json:"defaultRoleName,omitempty"`
 	// Additional properties
 	Properties []*EntityPropertyInput `json:"properties,omitempty"`
 }
@@ -2422,13 +2422,13 @@ func (v *PolicyFragmentInput) GetChecksum() string { return v.Checksum }
 
 type PolicyInput struct {
 	// The policy xml
-	Xml string `json:"xml"`
+	Xml string `json:"xml,omitempty"`
 	// The policy JSON
-	Json string `json:"json"`
+	Json string `json:"json,omitempty"`
 	// The policy YAML
-	Yaml string `json:"yaml"`
+	Yaml string `json:"yaml,omitempty"`
 	// The policy code
-	Code interface{} `json:"code"`
+	Code interface{} `json:"code,omitempty"`
 }
 
 // GetXml returns PolicyInput.Xml, and is useful for accessing the field via an interface.
@@ -2451,13 +2451,13 @@ type PolicyRevisionInput struct {
 	Author  string    `json:"author"`
 	Time    time.Time `json:"time"`
 	// The policy XML
-	Xml string `json:"xml"`
+	Xml string `json:"xml,omitempty"`
 	// The policy JSON
-	Json string `json:"json"`
+	Json string `json:"json,omitempty"`
 	// The policy YAML
-	Yaml string `json:"yaml"`
+	Yaml string `json:"yaml,omitempty"`
 	// The policy code
-	Code interface{} `json:"code"`
+	Code interface{} `json:"code,omitempty"`
 }
 
 // GetGoid returns PolicyRevisionInput.Goid, and is useful for accessing the field via an interface.
@@ -2591,7 +2591,7 @@ type RoleInput struct {
 	// Description of the role. This is optional
 	Description string `json:"description"`
 	// Tag: Either Admin or Null
-	Tag Tag `json:"tag"`
+	Tag Tag `json:"tag,omitempty"`
 	// Whether to replace the existing assignees with the specified users/groups
 	ReplaceAssignees bool `json:"replaceAssignees"`
 	// One or more users assigned to the role

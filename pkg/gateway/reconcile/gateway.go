@@ -34,6 +34,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -875,7 +876,7 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 	leaderAvailable := false
 	for _, pod := range gwUpdReq.podList.Items {
 		if pod.ObjectMeta.Labels["management-access"] == "leader" {
-			endpoint = pod.Status.PodIP + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
+			endpoint = podIP(pod.Status.PodIP) + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
 			leaderAvailable = true
 		}
 	}
@@ -883,11 +884,6 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 	if !leaderAvailable {
 		return nil
 	}
-
-	//endpoint = gwUpdReq.gateway.Name + "." + gwUpdReq.gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
-	// if gwUpdReq.gateway.Spec.App.Management.Service.Enabled {
-	// 	endpoint = gwUpdReq.gateway.Name + "-management-service." + gwUpdReq.gateway.Namespace + ".svc.cluster.local:9443/graphman"
-	// }
 
 	currentChecksum := gwUpdReq.deployment.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
 
@@ -1050,8 +1046,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 
 		if update && ready {
 			updateStatus = true
-			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
-
+			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
 			requestCacheEntry := pod.Name + "-" + gwUpdReq.cacheEntry
 			syncRequest, err := syncCache.Read(requestCacheEntry)
 			tryRequest := true
@@ -1293,7 +1288,7 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 
 		if update && ready {
 			updateStatus = true
-			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"
+			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(graphmanPort) + "/graphman"
 
 			requestCacheEntry := pod.Name + "-" + gateway.Name + "-" + name + "-" + sha1Sum
 			syncRequest, err := syncCache.Read(requestCacheEntry)
@@ -1790,4 +1785,16 @@ func getStateStore(ctx context.Context, params Params, stateStoreName string) (s
 		return statestore, err
 	}
 	return statestore, nil
+}
+
+func isIPv6(str string) bool {
+	ip := net.ParseIP(str)
+	return ip != nil && strings.Contains(str, ":")
+}
+
+func podIP(podIp string) string {
+	if isIPv6(podIp) {
+		return "[" + podIp + "]"
+	}
+	return podIp
 }

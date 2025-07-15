@@ -2,7 +2,7 @@ apiVersion: v2
 name: layer7-operator
 description: The Layer7 Operator Helm Chart
 type: application
-version: 0.1.7
+version: 0.1.8
 appVersion: "1.2.1"
 home: https://github.com/CAAPIM/layer7-operator
 maintainers:

@@ -154,9 +154,6 @@ spec:
                 items:
                   properties:
                     conditions:
-                      description: |-
-                        Ready       bool            `json:"ready,omitempty"`
-                        LastUpdated string `js
                       items:
                         properties:
                           action:
@@ -172,7 +169,6 @@ spec:
                         type: object
                       type: array
                     deployment:
-                      description: Phase       corev1.PodPhase `json:"phase,omitempty"`
                       type: string
                     name:
                       type: string

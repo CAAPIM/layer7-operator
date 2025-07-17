@@ -225,6 +225,20 @@ PortalMeta is reserved for the API Developer Portal
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>securePasswordIdsForUndeployment</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#l7apispecportalmetasecurepasswordsindex">securePasswords</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>serviceId</b></td>
         <td>string</td>
         <td>
@@ -365,6 +379,54 @@ PortalMeta is reserved for the API Developer Portal
 </table>
 
 
+### L7Api.spec.portalMeta.securePasswords[index]
+<sup><sup>[↩ Parent](#l7apispecportalmeta)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>description</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>id</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### L7Api.status
 <sup><sup>[↩ Parent](#l7api)</sup></sup>
 
@@ -423,8 +485,8 @@ L7ApiStatus defines the observed state of L7Api
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>checksum</b></td>
-        <td>string</td>
+        <td><b><a href="#l7apistatusgatewaysindexconditionsindex">conditions</a></b></td>
+        <td>[]object</td>
         <td>
           <br/>
         </td>
@@ -433,19 +495,66 @@ L7ApiStatus defines the observed state of L7Api
         <td><b>deployment</b></td>
         <td>string</td>
         <td>
-          Phase       corev1.PodPhase `json:"phase,omitempty"`
-Reason: Success/Failed to sync because of x<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>lastUpdated</b></td>
-        <td>string</td>
-        <td>
-          Ready       bool            `json:"ready,omitempty"`<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### L7Api.status.gateways[index].conditions[index]
+<sup><sup>[↩ Parent](#l7apistatusgatewaysindex)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>actionTime</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>checksum</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>status</b></td>
         <td>string</td>
         <td>
           <br/>

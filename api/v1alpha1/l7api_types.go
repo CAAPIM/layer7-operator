@@ -112,10 +112,8 @@ type GatewayPodDeploymentCondition struct {
 }
 
 type LinkedGatewayStatus struct {
-	Name string `json:"name,omitempty"`
-	//Phase       corev1.PodPhase `json:"phase,omitempty"`
-	Deployment string `json:"deployment,omitempty"`
-	//Ready       bool            `json:"ready,omitempty"`
+	Name       string                          `json:"name,omitempty"`
+	Deployment string                          `json:"deployment,omitempty"`
 	Conditions []GatewayPodDeploymentCondition `json:"conditions,omitempty"`
 }
 

@@ -21,7 +21,7 @@ type RedisNode struct {
 
 type RedisSsl struct {
 	Enabled    bool   `yaml:"enabled"`
-	Crt        string `yaml:"crt,omitempty"`
+	Crt        string `yaml:"cert,omitempty"`
 	VerifyPeer *bool  `yaml:"verifyPeer,omitempty"`
 }
 
@@ -79,17 +79,21 @@ func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClie
 				switch rc.Name {
 				case "default":
 					rc.Name = ""
-
-					if rc.Ssl.Enabled && rc.Ssl.VerifyPeer != t {
-						rc.Ssl.VerifyPeer = f
+					if rc.Ssl.Enabled {
+						if rc.Ssl.VerifyPeer == nil || !*rc.Ssl.VerifyPeer {
+							rc.Ssl.VerifyPeer = f
+						}
 					}
 					dynamicRedisConfig["default"] = rc
 				default:
 					name := rc.Name
 					rc.Name = ""
-					if rc.Ssl.Enabled && rc.Ssl.VerifyPeer != t {
-						rc.Ssl.VerifyPeer = f
+					if rc.Ssl.Enabled {
+						if rc.Ssl.VerifyPeer == nil || !*rc.Ssl.VerifyPeer {
+							rc.Ssl.VerifyPeer = f
+						}
 					}
+
 					newRedisConfig := map[string]RedisClientConfig{name: rc}
 					newRedisConfigBlock = appendRedisConfig(dynamicRedisConfig, newRedisConfig)
 				}
@@ -106,6 +110,11 @@ func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClie
 
 		} else {
 			redisConfigs[0].Name = ""
+			if redisConfigs[0].Ssl.Enabled {
+				if redisConfigs[0].Ssl.VerifyPeer == nil || !*redisConfigs[0].Ssl.VerifyPeer {
+					redisConfigs[0].Ssl.VerifyPeer = f
+				}
+			}
 			dynamicRedisConfig["default"] = redisConfigs[0]
 			combinedRedisConfig["redis"] = dynamicRedisConfig
 			err := yamlEncoder.Encode(combinedRedisConfig)

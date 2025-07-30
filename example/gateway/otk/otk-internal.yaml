@@ -9,28 +9,42 @@ spec:
     secretName: gateway-license
   app:
     replicas: 2
+    restartOnConfigChange: true
     image: docker.io/caapim/gateway:11.1.2
     imagePullPolicy: IfNotPresent
+    serviceAccount:
+      create: true
+      name: ssg-serviceaccount
     updateStrategy:
       type: rollingUpdate
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 2
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: 0
     resources:
       requests:
-        memory: 8Gi
-        cpu: 3
+        memory: 4Gi
+        cpu: 2
       limits:
-        memory: 8Gi
-        cpu: 3
+        memory: 4Gi
+        cpu: 2
     otk:
       enabled: true
-      initContainerImage: docker.io/caapim/otk-install:4.6.2_202402
+      initContainerImage: docker.io/caapim/otk-install:4.6.4
+      initContainerImagePullPolicy: Always
       type: internal
-      dmzGatewayReference: otk-ssg-dmz
+      port: 443
+      overrides:
+        enabled: true
+        createTestClients: true
+        testClientsRedirectUrlPrefix: https://gateway-otk-management.brcmlabs.com:443
       database:
         type: mysql
         create: true
+        dbUpgrade: true
         connectionName: OAuth
         auth:
           # A single secret containing all of the values defined here will be created
@@ -39,49 +53,109 @@ spec:
           # existingSecret: otk-db-secret
           gateway:
             username: otk_user
-            password: otkUserPass
+            password: 7layer
           readOnly:
-           # username: readonly_user
             username: readonly_user
-            password: readonly_userPass
+            password: 7layer
+          clientReadOnly:
+            username: clientreadonly_user
+            password: 7layer
           admin:
-           # username: admin
-            username: admin
-            password: adminPass
+            username: root
+            password: 7layer
         properties:
-          minimumPoolSize: 3
+          minimumPoolSize: 10
           maximumPoolSize: 15
         sql:
           databaseName: otk_db
-          #jdbcUrl: jdbc:mysql://<host>:<port>/<database>
-          jdbcUrl: jdbc:mysql://mysql.brcmlabs.com:3306/otk_db_init
+          jdbcUrl: jdbc:mysql://mysql.default.svc.cluster.local:3306/otk_db?allowPublicKeyRetrieval=true
           jdbcDriverClass: com.mysql.cj.jdbc.Driver
           connectionProperties:
             c3p0.maxConnectionAge: "100"
             c3p0.maxIdleTime: "1000"
           manageSchema: true
           databaseWaitTimeout: 60
-    autoscaling:
-      enabled: false
-    bundle: []
-    repositoryReferences: []
+    singletonExtraction: true
+
+    # livenessProbe:
+    #   httpGet:
+    #     port: https
+    #     scheme: HTTPS
+    #     path: /auth/oauth/health
+    #     httpHeaders:
+    #       - name: Host
+    #         value: 127.0.0.1
+    #   failureThreshold: 25
+    #   initialDelaySeconds: 15
+    #   periodSeconds: 10
+    #   successThreshold: 1
+    #   timeoutSeconds: 1
+    # readinessProbe:
+    #   httpGet:
+    #     port: https
+    #     scheme: HTTPS
+    #     path: /auth/oauth/health
+    #     httpHeaders:
+    #       - name: Host
+    #         value: 127.0.0.1
+    #   failureThreshold: 25
+    #   initialDelaySeconds: 15
+    #   periodSeconds: 10
+    #   successThreshold: 1
+    #   timeoutSeconds: 1
+
+    bundle:
+      - type: restman
+        source: secret
+        name: restman-bootstrap-bundle
+      - type: graphman
+        source: secret
+        name: graphman-bootstrap-bundle
+    repositoryReferences:
+      - name: l7-gw-myframework
+        enabled: true
+        type: static
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: FRAMEWORK_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-myapis
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: APIS_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-mysubscriptions
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+      - name: local-reference-repository
+        enabled: true
+        type: dynamic
+        encryption: {}
+      - name: otk-customizations-internal
+        enabled: true
+        type: dynamic
+        encryption: {}
     bootstrap:
       script:
         enabled: true
-    initContainers: []
+    initContainers:
+    - name: gateway-init
+      image: docker.io/layer7api/gateway-init:1.0.0
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+      - name: config-directory
+        mountPath: /opt/docker/custom
     hazelcast:
       external: false
       endpoint: hazelcast.example.com:5701
     management:
       secretName: gateway-secret
-      #username: admin
-      #password: 7layer
-      # Management port requires a separate service...
       service:
-        enabled: false
-        #annotations:
-          # cloud.google.com/load-balancer-type: "Internal"
-        type: LoadBalancer
+        enabled: true
+        type: ClusterIP
         ports:
         - name: management
           port: 9443
@@ -92,36 +166,164 @@ spec:
       graphman:
         enabled: true
         initContainerImage: docker.io/caapim/graphman-static-init:1.0.3
+        initContainerImagePullPolicy: Always
       cluster:
-        #password: 7layer
-        hostname: gateway.brcmlabs.com
+        hostname: gateway-internal.brcmlabs.com
       database:
-        enabled: false # this runs the gateway in dbbacked/ephemeral mode
-      #  jdbcUrl: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
-      #  username: "gateway"
-      #  password: "ACm8BDr3Rfk2Flx9V"
+        enabled: false
+    service:
+      # annotations:
+      type: LoadBalancer
+      ports:
+      - name: https
+        port: 8443
+        targetPort: 8443
+        protocol: TCP
+      # - name: management
+      #   port: 9443
+      #   targetPort: 9443
+      #   protocol: TCP
+    ingress:
+      enabled: true
+      # type: route
+      # routes:
+      # - host: gateway.brcmlabs.com
+      # - host: gateway-otk-management.brcmlabs.com
+      #   port:
+      #     targetPort: management
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      tls:
+      - hosts:
+        - gateway-internal.brcmlabs.com
+        - gateway-internal-otk-management.brcmlabs.com
+        secretName: brcmlabs
+      rules:
+      - host: gateway-internal.brcmlabs.com
+      - host: gateway-internal-otk-management.brcmlabs.com
+        http:
+          paths:
+          - backend:
+              service:
+                name: internal-management
+                port:
+                  name: internal-management
+
+            path: /
+            pathType: Prefix
     java:
       jvmHeap:
         calculate: true
-        percentage: 50
-        default: 4g
+        minPercentage: 25
+        maxPercentage: 75
+        default: 2g
       extraArgs:
+      - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
       - -Dcom.l7tech.server.audit.message.saveToInternal=false
       - -Dcom.l7tech.server.audit.admin.saveToInternal=false
       - -Dcom.l7tech.server.audit.system.saveToInternal=false
       - -Dcom.l7tech.server.audit.log.format=json
       - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
-      - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
       - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true
-      #- -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
+      - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
+    # - -Dcom.l7tech.server.log.console.extraCats=AUDIT,LOG,TRAFFIC
     listenPorts:
-      harden: true
+      harden: false
+      refreshOnKeyChanges: true
       custom:
+        enabled: true
+      ports:
+      - name: Default HTTPS (8443)
+        port: 8443
+        enabled: true
+        protocol: HTTPS
+        managementFeatures:
+        - Published service message input
+        properties:
+        - name: server
+          value: A
+        tls:
+          enabled: true
+          #privateKey: 00000000000000000000000000000002:ssl
+          clientAuthentication: Optional
+          versions:
+          - TLSv1.2
+          - TLSv1.3
+          useCipherSuitesOrder: true
+          cipherSuites:
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+      - name: Default HTTPS (9443)
+        port: 9443
+        enabled: true
+        protocol: HTTPS
+        managementFeatures:
+        - Published service message input
+        - Administrative access
+        - Browser-based administration
+        - Built-in services
+        properties: []
+        tls:
+          enabled: true
+        # privateKey: 00000000000000000000000000000002:ssl
+          clientAuthentication: Optional
+          versions:
+          - TLSv1.2
+          - TLSv1.3
+          useCipherSuitesOrder: true
+          cipherSuites:
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+          - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          - TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+      - name: Default HTTP (8080)
+        port: 8080
         enabled: false
-      ports: []
+        protocol: HTTP
+        managementFeatures:
+        - Published service message input
+        tls:
+          enabled: false
     cwp:
       enabled: true
       properties:
+        - name: abc
+          value: def
         - name: io.httpsHostAllowWildcard
           value: "true"
         - name: log.levels
@@ -148,37 +350,12 @@ spec:
         javax.net.ssl.trustStoreType=jks
         com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
         # Additional properties go here
-    service:
-      # annotations:
-      type: ClusterIP
-      ports:
-      - name: https
-        port: 8443
-        targetPort: 8443
-        protocol: TCP
-      - name: management
-        port: 9443
-        targetPort: 9443
-        protocol: TCP   
-    ingress:
-      enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
-      tls:
-      - hosts: 
-        - gateway.brcmlabs.com
-        secretName: brcmlabs
-      rules:
-      - host: gateway.brcmlabs.com
-    # containerSecurityContext:
-    #   runAsNonRoot: true
-    #   runAsUser: 1000669998
-    #   capabilities:
-    #     drop:
-    #     - ALL
-    #   allowPrivilegeEscalation: false
-    # podSecurityContext:
-    #   runAsUser: 1000669998
-    #   runAsGroup: 1000669998
+    log:
+      override: true
+      properties: |-
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.formatter = com.l7tech.util.JsonLogFormatter
+        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.level = CONFIG
+    affinity: {}
+    nodeSelector: {}
+    tolerations: []
+    topologySpreadConstraints: []

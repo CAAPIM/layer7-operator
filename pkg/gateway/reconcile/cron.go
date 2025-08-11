@@ -72,16 +72,6 @@ func registerJobs(ctx context.Context, params Params) {
 		if err != nil {
 			params.Log.V(2).Info("otk policy sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		}
-		if params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeDMZ || params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeInternal {
-			_, err = s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-otk-certificates").Do(syncOtkCertificates, ctx, params)
-			if err != nil {
-				params.Log.V(2).Info("otk certificate sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-			}
-			_, err = s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-otk-certificate-secret").Do(manageCertificateSecrets, ctx, params)
-			if err != nil {
-				params.Log.V(2).Info("otk certificate secret sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-			}
-		}
 	}
 }
 

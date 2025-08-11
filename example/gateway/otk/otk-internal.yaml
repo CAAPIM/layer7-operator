@@ -138,6 +138,20 @@ spec:
         enabled: true
         type: dynamic
         encryption: {}
+    externalKeys:
+      - name: otkinternaltls
+        alias: test
+        keyUsageType: SSL
+        enabled: true
+    externalCerts:
+      - name: otkdmztls
+        enabled: true
+        trustAnchor: true
+        revocationCheckPolicyType: USE_DEFAULT
+        trustedFor:
+          - "SSL"
+          - "SIGNING_SERVER_CERTS"
+      # verifyHostname: true
     bootstrap:
       script:
         enabled: true

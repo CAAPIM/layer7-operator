@@ -68,3 +68,19 @@ secretGenerator:
 #   - ./resources/secrets/tls/tls.key
 #   type: "kubernetes.io/tls"
 
+# Create a secret for the OTK Dual Gateway Private Keys
+# Uncomment this section to create your own key & certificate for the DMZ Gateway
+# - name: otkdmztls
+#   files:
+#   - ./resources/secrets/tls/dmztls.crt
+#   - ./resources/secrets/tls/dmztls.key
+#   type: "kubernetes.io/tls"
+
+# Uncomment this section to create your own key & certificate for the Internal Gateway
+# - name: otkinternaltls
+#   files:
+#   - ./resources/secrets/tls/internaltls.crt
+#   - ./resources/secrets/tls/internaltls.key
+#   type: "kubernetes.io/tls"
+
+

@@ -173,7 +173,10 @@ func syncRepository(ctx context.Context, params Params) error {
 			folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 		}
 		storageSecretName = repository.Name + "-repository-" + folderName
-
+		if params.Instance.Status.Commit == commit {
+			params.Log.V(5).Info("already up-to-date", "name", repository.Name, "namespace", repository.Namespace)
+			return nil
+		}
 	case "git":
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
 

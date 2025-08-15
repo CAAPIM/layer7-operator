@@ -149,15 +149,14 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 			return "", ErrInvalidTarArchive
 		}
 	case "json":
-		fileName = name + "-" + namespace + "-" + segments[len(segments)-1]
-
-		folderName := strings.ReplaceAll("/tmp/"+fileName, "."+ext, "")
+		fileName = "/tmp/" + name + "-" + namespace + "-" + segments[len(segments)-1]
+		folderName := strings.ReplaceAll(fileName, "."+ext, "")
 		os.Mkdir(folderName, 0755)
-		fBytes, err := os.ReadFile("/tmp/" + fileName)
+		fBytes, err := os.ReadFile(fileName)
 		if err != nil {
 			return "", err
 		}
-		err = os.WriteFile(folderName+"/"+fileName, fBytes, 0755)
+		err = os.WriteFile(folderName+"/"+name+".json", fBytes, 0755)
 		if err != nil {
 			return "", err
 		}

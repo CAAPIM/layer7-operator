@@ -28,7 +28,6 @@ package graphman
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 )
@@ -53,9 +52,9 @@ func Implode(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	if len(bundleBytes) <= 40 {
-		return nil, errors.New("repository not synced yet")
-	}
+	// if len(bundleBytes) <= 40 {
+	// 	return nil, errors.New("repository not synced yet")
+	// }
 
 	return bundleBytes, nil
 }

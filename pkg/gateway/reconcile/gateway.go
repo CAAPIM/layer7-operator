@@ -808,6 +808,11 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 
 	fileName = sha1Sum[30:] + ".json"
 
+	_, dErr := os.Stat(tmpPath)
+	if dErr != nil {
+		_ = os.MkdirAll(tmpPath, 0755)
+	}
+
 	if len(repoRef.Directories) == 1 && strings.ToLower(string(repository.Spec.Type)) != "git" {
 		switch strings.ToLower(string(repository.Spec.Type)) {
 		case "http":
@@ -817,19 +822,29 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 			}
 			path := fileURL.Path
 			segments := strings.Split(path, "/")
-			fileName := segments[len(segments)-1]
-			ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
-			folderName := strings.ReplaceAll(fileName, "."+ext, "")
-			if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
-				folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+			artifactName := segments[len(segments)-1]
+			ext := strings.Split(artifactName, ".")[len(strings.Split(artifactName, "."))-1]
+			folderName := strings.ReplaceAll(artifactName, "."+ext, "")
+			if ext == "gz" && strings.Split(artifactName, ".")[len(strings.Split(artifactName, "."))-2] == "tar" {
+				folderName = strings.ReplaceAll(artifactName, ".tar.gz", "")
 			}
 			bundlePath = "/tmp/" + repository.Name + "-" + params.Instance.Namespace + "-" + folderName
 
 			_, fErr := os.Stat(tmpPath + "/" + fileName)
 			if fErr != nil {
+
+				// remove bundles 10 days or older to avoid
+				// growing the ephemeral filesystem
 				existingBundles, _ := os.ReadDir(tmpPath)
 				for _, f := range existingBundles {
-					os.Remove(tmpPath + "/" + f.Name())
+					fInfo, err := f.Info()
+					if err != nil {
+						return nil, err
+					}
+					if time.Since(fInfo.ModTime()) > 240*time.Hour {
+						os.Remove(tmpPath + "/" + f.Name())
+					}
+
 				}
 				bundleBytes, err = util.BuildAndValidateBundle(bundlePath)
 				if err != nil {
@@ -877,10 +892,6 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 
 			bundlePath = "/tmp/" + repoRef.Name + "-" + params.Instance.Namespace + "-" + ext + "/" + dir
 
-			_, dErr := os.Stat(tmpPath)
-			if dErr != nil {
-				_ = os.MkdirAll(tmpPath, 0755)
-			}
 			_, fErr := os.Stat(tmpPath + "/" + fileName)
 			if fErr != nil {
 

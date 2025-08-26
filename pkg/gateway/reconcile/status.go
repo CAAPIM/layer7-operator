@@ -89,6 +89,7 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			if repoStatus.Name == repository.Name {
 				gatewayStatus.RepositoryStatus[i].Enabled = repoRef.Enabled
 				gatewayStatus.RepositoryStatus[i].Commit = repository.Status.Commit
+				gatewayStatus.RepositoryStatus[i].Type = string(repoRef.Type)
 				found = true
 			}
 		}

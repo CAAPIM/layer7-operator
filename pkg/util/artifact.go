@@ -224,16 +224,31 @@ func validateGraphmanBundle(fileName string, folderName string) error {
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") && !strings.Contains(strings.ToLower(d.Name()), "bundle-properties.json") {
-				//sbb := bundleBytes
 				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
 					return err
 				}
-				sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				tb := graphman.Bundle{}
+				r := bytes.NewReader(srcBundleBytes)
+				d := json.NewDecoder(r)
+				d.DisallowUnknownFields()
+				_ = json.Unmarshal(srcBundleBytes, &tb)
+				err = d.Decode(&tb)
 				if err != nil {
 					return nil
 				}
-				bundleBytes = sbb
+				tbb, err := json.Marshal(tb)
+				if err != nil {
+					return nil
+				}
+
+				if len(tbb) > 2 {
+					sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+					if err != nil {
+						return nil
+					}
+					bundleBytes = sbb
+				}
 			}
 		}
 		return nil

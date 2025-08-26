@@ -465,8 +465,13 @@ func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
 				if err != nil {
 					return err
 				}
+
 				tb := graphman.Bundle{}
-				err = json.Unmarshal(srcBundleBytes, &tb)
+				r := bytes.NewReader(srcBundleBytes)
+				d := json.NewDecoder(r)
+				d.DisallowUnknownFields()
+				_ = json.Unmarshal(srcBundleBytes, &tb)
+				err = d.Decode(&tb)
 				if err != nil {
 					return nil
 				}

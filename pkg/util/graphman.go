@@ -465,8 +465,13 @@ func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
 				if err != nil {
 					return err
 				}
+
 				tb := graphman.Bundle{}
-				err = json.Unmarshal(srcBundleBytes, &tb)
+				r := bytes.NewReader(srcBundleBytes)
+				d := json.NewDecoder(r)
+				d.DisallowUnknownFields()
+				_ = json.Unmarshal(srcBundleBytes, &tb)
+				err = d.Decode(&tb)
 				if err != nil {
 					return nil
 				}
@@ -475,7 +480,7 @@ func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
 					return nil
 				}
 
-				if len(tbb) > 2 {
+				if len(tbb) > 40 {
 					sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 					if err != nil {
 						return nil
@@ -489,7 +494,7 @@ func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
 
 	// if the bundle is still empty after parsing all of the directory files
 	// return an error
-	if len(bundleBytes) <= 2 {
+	if len(bundleBytes) <= 40 {
 		return nil, errors.New("no valid graphman bundles were found")
 	}
 	bundle := graphman.Bundle{}

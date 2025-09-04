@@ -149,15 +149,14 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 			return "", ErrInvalidTarArchive
 		}
 	case "json":
-		fileName = name + "-" + namespace + "-" + segments[len(segments)-1]
-
-		folderName := strings.ReplaceAll("/tmp/"+fileName, "."+ext, "")
+		fileName = "/tmp/" + name + "-" + namespace + "-" + segments[len(segments)-1]
+		folderName := strings.ReplaceAll(fileName, "."+ext, "")
 		os.Mkdir(folderName, 0755)
-		fBytes, err := os.ReadFile("/tmp/" + fileName)
+		fBytes, err := os.ReadFile(fileName)
 		if err != nil {
 			return "", err
 		}
-		err = os.WriteFile(folderName+"/"+fileName, fBytes, 0755)
+		err = os.WriteFile(folderName+"/"+name+".json", fBytes, 0755)
 		if err != nil {
 			return "", err
 		}
@@ -225,16 +224,31 @@ func validateGraphmanBundle(fileName string, folderName string) error {
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") && !strings.Contains(strings.ToLower(d.Name()), "bundle-properties.json") {
-				//sbb := bundleBytes
 				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
 					return err
 				}
-				sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+				tb := graphman.Bundle{}
+				r := bytes.NewReader(srcBundleBytes)
+				d := json.NewDecoder(r)
+				d.DisallowUnknownFields()
+				_ = json.Unmarshal(srcBundleBytes, &tb)
+				err = d.Decode(&tb)
 				if err != nil {
 					return nil
 				}
-				bundleBytes = sbb
+				tbb, err := json.Marshal(tb)
+				if err != nil {
+					return nil
+				}
+
+				if len(tbb) > 2 {
+					sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
+					if err != nil {
+						return nil
+					}
+					bundleBytes = sbb
+				}
 			}
 		}
 		return nil

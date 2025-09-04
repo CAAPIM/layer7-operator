@@ -82,7 +82,33 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 	if !repository.Status.Ready {
 		params.Log.Info("repository not ready", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-		return nil
+
+		ok, err := checkLocalRepoOnFs(params, repository)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			return nil
+		}
+
+		// check secret if not using directories...
+
+		// if !found {
+		// 	if repository.Status.StorageSecretName != "" {
+		// 		rs, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		for k, v := range rs.Data {
+		// 			if strings.HasSuffix(k, ".gz") {
+		// 				if len(v) < 20 {
+		// 					return nil
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
 
 	commit := repository.Status.Commit

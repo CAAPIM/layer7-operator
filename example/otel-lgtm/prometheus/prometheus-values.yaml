@@ -57,7 +57,7 @@ grafana:
       uid: caa853f8-508d-47f2-a711-ad469652ab58
       orgId: 1
       type: tempo
-      url: http://tempo.grafana-loki.svc.cluster.local:3100
+      url: http://tempo.grafana-loki.svc.cluster.local:3200
       version: 1
       jsonData:
         tracesToLogsV2:
@@ -85,7 +85,7 @@ grafana:
       uid: tempo-minimal
       orgId: 1
       type: tempo
-      url: http://tempo.grafana-loki.svc.cluster.local:3100
+      url: http://tempo.grafana-loki.svc.cluster.local:3200
       version: 1
       jsonData:
         tracesToLogsV2:

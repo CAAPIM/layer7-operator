@@ -110,6 +110,8 @@ rabbitmq:
 
 mysql:
   image:
+    registry: docker.io
+    repository: bitnamilegacy/mysql
     tag: "8.0.36-debian-11-r4"
   auth:
     username: portal

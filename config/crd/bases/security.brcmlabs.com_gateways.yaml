@@ -1588,6 +1588,10 @@ spec:
                           description: Name of the kubernetes.io/tls Secret which
                             already exists in Kubernetes
                           type: string
+                        otk:
+                          description: Identifies if the key usage was specific for
+                            OTK
+                          type: boolean
                       type: object
                     type: array
                   externalSecrets:

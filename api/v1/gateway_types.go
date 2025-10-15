@@ -845,6 +845,8 @@ type ExternalKey struct {
 	// only one key usage type is allowed
 	// SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER
 	KeyUsageType KeyUsageType `json:"keyUsageType,omitempty"`
+	// Identifies if the key usage was specific for OTK
+	Otk bool `json:"otk,omitempty"`
 }
 
 type KeyUsageType string

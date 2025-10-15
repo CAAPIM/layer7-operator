@@ -3791,6 +3791,34 @@ spec:
                     type: object
                   otk:
                     properties:
+                      externalKeys:
+                        items:
+                          description: |-
+                            ExternalKey is a reference to an existing TLS Secret in Kubernetes
+                            The Laye
+                          properties:
+                            otk:
+                              description: Identifies if the key usage was specific for OTK
+                              type: boolean
+                            alias:
+                              description: |-
+                                Alias overrides the key name that is stored in the Gateway
+                                This is useful f
+                              type: string
+                            enabled:
+                              description: Enabled or disabled
+                              type: boolean
+                            keyUsageType:
+                              description: |-
+                                KeyUsageType allows keys to be marked as special purpose
+                                only one key usage
+                              type: string
+                            name:
+                              description: Name of the kubernetes.io/tls Secret which
+                                already exists in Kubernetes
+                              type: string
+                          type: object
+                        type: array
                       database:
                         description: Database configuration
                         properties:
@@ -6424,6 +6452,11 @@ spec:
                 type: object
               lastAppliedExternalKeys:
                 description: LastAppliedExternalKeys
+                items:
+                  type: string
+                type: array
+              lastAppliedExternalOtkKeys:
+                description: LastAppliedExternalOtkKeys
                 items:
                   type: string
                 type: array

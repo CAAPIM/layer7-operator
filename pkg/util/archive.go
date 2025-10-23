@@ -155,11 +155,11 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 			}
 			// this allows files in the root of a compressed file to be written to a different path
 			// default would be ./filename.ext
-			path := "/tmp/" + repoName + "-" + header.Name
+			//path := "/tmp/" + repoName + "-" + header.Name
+			path := folderName + "/" + header.Name
 
 			if strings.HasPrefix(header.Name, "./") {
 				header.Name = strings.Replace(header.Name, "./", "", 1)
-				//path = folderName + "/" + header.Name
 				path = folderName + "/" + header.Name
 			}
 			outFile, err := os.Create(path)

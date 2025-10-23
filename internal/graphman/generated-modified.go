@@ -3269,31 +3269,31 @@ func (v *TrustedCertInput) GetChecksum() string { return v.Checksum }
 // Partial TrustedCert input for updates
 type TrustedCertPartialInput struct {
 	// The internal entity unique identifier
-	Goid string `json:"goid"`
+	Goid string `json:"goid,omitempty"`
 	// The name of the trusted certificate
 	Name string `json:"name"`
 	// The base 64 encoded string of the certificate
-	CertBase64 string `json:"certBase64"`
+	CertBase64 string `json:"certBase64,omitempty"`
 	// Whether to perform hostname verification with this certificate
-	VerifyHostname bool `json:"verifyHostname"`
+	VerifyHostname bool `json:"verifyHostname,omitempty"`
 	// Whether this certificate is a trust anchor
-	TrustAnchor bool `json:"trustAnchor"`
+	TrustAnchor bool `json:"trustAnchor,omitempty"`
 	// What the certificate is trusted for
-	TrustedFor []TrustedForType `json:"trustedFor"`
+	TrustedFor []TrustedForType `json:"trustedFor,omitempty"`
 	// The revocation check policy type
-	RevocationCheckPolicyType PolicyUsageType `json:"revocationCheckPolicyType"`
+	RevocationCheckPolicyType PolicyUsageType `json:"revocationCheckPolicyType,omitempty"`
 	// The name of revocation policy.  Required if revocationCheckPolicyType is PolicyUsageType.SPECIFIED
-	RevocationCheckPolicyName string `json:"revocationCheckPolicyName"`
+	RevocationCheckPolicyName string `json:"revocationCheckPolicyName,omitempty"`
 	// The Subject DN of this certificate. (Note that, this field has no effect on the mutation)
-	SubjectDn string `json:"subjectDn"`
+	SubjectDn string `json:"subjectDn,omitempty"`
 	// The start date of the validity period. (Note that, this field has no effect on the mutation)
-	NotBefore string `json:"notBefore"`
+	NotBefore string `json:"notBefore,omitempty"`
 	// the end date of the validity period. (Note that, this field has no effect on the mutation)
-	NotAfter string `json:"notAfter"`
+	NotAfter string `json:"notAfter,omitempty"`
 	// The sha1 thumbprint of the certificate. This field is used to find the existing record.
-	ThumbprintSha1 string `json:"thumbprintSha1"`
+	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
 	// Ignored at creation time but can be used to compare bundle with gw state
-	Checksum string `json:"checksum"`
+	Checksum string `json:"checksum,omitempty"`
 }
 
 // GetGoid returns TrustedCertPartialInput.Goid, and is useful for accessing the field via an interface.

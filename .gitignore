@@ -44,6 +44,7 @@ tenant_info.json
 example/repositories/local-tests
 example/gateway/local-tests
 example/base/resources/configmaps/cassandra
+.vscode
 
 # internal automation modified files
 deploy/no-crd.yaml

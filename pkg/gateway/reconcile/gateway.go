@@ -34,6 +34,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -787,22 +788,32 @@ func SyncGateway(ctx context.Context, params Params, gwUpdReq GatewayUpdateReque
 }
 
 func buildBundle(ctx context.Context, params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository) (bundleBytes []byte, err error) {
-	gitPath := ""
-	tmpPath := "/tmp/bundles/" + repository.Name
-	fileName := repository.Status.Commit + ".json"
-	for d := range repoRef.Directories {
-		ext := repository.Spec.Branch
-		if ext == "" {
-			ext = repository.Spec.Tag
-		}
+	var (
+		bundlePath  = ""
+		tmpPath     = "/tmp/bundles/" + repository.Name
+		fileName    = ""
+		dirChecksum = ""
+	)
+	// create a checksum of directories
+	for _, d := range repoRef.Directories {
+		h := sha1.New()
+		h.Write([]byte(d))
+		sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+		dirChecksum = dirChecksum + sha1Sum
+	}
+	// combine with commitId
+	h := sha1.New()
+	h.Write([]byte(repository.Status.Commit + dirChecksum))
+	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 
-		dir := repoRef.Directories[d]
-		if dir == "/" {
-			dir = ""
-		}
+	fileName = sha1Sum[30:] + ".json"
 
-		gitPath = "/tmp/" + repoRef.Name + "-" + params.Instance.Namespace + "-" + ext + "/" + dir
+	_, dErr := os.Stat(tmpPath)
+	if dErr != nil {
+		_ = os.MkdirAll(tmpPath, 0755)
+	}
 
+	if len(repoRef.Directories) == 1 && strings.ToLower(string(repository.Spec.Type)) != "git" {
 		switch strings.ToLower(string(repository.Spec.Type)) {
 		case "http":
 			fileURL, err := url.Parse(repository.Spec.Endpoint)
@@ -811,60 +822,157 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 			}
 			path := fileURL.Path
 			segments := strings.Split(path, "/")
-			fileName := segments[len(segments)-1]
-			ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
-			folderName := strings.ReplaceAll(fileName, "."+ext, "")
-			if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
-				folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+			artifactName := segments[len(segments)-1]
+			ext := strings.Split(artifactName, ".")[len(strings.Split(artifactName, "."))-1]
+			folderName := strings.ReplaceAll(artifactName, "."+ext, "")
+			if ext == "gz" && strings.Split(artifactName, ".")[len(strings.Split(artifactName, "."))-2] == "tar" {
+				folderName = strings.ReplaceAll(artifactName, ".tar.gz", "")
 			}
-			gitPath = "/tmp/" + repository.Name + "-" + params.Instance.Namespace + "-" + folderName
-		case "local":
-			gitPath = ""
-			bundleBytes, err = readLocalReference(ctx, repository, params)
-			if err != nil {
-				return nil, err
-			}
-			return bundleBytes, nil
-		}
+			bundlePath = "/tmp/" + repository.Name + "-" + params.Instance.Namespace + "-" + folderName
 
-		if repository.Spec.StateStoreReference != "" {
-			gitPath = ""
-		}
-
-		_, dErr := os.Stat(tmpPath)
-		if dErr != nil {
-			_ = os.MkdirAll(tmpPath, 0755)
-		}
-
-		if gitPath != "" {
 			_, fErr := os.Stat(tmpPath + "/" + fileName)
 			if fErr != nil {
-				// remove existing bundles to avoid
+
+				// remove bundles 10 days or older to avoid
 				// growing the ephemeral filesystem
 				existingBundles, _ := os.ReadDir(tmpPath)
 				for _, f := range existingBundles {
-					os.Remove(tmpPath + "/" + f.Name())
-				}
+					fInfo, err := f.Info()
+					if err != nil {
+						return nil, err
+					}
+					if time.Since(fInfo.ModTime()) > 240*time.Hour {
+						os.Remove(tmpPath + "/" + f.Name())
+					}
 
-				bundleBytes, err = util.BuildAndValidateBundle(gitPath)
+				}
+				bundleBytes, err = util.BuildAndValidateBundle(bundlePath)
 				if err != nil {
 					return nil, err
+					// bundleBytes, err = readStorageSecret(ctx, repository, params)
+					// if err != nil {
+					// 	return nil, err
+					// }
 				}
-
 				err = os.WriteFile(tmpPath+"/"+fileName, bundleBytes, 0755)
 				if err != nil {
 					return nil, err
 				}
+
 			} else {
 				bundleBytes, err = os.ReadFile(tmpPath + "/" + fileName)
 				if err != nil {
 					return nil, err
 				}
 			}
+
+		case "local":
+			bundlePath = ""
+			bundleBytes, err = readLocalReference(ctx, repository, params)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return bundleBytes, nil
+	}
+
+	_, fErr := os.Stat(tmpPath + "/" + fileName)
+	if fErr != nil {
+		bundleMap := map[string][]byte{}
+		for d := range repoRef.Directories {
+			ext := repository.Spec.Branch
+			if ext == "" {
+				ext = repository.Spec.Tag
+			}
+
+			dir := repoRef.Directories[d]
+			if dir == "/" {
+				dir = ""
+			}
+
+			bundlePath = "/tmp/" + repoRef.Name + "-" + params.Instance.Namespace + "-" + ext + "/" + dir
+
+			_, fErr := os.Stat(tmpPath + "/" + fileName)
+			if fErr != nil {
+
+				bundleMap[strconv.Itoa(d)+".json"], err = util.BuildAndValidateBundle(bundlePath)
+				if err != nil {
+					return nil, err
+					// bundleBytes, err = readStorageSecret(ctx, repository, params)
+					// if err != nil {
+					// 	return nil, err
+					// }
+				}
+			}
+		}
+		bundleBytes, err = util.ConcatBundles(bundleMap)
+		if err != nil {
+			return nil, err
+		}
+		// remove bundles 10 days or older to avoid
+		// growing the ephemeral filesystem
+		existingBundles, _ := os.ReadDir(tmpPath)
+		for _, f := range existingBundles {
+			fInfo, err := f.Info()
+			if err != nil {
+				return nil, err
+			}
+			if time.Since(fInfo.ModTime()) > 240*time.Hour {
+				os.Remove(tmpPath + "/" + f.Name())
+			}
+
+		}
+		err = os.WriteFile(tmpPath+"/"+fileName, bundleBytes, 0755)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		bundleBytes, err = os.ReadFile(tmpPath + "/" + fileName)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+	return bundleBytes, nil
+}
+
+func checkLocalRepoOnFs(params Params, repository *securityv1.Repository) (bool, error) {
+
+	if repository.Spec.StateStoreReference != "" {
+		return true, nil
+	}
+	gitPath := ""
+	ext := repository.Spec.Branch
+	dir := "/"
+
+	gitPath = "/tmp/" + repository.Name + "-" + params.Instance.Namespace + "-" + ext + "/" + dir
+
+	switch strings.ToLower(string(repository.Spec.Type)) {
+	case "http":
+		fileURL, err := url.Parse(repository.Spec.Endpoint)
+		if err != nil {
+			return false, err
+		}
+		path := fileURL.Path
+		segments := strings.Split(path, "/")
+		fileName := segments[len(segments)-1]
+		ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+		folderName := strings.ReplaceAll(fileName, "."+ext, "")
+		if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+			folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+		}
+		gitPath = "/tmp/" + repository.Name + "-" + params.Instance.Namespace + "-" + folderName
+	}
+
+	if gitPath != "" {
+		_, fErr := os.Stat(gitPath)
+		if fErr != nil {
+			return false, nil
 		}
 	}
 
-	return bundleBytes, nil
+	return true, nil
 }
 
 func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *GatewayUpdateRequest) (err error) {
@@ -875,7 +983,7 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 	leaderAvailable := false
 	for _, pod := range gwUpdReq.podList.Items {
 		if pod.ObjectMeta.Labels["management-access"] == "leader" {
-			endpoint = pod.Status.PodIP + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
+			endpoint = podIP(pod.Status.PodIP) + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
 			leaderAvailable = true
 		}
 	}
@@ -883,11 +991,6 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 	if !leaderAvailable {
 		return nil
 	}
-
-	//endpoint = gwUpdReq.gateway.Name + "." + gwUpdReq.gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
-	// if gwUpdReq.gateway.Spec.App.Management.Service.Enabled {
-	// 	endpoint = gwUpdReq.gateway.Name + "-management-service." + gwUpdReq.gateway.Namespace + ".svc.cluster.local:9443/graphman"
-	// }
 
 	currentChecksum := gwUpdReq.deployment.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
 
@@ -1050,8 +1153,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 
 		if update && ready {
 			updateStatus = true
-			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
-
+			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
 			requestCacheEntry := pod.Name + "-" + gwUpdReq.cacheEntry
 			syncRequest, err := syncCache.Read(requestCacheEntry)
 			tryRequest := true
@@ -1116,6 +1218,25 @@ func readLocalReference(ctx context.Context, repository *securityv1.Repository, 
 	}
 
 	bundleBytes, err := util.ConcatBundles(localReference.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return bundleBytes, nil
+}
+
+func readStorageSecret(ctx context.Context, repository *securityv1.Repository, params Params) ([]byte, error) {
+	if repository.Status.StorageSecretName == "_" {
+		return nil, fmt.Errorf("%s storage secret does not exist", repository.Name)
+	}
+
+	storageSecret := &corev1.Secret{}
+	err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Status.StorageSecretName, Namespace: repository.Namespace}, storageSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	bundleBytes, err := util.ConcatBundles(storageSecret.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -1293,7 +1414,7 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 
 		if update && ready {
 			updateStatus = true
-			endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"
+			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(graphmanPort) + "/graphman"
 
 			requestCacheEntry := pod.Name + "-" + gateway.Name + "-" + name + "-" + sha1Sum
 			syncRequest, err := syncCache.Read(requestCacheEntry)
@@ -1790,4 +1911,16 @@ func getStateStore(ctx context.Context, params Params, stateStoreName string) (s
 		return statestore, err
 	}
 	return statestore, nil
+}
+
+func isIPv6(str string) bool {
+	ip := net.ParseIP(str)
+	return ip != nil && strings.Contains(str, ":")
+}
+
+func podIP(podIp string) string {
+	if isIPv6(podIp) {
+		return "[" + podIp + "]"
+	}
+	return podIp
 }

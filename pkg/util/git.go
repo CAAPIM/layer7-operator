@@ -63,6 +63,11 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 		cloneOpts.URL = url
 	}
 
+	if strings.Contains(strings.ToLower(vendor), "insecure") {
+		cloneOpts.InsecureSkipTLS = true
+		pullOpts.InsecureSkipTLS = true
+	}
+
 	if tag != "" {
 		cloneOpts.ReferenceName = plumbing.ReferenceName(tag)
 		pullOpts.ReferenceName = plumbing.ReferenceName("refs/heads/" + tag)

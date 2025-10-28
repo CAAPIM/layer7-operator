@@ -540,6 +540,12 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 			}
 		}
 
+		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
+			Name:        "otk.port",
+			Value:       strconv.Itoa(otkPort),
+			Description: "OTK Port",
+		})
+
 		bundle.FederatedIdps = append(bundle.FederatedIdps, &graphman.FederatedIdpInput{
 			Name:           "otk-fips-provider",
 			Goid:           fipsProviderGuid,
@@ -549,11 +555,6 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 			TrustedCerts:   []*graphman.TrustedCertPartialInput{},
 		})
 
-		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
-			Name:        "otk.port",
-			Value:       strconv.Itoa(otkPort),
-			Description: "OTK Port",
-		})
 	case "DMZ":
 		for _, externalPolicy := range externalPolicies {
 			switch externalPolicy {
@@ -578,11 +579,11 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 					Soap:       false,
 				})
 			}
-
+		}
 		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
-				Name:        "otk.port",
-				Value:       strconv.Itoa(otkPort),
-				Description: "OTK Port",
+			Name:        "otk.port",
+			Value:       strconv.Itoa(otkPort),
+			Description: "OTK Port",
 		})
 	case "SINGLE":
 		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{

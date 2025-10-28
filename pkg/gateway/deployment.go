@@ -43,6 +43,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	var image string = gw.Spec.App.Image
 	defaultMode := int32(0755)
 	optional := false
+	optionalTrue := true
 	ports := []corev1.ContainerPort{}
 
 	defaultUser := int64(1001)
@@ -895,41 +896,80 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		}
 	}
 
-	if otkInstallInitContainer {
-		initContainers = append(initContainers, corev1.Container{
-			Name:            "otk-install-init",
-			Image:           otkInitContainerImage,
-			ImagePullPolicy: otkInitContainerImagePullPolicy,
-			SecurityContext: &otkInitContainerSecurityContext,
-			VolumeMounts:    otkInitContainerVolumeMounts,
-			EnvFrom: []corev1.EnvFromSource{
-				{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: gw.Name + "-otk-shared-init-config",
+	if gw.Spec.App.Otk.Type == securityv1.OtkTypeDMZ {
+		if otkInstallInitContainer {
+			initContainers = append(initContainers, corev1.Container{
+				Name:            "otk-install-init",
+				Image:           otkInitContainerImage,
+				ImagePullPolicy: otkInitContainerImagePullPolicy,
+				SecurityContext: &otkInitContainerSecurityContext,
+				VolumeMounts:    otkInitContainerVolumeMounts,
+				EnvFrom: []corev1.EnvFromSource{
+					{
+						ConfigMapRef: &corev1.ConfigMapEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: gw.Name + "-otk-shared-init-config",
+							},
+						},
+					},
+					{
+						ConfigMapRef: &corev1.ConfigMapEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: gw.Name + "-otk-install-init-config",
+							},
+							Optional: &optional,
+						},
+					},
+					{
+						SecretRef: &corev1.SecretEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: otkInitContainerSecret,
+							},
+							Optional: &optionalTrue,
 						},
 					},
 				},
-				{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: gw.Name + "-otk-install-init-config",
+				TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+				TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+			})
+		}
+	} else {
+		if otkInstallInitContainer {
+			initContainers = append(initContainers, corev1.Container{
+				Name:            "otk-install-init",
+				Image:           otkInitContainerImage,
+				ImagePullPolicy: otkInitContainerImagePullPolicy,
+				SecurityContext: &otkInitContainerSecurityContext,
+				VolumeMounts:    otkInitContainerVolumeMounts,
+				EnvFrom: []corev1.EnvFromSource{
+					{
+						ConfigMapRef: &corev1.ConfigMapEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: gw.Name + "-otk-shared-init-config",
+							},
 						},
-						Optional: &optional,
+					},
+					{
+						ConfigMapRef: &corev1.ConfigMapEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: gw.Name + "-otk-install-init-config",
+							},
+							Optional: &optional,
+						},
+					},
+					{
+						SecretRef: &corev1.SecretEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: otkInitContainerSecret,
+							},
+							Optional: &optional,
+						},
 					},
 				},
-				{
-					SecretRef: &corev1.SecretEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: otkInitContainerSecret,
-						},
-						Optional: &optional,
-					},
-				},
-			},
-			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-		})
+				TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+				TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+			})
+		}
 	}
 
 	if otkDbInitContainer && gw.Spec.App.Otk.Database.Type != securityv1.OtkDatabaseTypeCassandra && (gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle) {

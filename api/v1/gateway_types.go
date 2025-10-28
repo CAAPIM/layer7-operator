@@ -323,6 +323,7 @@ type Otk struct {
 	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
 	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
 	RuntimeSyncIntervalSeconds int `json:"runtimeSyncIntervalSeconds,omitempty"`
+	ExternalKeys               []ExternalKey `json:"externalKeys,omitempty"`
 }
 
 // OtkMaintenanceTasks are included in the install bundle as disabled scheduled tasks
@@ -845,6 +846,8 @@ type ExternalKey struct {
 	// only one key usage type is allowed
 	// SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER
 	KeyUsageType KeyUsageType `json:"keyUsageType,omitempty"`
+	// Identifies if the key usage was specific for OTK
+	Otk bool `json:"otk,omitempty"`
 }
 
 type KeyUsageType string

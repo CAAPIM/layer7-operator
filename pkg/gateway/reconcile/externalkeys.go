@@ -33,6 +33,7 @@ import (
 func ExternalKeys(ctx context.Context, params Params) error {
 	gateway := params.Instance
 	if len(gateway.Spec.App.ExternalKeys) == 0 && len(gateway.Status.LastAppliedExternalKeys) == 0 {
+		//if (len(gateway.Spec.App.ExternalKeys) == 0 || len(gateway.Spec.App.Otk.ExternalKeys) == 0) && len(gateway.Status.LastAppliedExternalKeys) == 0 {
 		return nil
 	}
 

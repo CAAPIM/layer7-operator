@@ -1588,6 +1588,10 @@ spec:
                           description: Name of the kubernetes.io/tls Secret which
                             already exists in Kubernetes
                           type: string
+                        otk:
+                          description: Identifies if the key usage was specific for
+                            OTK
+                          type: boolean
                       type: object
                     type: array
                   externalSecrets:
@@ -4002,6 +4006,35 @@ spec:
                       enabled:
                         description: Enable or disable the OTK initContainer
                         type: boolean
+                      externalKeys:
+                        items:
+                          description: |-
+                            ExternalKey is a reference to an existing TLS Secret in Kubernetes
+                            The Laye
+                          properties:
+                            alias:
+                              description: |-
+                                Alias overrides the key name that is stored in the Gateway
+                                This is useful f
+                              type: string
+                            enabled:
+                              description: Enabled or disabled
+                              type: boolean
+                            keyUsageType:
+                              description: |-
+                                KeyUsageType allows keys to be marked as special purpose
+                                only one key usage
+                              type: string
+                            name:
+                              description: Name of the kubernetes.io/tls Secret which
+                                already exists in Kubernetes
+                              type: string
+                            otk:
+                              description: Identifies if the key usage was specific
+                                for OTK
+                              type: boolean
+                          type: object
+                        type: array
                       initContainerImage:
                         description: InitContainerImage for the initContainer
                         type: string

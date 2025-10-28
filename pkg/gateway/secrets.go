@@ -38,21 +38,23 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 		data["node.properties"] = []byte(nodeProperties)
 
 	case gw.Name + "-otk-db-credentials":
-		if gw.Spec.App.Otk.Database.Auth.GatewayUser != (securityv1.OtkDatabaseAuthCredentials{}) {
-			data["OTK_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.GatewayUser.Username)
-			data["OTK_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.GatewayUser.Password)
-		}
-		if gw.Spec.App.Otk.Database.Auth.AdminUser != (securityv1.OtkDatabaseAuthCredentials{}) {
-			data["OTK_DATABASE_DDL_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.AdminUser.Username)
-			data["OTK_DATABASE_DDL_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.AdminUser.Password)
-		}
-		if gw.Spec.App.Otk.Database.Auth.ReadOnlyUser != (securityv1.OtkDatabaseAuthCredentials{}) {
-			data["OTK_RO_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Username)
-			data["OTK_RO_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Password)
-		}
-		if gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser != (securityv1.OtkDatabaseAuthCredentials{}) {
-			data["OTK_CLIENT_READ_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser.Username)
-			data["OTK_CLIENT_READ_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser.Password)
+		if gw.Spec.App.Otk.Type != securityv1.OtkTypeDMZ {
+			if gw.Spec.App.Otk.Database.Auth.GatewayUser != (securityv1.OtkDatabaseAuthCredentials{}) {
+				data["OTK_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.GatewayUser.Username)
+				data["OTK_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.GatewayUser.Password)
+			}
+			if gw.Spec.App.Otk.Database.Auth.AdminUser != (securityv1.OtkDatabaseAuthCredentials{}) {
+				data["OTK_DATABASE_DDL_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.AdminUser.Username)
+				data["OTK_DATABASE_DDL_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.AdminUser.Password)
+			}
+			if gw.Spec.App.Otk.Database.Auth.ReadOnlyUser != (securityv1.OtkDatabaseAuthCredentials{}) {
+				data["OTK_RO_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Username)
+				data["OTK_RO_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ReadOnlyUser.Password)
+			}
+			if gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser != (securityv1.OtkDatabaseAuthCredentials{}) {
+				data["OTK_CLIENT_READ_DATABASE_USERNAME"] = []byte(gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser.Username)
+				data["OTK_CLIENT_READ_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser.Password)
+			}
 		}
 
 	case gw.Name + "-shared-state-client-configuration":

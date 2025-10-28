@@ -6455,11 +6455,6 @@ spec:
                 items:
                   type: string
                 type: array
-              lastAppliedExternalOtkKeys:
-                description: LastAppliedExternalOtkKeys
-                items:
-                  type: string
-                type: array
               lastAppliedExternalSecrets:
                 additionalProperties:
                   items:

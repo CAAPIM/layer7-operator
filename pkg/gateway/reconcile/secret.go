@@ -29,7 +29,7 @@ func Secrets(ctx context.Context, params Params) error {
 		desiredSecrets = append(desiredSecrets, desiredSecret)
 	}
 
-	if params.Instance.Spec.App.Otk.Enabled && params.Instance.Spec.App.Otk.Database.Auth != (securityv1.OtkDatabaseAuth{}) && params.Instance.Spec.App.Otk.Database.Auth.ExistingSecret == "" {
+	if params.Instance.Spec.App.Otk.Enabled && params.Instance.Spec.App.Otk.Type != securityv1.OtkTypeDMZ && params.Instance.Spec.App.Otk.Database.Auth != (securityv1.OtkDatabaseAuth{}) && params.Instance.Spec.App.Otk.Database.Auth.ExistingSecret == "" {
 		desiredSecret, err := gateway.NewSecret(params.Instance, params.Instance.Name+"-otk-db-credentials")
 		if err != nil {
 			return err

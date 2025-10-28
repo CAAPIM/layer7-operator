@@ -323,6 +323,7 @@ type Otk struct {
 	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
 	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
 	RuntimeSyncIntervalSeconds int `json:"runtimeSyncIntervalSeconds,omitempty"`
+	ExternalKeys               []ExternalKey `json:"externalKeys,omitempty"`
 }
 
 // OtkMaintenanceTasks are included in the install bundle as disabled scheduled tasks

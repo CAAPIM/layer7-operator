@@ -23,15 +23,15 @@ spec:
         - "dev-portal-ssg.brcmlabs.com"
       containers:
       - name: portal-g2c-agent
-        image: caapim/portal-g2c-agent:5.3.3
+        image: caapim/portal-g2c-agent:5.4
         imagePullPolicy: Always
         resources:
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 100Mi
           limits:
-            cpu: 200m
-            memory: 50Mi
+            cpu: 400m
+            memory: 400Mi
         envFrom:
         - configMapRef:
             name: g2c-agent-configmap

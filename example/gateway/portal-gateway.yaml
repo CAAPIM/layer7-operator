@@ -72,14 +72,14 @@ spec:
     portalReference:
       enabled: true
       portalName: example-k8
-      initContainerImage:  caapim/portal-bulk-sync:5.3.3
+      initContainerImage:  caapim/portal-bulk-sync:5.4
       initContainerImagePullPolicy: Always
     bootstrap:
       script:
         enabled: true
     initContainers:
     - name: gateway-init
-      image: caapim/gateway-init-portal:5.3.3
+      image: caapim/gateway-init-portal:5.4
       imagePullPolicy: Always
       volumeMounts:
       - name: config-directory

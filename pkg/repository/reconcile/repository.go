@@ -22,12 +22,16 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package reconcile
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -54,6 +58,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	var sshKeyPass string
 	var knownHosts []byte
 	var statestore securityv1alpha1.L7StateStore
+	stateStoreSynced := true
 
 	authType := repository.Spec.Auth.Type
 	if err != nil {
@@ -88,16 +93,6 @@ func syncRepository(ctx context.Context, params Params) error {
 		sshKey = repositorySecret.Data["SSH_KEY"]
 		sshKeyPass = string(repositorySecret.Data["SSH_KEY_PASS"])
 		knownHosts = repositorySecret.Data["KNOWN_HOSTS"]
-		authType = repository.Spec.Auth.Type
-
-		if authType == "" && username != "" && token != "" {
-			authType = securityv1.RepositoryAuthTypeBasic
-		}
-
-		if authType == "" && username == "" && sshKey != nil {
-			authType = securityv1.RepositoryAuthTypeSSH
-		}
-
 	}
 
 	ext := repository.Spec.Branch
@@ -124,6 +119,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	if repository.Spec.StateStoreReference != "" {
+		storageSecretName = "_"
 		statestore, err = getStateStore(ctx, params)
 		if err != nil {
 			params.Log.V(2).Error(err, "failed to retrieve statestore", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
@@ -179,25 +175,22 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 	case "git":
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
-
-		stateStoreSynced := true
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
-
-			if repository.Spec.StateStoreReference != "" && !repository.Status.StateStoreSynced {
-				err = StateStorage(ctx, params, statestore)
+			if repository.Spec.StateStoreReference != "" {
+				err = StateStorage(ctx, params, statestore, commit)
 				if err != nil {
 					params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 					stateStoreSynced = false
 				}
 			}
-			params.Instance.Status.StateStoreSynced = stateStoreSynced
 
-			updateErr := updateStatus(ctx, params, commit, storageSecretName)
+			updateErr := updateStatus(ctx, params, commit, storageSecretName, stateStoreSynced)
 			if updateErr != nil {
 				_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
-				params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
+				params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", updateErr.Error())
 			}
+
 			return nil
 		}
 
@@ -231,7 +224,6 @@ func syncRepository(ctx context.Context, params Params) error {
 			params.Log.V(5).Info("already up-to-date", "name", repository.Name, "namespace", repository.Namespace)
 			return nil
 		}
-
 	case "local":
 		return nil
 	default:
@@ -241,15 +233,21 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	if strings.ToLower(string(repository.Spec.Type)) != "statestore" {
 		if repository.Spec.StateStoreReference != "" {
-			err = StateStorage(ctx, params, statestore)
+			err = StateStorage(ctx, params, statestore, commit)
 			if err != nil {
 				params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 				params.Instance.Status.StateStoreSynced = false
 			}
 		} else {
-			err = StorageSecret(ctx, params)
+			// Build directory-based bundle cache for non-statestore repos
+			bundleMap, err := BuildRepositoryCache(ctx, params, commit, storageSecretName)
 			if err != nil {
-				// add a check here that prevents the Operator trying to sync the secret repeatedly
+				params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+			}
+
+			// Reuse the bundleMap to create storage secret
+			err = StorageSecretFromBundleMap(ctx, params, bundleMap, storageSecretName)
+			if err != nil {
 				params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 				storageSecretName = ""
 				if err.Error() == "exceededMaxSize" {
@@ -259,7 +257,15 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 	}
 
-	err = updateStatus(ctx, params, commit, storageSecretName)
+	if repository.Spec.StateStoreReference != "" && (!repository.Status.StateStoreSynced || commit != repository.Status.Commit) {
+		err = StateStorage(ctx, params, statestore, commit)
+		if err != nil {
+			params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+			stateStoreSynced = false
+		}
+	}
+
+	err = updateStatus(ctx, params, commit, storageSecretName, stateStoreSynced)
 	if err != nil {
 		_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 		params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
@@ -296,7 +302,7 @@ func getRepository(ctx context.Context, params Params) (securityv1.Repository, e
 	return repository, nil
 }
 
-func updateStatus(ctx context.Context, params Params, commit string, storageSecretName string) (err error) {
+func updateStatus(ctx context.Context, params Params, commit string, storageSecretName string, stateStoreSynced bool) (err error) {
 
 	if params.Instance.Status.StorageSecretName == "_" {
 		storageSecretName = "_"
@@ -309,6 +315,7 @@ func updateStatus(ctx context.Context, params Params, commit string, storageSecr
 	rs.Name = r.Name
 	rs.Vendor = r.Spec.Auth.Vendor
 	rs.Ready = true
+	rs.StateStoreSynced = stateStoreSynced
 
 	if r.Spec.Type == "http" {
 		rs.Summary = r.Spec.Endpoint
@@ -316,20 +323,9 @@ func updateStatus(ctx context.Context, params Params, commit string, storageSecr
 
 	rs.StorageSecretName = storageSecretName
 
-	if !reflect.DeepEqual(rs, r.Status) {
+	if !reflect.DeepEqual(rs, r.Status) || r.Status.StateStoreSynced != rs.StateStoreSynced {
 		params.Log.Info("syncing repository", "name", r.Name, "namespace", r.Namespace)
 		rs.Updated = time.Now().String()
-
-		if rs.StateStoreSynced {
-			if r.Spec.StateStoreReference != "" {
-				if rs.StateStoreVersion == 0 {
-					rs.StateStoreVersion = 1
-				} else {
-					rs.StateStoreVersion = rs.StateStoreVersion + 1
-				}
-			}
-		}
-
 		r.Status = rs
 		err = params.Client.Status().Update(ctx, r)
 		if err != nil {
@@ -445,4 +441,109 @@ func captureRepositorySyncMetrics(ctx context.Context, params Params, start time
 	}
 
 	return nil
+}
+
+// BuildRepositoryCache scans a repository, builds bundles per directory, and caches them
+// Returns the bundleMap for reuse (e.g., in StorageSecret)
+func BuildRepositoryCache(ctx context.Context, params Params, commit string, storageSecretName string) (map[string][]byte, error) {
+	repository := params.Instance
+	cachePath := "/tmp/repo-cache/" + repository.Name
+	fileName := commit + ".json"
+
+	// Create cache directory
+	if err := os.MkdirAll(cachePath, 0755); err != nil {
+		return nil, err
+	}
+
+	// Check if already cached - load and return existing bundleMap
+	if _, err := os.Stat(cachePath + "/" + fileName); err == nil {
+		params.Log.V(2).Info("repository cache already exists", "name", repository.Name, "commit", commit)
+
+		// Read existing cache
+		bundleMapBytes, err := os.ReadFile(cachePath + "/" + fileName)
+		if err != nil {
+			return nil, err
+		}
+
+		bundleMap := map[string][]byte{}
+		if err := json.Unmarshal(bundleMapBytes, &bundleMap); err != nil {
+			return nil, err
+		}
+
+		return bundleMap, nil
+	}
+
+	// Get the base path for the repository
+	var basePath string
+	switch strings.ToLower(string(repository.Spec.Type)) {
+	case "http":
+		fileURL, err := url.Parse(repository.Spec.Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		path := fileURL.Path
+		segments := strings.Split(path, "/")
+		fileName := segments[len(segments)-1]
+		ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+		folderName := strings.ReplaceAll(fileName, "."+ext, "")
+		if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+			folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
+		}
+		basePath = "/tmp/" + repository.Name + "-" + repository.Namespace + "-" + folderName
+	case "git":
+		ext := repository.Spec.Branch
+		if ext == "" {
+			ext = repository.Spec.Tag
+		}
+		basePath = "/tmp/" + repository.Name + "-" + repository.Namespace + "-" + ext
+	default:
+		return nil, fmt.Errorf("unsupported repository type: %s", repository.Spec.Type)
+	}
+
+	// Detect all graphman folders in the repository
+	projects, err := util.DetectGraphmanFolders(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	bundleMap := map[string][]byte{}
+
+	for _, projectPath := range projects {
+		// Build bundle for this directory
+		bundleBytes, err := util.BuildAndValidateBundle(projectPath, false)
+		if err != nil {
+			return nil, err
+		}
+
+		// Compress the bundle
+		bundleGzip, err := util.GzipCompress(bundleBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		// Generate key name (normalize directory path)
+		keyName := strings.Replace(projectPath, basePath, "", 1)
+		keyName = strings.TrimPrefix(strings.ReplaceAll(keyName, "/", "-"), "-")
+
+		// Store compressed bundle in map
+		bundleMap[keyName+".gz"] = bundleGzip
+	}
+
+	// Marshal the bundle map
+	bundleMapBytes, err := json.Marshal(bundleMap)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write to cache
+	if err := os.WriteFile(cachePath+"/"+fileName, bundleMapBytes, 0755); err != nil {
+		return nil, err
+	}
+
+	params.Log.Info("built repository cache",
+		"name", repository.Name,
+		"directories", len(bundleMap),
+		"commit", commit)
+
+	return bundleMap, nil
 }

@@ -68,8 +68,8 @@ START_KIND_CLUSTER ?= true
 KUBE_VERSION ?= 1.30
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
-GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.2
-GO_BUILD_IMG ?= golang:1.23
+GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.3
+GO_BUILD_IMG ?= golang:1.24
 DISTROLESS_IMG ?= gcr.io/distroless/static:nonroot
 GO_PROXY ?= ""
 
@@ -307,8 +307,8 @@ CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.4.2
-CONTROLLER_TOOLS_VERSION ?= v0.16.5
+KUSTOMIZE_VERSION ?= v5.6.0
+CONTROLLER_TOOLS_VERSION ?= v0.19.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.

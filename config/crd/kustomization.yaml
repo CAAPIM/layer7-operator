@@ -9,6 +9,18 @@ resources:
 - bases/security.brcmlabs.com_l7statestores.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
+
+patches:
+  - path: patches/printercollumns_in_repositories.yaml
+    target:
+      kind: CustomResourceDefinition
+      name: repositories.security.brcmlabs.com
+  - path: patches/printercollumns_in_l7statestores.yaml
+    target:
+      kind: CustomResourceDefinition
+      name: l7statestores.security.brcmlabs.com
+
+
 patchesStrategicMerge:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD

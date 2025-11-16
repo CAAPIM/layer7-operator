@@ -293,7 +293,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					if err != nil {
 						return true
 					}
-					if oldDep.Status.ReadyReplicas == newDep.Status.ReadyReplicas || newDep.Status.ReadyReplicas == 0 { //|| oldDep.Status.ReadyReplicas > newDep.Status.ReadyReplicas
+					if oldDep.Status.ReadyReplicas == newDep.Status.ReadyReplicas {
 						return false
 					}
 					return true

@@ -653,17 +653,17 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	gmanInitContainerVolumeMounts := []corev1.VolumeMount{}
-	for _, staticRepository := range gw.Status.RepositoryStatus {
-		if staticRepository.Enabled && staticRepository.Type == "static" {
-			if staticRepository.SecretName != "" {
+	for _, repoRef := range gw.Status.RepositoryStatus {
+		if repoRef.Enabled && (repoRef.Type == "static" || gw.Spec.App.RepositoryReferenceBootstrap.Enabled) {
+			if repoRef.SecretName != "" {
 				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-					Name:      staticRepository.SecretName,
-					MountPath: "/graphman/secrets/" + staticRepository.Name,
+					Name:      repoRef.SecretName,
+					MountPath: "/graphman/secrets/" + repoRef.Name,
 				})
 				volumes = append(volumes, corev1.Volume{
-					Name: staticRepository.SecretName,
+					Name: repoRef.SecretName,
 					VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
-						SecretName:  staticRepository.SecretName,
+						SecretName:  repoRef.SecretName,
 						DefaultMode: &defaultMode,
 						Optional:    &optional,
 					}},
@@ -673,15 +673,15 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			// if the repository compressed is less than 1mb in size it will be
 			// available as an existing Kubernetes secret which reduces reliance on an external Git repository for Gateway boot.
 			// these secrets are managed by the Repository controller.
-			if staticRepository.StorageSecretName != "" && staticRepository.StorageSecretName != "_" {
+			if repoRef.StorageSecretName != "" && repoRef.StorageSecretName != "_" {
 				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-					Name:      staticRepository.StorageSecretName,
-					MountPath: "/graphman/localref/" + staticRepository.StorageSecretName,
+					Name:      repoRef.StorageSecretName,
+					MountPath: "/graphman/localref/" + repoRef.StorageSecretName,
 				})
 				volumes = append(volumes, corev1.Volume{
-					Name: staticRepository.StorageSecretName,
+					Name: repoRef.StorageSecretName,
 					VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
-						SecretName:  staticRepository.StorageSecretName,
+						SecretName:  repoRef.StorageSecretName,
 						DefaultMode: &defaultMode,
 						Optional:    &optional,
 					}},
@@ -753,6 +753,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		Env: []corev1.EnvVar{{
 			Name:  "BOOTSTRAP_BASE",
 			Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
+		}, {
+			Name:  "STATESTORE_CONFIG",
+			Value: "/graphman/statestore-config/",
+		}, {
+			Name:  "STATESTORE_SECRET",
+			Value: "/graphman/statestore-secret/",
 		}},
 		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,

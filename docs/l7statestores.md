@@ -167,6 +167,13 @@ Redis state store configuration
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#l7statestorespecredistls">tls</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>type</b></td>
         <td>string</td>
         <td>
@@ -286,6 +293,47 @@ Redis state store configuration
 </table>
 
 
+### L7StateStore.spec.redis.tls
+<sup><sup>[↩ Parent](#l7statestorespecredis)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>redisCrt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>verifyPeer</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### L7StateStore.status
 <sup><sup>[↩ Parent](#l7statestore)</sup></sup>
 
@@ -308,6 +356,6 @@ L7StateStoreStatus defines the observed state of L7StateStore
         <td>
           <br/>
         </td>
-        <td>false</td>
+        <td>true</td>
       </tr></tbody>
 </table>

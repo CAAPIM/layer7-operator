@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 
 package reconcile
@@ -37,6 +38,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -156,8 +158,11 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 	switch gwUpdReq.bundleType {
 	case BundleTypeRepository:
 
-		if (gwUpdReq.repository.Spec.StateStoreReference == "" && !gwUpdReq.repositoryReference.Enabled) || !gwUpdReq.repository.Spec.Enabled {
-			return nil, nil
+		// Skip if repository is disabled, UNLESS we're trying to delete it
+		if !gwUpdReq.delete {
+			if (gwUpdReq.repository.Spec.StateStoreReference == "" && !gwUpdReq.repositoryReference.Enabled) || !gwUpdReq.repository.Spec.Enabled {
+				return nil, nil
+			}
 		}
 
 		gwUpdReq.patchAnnotation = "security.brcmlabs.com/" + gwUpdReq.repositoryReference.Name + "-" + string(gwUpdReq.repositoryReference.Type)
@@ -177,9 +182,31 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 					}
 				}
 			}
-			if (updCntr == len(gwUpdReq.podList.Items) || !ready) && !gwUpdReq.delete {
+
+			// If all pods already updated, skip
+
+			directoryChange := false
+			for _, repoStatus := range gwUpdReq.gateway.Status.RepositoryStatus {
+				if gwUpdReq.repositoryReference.Name == repoStatus.Name {
+					if !reflect.DeepEqual(gwUpdReq.repositoryReference.Directories, repoStatus.Directories) {
+						directoryChange = true
+					}
+				}
+			}
+
+			if updCntr == len(gwUpdReq.podList.Items) && !gwUpdReq.delete && !directoryChange {
 				return nil, nil
 			}
+
+			// If pods aren't ready yet, only proceed if bootstrap is enabled OR if it's a delete
+			if !ready && !gwUpdReq.delete {
+				// With bootstrap enabled, we can patch pods that just started but aren't ready yet
+				if !gwUpdReq.gateway.Spec.App.RepositoryReferenceBootstrap.Enabled {
+					return nil, nil
+				}
+				// If bootstrap enabled and not ready, continue to patch with checksum
+			}
+
 		} else {
 			if (gwUpdReq.deployment.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || gwUpdReq.repositoryReference.Type == securityv1.RepositoryReferenceTypeStatic) && !gwUpdReq.delete {
 				return nil, nil
@@ -193,57 +220,13 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			}
 		}
 
-		if gwUpdReq.repository.Spec.StateStoreReference != "" {
-			gwUpdReq.stateStore = true
+		if len(gwUpdReq.repositoryReference.Directories) == 0 {
 			gwUpdReq.repositoryReference.Directories = []string{"/"}
-			statestore, err := getStateStore(ctx, params, gwUpdReq.repository.Spec.StateStoreReference)
-			if err != nil {
-				return nil, err
-			}
+		}
 
-			if statestore.Spec.Redis.ExistingSecret != "" {
-				stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, statestore, params)
-				if err != nil {
-					return nil, err
-				}
-				statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
-				statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
-			}
-
-			rc := util.RedisClient(&statestore.Spec.Redis)
-			bundleString := ""
-			if gwUpdReq.repository.Spec.StateStoreKey != "" {
-				bundleString, err = rc.Get(ctx, gwUpdReq.repository.Spec.StateStoreKey).Result()
-				if err != nil {
-					return nil, err
-				}
-				gwUpdReq.bundle = []byte(bundleString)
-			} else {
-				bundleString, err = rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+gwUpdReq.repository.Status.StorageSecretName+":latest").Result()
-				if err != nil {
-					return nil, err
-				}
-				gwUpdReq.bundle, err = util.GzipDecompress([]byte(bundleString))
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			if gwUpdReq.delete {
-				gwUpdReq.bundle, err = util.DeleteBundle(gwUpdReq.bundle)
-				if err != nil {
-					return nil, err
-				}
-			}
-		} else {
-			if len(gwUpdReq.repositoryReference.Directories) == 0 {
-				gwUpdReq.repositoryReference.Directories = []string{"/"}
-			}
-
-			gwUpdReq.bundle, err = buildBundle(ctx, params, gwUpdReq.repositoryReference, gwUpdReq.repository)
-			if err != nil {
-				return nil, err
-			}
+		gwUpdReq.bundle, err = buildBundle(ctx, params, gwUpdReq.repositoryReference, gwUpdReq.repository, gwUpdReq.gateway, gwUpdReq.delete)
+		if err != nil {
+			return nil, err
 		}
 
 		gwUpdReq.graphmanEncryptionPassphrase = graphmanEncryptionPassphrase
@@ -282,7 +265,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 
 		bundle.Properties = &graphman.BundleProperties{}
 		for _, deletedCwp := range notFound {
-			mappingSource := MappingSource{Name: deletedCwp}
+			mappingSource := graphman.MappingSource{Name: deletedCwp}
 			bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
 				Name:  deletedCwp,
 				Value: "to be deleted",
@@ -354,7 +337,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 
 			bundle.Properties = &graphman.BundleProperties{}
 			for _, deletedListenPort := range notFound {
-				mappingSource := MappingSource{Name: deletedListenPort}
+				mappingSource := graphman.MappingSource{Name: deletedListenPort}
 				bundle.ListenPorts = append(bundle.ListenPorts, &graphman.ListenPortInput{
 					Name:     deletedListenPort,
 					Port:     1,
@@ -787,161 +770,312 @@ func SyncGateway(ctx context.Context, params Params, gwUpdReq GatewayUpdateReque
 	return nil
 }
 
-func buildBundle(ctx context.Context, params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository) (bundleBytes []byte, err error) {
-	var (
-		bundlePath  = ""
-		tmpPath     = "/tmp/bundles/" + repository.Name
-		fileName    = ""
-		dirChecksum = ""
-	)
-	// create a checksum of directories
-	for _, d := range repoRef.Directories {
-		h := sha1.New()
-		h.Write([]byte(d))
-		sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
-		dirChecksum = dirChecksum + sha1Sum
-	}
-	// combine with commitId
-	h := sha1.New()
-	h.Write([]byte(repository.Status.Commit + dirChecksum))
-	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+///
+/// TODO
+/// statestore - if apply fails with a format error we should have the ability to ignore the delta or remove the offending entity)
+///
 
-	fileName = sha1Sum[30:] + ".json"
+func buildBundle(ctx context.Context, params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository, gateway *securityv1.Gateway, delete bool) (bundleBytes []byte, err error) {
+	tmpPath := "/tmp/bundles/" + repository.Name
+	fileName := calculateBundleFileName(repoRef.Directories, repository.Status.Commit)
 
-	_, dErr := os.Stat(tmpPath)
-	if dErr != nil {
-		_ = os.MkdirAll(tmpPath, 0755)
-	}
-
-	if len(repoRef.Directories) == 1 && strings.ToLower(string(repository.Spec.Type)) != "git" {
-		switch strings.ToLower(string(repository.Spec.Type)) {
-		case "http":
-			fileURL, err := url.Parse(repository.Spec.Endpoint)
-			if err != nil {
-				return nil, err
+	// If deleting, check if repository is in status - if not, it was already deleted
+	if delete {
+		found := false
+		for _, repoStatus := range gateway.Status.RepositoryStatus {
+			if repoStatus.Name == repoRef.Name {
+				found = true
+				break
 			}
-			path := fileURL.Path
-			segments := strings.Split(path, "/")
-			artifactName := segments[len(segments)-1]
-			ext := strings.Split(artifactName, ".")[len(strings.Split(artifactName, "."))-1]
-			folderName := strings.ReplaceAll(artifactName, "."+ext, "")
-			if ext == "gz" && strings.Split(artifactName, ".")[len(strings.Split(artifactName, "."))-2] == "tar" {
-				folderName = strings.ReplaceAll(artifactName, ".tar.gz", "")
+		}
+		if !found {
+			params.Log.V(2).Info("repository not in status, skipping delete", "repository", repoRef.Name)
+			// Return empty bundle - repository already deleted, nothing to do
+			return []byte("{}"), nil
+		}
+	}
+
+	// Ensure temp directory exists
+	if err := os.MkdirAll(tmpPath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create temp directory: %w", err)
+	}
+
+	// Check if directories have changed from the last known state
+	// Skip this check if we're deleting - directory changes don't matter for deletes
+	var previousDirectories []string
+	directoryChanged := false
+
+	if !delete {
+		for _, repoStatus := range gateway.Status.RepositoryStatus {
+			if repoStatus.Name == repoRef.Name {
+				previousDirectories = repoStatus.Directories
+				if !reflect.DeepEqual(repoRef.Directories, repoStatus.Directories) {
+					directoryChanged = true
+					params.Log.Info("directory change detected",
+						"repository", repoRef.Name,
+						"previous", previousDirectories,
+						"current", repoRef.Directories)
+				}
+				break
 			}
-			bundlePath = "/tmp/" + repository.Name + "-" + params.Instance.Namespace + "-" + folderName
+		}
+	}
 
-			_, fErr := os.Stat(tmpPath + "/" + fileName)
-			if fErr != nil {
+	// Try to read from cache first (skip cache if directories changed or deleting)
+	if !directoryChanged && !delete {
+		if bundleBytes, err := os.ReadFile(tmpPath + "/" + fileName); err == nil {
+			return bundleBytes, nil
+		}
+	}
 
-				// remove bundles 10 days or older to avoid
-				// growing the ephemeral filesystem
-				existingBundles, _ := os.ReadDir(tmpPath)
-				for _, f := range existingBundles {
-					fInfo, err := f.Info()
-					if err != nil {
-						return nil, err
-					}
-					if time.Since(fInfo.ModTime()) > 240*time.Hour {
-						os.Remove(tmpPath + "/" + f.Name())
-					}
+	// Handle local repositories separately (they don't use cache)
+	if strings.ToLower(string(repository.Spec.Type)) == "local" {
+		bundleBytes, err = readLocalReference(ctx, repository, params)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Route to appropriate cache path based on repository type
+		var cachePath string
+		if repository.Spec.StateStoreReference != "" {
+			cachePath = "/tmp/statestore/" + repository.Name
+		} else {
+			cachePath = "/tmp/repo-cache/" + repository.Name
+		}
 
-				}
-				bundleBytes, err = util.BuildAndValidateBundle(bundlePath)
+		bundleBytes, err = buildBundleFromCache(repository, repoRef, cachePath)
+		if err != nil {
+			// If cache failed and storage secret is available, try reading from storage secret
+			if repository.Status.StorageSecretName != "" && repository.Status.StorageSecretName != "_" {
+				params.Log.V(2).Info("cache not available, attempting to read from storage secret",
+					"repository", repository.Name,
+					"secret", repository.Status.StorageSecretName)
+				bundleBytes, err = buildBundleFromStorageSecret(ctx, repository, repoRef, params)
 				if err != nil {
-					return nil, err
-					// bundleBytes, err = readStorageSecret(ctx, repository, params)
-					// if err != nil {
-					// 	return nil, err
-					// }
+					return nil, fmt.Errorf("failed to build bundle from cache and storage secret: %w", err)
 				}
-				err = os.WriteFile(tmpPath+"/"+fileName, bundleBytes, 0755)
-				if err != nil {
-					return nil, err
-				}
-
 			} else {
-				bundleBytes, err = os.ReadFile(tmpPath + "/" + fileName)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-		case "local":
-			bundlePath = ""
-			bundleBytes, err = readLocalReference(ctx, repository, params)
-			if err != nil {
 				return nil, err
 			}
 		}
+	}
+
+	// If delete is true, set the bundle's default action to delete
+	if delete {
+		var srcBundle graphman.Bundle
+		if err := json.Unmarshal(bundleBytes, &srcBundle); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal bundle for delete: %w", err)
+		}
+
+		srcBundle.Properties = &graphman.BundleProperties{DefaultAction: graphman.MappingActionDelete}
+
+		bundleBytes, err = json.Marshal(srcBundle)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal bundle with delete mapping: %w", err)
+		}
+
+		params.Log.V(2).Info("applied delete mapping to bundle", "repository", repoRef.Name)
 		return bundleBytes, nil
 	}
 
-	_, fErr := os.Stat(tmpPath + "/" + fileName)
-	if fErr != nil {
-		bundleMap := map[string][]byte{}
-		for d := range repoRef.Directories {
-			ext := repository.Spec.Branch
-			if ext == "" {
-				ext = repository.Spec.Tag
-			}
+	// If directories changed, calculate delta against previous bundle
+	if directoryChanged && len(previousDirectories) > 0 {
+		bundleBytes, err = calculateDirectoryChangeDelta(repository, previousDirectories, bundleBytes, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate directory change delta: %w", err)
+		}
+	}
 
-			dir := repoRef.Directories[d]
-			if dir == "/" {
-				dir = ""
-			}
+	// Clean up old bundles and cache the new one
+	cleanupOldBundles(tmpPath)
+	if err := os.WriteFile(tmpPath+"/"+fileName, bundleBytes, 0755); err != nil {
+		return nil, fmt.Errorf("failed to write bundle cache: %w", err)
+	}
 
-			bundlePath = "/tmp/" + repoRef.Name + "-" + params.Instance.Namespace + "-" + ext + "/" + dir
+	return bundleBytes, nil
+}
 
-			_, fErr := os.Stat(tmpPath + "/" + fileName)
-			if fErr != nil {
+// calculateDirectoryChangeDelta builds a delta bundle when directories change
+func calculateDirectoryChangeDelta(repository *securityv1.Repository, previousDirectories []string, newBundleBytes []byte, params Params) ([]byte, error) {
+	// Normalize empty directories to "/" for comparison
+	normalizedPrevDirs := previousDirectories
+	if len(normalizedPrevDirs) == 0 {
+		normalizedPrevDirs = []string{"/"}
+	}
 
-				bundleMap[strconv.Itoa(d)+".json"], err = util.BuildAndValidateBundle(bundlePath)
+	// Calculate the filename for the previous bundle (already cached on filesystem)
+	tmpPath := "/tmp/bundles/" + repository.Name
+	previousFileName := calculateBundleFileName(normalizedPrevDirs, repository.Status.Commit)
+
+	// Read the previous bundle from cache
+	previousBundleBytes, err := os.ReadFile(tmpPath + "/" + previousFileName)
+	if err != nil {
+		params.Log.Info("failed to read previous bundle from cache, skipping delta calculation", "error", err)
+		return newBundleBytes, nil
+	}
+
+	// Parse bundles
+	var previousBundle, newBundle graphman.Bundle
+	if err := json.Unmarshal(previousBundleBytes, &previousBundle); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal previous bundle: %w", err)
+	}
+	if err := json.Unmarshal(newBundleBytes, &newBundle); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal new bundle: %w", err)
+	}
+
+	// Reset mappings on previous bundle to get clean state
+	if err := graphman.ResetMappings(&previousBundle); err != nil {
+		return nil, fmt.Errorf("failed to reset previous bundle mappings: %w", err)
+	}
+
+	// Calculate delta: current=previousBundle (cleaned), desired=newBundle
+	deltaBundle, _, err := graphman.CalculateDelta(previousBundle, newBundle)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate delta: %w", err)
+	}
+
+	// Marshal the delta bundle
+	deltaBundleBytes, err := json.Marshal(deltaBundle)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal delta bundle: %w", err)
+	}
+
+	params.Log.Info("calculated delta for directory change",
+		"repository", repository.Name,
+		"previous", normalizedPrevDirs)
+
+	return deltaBundleBytes, nil
+}
+
+// calculateBundleFileName generates a unique filename based on directories and commit
+func calculateBundleFileName(directories []string, commit string) string {
+	dirChecksum := ""
+	for _, d := range directories {
+		h := sha1.New()
+		h.Write([]byte(d))
+		dirChecksum += fmt.Sprintf("%x", h.Sum(nil))
+	}
+
+	h := sha1.New()
+	h.Write([]byte(commit + dirChecksum))
+	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
+	return sha1Sum[30:] + ".json"
+}
+
+// buildBundleFromCache loads bundles from cached directory structure or storage secret
+func buildBundleFromCache(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, cachePath string) ([]byte, error) {
+	fileName := repository.Status.Commit + ".json"
+
+	bundleMapBytes, err := os.ReadFile(cachePath + "/" + fileName)
+	if err != nil {
+		// Cache not available - this might happen if repository isn't ready yet
+		// In this case, we cannot build the bundle
+		return nil, fmt.Errorf("failed to read cached bundle: %w", err)
+	}
+
+	bundleMap := map[string][]byte{}
+	if err := json.Unmarshal(bundleMapBytes, &bundleMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal bundle map: %w", err)
+	}
+
+	// If requesting all directories, concatenate everything
+	if len(repoRef.Directories) == 1 && repoRef.Directories[0] == "/" {
+		return util.ConcatBundles(bundleMap)
+	}
+
+	// Otherwise, filter by specific directories
+	return buildBundleFromDirectories(repoRef.Directories, bundleMap)
+}
+
+// buildBundleFromDirectories combines bundles from specific directories
+func buildBundleFromDirectories(directories []string, bundleMap map[string][]byte) ([]byte, error) {
+	srcBundle := graphman.Bundle{}
+	bundleBytes, err := json.Marshal(srcBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, d := range directories {
+		normalizedDir := strings.TrimPrefix(strings.ReplaceAll(d, "/", "-"), "-")
+
+		for k, bundleGz := range bundleMap {
+			if normalizedDir == strings.Split(k, ".")[0] {
+				decompressedBytes, err := util.GzipDecompress(bundleGz)
 				if err != nil {
-					return nil, err
-					// bundleBytes, err = readStorageSecret(ctx, repository, params)
-					// if err != nil {
-					// 	return nil, err
-					// }
+					return nil, fmt.Errorf("failed to decompress bundle %s: %w", k, err)
+				}
+
+				bundleBytes, err = graphman.ConcatBundle(decompressedBytes, bundleBytes)
+				if err != nil {
+					return nil, fmt.Errorf("failed to concat bundle %s: %w", k, err)
 				}
 			}
 		}
-		bundleBytes, err = util.ConcatBundles(bundleMap)
-		if err != nil {
-			return nil, err
-		}
-		// remove bundles 10 days or older to avoid
-		// growing the ephemeral filesystem
-		existingBundles, _ := os.ReadDir(tmpPath)
-		for _, f := range existingBundles {
-			fInfo, err := f.Info()
-			if err != nil {
-				return nil, err
-			}
-			if time.Since(fInfo.ModTime()) > 240*time.Hour {
-				os.Remove(tmpPath + "/" + f.Name())
-			}
-
-		}
-		err = os.WriteFile(tmpPath+"/"+fileName, bundleBytes, 0755)
-		if err != nil {
-			return nil, err
-		}
-
-	} else {
-		bundleBytes, err = os.ReadFile(tmpPath + "/" + fileName)
-		if err != nil {
-			return nil, err
-		}
-
 	}
+
 	return bundleBytes, nil
+}
+
+// buildBundleFromStorageSecret reads bundles from storage secret when cache is not available
+func buildBundleFromStorageSecret(ctx context.Context, repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, params Params) ([]byte, error) {
+	storageSecret, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read storage secret: %w", err)
+	}
+
+	// Storage secret Data contains the same bundleMap structure as the cache
+	// If requesting all directories, concatenate everything
+	if len(repoRef.Directories) == 1 && repoRef.Directories[0] == "/" {
+		return util.ConcatBundles(storageSecret.Data)
+	}
+
+	// Otherwise, filter by specific directories
+	return buildBundleFromDirectories(repoRef.Directories, storageSecret.Data)
+}
+
+// cleanupOldBundles removes bundles older than 10 days
+func cleanupOldBundles(tmpPath string) {
+	existingBundles, err := os.ReadDir(tmpPath)
+	if err != nil {
+		return
+	}
+
+	for _, f := range existingBundles {
+		fInfo, err := f.Info()
+		if err != nil {
+			continue
+		}
+		if time.Since(fInfo.ModTime()) > 240*time.Hour {
+			os.Remove(tmpPath + "/" + f.Name())
+		}
+	}
 }
 
 func checkLocalRepoOnFs(params Params, repository *securityv1.Repository) (bool, error) {
 
+	// Check if pre-built bundle cache exists
+	var cachePath string
 	if repository.Spec.StateStoreReference != "" {
+		cachePath = "/tmp/statestore/" + repository.Name
+	} else {
+		cachePath = "/tmp/repo-cache/" + repository.Name
+	}
+
+	fileName := repository.Status.Commit + ".json"
+	if _, err := os.Stat(cachePath + "/" + fileName); err == nil {
+		// Pre-built bundle cache exists, can use it
 		return true, nil
 	}
+
+	// If no cache, check if raw repository exists on filesystem
+	if repository.Spec.StateStoreReference != "" {
+		// For state store repos, check if state store path exists
+		stateStorePath := "/tmp/statestore/" + repository.Name
+		if _, err := os.Stat(stateStorePath); err == nil {
+			return true, nil
+		}
+	}
+
 	gitPath := ""
 	ext := repository.Spec.Branch
 	dir := "/"
@@ -1052,11 +1186,7 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 			return err
 		}
 	} else {
-		// startTime := time.Now()
-		// if gwUpdReq.podList.Items[i].Status.StartTime != nil {
-		// 	startTime = gwUpdReq.podList.Items[i].Status.StartTime.Time
-		// }
-		if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) || (!ready && gwUpdReq.bundleType == BundleTypeListenPort) { //(startTime.Before(time.Now().Add(120*time.Second)) && gwUpdReq.stateStore) ||
+		if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) || (!ready && gwUpdReq.bundleType == BundleTypeListenPort) {
 			if err := params.Client.Patch(ctx, gwUpdReq.deployment,
 				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 				params.Log.Error(err, "failed to update deployment annotations", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
@@ -1090,6 +1220,27 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 
 		currentChecksum := pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
 
+		// Skip this pod if it already has the correct checksum and no directory change
+		if currentChecksum == checksum && !gwUpdReq.delete {
+			// Check if there's a directory change for repositories
+			if gwUpdReq.bundleType == BundleTypeRepository {
+				directoryChangeForPod := false
+				for _, repoStatus := range gwUpdReq.gateway.Status.RepositoryStatus {
+					if repoStatus.Name == gwUpdReq.repositoryReference.Name {
+						if !reflect.DeepEqual(gwUpdReq.repositoryReference.Directories, repoStatus.Directories) {
+							directoryChangeForPod = true
+						}
+						break
+					}
+				}
+				if !directoryChangeForPod {
+					continue // Skip this pod, it's already up to date
+				}
+			} else {
+				continue // Skip this pod, it's already up to date
+			}
+		}
+
 		if gwUpdReq.bundleType == BundleTypeOTKDatabaseMaintenance {
 			if pod.ObjectMeta.Labels["management-access"] == "leader" {
 				checksum = gwUpdReq.checksum + "-leader"
@@ -1100,8 +1251,18 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 		}
 
 		if gwUpdReq.bundleType == BundleTypeRepository {
-			if (currentChecksum == "deleted" && !gwUpdReq.repositoryReference.Enabled) || (currentChecksum == "" && (gwUpdReq.delete || !gwUpdReq.repositoryReference.Enabled)) {
+			// Skip if already deleted (annotation = "deleted" and repo still disabled)
+			if currentChecksum == "deleted" && !gwUpdReq.repositoryReference.Enabled {
 				return nil
+			}
+
+			for _, repoStatus := range gwUpdReq.gateway.Status.RepositoryStatus {
+				if repoStatus.Name == gwUpdReq.repositoryReference.Name {
+					if !reflect.DeepEqual(gwUpdReq.repositoryReference.Directories, repoStatus.Directories) {
+						update = true
+					}
+					break
+				}
 			}
 
 			if gwUpdReq.gateway.Spec.App.SingletonExtraction && pod.ObjectMeta.Labels["management-access"] == "leader" {
@@ -1141,12 +1302,39 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 			}
 		}
 
-		patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", gwUpdReq.patchAnnotation, checksum)
+		// Build patch with annotations
+		annotations := make(map[string]string)
 
 		if gwUpdReq.delete {
-			patch = fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", gwUpdReq.patchAnnotation, "deleted")
+			annotations[gwUpdReq.patchAnnotation] = "deleted"
+
+			// If ReconcileReferences is enabled, also clear other repository annotations to force reapply
+			if gwUpdReq.gateway.Spec.App.RepositoryReferenceDelete.ReconcileReferences {
+				for _, repoRef := range gwUpdReq.gateway.Spec.App.RepositoryReferences {
+					if repoRef.Name == gwUpdReq.repositoryReference.Name {
+						continue
+					}
+					annotationKey := "security.brcmlabs.com/" + repoRef.Name + "-" + string(repoRef.Type)
+					annotations[annotationKey] = ""
+				}
+			}
+		} else {
+			annotations[gwUpdReq.patchAnnotation] = checksum
 		}
 
+		patchData := map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"annotations": annotations,
+			},
+		}
+		patchBytes, err := json.Marshal(patchData)
+		if err != nil {
+			return err
+		}
+		patch := string(patchBytes)
+
+		// Set update=true if checksums don't match, checksum is empty, or it's a delete
+		// (update may already be true from directory change check above)
 		if currentChecksum != checksum || currentChecksum == "" || gwUpdReq.delete {
 			update = true
 		}
@@ -1187,7 +1375,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				}
 			}
 		} else {
-			if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) || (!ready && gwUpdReq.bundleType == BundleTypeListenPort) {
+			if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) || (!ready && gwUpdReq.bundleType == BundleTypeListenPort) || (!ready && gwUpdReq.bundleType == BundleTypeRepository && gwUpdReq.gateway.Spec.App.RepositoryReferenceBootstrap.Enabled) {
 				if err := params.Client.Patch(ctx, &gwUpdReq.podList.Items[i],
 					client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 					params.Log.Error(err, "failed to update pod label", "Name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
@@ -1197,7 +1385,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 		}
 	}
 
-	if updateStatus || (!updateStatus && string(gwUpdReq.bundleType) == "cluster properties") || (!updateStatus && string(gwUpdReq.bundleType) == "listen ports") {
+	if updateStatus || (!updateStatus && gwUpdReq.bundleType == BundleTypeClusterProp) || (!updateStatus && gwUpdReq.bundleType == BundleTypeListenPort) {
 		err := updateEntityStatus(ctx, string(gwUpdReq.bundleType), gwUpdReq.bundleName, gwUpdReq.bundle, params)
 		if err != nil {
 			return err
@@ -1539,30 +1727,29 @@ func ReconcileDBGateway(ctx context.Context, params Params, kind string, gateway
 	return nil
 }
 
-func disabledOrDeleteRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, disabled bool) (err error) {
-	repositoryStatuses := params.Instance.Status.RepositoryStatus
-	for i, repositoryStatus := range repositoryStatuses {
-		if repositoryStatus.Name == repository.Name {
-			if disabled {
-				repositoryStatuses[i].Enabled = false
-			} else {
-				repositoryStatuses = append(repositoryStatuses[:i], repositoryStatuses[i+1:]...)
-			}
-			break
-		}
-	}
-
-	params.Instance.Status.RepositoryStatus = repositoryStatuses
-	err = params.Client.Status().Update(ctx, params.Instance)
-	if err != nil {
-		params.Log.V(2).Info("failed to disabled/delete gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
-		return err
-	}
-	return nil
-}
-
-func updateRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, referenceType securityv1.RepositoryReferenceType, commit string, applyError error, delete bool) (err error) {
+func updateRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, repoRef securityv1.RepositoryReference, commit string, applyError error, delete bool) (err error) {
 	gatewayStatus := params.Instance.Status
+
+	// If delete was successful, remove the repository from status
+	if delete && applyError == nil {
+		var updatedStatus []securityv1.GatewayRepositoryStatus
+		for _, rs := range gatewayStatus.RepositoryStatus {
+			if rs.Name != repoRef.Name {
+				updatedStatus = append(updatedStatus, rs)
+			}
+		}
+		gatewayStatus.RepositoryStatus = updatedStatus
+
+		params.Instance.Status = gatewayStatus
+		err = params.Client.Status().Update(ctx, params.Instance)
+		if err != nil {
+			params.Log.V(2).Info("failed to update gateway status after delete", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
+			return err
+		}
+		params.Log.Info("removed repository from gateway status", "repository", repoRef.Name, "gateway", params.Instance.Name, "namespace", params.Instance.Namespace)
+		return nil
+	}
+
 	var conditions []securityv1.RepositoryCondition
 	secretName := repository.Name
 	if repository.Spec.Auth.ExistingSecretName != "" {
@@ -1576,11 +1763,15 @@ func updateRepoRefStatus(ctx context.Context, params Params, repository security
 	nrs := securityv1.GatewayRepositoryStatus{
 		Commit:            commit,
 		Enabled:           !delete,
-		Name:              repository.Name,
-		Type:              string(referenceType),
+		Name:              repoRef.Name,
+		RepoType:          string(repository.Spec.Type),
+		Vendor:            repository.Spec.Auth.Vendor,
+		AuthType:          string(repository.Spec.Auth.Type),
+		Type:              string(repoRef.Type),
 		SecretName:        secretName,
 		StorageSecretName: repository.Status.StorageSecretName,
 		Endpoint:          repository.Spec.Endpoint,
+		Directories:       repoRef.Directories,
 	}
 
 	if repository.Spec.Tag != "" && repository.Spec.Branch == "" {
@@ -1640,17 +1831,19 @@ func updateRepoRefStatus(ctx context.Context, params Params, repository security
 	nrs.Conditions = conditions
 
 	if repository.Spec.StateStoreReference != "" {
+		ext := repository.Spec.Branch
+		if ext == "" {
+			ext = repository.Spec.Tag
+		}
+		stateStoreKey := repository.Name + "-repository-" + ext
 		nrs.StateStoreReference = repository.Spec.StateStoreReference
-
 		statestore := &securityv1alpha1.L7StateStore{}
-
 		err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Spec.StateStoreReference, Namespace: params.Instance.Namespace}, statestore)
 		if err != nil && k8serrors.IsNotFound(err) {
 			params.Log.Info("state store not found", "name", repository.Spec.StateStoreReference, "repository", repository.Name, "namespace", params.Instance.Namespace)
 			return err
 		}
-
-		nrs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + repository.Status.StorageSecretName + ":latest"
+		nrs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + stateStoreKey + ":latest"
 		if repository.Spec.StateStoreKey != "" {
 			nrs.StateStoreKey = repository.Spec.StateStoreKey
 		}

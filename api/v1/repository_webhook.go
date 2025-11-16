@@ -12,55 +12,60 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+AI assistance has been used in the creation of this code.
 */
 
 package v1
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *Repository) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r).
+		WithValidator(r).
 		Complete()
 }
 
 //+kubebuilder:webhook:path=/mutate-security-brcmlabs-com-v1-repository,mutating=true,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=repositories,verbs=create;update,versions=v1,name=mrepository.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Defaulter = &Repository{}
+var _ admission.CustomDefaulter = &Repository{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *Repository) Default() {
+func (r *Repository) Default(ctx context.Context, obj runtime.Object) error {
 	//repositorylog.Info("default", "name", r.Name)
+	return nil
 }
 
 //+kubebuilder:webhook:path=/validate-security-brcmlabs-com-v1-repository,mutating=false,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=repositories,verbs=create;update,versions=v1,name=vrepository.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &Repository{}
+var _ admission.CustomValidator = &Repository{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Repository) ValidateCreate() (admission.Warnings, error) {
+func (r *Repository) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return validateRepository(r)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Repository) ValidateUpdate(obj runtime.Object) (admission.Warnings, error) {
-	_, ok := obj.(*Repository)
+func (r *Repository) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	_, ok := oldObj.(*Repository)
 	if !ok {
-		return nil, fmt.Errorf("expected a Repository, received %T", obj)
+		return nil, fmt.Errorf("expected a Repository, received %T", oldObj)
 	}
 	return validateRepository(r)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Repository) ValidateDelete() (admission.Warnings, error) {
+func (r *Repository) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	// Could extend to checking which gateways reference this before deletion.
 	return []string{}, nil
 }

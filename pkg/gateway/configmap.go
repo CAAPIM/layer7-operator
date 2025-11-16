@@ -43,20 +43,26 @@ import (
 
 type InitContainerStaticConfig struct {
 	Version      string             `json:"version"`
+	PreferGit    bool               `json:"preferGit"`
 	Repositories []RepositoryConfig `json:"repositories,omitempty"`
 }
 
 type RepositoryConfig struct {
-	Name                string `json:"name"`
-	Endpoint            string `json:"endpoint"`
-	Branch              string `json:"branch"`
-	Auth                string `json:"auth"`
-	LocalReference      string `json:"localReference,omitempty"`
-	Tag                 string `json:"tag,omitempty"`
-	RemoteName          string `json:"remoteName,omitempty"`
-	StateStoreReference string `json:"stateStoreReference,omitempty"`
-	StateStoreKey       string `json:"stateStoreKey,omitempty"`
-	SingletonExtraction bool   `json:"singletonExtraction,omitempty"`
+	Name                string   `json:"name"`
+	Type                string   `json:"type"`
+	Endpoint            string   `json:"endpoint"`
+	Branch              string   `json:"branch"`
+	Auth                string   `json:"auth"`
+	LocalReference      string   `json:"localReference,omitempty"`
+	Tag                 string   `json:"tag,omitempty"`
+	RemoteName          string   `json:"remoteName,omitempty"`
+	StateStoreReference string   `json:"stateStoreReference,omitempty"`
+	StateStoreKey       string   `json:"stateStoreKey,omitempty"`
+	SingletonExtraction bool     `json:"singletonExtraction,omitempty"`
+	Vendor              string   `json:"vendor,omitempty"`
+	AuthType            string   `json:"authType,omitempty"`
+	Namespace           string   `json:"namespace,omitempty"`
+	Directories         []string `json:"directories,omitempty"`
 }
 
 // NewConfigMap
@@ -138,43 +144,40 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		data["listen-ports.json"] = string(bundle)
 	case gw.Name + "-repository-init-config":
 		initContainerStaticConfig := InitContainerStaticConfig{}
-		initContainerStaticConfig.Version = "1.0"
+		initContainerStaticConfig.Version = "2.0"
+		initContainerStaticConfig.PreferGit = gw.Spec.App.RepositoryReferenceBootstrap.PreferGit
 		for i := range gw.Status.RepositoryStatus {
 			var localRef string
-			if gw.Status.RepositoryStatus[i].Enabled && gw.Status.RepositoryStatus[i].Type == "static" {
-				//if gw.Status.RepositoryStatus[i].Type == "static" {
-				if gw.Status.RepositoryStatus[i].StateStoreReference == "" {
-					if gw.Status.RepositoryStatus[i].StorageSecretName != "" {
-						localRef = "/graphman/localref/" + gw.Status.RepositoryStatus[i].StorageSecretName + "/" + gw.Status.RepositoryStatus[i].Name + ".gz"
-						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
-							Name:                gw.Status.RepositoryStatus[i].Name,
-							LocalReference:      localRef,
-							SingletonExtraction: gw.Spec.App.SingletonExtraction,
-						})
-					} else {
-						if !gw.Spec.App.Management.Database.Enabled {
-							initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
-								Name:                gw.Status.RepositoryStatus[i].Name,
-								Endpoint:            gw.Status.RepositoryStatus[i].Endpoint,
-								Branch:              gw.Status.RepositoryStatus[i].Branch,
-								RemoteName:          gw.Status.RepositoryStatus[i].RemoteName,
-								Tag:                 gw.Status.RepositoryStatus[i].Tag,
-								Auth:                "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
-								SingletonExtraction: gw.Spec.App.SingletonExtraction,
-							})
-						}
-					}
+			if gw.Status.RepositoryStatus[i].Enabled && (gw.Status.RepositoryStatus[i].Type == "static" || gw.Spec.App.RepositoryReferenceBootstrap.Enabled) {
+				/// always default to storage secret if it exists
+				if gw.Status.RepositoryStatus[i].StorageSecretName != "_" {
+					localRef = "/graphman/localref/" + gw.Status.RepositoryStatus[i].StorageSecretName // + "/" + gw.Status.RepositoryStatus[i].Name + ".gz"
+					initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
+						Name:                gw.Status.RepositoryStatus[i].Name,
+						LocalReference:      localRef,
+						SingletonExtraction: gw.Spec.App.SingletonExtraction,
+					})
 				} else {
-					if gw.Status.RepositoryStatus[i].StateStoreReference != "" && !gw.Spec.App.Management.Database.Enabled {
+					// only bootstrap if the Gateway is running in ephemeral mode
+					// bootstrapping large policy sets to database backed gateways causes start up delay
+					if !gw.Spec.App.Management.Database.Enabled {
 						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
 							Name:                gw.Status.RepositoryStatus[i].Name,
+							Endpoint:            gw.Status.RepositoryStatus[i].Endpoint,
+							Branch:              gw.Status.RepositoryStatus[i].Branch,
+							RemoteName:          gw.Status.RepositoryStatus[i].RemoteName,
+							Type:                gw.Status.RepositoryStatus[i].RepoType,
+							Vendor:              gw.Status.RepositoryStatus[i].Vendor,
+							AuthType:            gw.Status.RepositoryStatus[i].AuthType,
+							Tag:                 gw.Status.RepositoryStatus[i].Tag,
+							Auth:                "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
+							SingletonExtraction: gw.Spec.App.SingletonExtraction,
 							StateStoreReference: gw.Status.RepositoryStatus[i].StateStoreReference,
 							StateStoreKey:       gw.Status.RepositoryStatus[i].StateStoreKey,
-							SingletonExtraction: gw.Spec.App.SingletonExtraction,
+							Directories:         gw.Status.RepositoryStatus[i].Directories,
 						})
 					}
 				}
-				//	}
 			}
 		}
 		initContainerStaticConfigBytes, _ := json.Marshal(initContainerStaticConfig)

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: l7portals.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -24,11 +24,11 @@ spec:
         properties:
           apiVersion:
             description: APIVersion defines the versioned schema of this representation
-              of an object
+              of an...
             type: string
           kind:
             description: Kind is a string value representing the REST resource this
-              object represent
+              object...
             type: string
           metadata:
             type: object
@@ -49,7 +49,7 @@ spec:
                 type: object
               deploymentTags:
                 description: Deployment Tags - determines which Gateway deployments
-                  these APIs will be a
+                  these APIs will be...
                 items:
                   type: string
                 type: array
@@ -62,7 +62,7 @@ spec:
                 type: string
               enrollmentBundle:
                 description: EnrollmentBundle - allows a custom enrollment bundle
-                  to be set in the Porta
+                  to be set in the...
                 type: string
               labels:
                 additionalProperties:

@@ -27,6 +27,7 @@ package reconcile
 
 import (
 	"context"
+	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,38 +84,70 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 	if !repository.Status.Ready {
 		params.Log.Info("repository not ready", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 
-		ok, err := checkLocalRepoOnFs(params, repository)
+		localRepoAvailable, err := checkLocalRepoOnFs(params, repository)
 		if err != nil {
 			return err
 		}
 
-		if !ok {
-			return nil
+		// If repository not available locally, check if storage secret exists with required bundles
+		if !localRepoAvailable {
+			if repository.Status.StorageSecretName != "" && repository.Status.StorageSecretName != "_" {
+				storageSecret, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
+				if err != nil {
+					params.Log.V(2).Info("storage secret not found", "secret", repository.Status.StorageSecretName, "repository", repository.Name)
+					return nil
+				}
+
+				// Check if the storage secret has bundles matching the requested directories
+				hasBundles := false
+				for _, dir := range repoRef.Directories {
+					// Normalize directory name to match bundle key format
+					normalizedDir := strings.TrimPrefix(strings.ReplaceAll(dir, "/", "-"), "-")
+					if normalizedDir == "" || normalizedDir == "-" {
+						normalizedDir = "bundle" // Root directory bundles might be stored as "bundle.gz"
+					}
+
+					// Check for both .gz and non-.gz variants
+					bundleKey := normalizedDir + ".gz"
+					if bundleData, exists := storageSecret.Data[bundleKey]; exists && len(bundleData) > 20 {
+						hasBundles = true
+						break
+					}
+
+					// Also check without .gz extension
+					if bundleData, exists := storageSecret.Data[normalizedDir]; exists && len(bundleData) > 20 {
+						hasBundles = true
+						break
+					}
+				}
+
+				if !hasBundles {
+					params.Log.V(2).Info("storage secret exists but does not contain required bundles",
+						"secret", repository.Status.StorageSecretName,
+						"repository", repository.Name,
+						"directories", repoRef.Directories)
+					return nil
+				}
+
+				params.Log.Info("using storage secret for repository",
+					"secret", repository.Status.StorageSecretName,
+					"repository", repository.Name,
+					"directories", repoRef.Directories)
+				// Continue with bundle building - buildBundleFromCache will use the storage secret
+			} else {
+				return nil
+			}
 		}
-
-		// check secret if not using directories...
-
-		// if !found {
-		// 	if repository.Status.StorageSecretName != "" {
-		// 		rs, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
-		// 		if err != nil {
-		// 			return err
-		// 		}
-		// 		for k, v := range rs.Data {
-		// 			if strings.HasSuffix(k, ".gz") {
-		// 				if len(v) < 20 {
-		// 					return nil
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// }
 	}
 
 	commit := repository.Status.Commit
-	// only support delete if a statestore is used
-	if repository.Spec.StateStoreReference == "" {
-		delete = false
+
+	// Only enable delete functionality if delete was requested (repository disabled/removed)
+	// AND RepositoryReferenceDelete is enabled
+	if delete && gateway.Spec.App.RepositoryReferenceDelete.Enabled {
+		if gateway.Spec.App.RepositoryReferenceDelete.LimitToStateStore && repository.Spec.StateStoreReference == "" {
+			delete = false
+		}
 	}
 
 	gwUpdReq, err := NewGwUpdateRequest(
@@ -138,7 +171,7 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 	err = SyncGateway(ctx, params, *gwUpdReq)
 
-	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err, delete)
+	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, *gwUpdReq.repositoryReference, gwUpdReq.checksum, err, delete)
 	gwUpdReq = nil
 	if err != nil {
 		return err

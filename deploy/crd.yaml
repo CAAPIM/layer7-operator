@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: gateways.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -27,11 +27,11 @@ spec:
         properties:
           apiVersion:
             description: APIVersion defines the versioned schema of this representation
-              of an object
+              of an...
             type: string
           kind:
             description: Kind is a string value representing the REST resource this
-              object represent
+              object...
             type: string
           metadata:
             type: object
@@ -40,7 +40,7 @@ spec:
             properties:
               app:
                 description: App contains application specific configuration for the
-                  Gateway and its dep
+                  Gateway and its...
                 properties:
                   affinity:
                     description: Affinity is a group of affinity scheduling rules.
@@ -52,10 +52,10 @@ spec:
                           preferredDuringSchedulingIgnoredDuringExecution:
                             description: |-
                               The scheduler will prefer to schedule pods to nodes that satisfy
-                              the affini
+                              the...
                             items:
                               description: An empty preferred scheduling term matches
-                                all objects with implicit weight
+                                all objects with implicit...
                               properties:
                                 preference:
                                   description: A node selector term, associated with
@@ -65,9 +65,9 @@ spec:
                                       description: A list of node selector requirements
                                         by node's labels.
                                       items:
-                                        description: 'A node selector requirement
-                                          is a selector that contains values, a key,
-                                          and '
+                                        description: A node selector requirement is
+                                          a selector that contains values, a key,
+                                          and...
                                         properties:
                                           key:
                                             description: The label key that the selector
@@ -93,9 +93,9 @@ spec:
                                       description: A list of node selector requirements
                                         by node's fields.
                                       items:
-                                        description: 'A node selector requirement
-                                          is a selector that contains values, a key,
-                                          and '
+                                        description: A node selector requirement is
+                                          a selector that contains values, a key,
+                                          and...
                                         properties:
                                           key:
                                             description: The label key that the selector
@@ -120,8 +120,8 @@ spec:
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 weight:
-                                  description: 'Weight associated with matching the
-                                    corresponding nodeSelectorTerm, in the '
+                                  description: Weight associated with matching the
+                                    corresponding nodeSelectorTerm, in the...
                                   format: int32
                                   type: integer
                               required:
@@ -131,9 +131,8 @@ spec:
                             type: array
                             x-kubernetes-list-type: atomic
                           requiredDuringSchedulingIgnoredDuringExecution:
-                            description: |-
-                              If the affinity requirements specified by this field are not met at
-                              schedul
+                            description: If the affinity requirements specified by
+                              this field are not met at...
                             properties:
                               nodeSelectorTerms:
                                 description: Required. A list of node selector terms.
@@ -146,9 +145,9 @@ spec:
                                       description: A list of node selector requirements
                                         by node's labels.
                                       items:
-                                        description: 'A node selector requirement
-                                          is a selector that contains values, a key,
-                                          and '
+                                        description: A node selector requirement is
+                                          a selector that contains values, a key,
+                                          and...
                                         properties:
                                           key:
                                             description: The label key that the selector
@@ -174,9 +173,9 @@ spec:
                                       description: A list of node selector requirements
                                         by node's fields.
                                       items:
-                                        description: 'A node selector requirement
-                                          is a selector that contains values, a key,
-                                          and '
+                                        description: A node selector requirement is
+                                          a selector that contains values, a key,
+                                          and...
                                         properties:
                                           key:
                                             description: The label key that the selector
@@ -213,10 +212,10 @@ spec:
                           preferredDuringSchedulingIgnoredDuringExecution:
                             description: |-
                               The scheduler will prefer to schedule pods to nodes that satisfy
-                              the affini
+                              the...
                             items:
-                              description: 'The weights of all of the matched WeightedPodAffinityTerm
-                                fields are added '
+                              description: The weights of all of the matched WeightedPodAffinityTerm
+                                fields are added...
                               properties:
                                 podAffinityTerm:
                                   description: Required. A pod affinity term, associated
@@ -232,7 +231,7 @@ spec:
                                           items:
                                             description: A label selector requirement
                                               is a selector that contains values,
-                                              a key, and
+                                              a key,...
                                             properties:
                                               key:
                                                 description: key is the label key
@@ -266,7 +265,7 @@ spec:
                                     matchLabelKeys:
                                       description: |-
                                         MatchLabelKeys is a set of pod label keys to select which pods will
-                                        be take
+                                        be...
                                       items:
                                         type: string
                                       type: array
@@ -274,7 +273,7 @@ spec:
                                     mismatchLabelKeys:
                                       description: |-
                                         MismatchLabelKeys is a set of pod label keys to select which pods will
-                                        be t
+                                        be...
                                       items:
                                         type: string
                                       type: array
@@ -289,7 +288,7 @@ spec:
                                           items:
                                             description: A label selector requirement
                                               is a selector that contains values,
-                                              a key, and
+                                              a key,...
                                             properties:
                                               key:
                                                 description: key is the label key
@@ -322,14 +321,14 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     namespaces:
                                       description: namespaces specifies a static list
-                                        of namespace names that the term applies
+                                        of namespace names that the term...
                                       items:
                                         type: string
                                       type: array
                                       x-kubernetes-list-type: atomic
                                     topologyKey:
-                                      description: 'This pod should be co-located
-                                        (affinity) or not co-located (anti-affinity) '
+                                      description: This pod should be co-located (affinity)
+                                        or not co-located (anti-affinity)...
                                       type: string
                                   required:
                                   - topologyKey
@@ -337,7 +336,7 @@ spec:
                                 weight:
                                   description: |-
                                     weight associated with matching the corresponding podAffinityTerm,
-                                    in the r
+                                    in the...
                                   format: int32
                                   type: integer
                               required:
@@ -347,12 +346,12 @@ spec:
                             type: array
                             x-kubernetes-list-type: atomic
                           requiredDuringSchedulingIgnoredDuringExecution:
-                            description: |-
-                              If the affinity requirements specified by this field are not met at
-                              schedul
+                            description: If the affinity requirements specified by
+                              this field are not met at...
                             items:
-                              description: "Defines a set of pods (namely those matching
-                                the labelSelector\nrelative to "
+                              description: |-
+                                Defines a set of pods (namely those matching the labelSelector
+                                relative to...
                               properties:
                                 labelSelector:
                                   description: A label query over a set of resources,
@@ -363,8 +362,7 @@ spec:
                                         selector requirements.
                                       items:
                                         description: A label selector requirement
-                                          is a selector that contains values, a key,
-                                          and
+                                          is a selector that contains values, a key,...
                                         properties:
                                           key:
                                             description: key is the label key that
@@ -398,7 +396,7 @@ spec:
                                 matchLabelKeys:
                                   description: |-
                                     MatchLabelKeys is a set of pod label keys to select which pods will
-                                    be take
+                                    be...
                                   items:
                                     type: string
                                   type: array
@@ -406,7 +404,7 @@ spec:
                                 mismatchLabelKeys:
                                   description: |-
                                     MismatchLabelKeys is a set of pod label keys to select which pods will
-                                    be t
+                                    be...
                                   items:
                                     type: string
                                   type: array
@@ -420,8 +418,7 @@ spec:
                                         selector requirements.
                                       items:
                                         description: A label selector requirement
-                                          is a selector that contains values, a key,
-                                          and
+                                          is a selector that contains values, a key,...
                                         properties:
                                           key:
                                             description: key is the label key that
@@ -454,14 +451,14 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 namespaces:
                                   description: namespaces specifies a static list
-                                    of namespace names that the term applies
+                                    of namespace names that the term...
                                   items:
                                     type: string
                                   type: array
                                   x-kubernetes-list-type: atomic
                                 topologyKey:
-                                  description: 'This pod should be co-located (affinity)
-                                    or not co-located (anti-affinity) '
+                                  description: This pod should be co-located (affinity)
+                                    or not co-located (anti-affinity)...
                                   type: string
                               required:
                               - topologyKey
@@ -476,10 +473,10 @@ spec:
                           preferredDuringSchedulingIgnoredDuringExecution:
                             description: |-
                               The scheduler will prefer to schedule pods to nodes that satisfy
-                              the anti-a
+                              the...
                             items:
-                              description: 'The weights of all of the matched WeightedPodAffinityTerm
-                                fields are added '
+                              description: The weights of all of the matched WeightedPodAffinityTerm
+                                fields are added...
                               properties:
                                 podAffinityTerm:
                                   description: Required. A pod affinity term, associated
@@ -495,7 +492,7 @@ spec:
                                           items:
                                             description: A label selector requirement
                                               is a selector that contains values,
-                                              a key, and
+                                              a key,...
                                             properties:
                                               key:
                                                 description: key is the label key
@@ -529,7 +526,7 @@ spec:
                                     matchLabelKeys:
                                       description: |-
                                         MatchLabelKeys is a set of pod label keys to select which pods will
-                                        be take
+                                        be...
                                       items:
                                         type: string
                                       type: array
@@ -537,7 +534,7 @@ spec:
                                     mismatchLabelKeys:
                                       description: |-
                                         MismatchLabelKeys is a set of pod label keys to select which pods will
-                                        be t
+                                        be...
                                       items:
                                         type: string
                                       type: array
@@ -552,7 +549,7 @@ spec:
                                           items:
                                             description: A label selector requirement
                                               is a selector that contains values,
-                                              a key, and
+                                              a key,...
                                             properties:
                                               key:
                                                 description: key is the label key
@@ -585,14 +582,14 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     namespaces:
                                       description: namespaces specifies a static list
-                                        of namespace names that the term applies
+                                        of namespace names that the term...
                                       items:
                                         type: string
                                       type: array
                                       x-kubernetes-list-type: atomic
                                     topologyKey:
-                                      description: 'This pod should be co-located
-                                        (affinity) or not co-located (anti-affinity) '
+                                      description: This pod should be co-located (affinity)
+                                        or not co-located (anti-affinity)...
                                       type: string
                                   required:
                                   - topologyKey
@@ -600,7 +597,7 @@ spec:
                                 weight:
                                   description: |-
                                     weight associated with matching the corresponding podAffinityTerm,
-                                    in the r
+                                    in the...
                                   format: int32
                                   type: integer
                               required:
@@ -610,12 +607,12 @@ spec:
                             type: array
                             x-kubernetes-list-type: atomic
                           requiredDuringSchedulingIgnoredDuringExecution:
-                            description: |-
-                              If the anti-affinity requirements specified by this field are not met at
-                              sc
+                            description: If the anti-affinity requirements specified
+                              by this field are not met at...
                             items:
-                              description: "Defines a set of pods (namely those matching
-                                the labelSelector\nrelative to "
+                              description: |-
+                                Defines a set of pods (namely those matching the labelSelector
+                                relative to...
                               properties:
                                 labelSelector:
                                   description: A label query over a set of resources,
@@ -626,8 +623,7 @@ spec:
                                         selector requirements.
                                       items:
                                         description: A label selector requirement
-                                          is a selector that contains values, a key,
-                                          and
+                                          is a selector that contains values, a key,...
                                         properties:
                                           key:
                                             description: key is the label key that
@@ -661,7 +657,7 @@ spec:
                                 matchLabelKeys:
                                   description: |-
                                     MatchLabelKeys is a set of pod label keys to select which pods will
-                                    be take
+                                    be...
                                   items:
                                     type: string
                                   type: array
@@ -669,7 +665,7 @@ spec:
                                 mismatchLabelKeys:
                                   description: |-
                                     MismatchLabelKeys is a set of pod label keys to select which pods will
-                                    be t
+                                    be...
                                   items:
                                     type: string
                                   type: array
@@ -683,8 +679,7 @@ spec:
                                         selector requirements.
                                       items:
                                         description: A label selector requirement
-                                          is a selector that contains values, a key,
-                                          and
+                                          is a selector that contains values, a key,...
                                         properties:
                                           key:
                                             description: key is the label key that
@@ -717,14 +712,14 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 namespaces:
                                   description: namespaces specifies a static list
-                                    of namespace names that the term applies
+                                    of namespace names that the term...
                                   items:
                                     type: string
                                   type: array
                                   x-kubernetes-list-type: atomic
                                 topologyKey:
-                                  description: 'This pod should be co-located (affinity)
-                                    or not co-located (anti-affinity) '
+                                  description: This pod should be co-located (affinity)
+                                    or not co-located (anti-affinity)...
                                   type: string
                               required:
                               - topologyKey
@@ -736,12 +731,12 @@ spec:
                   annotations:
                     additionalProperties:
                       type: string
-                    description: 'Annotations for Operator managed resources, these
-                      do not apply to services '
+                    description: Annotations for Operator managed resources, these
+                      do not apply to services...
                     type: object
                   autoMountServiceAccountToken:
                     description: AutoMountServiceAccountToken optionally adds the
-                      Gateway Container's Kubern
+                      Gateway Container's...
                     type: boolean
                   autoscaling:
                     description: Autoscaling configuration for the Gateway
@@ -753,7 +748,7 @@ spec:
                         properties:
                           behavior:
                             description: HorizontalPodAutoscalerBehavior configures
-                              the scaling behavior of the targ
+                              the scaling behavior of the...
                             properties:
                               scaleDown:
                                 description: scaleDown is scaling policy for scaling
@@ -761,15 +756,14 @@ spec:
                                 properties:
                                   policies:
                                     description: policies is a list of potential scaling
-                                      polices which can be used during sc
+                                      polices which can be used during...
                                     items:
                                       description: HPAScalingPolicy is a single policy
-                                        which must hold true for a specified pa
+                                        which must hold true for a specified...
                                       properties:
                                         periodSeconds:
                                           description: periodSeconds specifies the
-                                            window of time for which the policy should
-                                            hold
+                                            window of time for which the policy should...
                                           format: int32
                                           type: integer
                                         type:
@@ -794,9 +788,17 @@ spec:
                                     type: string
                                   stabilizationWindowSeconds:
                                     description: stabilizationWindowSeconds is the
-                                      number of seconds for which past recommen
+                                      number of seconds for which past...
                                     format: int32
                                     type: integer
+                                  tolerance:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: tolerance is the tolerance on the
+                                      ratio between the current and desired...
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
                                 type: object
                               scaleUp:
                                 description: scaleUp is scaling policy for scaling
@@ -804,15 +806,14 @@ spec:
                                 properties:
                                   policies:
                                     description: policies is a list of potential scaling
-                                      polices which can be used during sc
+                                      polices which can be used during...
                                     items:
                                       description: HPAScalingPolicy is a single policy
-                                        which must hold true for a specified pa
+                                        which must hold true for a specified...
                                       properties:
                                         periodSeconds:
                                           description: periodSeconds specifies the
-                                            window of time for which the policy should
-                                            hold
+                                            window of time for which the policy should...
                                           format: int32
                                           type: integer
                                         type:
@@ -837,9 +838,17 @@ spec:
                                     type: string
                                   stabilizationWindowSeconds:
                                     description: stabilizationWindowSeconds is the
-                                      number of seconds for which past recommen
+                                      number of seconds for which past...
                                     format: int32
                                     type: integer
+                                  tolerance:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: tolerance is the tolerance on the
+                                      ratio between the current and desired...
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
                                 type: object
                             type: object
                           maxReplicas:
@@ -850,12 +859,11 @@ spec:
                             items:
                               description: |-
                                 MetricSpec specifies how to scale based on a single metric
-                                (only `type` and
+                                (only `type`...
                               properties:
                                 containerResource:
-                                  description: |-
-                                    containerResource refers to a resource metric (such as those specified in
-                                    r
+                                  description: containerResource refers to a resource
+                                    metric (such as those specified in...
                                   properties:
                                     container:
                                       description: container is the name of the container
@@ -872,7 +880,7 @@ spec:
                                         averageUtilization:
                                           description: |-
                                             averageUtilization is the target value of the average of the
-                                            resource metri
+                                            resource...
                                           format: int32
                                           type: integer
                                         averageValue:
@@ -881,13 +889,12 @@ spec:
                                           - type: string
                                           description: |-
                                             averageValue is the target value of the average of the
-                                            metric across all re
+                                            metric across all...
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         type:
                                           description: type represents whether the
-                                            metric type is Utilization, Value, or
-                                            AverageVa
+                                            metric type is Utilization, Value, or...
                                           type: string
                                         value:
                                           anyOf:
@@ -908,7 +915,7 @@ spec:
                                 external:
                                   description: |-
                                     external refers to a global metric that is not associated
-                                    with any Kubernet
+                                    with any...
                                   properties:
                                     metric:
                                       description: metric identifies the target metric
@@ -920,7 +927,7 @@ spec:
                                           type: string
                                         selector:
                                           description: selector is the string-encoded
-                                            form of a standard kubernetes label selector
+                                            form of a standard kubernetes label...
                                           properties:
                                             matchExpressions:
                                               description: matchExpressions is a list
@@ -928,7 +935,7 @@ spec:
                                               items:
                                                 description: A label selector requirement
                                                   is a selector that contains values,
-                                                  a key, and
+                                                  a key,...
                                                 properties:
                                                   key:
                                                     description: key is the label
@@ -971,7 +978,7 @@ spec:
                                         averageUtilization:
                                           description: |-
                                             averageUtilization is the target value of the average of the
-                                            resource metri
+                                            resource...
                                           format: int32
                                           type: integer
                                         averageValue:
@@ -980,13 +987,12 @@ spec:
                                           - type: string
                                           description: |-
                                             averageValue is the target value of the average of the
-                                            metric across all re
+                                            metric across all...
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         type:
                                           description: type represents whether the
-                                            metric type is Utilization, Value, or
-                                            AverageVa
+                                            metric type is Utilization, Value, or...
                                           type: string
                                         value:
                                           anyOf:
@@ -1006,11 +1012,11 @@ spec:
                                 object:
                                   description: |-
                                     object refers to a metric describing a single kubernetes object
-                                    (for exampl
+                                    (for...
                                   properties:
                                     describedObject:
                                       description: describedObject specifies the descriptions
-                                        of a object,such as kind,name ap
+                                        of a object,such as kind,name...
                                       properties:
                                         apiVersion:
                                           description: apiVersion is the API version
@@ -1038,7 +1044,7 @@ spec:
                                           type: string
                                         selector:
                                           description: selector is the string-encoded
-                                            form of a standard kubernetes label selector
+                                            form of a standard kubernetes label...
                                           properties:
                                             matchExpressions:
                                               description: matchExpressions is a list
@@ -1046,7 +1052,7 @@ spec:
                                               items:
                                                 description: A label selector requirement
                                                   is a selector that contains values,
-                                                  a key, and
+                                                  a key,...
                                                 properties:
                                                   key:
                                                     description: key is the label
@@ -1089,7 +1095,7 @@ spec:
                                         averageUtilization:
                                           description: |-
                                             averageUtilization is the target value of the average of the
-                                            resource metri
+                                            resource...
                                           format: int32
                                           type: integer
                                         averageValue:
@@ -1098,13 +1104,12 @@ spec:
                                           - type: string
                                           description: |-
                                             averageValue is the target value of the average of the
-                                            metric across all re
+                                            metric across all...
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         type:
                                           description: type represents whether the
-                                            metric type is Utilization, Value, or
-                                            AverageVa
+                                            metric type is Utilization, Value, or...
                                           type: string
                                         value:
                                           anyOf:
@@ -1123,9 +1128,8 @@ spec:
                                   - target
                                   type: object
                                 pods:
-                                  description: |-
-                                    pods refers to a metric describing each pod in the current scale target
-                                    (fo
+                                  description: pods refers to a metric describing
+                                    each pod in the current scale target...
                                   properties:
                                     metric:
                                       description: metric identifies the target metric
@@ -1137,7 +1141,7 @@ spec:
                                           type: string
                                         selector:
                                           description: selector is the string-encoded
-                                            form of a standard kubernetes label selector
+                                            form of a standard kubernetes label...
                                           properties:
                                             matchExpressions:
                                               description: matchExpressions is a list
@@ -1145,7 +1149,7 @@ spec:
                                               items:
                                                 description: A label selector requirement
                                                   is a selector that contains values,
-                                                  a key, and
+                                                  a key,...
                                                 properties:
                                                   key:
                                                     description: key is the label
@@ -1188,7 +1192,7 @@ spec:
                                         averageUtilization:
                                           description: |-
                                             averageUtilization is the target value of the average of the
-                                            resource metri
+                                            resource...
                                           format: int32
                                           type: integer
                                         averageValue:
@@ -1197,13 +1201,12 @@ spec:
                                           - type: string
                                           description: |-
                                             averageValue is the target value of the average of the
-                                            metric across all re
+                                            metric across all...
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         type:
                                           description: type represents whether the
-                                            metric type is Utilization, Value, or
-                                            AverageVa
+                                            metric type is Utilization, Value, or...
                                           type: string
                                         value:
                                           anyOf:
@@ -1223,7 +1226,7 @@ spec:
                                 resource:
                                   description: |-
                                     resource refers to a resource metric (such as those specified in
-                                    requests a
+                                    requests...
                                   properties:
                                     name:
                                       description: name is the name of the resource
@@ -1236,7 +1239,7 @@ spec:
                                         averageUtilization:
                                           description: |-
                                             averageUtilization is the target value of the average of the
-                                            resource metri
+                                            resource...
                                           format: int32
                                           type: integer
                                         averageValue:
@@ -1245,13 +1248,12 @@ spec:
                                           - type: string
                                           description: |-
                                             averageValue is the target value of the average of the
-                                            metric across all re
+                                            metric across all...
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         type:
                                           description: type represents whether the
-                                            metric type is Utilization, Value, or
-                                            AverageVa
+                                            metric type is Utilization, Value, or...
                                           type: string
                                         value:
                                           anyOf:
@@ -1282,8 +1284,8 @@ spec:
                         type: object
                     type: object
                   bootstrap:
-                    description: 'Bootstrap - optionally add a bootstrap script to
-                      the Gateway that migrates '
+                    description: Bootstrap - optionally add a bootstrap script to
+                      the Gateway that migrates...
                     properties:
                       script:
                         description: BootstrapScript - enable/disable this functionality
@@ -1323,12 +1325,11 @@ spec:
                     type: array
                   containerSecurityContext:
                     description: SecurityContext holds security configuration that
-                      will be applied to a cont
+                      will be applied to a...
                     properties:
                       allowPrivilegeEscalation:
-                        description: |-
-                          AllowPrivilegeEscalation controls whether a process can gain more
-                          privilege
+                        description: AllowPrivilegeEscalation controls whether a process
+                          can gain more...
                         type: boolean
                       appArmorProfile:
                         description: appArmorProfile is the AppArmor options to use
@@ -1336,7 +1337,7 @@ spec:
                         properties:
                           localhostProfile:
                             description: localhostProfile indicates a profile loaded
-                              on the node that should be used
+                              on the node that should be...
                             type: string
                           type:
                             description: type indicates which kind of AppArmor profile
@@ -1416,7 +1417,7 @@ spec:
                         properties:
                           localhostProfile:
                             description: localhostProfile indicates a profile defined
-                              in a file on the node should b
+                              in a file on the node should...
                             type: string
                           type:
                             description: type indicates which kind of seccomp profile
@@ -1440,7 +1441,7 @@ spec:
                             type: string
                           hostProcess:
                             description: HostProcess determines if a container should
-                              be run as a 'Host Process' con
+                              be run as a 'Host Process'...
                             type: boolean
                           runAsUserName:
                             description: The UserName in Windows to run the entrypoint
@@ -1449,8 +1450,8 @@ spec:
                         type: object
                     type: object
                   customConfig:
-                    description: 'CustomConfig Certain folders on the Container Gateway
-                      are not writeable by '
+                    description: CustomConfig Certain folders on the Container Gateway
+                      are not writeable by...
                     properties:
                       enabled:
                         description: Enabled or disabled
@@ -1472,7 +1473,7 @@ spec:
                               properties:
                                 item:
                                   description: ConfigRefItem is the key in the secret
-                                    or configmap to mount, path is where
+                                    or configmap to mount, path is...
                                   properties:
                                     key:
                                       type: string
@@ -1500,8 +1501,8 @@ spec:
                         type: boolean
                       hostAliases:
                         items:
-                          description: 'HostAlias holds the mapping between IP and
-                            hostnames that will be injected '
+                          description: HostAlias holds the mapping between IP and
+                            hostnames that will be injected...
                           properties:
                             hostnames:
                               description: Hostnames for the above IP address.
@@ -1519,7 +1520,7 @@ spec:
                     type: object
                   cwp:
                     description: ClusterProperties are key value pairs of additional
-                      cluster-wide properties
+                      cluster-wide...
                     properties:
                       enabled:
                         description: Enabled bootstraps clusterProperties to the Gateway
@@ -1541,7 +1542,7 @@ spec:
                   externalCerts:
                     items:
                       description: ExternalCert is a reference to an existing TLS
-                        or Opaque Secret in Kubernet
+                        or Opaque Secret in...
                       properties:
                         enabled:
                           description: Enabled or disabled
@@ -1568,12 +1569,12 @@ spec:
                     items:
                       description: |-
                         ExternalKey is a reference to an existing TLS Secret in Kubernetes
-                        The Laye
+                        The...
                       properties:
                         alias:
                           description: |-
                             Alias overrides the key name that is stored in the Gateway
-                            This is useful f
+                            This is useful...
                           type: string
                         enabled:
                           description: Enabled or disabled
@@ -1581,7 +1582,7 @@ spec:
                         keyUsageType:
                           description: |-
                             KeyUsageType allows keys to be marked as special purpose
-                            only one key usage
+                            only one key...
                           type: string
                         name:
                           description: Name of the kubernetes.io/tls Secret which
@@ -1593,7 +1594,7 @@ spec:
                     items:
                       description: |-
                         ExternalSecret is a reference to an existing secret in Kubernetes
-                        The Layer
+                        The...
                       properties:
                         description:
                           description: Description given the Stored Password in the
@@ -1603,8 +1604,8 @@ spec:
                           description: Enabled or disabled
                           type: boolean
                         encryption:
-                          description: 'BundleEncryption allows setting an encryption
-                            passphrase per repository or '
+                          description: BundleEncryption allows setting an encryption
+                            passphrase per repository or...
                           properties:
                             existingSecret:
                               description: ExistingSecret - reference to an existing
@@ -1612,7 +1613,7 @@ spec:
                               type: string
                             key:
                               description: Key - the key in the kubernetes secret
-                                that the encryption passphrase is st
+                                that the encryption passphrase is...
                               type: string
                             passphrase:
                               description: Passphrase - bundle encryption passphrase
@@ -1637,8 +1638,8 @@ spec:
                           my.hazelcast:5701
                         type: string
                       external:
-                        description: 'External set to true adds config for an external
-                          Hazelcast instance to the '
+                        description: External set to true adds config for an external
+                          Hazelcast instance to the...
                         type: boolean
                     type: object
                   image:
@@ -1650,9 +1651,8 @@ spec:
                     type: string
                   imagePullSecrets:
                     items:
-                      description: |-
-                        LocalObjectReference contains enough information to let you locate the
-                        refe
+                      description: LocalObjectReference contains enough information
+                        to let you locate the...
                       properties:
                         name:
                           default: ""
@@ -1677,7 +1677,7 @@ spec:
                       routes:
                         description: |-
                           Routes for Openshift
-                          This allows for customization of the default route and
+                          This allows for customization of the default route...
                         items:
                           description: RouteSpec from https://pkg.go.dev/github.
                           properties:
@@ -1687,7 +1687,7 @@ spec:
                               type: string
                             port:
                               description: RoutePort defines a port mapping from a
-                                router to an endpoint in the servic
+                                router to an endpoint in the...
                               properties:
                                 targetPort:
                                   anyOf:
@@ -1712,7 +1712,7 @@ spec:
                                   type: string
                                 destinationCACertificate:
                                   description: destinationCACertificate provides the
-                                    contents of the ca certificate of the
+                                    contents of the ca certificate of...
                                   type: string
                                 externalCertificate:
                                   description: externalCertificate provides certificate
@@ -1727,7 +1727,7 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 insecureEdgeTerminationPolicy:
                                   description: insecureEdgeTerminationPolicy indicates
-                                    the desired behavior for insecure c
+                                    the desired behavior for insecure...
                                   enum:
                                   - Allow
                                   - None
@@ -1773,7 +1773,7 @@ spec:
                                 weight:
                                   default: 100
                                   description: weight as an integer between 0 and
-                                    256, default 100, that specifies the tar
+                                    256, default 100, that specifies the...
                                   format: int32
                                   maximum: 256
                                   minimum: 0
@@ -1792,11 +1792,11 @@ spec:
                         description: Rules
                         items:
                           description: IngressRule represents the rules mapping the
-                            paths under a specified host t
+                            paths under a specified host...
                           properties:
                             host:
                               description: host is the fully qualified domain name
-                                of a network host, as defined by RF
+                                of a network host, as defined by...
                               type: string
                             http:
                               description: HTTPIngressRuleValue is a list of http
@@ -1812,12 +1812,12 @@ spec:
                                       backend:
                                         description: |-
                                           backend defines the referenced service endpoint to which the traffic
-                                          will b
+                                          will...
                                         properties:
                                           resource:
-                                            description: |-
-                                              resource is an ObjectRef to another Kubernetes resource in the namespace
-                                              of
+                                            description: resource is an ObjectRef
+                                              to another Kubernetes resource in the
+                                              namespace...
                                             properties:
                                               apiGroup:
                                                 description: APIGroup is the group
@@ -1887,7 +1887,7 @@ spec:
                         description: TLS
                         items:
                           description: IngressTLS describes the transport layer security
-                            associated with an ingres
+                            associated with an...
                           properties:
                             hosts:
                               description: hosts is a list of hosts included in the
@@ -1897,8 +1897,9 @@ spec:
                               type: array
                               x-kubernetes-list-type: atomic
                             secretName:
-                              description: "secretName is the name of the secret used
-                                to terminate TLS traffic on\nport "
+                              description: |-
+                                secretName is the name of the secret used to terminate TLS traffic on
+                                port...
                               type: string
                           type: object
                         type: array
@@ -1938,7 +1939,7 @@ spec:
                               value:
                                 description: |-
                                   Variable references $(VAR_NAME) are expanded
-                                  using the previously defined e
+                                  using the previously defined...
                                 type: string
                               valueFrom:
                                 description: Source for the environment variable's
@@ -1968,7 +1969,7 @@ spec:
                                     properties:
                                       apiVersion:
                                         description: Version of the schema the FieldPath
-                                          is written in terms of, defaults to "v1
+                                          is written in terms of, defaults to...
                                         type: string
                                       fieldPath:
                                         description: Path of the field to select in
@@ -1979,9 +1980,8 @@ spec:
                                     type: object
                                     x-kubernetes-map-type: atomic
                                   resourceFieldRef:
-                                    description: |-
-                                      Selects a resource of the container: only resources limits and requests
-                                      (li
+                                    description: 'Selects a resource of the container:
+                                      only resources limits and requests...'
                                     properties:
                                       containerName:
                                         description: 'Container name: required for
@@ -2035,7 +2035,7 @@ spec:
                             in the container.
                           items:
                             description: EnvFromSource represents the source of a
-                              set of ConfigMaps
+                              set of ConfigMaps or Secrets
                             properties:
                               configMapRef:
                                 description: The ConfigMap to select from
@@ -2051,8 +2051,8 @@ spec:
                                 type: object
                                 x-kubernetes-map-type: atomic
                               prefix:
-                                description: An optional identifier to prepend to
-                                  each key in the ConfigMap.
+                                description: Optional text to prepend to the name
+                                  of each environment variable.
                                 type: string
                               secretRef:
                                 description: The Secret to select from
@@ -2082,26 +2082,26 @@ spec:
                           type: string
                         lifecycle:
                           description: Actions that the management system should take
-                            in response to container lif
+                            in response to container...
                           properties:
                             postStart:
                               description: PostStart is called immediately after a
                                 container is created.
                               properties:
                                 exec:
-                                  description: Exec specifies the action to take.
+                                  description: Exec specifies a command to execute
+                                    in the container.
                                   properties:
                                     command:
                                       description: Command is the command line to
-                                        execute inside the container, the working
-                                        di
+                                        execute inside the container, the working...
                                       items:
                                         type: string
                                       type: array
                                       x-kubernetes-list-type: atomic
                                   type: object
                                 httpGet:
-                                  description: HTTPGet specifies the http request
+                                  description: HTTPGet specifies an HTTP GET request
                                     to perform.
                                   properties:
                                     host:
@@ -2146,8 +2146,8 @@ spec:
                                   - port
                                   type: object
                                 sleep:
-                                  description: 'Sleep represents the duration that
-                                    the container should sleep before being '
+                                  description: Sleep represents a duration that the
+                                    container should sleep.
                                   properties:
                                     seconds:
                                       description: Seconds is the number of seconds
@@ -2176,24 +2176,23 @@ spec:
                                   type: object
                               type: object
                             preStop:
-                              description: |-
-                                PreStop is called immediately before a container is terminated due to an
-                                AP
+                              description: PreStop is called immediately before a
+                                container is terminated due to an...
                               properties:
                                 exec:
-                                  description: Exec specifies the action to take.
+                                  description: Exec specifies a command to execute
+                                    in the container.
                                   properties:
                                     command:
                                       description: Command is the command line to
-                                        execute inside the container, the working
-                                        di
+                                        execute inside the container, the working...
                                       items:
                                         type: string
                                       type: array
                                       x-kubernetes-list-type: atomic
                                   type: object
                                 httpGet:
-                                  description: HTTPGet specifies the http request
+                                  description: HTTPGet specifies an HTTP GET request
                                     to perform.
                                   properties:
                                     host:
@@ -2238,8 +2237,8 @@ spec:
                                   - port
                                   type: object
                                 sleep:
-                                  description: 'Sleep represents the duration that
-                                    the container should sleep before being '
+                                  description: Sleep represents a duration that the
+                                    container should sleep.
                                   properties:
                                     seconds:
                                       description: Seconds is the number of seconds
@@ -2267,16 +2266,21 @@ spec:
                                   - port
                                   type: object
                               type: object
+                            stopSignal:
+                              description: StopSignal defines which signal will be
+                                sent to a container when it is...
+                              type: string
                           type: object
                         livenessProbe:
                           description: Periodic probe of container liveness.
                           properties:
                             exec:
-                              description: Exec specifies the action to take.
+                              description: Exec specifies a command to execute in
+                                the container.
                               properties:
                                 command:
                                   description: Command is the command line to execute
-                                    inside the container, the working di
+                                    inside the container, the working...
                                   items:
                                     type: string
                                   type: array
@@ -2284,12 +2288,11 @@ spec:
                               type: object
                             failureThreshold:
                               description: Minimum consecutive failures for the probe
-                                to be considered failed after ha
+                                to be considered failed after...
                               format: int32
                               type: integer
                             grpc:
-                              description: GRPC specifies an action involving a GRPC
-                                port.
+                              description: GRPC specifies a GRPC HealthCheckRequest.
                               properties:
                                 port:
                                   description: Port number of the gRPC service. Number
@@ -2298,14 +2301,15 @@ spec:
                                   type: integer
                                 service:
                                   default: ""
-                                  description: |
-                                    Service is the name of the service to place in the gRPC HealthCheckRequest
+                                  description: Service is the name of the service
+                                    to place in the gRPC HealthCheckRequest...
                                   type: string
                               required:
                               - port
                               type: object
                             httpGet:
-                              description: HTTPGet specifies the http request to perform.
+                              description: HTTPGet specifies an HTTP GET request to
+                                perform.
                               properties:
                                 host:
                                   description: Host name to connect to, defaults to
@@ -2350,7 +2354,7 @@ spec:
                               type: object
                             initialDelaySeconds:
                               description: Number of seconds after the container has
-                                started before liveness probes ar
+                                started before liveness probes...
                               format: int32
                               type: integer
                             periodSeconds:
@@ -2361,12 +2365,12 @@ spec:
                               type: integer
                             successThreshold:
                               description: Minimum consecutive successes for the probe
-                                to be considered successful aft
+                                to be considered successful...
                               format: int32
                               type: integer
                             tcpSocket:
-                              description: TCPSocket specifies an action involving
-                                a TCP port.
+                              description: TCPSocket specifies a connection to a TCP
+                                port.
                               properties:
                                 host:
                                   description: 'Optional: Host name to connect to,
@@ -2384,7 +2388,7 @@ spec:
                               type: object
                             terminationGracePeriodSeconds:
                               description: Optional duration in seconds the pod needs
-                                to terminate gracefully upon pro
+                                to terminate gracefully upon...
                               format: int64
                               type: integer
                             timeoutSeconds:
@@ -2438,11 +2442,12 @@ spec:
                           description: Periodic probe of container service readiness.
                           properties:
                             exec:
-                              description: Exec specifies the action to take.
+                              description: Exec specifies a command to execute in
+                                the container.
                               properties:
                                 command:
                                   description: Command is the command line to execute
-                                    inside the container, the working di
+                                    inside the container, the working...
                                   items:
                                     type: string
                                   type: array
@@ -2450,12 +2455,11 @@ spec:
                               type: object
                             failureThreshold:
                               description: Minimum consecutive failures for the probe
-                                to be considered failed after ha
+                                to be considered failed after...
                               format: int32
                               type: integer
                             grpc:
-                              description: GRPC specifies an action involving a GRPC
-                                port.
+                              description: GRPC specifies a GRPC HealthCheckRequest.
                               properties:
                                 port:
                                   description: Port number of the gRPC service. Number
@@ -2464,14 +2468,15 @@ spec:
                                   type: integer
                                 service:
                                   default: ""
-                                  description: |
-                                    Service is the name of the service to place in the gRPC HealthCheckRequest
+                                  description: Service is the name of the service
+                                    to place in the gRPC HealthCheckRequest...
                                   type: string
                               required:
                               - port
                               type: object
                             httpGet:
-                              description: HTTPGet specifies the http request to perform.
+                              description: HTTPGet specifies an HTTP GET request to
+                                perform.
                               properties:
                                 host:
                                   description: Host name to connect to, defaults to
@@ -2516,7 +2521,7 @@ spec:
                               type: object
                             initialDelaySeconds:
                               description: Number of seconds after the container has
-                                started before liveness probes ar
+                                started before liveness probes...
                               format: int32
                               type: integer
                             periodSeconds:
@@ -2527,12 +2532,12 @@ spec:
                               type: integer
                             successThreshold:
                               description: Minimum consecutive successes for the probe
-                                to be considered successful aft
+                                to be considered successful...
                               format: int32
                               type: integer
                             tcpSocket:
-                              description: TCPSocket specifies an action involving
-                                a TCP port.
+                              description: TCPSocket specifies a connection to a TCP
+                                port.
                               properties:
                                 host:
                                   description: 'Optional: Host name to connect to,
@@ -2550,7 +2555,7 @@ spec:
                               type: object
                             terminationGracePeriodSeconds:
                               description: Optional duration in seconds the pod needs
-                                to terminate gracefully upon pro
+                                to terminate gracefully upon...
                               format: int64
                               type: integer
                             timeoutSeconds:
@@ -2630,16 +2635,15 @@ spec:
                           type: object
                         restartPolicy:
                           description: RestartPolicy defines the restart behavior
-                            of individual containers in a po
+                            of individual containers in a...
                           type: string
                         securityContext:
                           description: SecurityContext defines the security options
-                            the container should be run wi
+                            the container should be run...
                           properties:
                             allowPrivilegeEscalation:
-                              description: |-
-                                AllowPrivilegeEscalation controls whether a process can gain more
-                                privilege
+                              description: AllowPrivilegeEscalation controls whether
+                                a process can gain more...
                               type: boolean
                             appArmorProfile:
                               description: appArmorProfile is the AppArmor options
@@ -2647,7 +2651,7 @@ spec:
                               properties:
                                 localhostProfile:
                                   description: localhostProfile indicates a profile
-                                    loaded on the node that should be used
+                                    loaded on the node that should be...
                                   type: string
                                 type:
                                   description: type indicates which kind of AppArmor
@@ -2729,7 +2733,7 @@ spec:
                               properties:
                                 localhostProfile:
                                   description: localhostProfile indicates a profile
-                                    defined in a file on the node should b
+                                    defined in a file on the node should...
                                   type: string
                                 type:
                                   description: type indicates which kind of seccomp
@@ -2753,7 +2757,7 @@ spec:
                                   type: string
                                 hostProcess:
                                   description: HostProcess determines if a container
-                                    should be run as a 'Host Process' con
+                                    should be run as a 'Host Process'...
                                   type: boolean
                                 runAsUserName:
                                   description: The UserName in Windows to run the
@@ -2766,11 +2770,12 @@ spec:
                             initialized.
                           properties:
                             exec:
-                              description: Exec specifies the action to take.
+                              description: Exec specifies a command to execute in
+                                the container.
                               properties:
                                 command:
                                   description: Command is the command line to execute
-                                    inside the container, the working di
+                                    inside the container, the working...
                                   items:
                                     type: string
                                   type: array
@@ -2778,12 +2783,11 @@ spec:
                               type: object
                             failureThreshold:
                               description: Minimum consecutive failures for the probe
-                                to be considered failed after ha
+                                to be considered failed after...
                               format: int32
                               type: integer
                             grpc:
-                              description: GRPC specifies an action involving a GRPC
-                                port.
+                              description: GRPC specifies a GRPC HealthCheckRequest.
                               properties:
                                 port:
                                   description: Port number of the gRPC service. Number
@@ -2792,14 +2796,15 @@ spec:
                                   type: integer
                                 service:
                                   default: ""
-                                  description: |
-                                    Service is the name of the service to place in the gRPC HealthCheckRequest
+                                  description: Service is the name of the service
+                                    to place in the gRPC HealthCheckRequest...
                                   type: string
                               required:
                               - port
                               type: object
                             httpGet:
-                              description: HTTPGet specifies the http request to perform.
+                              description: HTTPGet specifies an HTTP GET request to
+                                perform.
                               properties:
                                 host:
                                   description: Host name to connect to, defaults to
@@ -2844,7 +2849,7 @@ spec:
                               type: object
                             initialDelaySeconds:
                               description: Number of seconds after the container has
-                                started before liveness probes ar
+                                started before liveness probes...
                               format: int32
                               type: integer
                             periodSeconds:
@@ -2855,12 +2860,12 @@ spec:
                               type: integer
                             successThreshold:
                               description: Minimum consecutive successes for the probe
-                                to be considered successful aft
+                                to be considered successful...
                               format: int32
                               type: integer
                             tcpSocket:
-                              description: TCPSocket specifies an action involving
-                                a TCP port.
+                              description: TCPSocket specifies a connection to a TCP
+                                port.
                               properties:
                                 host:
                                   description: 'Optional: Host name to connect to,
@@ -2878,7 +2883,7 @@ spec:
                               type: object
                             terminationGracePeriodSeconds:
                               description: Optional duration in seconds the pod needs
-                                to terminate gracefully upon pro
+                                to terminate gracefully upon...
                               format: int64
                               type: integer
                             timeoutSeconds:
@@ -2889,16 +2894,16 @@ spec:
                               type: integer
                           type: object
                         stdin:
-                          description: 'Whether this container should allocate a buffer
-                            for stdin in the container '
+                          description: Whether this container should allocate a buffer
+                            for stdin in the container...
                           type: boolean
                         stdinOnce:
                           description: Whether the container runtime should close
-                            the stdin channel after it has b
+                            the stdin channel after it has...
                           type: boolean
                         terminationMessagePath:
                           description: 'Optional: Path at which the file to which
-                            the container''s termination messa'
+                            the container''s termination...'
                           type: string
                         terminationMessagePolicy:
                           description: Indicate how the termination message should
@@ -2906,7 +2911,7 @@ spec:
                           type: string
                         tty:
                           description: Whether this container should allocate a TTY
-                            for itself, also requires 'std
+                            for itself, also requires...
                           type: boolean
                         volumeDevices:
                           description: volumeDevices is the list of block devices
@@ -2917,7 +2922,7 @@ spec:
                             properties:
                               devicePath:
                                 description: devicePath is the path inside of the
-                                  container that the device will be mapp
+                                  container that the device will be...
                                 type: string
                               name:
                                 description: name must match the name of a persistentVolumeClaim
@@ -2946,7 +2951,7 @@ spec:
                               mountPropagation:
                                 description: |-
                                   mountPropagation determines how mounts are propagated from the host
-                                  to cont
+                                  to...
                                 type: string
                               name:
                                 description: This must match the Name of a Volume.
@@ -2956,9 +2961,8 @@ spec:
                                   otherwise (false or unspecified).
                                 type: boolean
                               recursiveReadOnly:
-                                description: |-
-                                  RecursiveReadOnly specifies whether read-only mounts should be handled
-                                  recu
+                                description: RecursiveReadOnly specifies whether read-only
+                                  mounts should be handled...
                                 type: string
                               subPath:
                                 description: Path within the volume from which the
@@ -2966,7 +2970,7 @@ spec:
                                 type: string
                               subPathExpr:
                                 description: Expanded path within the volume from
-                                  which the container's volume should be
+                                  which the container's volume should...
                                 type: string
                             required:
                             - mountPath
@@ -2996,7 +3000,7 @@ spec:
                           calculate:
                             description: |-
                               Calculate the JVMHeap size based on resource requests and limits
-                              if resourc
+                              if...
                             type: boolean
                           default:
                             description: Default Heap Size to use if calculate is
@@ -3026,25 +3030,27 @@ spec:
                     type: object
                   lifecycleHooks:
                     description: Lifecycle describes actions that the management system
-                      should take in respo
+                      should take in...
                     properties:
                       postStart:
                         description: PostStart is called immediately after a container
                           is created.
                         properties:
                           exec:
-                            description: Exec specifies the action to take.
+                            description: Exec specifies a command to execute in the
+                              container.
                             properties:
                               command:
                                 description: Command is the command line to execute
-                                  inside the container, the working di
+                                  inside the container, the working...
                                 items:
                                   type: string
                                 type: array
                                 x-kubernetes-list-type: atomic
                             type: object
                           httpGet:
-                            description: HTTPGet specifies the http request to perform.
+                            description: HTTPGet specifies an HTTP GET request to
+                              perform.
                             properties:
                               host:
                                 description: Host name to connect to, defaults to
@@ -3088,8 +3094,8 @@ spec:
                             - port
                             type: object
                           sleep:
-                            description: 'Sleep represents the duration that the container
-                              should sleep before being '
+                            description: Sleep represents a duration that the container
+                              should sleep.
                             properties:
                               seconds:
                                 description: Seconds is the number of seconds to sleep.
@@ -3117,23 +3123,24 @@ spec:
                             type: object
                         type: object
                       preStop:
-                        description: |-
-                          PreStop is called immediately before a container is terminated due to an
-                          AP
+                        description: PreStop is called immediately before a container
+                          is terminated due to an...
                         properties:
                           exec:
-                            description: Exec specifies the action to take.
+                            description: Exec specifies a command to execute in the
+                              container.
                             properties:
                               command:
                                 description: Command is the command line to execute
-                                  inside the container, the working di
+                                  inside the container, the working...
                                 items:
                                   type: string
                                 type: array
                                 x-kubernetes-list-type: atomic
                             type: object
                           httpGet:
-                            description: HTTPGet specifies the http request to perform.
+                            description: HTTPGet specifies an HTTP GET request to
+                              perform.
                             properties:
                               host:
                                 description: Host name to connect to, defaults to
@@ -3177,8 +3184,8 @@ spec:
                             - port
                             type: object
                           sleep:
-                            description: 'Sleep represents the duration that the container
-                              should sleep before being '
+                            description: Sleep represents a duration that the container
+                              should sleep.
                             properties:
                               seconds:
                                 description: Seconds is the number of seconds to sleep.
@@ -3205,10 +3212,14 @@ spec:
                             - port
                             type: object
                         type: object
+                      stopSignal:
+                        description: StopSignal defines which signal will be sent
+                          to a container when it is...
+                        type: string
                     type: object
                   listenPorts:
-                    description: 'ListenPorts The Layer7 Gateway instantiates the
-                      following HTTP(s) ports by '
+                    description: ListenPorts The Layer7 Gateway instantiates the following
+                      HTTP(s) ports by...
                     properties:
                       custom:
                         description: CustomListenPort - enable/disable custom listen
@@ -3231,7 +3242,7 @@ spec:
                             managementFeatures:
                               description: |-
                                 ManagementFeatures that should be available on this port
-                                - Published servic
+                                - Published...
                               items:
                                 type: string
                               type: array
@@ -3260,8 +3271,7 @@ spec:
                               description: Tls configuration for Gateway Ports
                               properties:
                                 cipherSuites:
-                                  description: "CipherSuites\n\t- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384\n\t-
-                                    TLS_ECDHE_ECDSA_WI"
+                                  description: "CipherSuites\n\t- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384\n\t-..."
                                   items:
                                     type: string
                                   type: array
@@ -3293,19 +3303,19 @@ spec:
                       refreshOnKeyChanges:
                         description: |-
                           Refresh on Key Changes
-                          If harden is true, the auto generated port bundle wi
+                          If harden is true, the auto generated port bundle...
                         type: boolean
                     type: object
                   livenessProbe:
                     description: Probe describes a health check to be performed against
-                      a container to deter
+                      a container to...
                     properties:
                       exec:
-                        description: Exec specifies the action to take.
+                        description: Exec specifies a command to execute in the container.
                         properties:
                           command:
                             description: Command is the command line to execute inside
-                              the container, the working di
+                              the container, the working...
                             items:
                               type: string
                             type: array
@@ -3313,11 +3323,11 @@ spec:
                         type: object
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
-                          be considered failed after ha
+                          be considered failed after...
                         format: int32
                         type: integer
                       grpc:
-                        description: GRPC specifies an action involving a GRPC port.
+                        description: GRPC specifies a GRPC HealthCheckRequest.
                         properties:
                           port:
                             description: Port number of the gRPC service. Number must
@@ -3326,14 +3336,14 @@ spec:
                             type: integer
                           service:
                             default: ""
-                            description: |
-                              Service is the name of the service to place in the gRPC HealthCheckRequest
+                            description: Service is the name of the service to place
+                              in the gRPC HealthCheckRequest...
                             type: string
                         required:
                         - port
                         type: object
                       httpGet:
-                        description: HTTPGet specifies the http request to perform.
+                        description: HTTPGet specifies an HTTP GET request to perform.
                         properties:
                           host:
                             description: Host name to connect to, defaults to the
@@ -3378,7 +3388,7 @@ spec:
                         type: object
                       initialDelaySeconds:
                         description: Number of seconds after the container has started
-                          before liveness probes ar
+                          before liveness probes...
                         format: int32
                         type: integer
                       periodSeconds:
@@ -3389,12 +3399,11 @@ spec:
                         type: integer
                       successThreshold:
                         description: Minimum consecutive successes for the probe to
-                          be considered successful aft
+                          be considered successful...
                         format: int32
                         type: integer
                       tcpSocket:
-                        description: TCPSocket specifies an action involving a TCP
-                          port.
+                        description: TCPSocket specifies a connection to a TCP port.
                         properties:
                           host:
                             description: 'Optional: Host name to connect to, defaults
@@ -3412,7 +3421,7 @@ spec:
                         type: object
                       terminationGracePeriodSeconds:
                         description: Optional duration in seconds the pod needs to
-                          terminate gracefully upon pro
+                          terminate gracefully upon...
                         format: int64
                         type: integer
                       timeoutSeconds:
@@ -3483,16 +3492,16 @@ spec:
                           disabled:
                             description: |-
                               The Container Gateway uses diskless config by default
-                              Disabling it will swi
+                              Disabling it will...
                             type: boolean
                         type: object
                       graphman:
                         description: Graphman is a GraphQL Gateway Management interface
-                          that can be automaticall
+                          that can be...
                         properties:
                           dynamicSyncPort:
                             description: DynamicSyncPort is the Port the Gateway controller
-                              uses to apply dynamic re
+                              uses to apply dynamic...
                             type: integer
                           enabled:
                             description: Enabled optionally bootstrap the GraphQL
@@ -3509,9 +3518,8 @@ spec:
                             description: ContainerSecurityContext
                             properties:
                               allowPrivilegeEscalation:
-                                description: |-
-                                  AllowPrivilegeEscalation controls whether a process can gain more
-                                  privilege
+                                description: AllowPrivilegeEscalation controls whether
+                                  a process can gain more...
                                 type: boolean
                               appArmorProfile:
                                 description: appArmorProfile is the AppArmor options
@@ -3519,7 +3527,7 @@ spec:
                                 properties:
                                   localhostProfile:
                                     description: localhostProfile indicates a profile
-                                      loaded on the node that should be used
+                                      loaded on the node that should be...
                                     type: string
                                   type:
                                     description: type indicates which kind of AppArmor
@@ -3601,7 +3609,7 @@ spec:
                                 properties:
                                   localhostProfile:
                                     description: localhostProfile indicates a profile
-                                      defined in a file on the node should b
+                                      defined in a file on the node should...
                                     type: string
                                   type:
                                     description: type indicates which kind of seccomp
@@ -3625,7 +3633,7 @@ spec:
                                     type: string
                                   hostProcess:
                                     description: HostProcess determines if a container
-                                      should be run as a 'Host Process' con
+                                      should be run as a 'Host Process'...
                                     type: boolean
                                   runAsUserName:
                                     description: The UserName in Windows to run the
@@ -3639,7 +3647,7 @@ spec:
                         type: string
                       restman:
                         description: Restman is a Gateway Management interface that
-                          can be automatically provisi
+                          can be automatically...
                         properties:
                           enabled:
                             description: Enabled optionally bootstrap the Restman
@@ -3647,9 +3655,8 @@ spec:
                             type: boolean
                         type: object
                       secretName:
-                        description: |-
-                          SecretName is reference to an existing secret that contains
-                          SSG_ADMIN_USERN
+                        description: SecretName is reference to an existing secret
+                          that contains...
                         type: string
                       service:
                         description: Service is the Gateway Management Service
@@ -3678,14 +3685,14 @@ spec:
                             type: string
                           externalTrafficPolicy:
                             description: ServiceExternalTrafficPolicy describes how
-                              nodes distribute service traffic
+                              nodes distribute service...
                             type: string
                           healthCheckNodePort:
                             format: int32
                             type: integer
                           internalTrafficPolicy:
                             description: ServiceInternalTrafficPolicy describes how
-                              nodes distribute service traffic
+                              nodes distribute service...
                             type: string
                           ipFamilies:
                             items:
@@ -3695,7 +3702,7 @@ spec:
                             type: array
                           ipFamilyPolicy:
                             description: IPFamilyPolicy represents the dual-stack-ness
-                              requested or required by a Se
+                              requested or required by a...
                             type: string
                           loadBalancerClass:
                             type: string
@@ -3708,7 +3715,7 @@ spec:
                           ports:
                             description: |-
                               Ports exposed by the Service
-                              These are appended to the Gateway deployment c
+                              These are appended to the Gateway deployment...
                             items:
                               description: Ports
                               properties:
@@ -3783,7 +3790,7 @@ spec:
                           enabled:
                             description: |-
                               Enable or disable setting resource attributes
-                              when enabled the following va
+                              when enabled the following...
                             type: boolean
                         type: object
                     type: object
@@ -3814,7 +3821,7 @@ spec:
                               existingSecret:
                                 description: |-
                                   ExistingSecret containing database credentials
-                                  The following keys can be se
+                                  The following keys can be...
                                 type: string
                               gateway:
                                 description: GatewayUser configured in the Gateway
@@ -3899,14 +3906,14 @@ spec:
                               jdbcDriverClass:
                                 description: |-
                                   JDBCDriverClass to use in the Gateway JDBC Connection entity
-                                  defaults to co
+                                  defaults to...
                                 type: string
                               jdbcUrl:
                                 description: JDBCUrl for the OTK
                                 type: string
                               manageSchema:
-                                description: 'ManageSchema appends an additional initContainer
-                                  for the OTK that connects '
+                                description: ManageSchema appends an additional initContainer
+                                  for the OTK that connects...
                                 type: boolean
                             type: object
                           sqlClientReadOnly:
@@ -3936,19 +3943,19 @@ spec:
                               jdbcDriverClass:
                                 description: |-
                                   JDBCDriverClass to use in the Gateway JDBC Connection entity
-                                  defaults to co
+                                  defaults to...
                                 type: string
                               jdbcUrl:
                                 description: JDBCUrl for the OTK
                                 type: string
                               manageSchema:
-                                description: 'ManageSchema appends an additional initContainer
-                                  for the OTK that connects '
+                                description: ManageSchema appends an additional initContainer
+                                  for the OTK that connects...
                                 type: boolean
                             type: object
                           sqlClientReadOnlyConnectionName:
                             description: SqlClientReadOnlyConnectionName for the JDBC
-                              or Cassandra Connection Gatewa
+                              or Cassandra Connection...
                             type: string
                           sqlReadOnly:
                             description: SqlReadOnly configuration
@@ -3977,19 +3984,19 @@ spec:
                               jdbcDriverClass:
                                 description: |-
                                   JDBCDriverClass to use in the Gateway JDBC Connection entity
-                                  defaults to co
+                                  defaults to...
                                 type: string
                               jdbcUrl:
                                 description: JDBCUrl for the OTK
                                 type: string
                               manageSchema:
-                                description: 'ManageSchema appends an additional initContainer
-                                  for the OTK that connects '
+                                description: ManageSchema appends an additional initContainer
+                                  for the OTK that connects...
                                 type: boolean
                             type: object
                           sqlReadOnlyConnectionName:
                             description: SqlReadOnlyConnectionName for the JDBC or
-                              Cassandra Connection Gateway enti
+                              Cassandra Connection Gateway...
                             type: string
                           type:
                             description: Type of OTK Database
@@ -4011,9 +4018,8 @@ spec:
                         description: InitContainerSecurityContext
                         properties:
                           allowPrivilegeEscalation:
-                            description: |-
-                              AllowPrivilegeEscalation controls whether a process can gain more
-                              privilege
+                            description: AllowPrivilegeEscalation controls whether
+                              a process can gain more...
                             type: boolean
                           appArmorProfile:
                             description: appArmorProfile is the AppArmor options to
@@ -4021,7 +4027,7 @@ spec:
                             properties:
                               localhostProfile:
                                 description: localhostProfile indicates a profile
-                                  loaded on the node that should be used
+                                  loaded on the node that should be...
                                 type: string
                               type:
                                 description: type indicates which kind of AppArmor
@@ -4103,7 +4109,7 @@ spec:
                             properties:
                               localhostProfile:
                                 description: localhostProfile indicates a profile
-                                  defined in a file on the node should b
+                                  defined in a file on the node should...
                                 type: string
                               type:
                                 description: type indicates which kind of seccomp
@@ -4127,7 +4133,7 @@ spec:
                                 type: string
                               hostProcess:
                                 description: HostProcess determines if a container
-                                  should be run as a 'Host Process' con
+                                  should be run as a 'Host Process'...
                                 type: boolean
                               runAsUserName:
                                 description: The UserName in Windows to run the entrypoint
@@ -4140,8 +4146,8 @@ spec:
                           port
                         type: integer
                       internalGatewayReference:
-                        description: 'InternalOtkGatewayReference to an Operator managed
-                          Gateway deployment that '
+                        description: InternalOtkGatewayReference to an Operator managed
+                          Gateway deployment that...
                         type: string
                       maintenanceTasks:
                         description: MaintenanceTasks for the OTK database are disabled
@@ -4156,7 +4162,7 @@ spec:
                         properties:
                           bootstrapDirectory:
                             description: BootstrapDirectory that is used for the initContainer
-                              the default is /opt/S
+                              the default is...
                             type: string
                           createTestClients:
                             description: CreateTestClients for mysql & oracle setup
@@ -4170,7 +4176,7 @@ spec:
                             type: boolean
                           managePostInstallPolicies:
                             description: ManagePostInstallConfig represent post-installation
-                              tasks required for inte
+                              tasks required for...
                             type: boolean
                           skipInternalServerTools:
                             description: |-
@@ -4187,11 +4193,11 @@ spec:
                         type: integer
                       runtimeSyncIntervalSeconds:
                         description: RuntimeSyncIntervalSeconds how often OTK Gateways
-                          should be updated in inte
+                          should be updated in...
                         type: integer
                       subSolutionKitNames:
                         description: A list of subSolutionKitNames - all,internal
-                          or dmz cover the primary use c
+                          or dmz cover the primary use...
                         items:
                           type: string
                         type: array
@@ -4229,15 +4235,15 @@ spec:
                     type: object
                   podSecurityContext:
                     description: PodSecurityContext holds pod-level security attributes
-                      and common container
+                      and common...
                     properties:
                       appArmorProfile:
                         description: appArmorProfile is the AppArmor options to use
-                          by the containers in this po
+                          by the containers in this...
                         properties:
                           localhostProfile:
                             description: localhostProfile indicates a profile loaded
-                              on the node that should be used
+                              on the node that should be...
                             type: string
                           type:
                             description: type indicates which kind of AppArmor profile
@@ -4253,7 +4259,7 @@ spec:
                         type: integer
                       fsGroupChangePolicy:
                         description: fsGroupChangePolicy defines behavior of changing
-                          ownership and permission o
+                          ownership and permission...
                         type: string
                       runAsGroup:
                         description: The GID to run the entrypoint of the container
@@ -4269,6 +4275,10 @@ spec:
                           process.
                         format: int64
                         type: integer
+                      seLinuxChangePolicy:
+                        description: seLinuxChangePolicy defines how the container's
+                          SELinux label is applied...
+                        type: string
                       seLinuxOptions:
                         description: The SELinux context to be applied to all containers.
                         properties:
@@ -4295,7 +4305,7 @@ spec:
                         properties:
                           localhostProfile:
                             description: localhostProfile indicates a profile defined
-                              in a file on the node should b
+                              in a file on the node should...
                             type: string
                           type:
                             description: type indicates which kind of seccomp profile
@@ -4305,9 +4315,8 @@ spec:
                         - type
                         type: object
                       supplementalGroups:
-                        description: |-
-                          A list of groups applied to the first process run in each container, in
-                          add
+                        description: A list of groups applied to the first process
+                          run in each container, in...
                         items:
                           format: int64
                           type: integer
@@ -4315,7 +4324,7 @@ spec:
                         x-kubernetes-list-type: atomic
                       supplementalGroupsPolicy:
                         description: Defines how supplemental groups of the first
-                          container processes are calcul
+                          container processes are...
                         type: string
                       sysctls:
                         description: Sysctls hold a list of namespaced sysctls used
@@ -4350,7 +4359,7 @@ spec:
                             type: string
                           hostProcess:
                             description: HostProcess determines if a container should
-                              be run as a 'Host Process' con
+                              be run as a 'Host Process'...
                             type: boolean
                           runAsUserName:
                             description: The UserName in Windows to run the entrypoint
@@ -4360,7 +4369,7 @@ spec:
                     type: object
                   portalReference:
                     description: PortalReference is for bulk syncing of Portal APIs
-                      via initContainer (boots
+                      via initContainer...
                     properties:
                       enabled:
                         description: Enable or disable the Portal reference
@@ -4375,9 +4384,8 @@ spec:
                         description: InitContainerSecurityContext
                         properties:
                           allowPrivilegeEscalation:
-                            description: |-
-                              AllowPrivilegeEscalation controls whether a process can gain more
-                              privilege
+                            description: AllowPrivilegeEscalation controls whether
+                              a process can gain more...
                             type: boolean
                           appArmorProfile:
                             description: appArmorProfile is the AppArmor options to
@@ -4385,7 +4393,7 @@ spec:
                             properties:
                               localhostProfile:
                                 description: localhostProfile indicates a profile
-                                  loaded on the node that should be used
+                                  loaded on the node that should be...
                                 type: string
                               type:
                                 description: type indicates which kind of AppArmor
@@ -4467,7 +4475,7 @@ spec:
                             properties:
                               localhostProfile:
                                 description: localhostProfile indicates a profile
-                                  defined in a file on the node should b
+                                  defined in a file on the node should...
                                 type: string
                               type:
                                 description: type indicates which kind of seccomp
@@ -4491,7 +4499,7 @@ spec:
                                 type: string
                               hostProcess:
                                 description: HostProcess determines if a container
-                                  should be run as a 'Host Process' con
+                                  should be run as a 'Host Process'...
                                 type: boolean
                               runAsUserName:
                                 description: The UserName in Windows to run the entrypoint
@@ -4505,14 +4513,14 @@ spec:
                     type: object
                   preStopScript:
                     description: PreStopScript During upgrades and other events where
-                      Gateway pods are repla
+                      Gateway pods are...
                     properties:
                       enabled:
                         description: Enabled or disabled
                         type: boolean
                       excludedPorts:
                         description: ExcludedPorts is an array of port numbers, if
-                          not set the defaults are 8777
+                          not set the defaults are...
                         items:
                           type: integer
                         type: array
@@ -4526,14 +4534,14 @@ spec:
                     type: object
                   readinessProbe:
                     description: Probe describes a health check to be performed against
-                      a container to deter
+                      a container to...
                     properties:
                       exec:
-                        description: Exec specifies the action to take.
+                        description: Exec specifies a command to execute in the container.
                         properties:
                           command:
                             description: Command is the command line to execute inside
-                              the container, the working di
+                              the container, the working...
                             items:
                               type: string
                             type: array
@@ -4541,11 +4549,11 @@ spec:
                         type: object
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
-                          be considered failed after ha
+                          be considered failed after...
                         format: int32
                         type: integer
                       grpc:
-                        description: GRPC specifies an action involving a GRPC port.
+                        description: GRPC specifies a GRPC HealthCheckRequest.
                         properties:
                           port:
                             description: Port number of the gRPC service. Number must
@@ -4554,14 +4562,14 @@ spec:
                             type: integer
                           service:
                             default: ""
-                            description: |
-                              Service is the name of the service to place in the gRPC HealthCheckRequest
+                            description: Service is the name of the service to place
+                              in the gRPC HealthCheckRequest...
                             type: string
                         required:
                         - port
                         type: object
                       httpGet:
-                        description: HTTPGet specifies the http request to perform.
+                        description: HTTPGet specifies an HTTP GET request to perform.
                         properties:
                           host:
                             description: Host name to connect to, defaults to the
@@ -4606,7 +4614,7 @@ spec:
                         type: object
                       initialDelaySeconds:
                         description: Number of seconds after the container has started
-                          before liveness probes ar
+                          before liveness probes...
                         format: int32
                         type: integer
                       periodSeconds:
@@ -4617,12 +4625,11 @@ spec:
                         type: integer
                       successThreshold:
                         description: Minimum consecutive successes for the probe to
-                          be considered successful aft
+                          be considered successful...
                         format: int32
                         type: integer
                       tcpSocket:
-                        description: TCPSocket specifies an action involving a TCP
-                          port.
+                        description: TCPSocket specifies a connection to a TCP port.
                         properties:
                           host:
                             description: 'Optional: Host name to connect to, defaults
@@ -4640,7 +4647,7 @@ spec:
                         type: object
                       terminationGracePeriodSeconds:
                         description: Optional duration in seconds the pod needs to
-                          terminate gracefully upon pro
+                          terminate gracefully upon...
                         format: int64
                         type: integer
                       timeoutSeconds:
@@ -4742,8 +4749,8 @@ spec:
                           type: object
                         type: array
                       certs:
-                        description: 'CertSecrets provides a way to mount secrets
-                          that contains certificates for '
+                        description: CertSecrets provides a way to mount secrets that
+                          contains certificates for...
                         items:
                           properties:
                             enabled:
@@ -4848,8 +4855,9 @@ spec:
                         description: Enable or disable a Redis integration
                         type: boolean
                       existingSecret:
-                        description: "ExistingSecret mounts an existing secret containing
-                          redis configuration\nto "
+                        description: |-
+                          ExistingSecret mounts an existing secret containing redis configuration
+                          to...
                         type: string
                     type: object
                   replicas:
@@ -4857,14 +4865,43 @@ spec:
                       enabled
                     format: int32
                     type: integer
+                  repositoryReferenceBootstrap:
+                    description: BootstrapRepositoryReferences bootstraps repositoryReferences
+                      of type...
+                    properties:
+                      enabled:
+                        description: Enable or disable bootstrapping repository references
+                        type: boolean
+                      preferGit:
+                        description: If a L7StateStore is configured the initContainer
+                          will default to...
+                        type: boolean
+                    type: object
+                  repositoryReferenceDelete:
+                    description: RepositoryReferenceDelete enables repository delete
+                      when a...
+                    properties:
+                      enabled:
+                        description: Enable or disable deleting repository references
+                        type: boolean
+                      limitToStateStore:
+                        description: Limit deletion to repositories that have an external
+                          statestore
+                        type: boolean
+                      reconcileReferences:
+                        description: ReconcileReferences resets the commits for all
+                          other repositories that...
+                        type: boolean
+                    type: object
                   repositoryReferences:
                     items:
-                      description: 'RepositoryReference is reference to a Git repository
-                        or HTTP endpoint that '
+                      description: RepositoryReference is reference to a Git repository
+                        or HTTP endpoint that...
                       properties:
                         directories:
-                          description: "Directories from the remote repository to
-                            sync with the Gateway\nLimited to "
+                          description: |-
+                            Directories from the remote repository to sync with the Gateway
+                            Limited to...
                           items:
                             type: string
                           type: array
@@ -4872,8 +4909,8 @@ spec:
                           description: Enabled or disabled
                           type: boolean
                         encryption:
-                          description: 'BundleEncryption allows setting an encryption
-                            passphrase per repository or '
+                          description: BundleEncryption allows setting an encryption
+                            passphrase per repository or...
                           properties:
                             existingSecret:
                               description: ExistingSecret - reference to an existing
@@ -4881,7 +4918,7 @@ spec:
                               type: string
                             key:
                               description: Key - the key in the kubernetes secret
-                                that the encryption passphrase is st
+                                that the encryption passphrase is...
                               type: string
                             passphrase:
                               description: Passphrase - bundle encryption passphrase
@@ -4927,7 +4964,7 @@ spec:
                         type:
                           description: |-
                             Type static or dynamic
-                            static repositories are bootstrapped to the containe
+                            static repositories are bootstrapped to the...
                           type: string
                       required:
                       - enabled
@@ -4959,7 +4996,7 @@ spec:
                     type: object
                   restartOnConfigChange:
                     description: RestartOnConfigChange restarts the Gateway if the
-                      default configmaps are up
+                      default configmaps are...
                     type: boolean
                   service:
                     description: Service
@@ -4988,14 +5025,14 @@ spec:
                         type: string
                       externalTrafficPolicy:
                         description: ServiceExternalTrafficPolicy describes how nodes
-                          distribute service traffic
+                          distribute service...
                         type: string
                       healthCheckNodePort:
                         format: int32
                         type: integer
                       internalTrafficPolicy:
                         description: ServiceInternalTrafficPolicy describes how nodes
-                          distribute service traffic
+                          distribute service...
                         type: string
                       ipFamilies:
                         items:
@@ -5005,7 +5042,7 @@ spec:
                         type: array
                       ipFamilyPolicy:
                         description: IPFamilyPolicy represents the dual-stack-ness
-                          requested or required by a Se
+                          requested or required by a...
                         type: string
                       loadBalancerClass:
                         type: string
@@ -5018,7 +5055,7 @@ spec:
                       ports:
                         description: |-
                           Ports exposed by the Service
-                          These are appended to the Gateway deployment c
+                          These are appended to the Gateway deployment...
                         items:
                           description: Ports
                           properties:
@@ -5105,7 +5142,7 @@ spec:
                               value:
                                 description: |-
                                   Variable references $(VAR_NAME) are expanded
-                                  using the previously defined e
+                                  using the previously defined...
                                 type: string
                               valueFrom:
                                 description: Source for the environment variable's
@@ -5135,7 +5172,7 @@ spec:
                                     properties:
                                       apiVersion:
                                         description: Version of the schema the FieldPath
-                                          is written in terms of, defaults to "v1
+                                          is written in terms of, defaults to...
                                         type: string
                                       fieldPath:
                                         description: Path of the field to select in
@@ -5146,9 +5183,8 @@ spec:
                                     type: object
                                     x-kubernetes-map-type: atomic
                                   resourceFieldRef:
-                                    description: |-
-                                      Selects a resource of the container: only resources limits and requests
-                                      (li
+                                    description: 'Selects a resource of the container:
+                                      only resources limits and requests...'
                                     properties:
                                       containerName:
                                         description: 'Container name: required for
@@ -5202,7 +5238,7 @@ spec:
                             in the container.
                           items:
                             description: EnvFromSource represents the source of a
-                              set of ConfigMaps
+                              set of ConfigMaps or Secrets
                             properties:
                               configMapRef:
                                 description: The ConfigMap to select from
@@ -5218,8 +5254,8 @@ spec:
                                 type: object
                                 x-kubernetes-map-type: atomic
                               prefix:
-                                description: An optional identifier to prepend to
-                                  each key in the ConfigMap.
+                                description: Optional text to prepend to the name
+                                  of each environment variable.
                                 type: string
                               secretRef:
                                 description: The Secret to select from
@@ -5249,26 +5285,26 @@ spec:
                           type: string
                         lifecycle:
                           description: Actions that the management system should take
-                            in response to container lif
+                            in response to container...
                           properties:
                             postStart:
                               description: PostStart is called immediately after a
                                 container is created.
                               properties:
                                 exec:
-                                  description: Exec specifies the action to take.
+                                  description: Exec specifies a command to execute
+                                    in the container.
                                   properties:
                                     command:
                                       description: Command is the command line to
-                                        execute inside the container, the working
-                                        di
+                                        execute inside the container, the working...
                                       items:
                                         type: string
                                       type: array
                                       x-kubernetes-list-type: atomic
                                   type: object
                                 httpGet:
-                                  description: HTTPGet specifies the http request
+                                  description: HTTPGet specifies an HTTP GET request
                                     to perform.
                                   properties:
                                     host:
@@ -5313,8 +5349,8 @@ spec:
                                   - port
                                   type: object
                                 sleep:
-                                  description: 'Sleep represents the duration that
-                                    the container should sleep before being '
+                                  description: Sleep represents a duration that the
+                                    container should sleep.
                                   properties:
                                     seconds:
                                       description: Seconds is the number of seconds
@@ -5343,24 +5379,23 @@ spec:
                                   type: object
                               type: object
                             preStop:
-                              description: |-
-                                PreStop is called immediately before a container is terminated due to an
-                                AP
+                              description: PreStop is called immediately before a
+                                container is terminated due to an...
                               properties:
                                 exec:
-                                  description: Exec specifies the action to take.
+                                  description: Exec specifies a command to execute
+                                    in the container.
                                   properties:
                                     command:
                                       description: Command is the command line to
-                                        execute inside the container, the working
-                                        di
+                                        execute inside the container, the working...
                                       items:
                                         type: string
                                       type: array
                                       x-kubernetes-list-type: atomic
                                   type: object
                                 httpGet:
-                                  description: HTTPGet specifies the http request
+                                  description: HTTPGet specifies an HTTP GET request
                                     to perform.
                                   properties:
                                     host:
@@ -5405,8 +5440,8 @@ spec:
                                   - port
                                   type: object
                                 sleep:
-                                  description: 'Sleep represents the duration that
-                                    the container should sleep before being '
+                                  description: Sleep represents a duration that the
+                                    container should sleep.
                                   properties:
                                     seconds:
                                       description: Seconds is the number of seconds
@@ -5434,16 +5469,21 @@ spec:
                                   - port
                                   type: object
                               type: object
+                            stopSignal:
+                              description: StopSignal defines which signal will be
+                                sent to a container when it is...
+                              type: string
                           type: object
                         livenessProbe:
                           description: Periodic probe of container liveness.
                           properties:
                             exec:
-                              description: Exec specifies the action to take.
+                              description: Exec specifies a command to execute in
+                                the container.
                               properties:
                                 command:
                                   description: Command is the command line to execute
-                                    inside the container, the working di
+                                    inside the container, the working...
                                   items:
                                     type: string
                                   type: array
@@ -5451,12 +5491,11 @@ spec:
                               type: object
                             failureThreshold:
                               description: Minimum consecutive failures for the probe
-                                to be considered failed after ha
+                                to be considered failed after...
                               format: int32
                               type: integer
                             grpc:
-                              description: GRPC specifies an action involving a GRPC
-                                port.
+                              description: GRPC specifies a GRPC HealthCheckRequest.
                               properties:
                                 port:
                                   description: Port number of the gRPC service. Number
@@ -5465,14 +5504,15 @@ spec:
                                   type: integer
                                 service:
                                   default: ""
-                                  description: |
-                                    Service is the name of the service to place in the gRPC HealthCheckRequest
+                                  description: Service is the name of the service
+                                    to place in the gRPC HealthCheckRequest...
                                   type: string
                               required:
                               - port
                               type: object
                             httpGet:
-                              description: HTTPGet specifies the http request to perform.
+                              description: HTTPGet specifies an HTTP GET request to
+                                perform.
                               properties:
                                 host:
                                   description: Host name to connect to, defaults to
@@ -5517,7 +5557,7 @@ spec:
                               type: object
                             initialDelaySeconds:
                               description: Number of seconds after the container has
-                                started before liveness probes ar
+                                started before liveness probes...
                               format: int32
                               type: integer
                             periodSeconds:
@@ -5528,12 +5568,12 @@ spec:
                               type: integer
                             successThreshold:
                               description: Minimum consecutive successes for the probe
-                                to be considered successful aft
+                                to be considered successful...
                               format: int32
                               type: integer
                             tcpSocket:
-                              description: TCPSocket specifies an action involving
-                                a TCP port.
+                              description: TCPSocket specifies a connection to a TCP
+                                port.
                               properties:
                                 host:
                                   description: 'Optional: Host name to connect to,
@@ -5551,7 +5591,7 @@ spec:
                               type: object
                             terminationGracePeriodSeconds:
                               description: Optional duration in seconds the pod needs
-                                to terminate gracefully upon pro
+                                to terminate gracefully upon...
                               format: int64
                               type: integer
                             timeoutSeconds:
@@ -5605,11 +5645,12 @@ spec:
                           description: Periodic probe of container service readiness.
                           properties:
                             exec:
-                              description: Exec specifies the action to take.
+                              description: Exec specifies a command to execute in
+                                the container.
                               properties:
                                 command:
                                   description: Command is the command line to execute
-                                    inside the container, the working di
+                                    inside the container, the working...
                                   items:
                                     type: string
                                   type: array
@@ -5617,12 +5658,11 @@ spec:
                               type: object
                             failureThreshold:
                               description: Minimum consecutive failures for the probe
-                                to be considered failed after ha
+                                to be considered failed after...
                               format: int32
                               type: integer
                             grpc:
-                              description: GRPC specifies an action involving a GRPC
-                                port.
+                              description: GRPC specifies a GRPC HealthCheckRequest.
                               properties:
                                 port:
                                   description: Port number of the gRPC service. Number
@@ -5631,14 +5671,15 @@ spec:
                                   type: integer
                                 service:
                                   default: ""
-                                  description: |
-                                    Service is the name of the service to place in the gRPC HealthCheckRequest
+                                  description: Service is the name of the service
+                                    to place in the gRPC HealthCheckRequest...
                                   type: string
                               required:
                               - port
                               type: object
                             httpGet:
-                              description: HTTPGet specifies the http request to perform.
+                              description: HTTPGet specifies an HTTP GET request to
+                                perform.
                               properties:
                                 host:
                                   description: Host name to connect to, defaults to
@@ -5683,7 +5724,7 @@ spec:
                               type: object
                             initialDelaySeconds:
                               description: Number of seconds after the container has
-                                started before liveness probes ar
+                                started before liveness probes...
                               format: int32
                               type: integer
                             periodSeconds:
@@ -5694,12 +5735,12 @@ spec:
                               type: integer
                             successThreshold:
                               description: Minimum consecutive successes for the probe
-                                to be considered successful aft
+                                to be considered successful...
                               format: int32
                               type: integer
                             tcpSocket:
-                              description: TCPSocket specifies an action involving
-                                a TCP port.
+                              description: TCPSocket specifies a connection to a TCP
+                                port.
                               properties:
                                 host:
                                   description: 'Optional: Host name to connect to,
@@ -5717,7 +5758,7 @@ spec:
                               type: object
                             terminationGracePeriodSeconds:
                               description: Optional duration in seconds the pod needs
-                                to terminate gracefully upon pro
+                                to terminate gracefully upon...
                               format: int64
                               type: integer
                             timeoutSeconds:
@@ -5797,16 +5838,15 @@ spec:
                           type: object
                         restartPolicy:
                           description: RestartPolicy defines the restart behavior
-                            of individual containers in a po
+                            of individual containers in a...
                           type: string
                         securityContext:
                           description: SecurityContext defines the security options
-                            the container should be run wi
+                            the container should be run...
                           properties:
                             allowPrivilegeEscalation:
-                              description: |-
-                                AllowPrivilegeEscalation controls whether a process can gain more
-                                privilege
+                              description: AllowPrivilegeEscalation controls whether
+                                a process can gain more...
                               type: boolean
                             appArmorProfile:
                               description: appArmorProfile is the AppArmor options
@@ -5814,7 +5854,7 @@ spec:
                               properties:
                                 localhostProfile:
                                   description: localhostProfile indicates a profile
-                                    loaded on the node that should be used
+                                    loaded on the node that should be...
                                   type: string
                                 type:
                                   description: type indicates which kind of AppArmor
@@ -5896,7 +5936,7 @@ spec:
                               properties:
                                 localhostProfile:
                                   description: localhostProfile indicates a profile
-                                    defined in a file on the node should b
+                                    defined in a file on the node should...
                                   type: string
                                 type:
                                   description: type indicates which kind of seccomp
@@ -5920,7 +5960,7 @@ spec:
                                   type: string
                                 hostProcess:
                                   description: HostProcess determines if a container
-                                    should be run as a 'Host Process' con
+                                    should be run as a 'Host Process'...
                                   type: boolean
                                 runAsUserName:
                                   description: The UserName in Windows to run the
@@ -5933,11 +5973,12 @@ spec:
                             initialized.
                           properties:
                             exec:
-                              description: Exec specifies the action to take.
+                              description: Exec specifies a command to execute in
+                                the container.
                               properties:
                                 command:
                                   description: Command is the command line to execute
-                                    inside the container, the working di
+                                    inside the container, the working...
                                   items:
                                     type: string
                                   type: array
@@ -5945,12 +5986,11 @@ spec:
                               type: object
                             failureThreshold:
                               description: Minimum consecutive failures for the probe
-                                to be considered failed after ha
+                                to be considered failed after...
                               format: int32
                               type: integer
                             grpc:
-                              description: GRPC specifies an action involving a GRPC
-                                port.
+                              description: GRPC specifies a GRPC HealthCheckRequest.
                               properties:
                                 port:
                                   description: Port number of the gRPC service. Number
@@ -5959,14 +5999,15 @@ spec:
                                   type: integer
                                 service:
                                   default: ""
-                                  description: |
-                                    Service is the name of the service to place in the gRPC HealthCheckRequest
+                                  description: Service is the name of the service
+                                    to place in the gRPC HealthCheckRequest...
                                   type: string
                               required:
                               - port
                               type: object
                             httpGet:
-                              description: HTTPGet specifies the http request to perform.
+                              description: HTTPGet specifies an HTTP GET request to
+                                perform.
                               properties:
                                 host:
                                   description: Host name to connect to, defaults to
@@ -6011,7 +6052,7 @@ spec:
                               type: object
                             initialDelaySeconds:
                               description: Number of seconds after the container has
-                                started before liveness probes ar
+                                started before liveness probes...
                               format: int32
                               type: integer
                             periodSeconds:
@@ -6022,12 +6063,12 @@ spec:
                               type: integer
                             successThreshold:
                               description: Minimum consecutive successes for the probe
-                                to be considered successful aft
+                                to be considered successful...
                               format: int32
                               type: integer
                             tcpSocket:
-                              description: TCPSocket specifies an action involving
-                                a TCP port.
+                              description: TCPSocket specifies a connection to a TCP
+                                port.
                               properties:
                                 host:
                                   description: 'Optional: Host name to connect to,
@@ -6045,7 +6086,7 @@ spec:
                               type: object
                             terminationGracePeriodSeconds:
                               description: Optional duration in seconds the pod needs
-                                to terminate gracefully upon pro
+                                to terminate gracefully upon...
                               format: int64
                               type: integer
                             timeoutSeconds:
@@ -6056,16 +6097,16 @@ spec:
                               type: integer
                           type: object
                         stdin:
-                          description: 'Whether this container should allocate a buffer
-                            for stdin in the container '
+                          description: Whether this container should allocate a buffer
+                            for stdin in the container...
                           type: boolean
                         stdinOnce:
                           description: Whether the container runtime should close
-                            the stdin channel after it has b
+                            the stdin channel after it has...
                           type: boolean
                         terminationMessagePath:
                           description: 'Optional: Path at which the file to which
-                            the container''s termination messa'
+                            the container''s termination...'
                           type: string
                         terminationMessagePolicy:
                           description: Indicate how the termination message should
@@ -6073,7 +6114,7 @@ spec:
                           type: string
                         tty:
                           description: Whether this container should allocate a TTY
-                            for itself, also requires 'std
+                            for itself, also requires...
                           type: boolean
                         volumeDevices:
                           description: volumeDevices is the list of block devices
@@ -6084,7 +6125,7 @@ spec:
                             properties:
                               devicePath:
                                 description: devicePath is the path inside of the
-                                  container that the device will be mapp
+                                  container that the device will be...
                                 type: string
                               name:
                                 description: name must match the name of a persistentVolumeClaim
@@ -6113,7 +6154,7 @@ spec:
                               mountPropagation:
                                 description: |-
                                   mountPropagation determines how mounts are propagated from the host
-                                  to cont
+                                  to...
                                 type: string
                               name:
                                 description: This must match the Name of a Volume.
@@ -6123,9 +6164,8 @@ spec:
                                   otherwise (false or unspecified).
                                 type: boolean
                               recursiveReadOnly:
-                                description: |-
-                                  RecursiveReadOnly specifies whether read-only mounts should be handled
-                                  recu
+                                description: RecursiveReadOnly specifies whether read-only
+                                  mounts should be handled...
                                 type: string
                               subPath:
                                 description: Path within the volume from which the
@@ -6133,7 +6173,7 @@ spec:
                                 type: string
                               subPathExpr:
                                 description: Expanded path within the volume from
-                                  which the container's volume should be
+                                  which the container's volume should...
                                 type: string
                             required:
                             - mountPath
@@ -6163,14 +6203,13 @@ spec:
                     type: object
                   terminationGracePeriodSeconds:
                     description: TerminationGracePeriodSeconds is the time kubernetes
-                      will wait for the Gate
+                      will wait for the...
                     format: int64
                     type: integer
                   tolerations:
                     items:
-                      description: |-
-                        The pod this Toleration is attached to tolerates any taint that matches
-                        the
+                      description: The pod this Toleration is attached to tolerates
+                        any taint that matches...
                       properties:
                         effect:
                           description: Effect indicates the taint effect to match.
@@ -6184,8 +6223,8 @@ spec:
                             the value.
                           type: string
                         tolerationSeconds:
-                          description: 'TolerationSeconds represents the period of
-                            time the toleration (which must '
+                          description: TolerationSeconds represents the period of
+                            time the toleration (which must...
                           format: int64
                           type: integer
                         value:
@@ -6197,7 +6236,7 @@ spec:
                   topologySpreadConstraints:
                     items:
                       description: TopologySpreadConstraint specifies how to spread
-                        matching pods among the gi
+                        matching pods among the...
                       properties:
                         labelSelector:
                           description: LabelSelector is used to find matching pods.
@@ -6207,7 +6246,7 @@ spec:
                                 requirements.
                               items:
                                 description: A label selector requirement is a selector
-                                  that contains values, a key, and
+                                  that contains values, a key,...
                                 properties:
                                   key:
                                     description: key is the label key that the selector
@@ -6237,9 +6276,8 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         matchLabelKeys:
-                          description: |-
-                            MatchLabelKeys is a set of pod label keys to select the pods over which
-                            spr
+                          description: MatchLabelKeys is a set of pod label keys to
+                            select the pods over which...
                           items:
                             type: string
                           type: array
@@ -6256,20 +6294,18 @@ spec:
                           type: integer
                         nodeAffinityPolicy:
                           description: NodeAffinityPolicy indicates how we will treat
-                            Pod's nodeAffinity/nodeSelec
+                            Pod's...
                           type: string
                         nodeTaintsPolicy:
-                          description: |-
-                            NodeTaintsPolicy indicates how we will treat node taints when calculating
-                            p
+                          description: NodeTaintsPolicy indicates how we will treat
+                            node taints when calculating...
                           type: string
                         topologyKey:
                           description: TopologyKey is the key of node labels.
                           type: string
                         whenUnsatisfiable:
-                          description: |-
-                            WhenUnsatisfiable indicates how to deal with a pod if it doesn't satisfy
-                            th
+                          description: WhenUnsatisfiable indicates how to deal with
+                            a pod if it doesn't satisfy...
                           type: string
                       required:
                       - maxSkew
@@ -6289,7 +6325,7 @@ spec:
                             - type: integer
                             - type: string
                             description: The maximum number of pods that can be scheduled
-                              above the desired number o
+                              above the desired number...
                             x-kubernetes-int-or-string: true
                           maxUnavailable:
                             anyOf:
@@ -6309,9 +6345,8 @@ spec:
                   accept:
                     type: boolean
                   secretName:
-                    description: |-
-                      SecretName is the Kubernetes Secret that contains the Gateway license
-                      There
+                    description: SecretName is the Kubernetes Secret that contains
+                      the Gateway license...
                     type: string
                 required:
                 - accept
@@ -6319,7 +6354,7 @@ spec:
                 type: object
               version:
                 description: Version references the Gateway release that this Operator
-                  is intended to be
+                  is intended to...
                 type: string
             required:
             - app
@@ -6330,7 +6365,7 @@ spec:
             properties:
               PortalSyncStatus:
                 description: PortalSyncStatus tracks the status of which portals are
-                  synced with a gatew
+                  synced with a...
                 properties:
                   apiCount:
                     description: ApiCount is number of APIs that are related to the
@@ -6439,7 +6474,7 @@ spec:
                 type: array
               managementPod:
                 description: Management Pod is a Gateway with a special annotation
-                  is used as a selector
+                  is used as a...
                 type: string
               phase:
                 description: PodPhase is a label for the condition of a pod at the
@@ -6455,8 +6490,12 @@ spec:
               repositoryStatus:
                 items:
                   description: GatewayRepositoryStatus tracks the status of which
-                    Graphman repositories ha
+                    Graphman repositories...
                   properties:
+                    authType:
+                      description: AuthType defaults to basic, possible options are
+                        none, basic or ssh
+                      type: string
                     branch:
                       description: Branch of the Git repo
                       type: string
@@ -6475,6 +6514,11 @@ spec:
                             type: string
                         type: object
                       type: array
+                    directories:
+                      description: Directories
+                      items:
+                        type: string
+                      type: array
                     enabled:
                       description: Enabled shows whether or not this repository reference
                         is enabled
@@ -6488,9 +6532,12 @@ spec:
                     remoteName:
                       description: RemoteName
                       type: string
+                    repoType:
+                      description: RepoType - git, http, local, statestore
+                      type: string
                     secretName:
                       description: SecretName is used to mount the correct repository
-                        secret to the initContai
+                        secret to the...
                       type: string
                     stateStoreKey:
                       description: StateStoreKey
@@ -6500,13 +6547,16 @@ spec:
                       type: string
                     storageSecretName:
                       description: StorageSecretName is used to mount existing repository
-                        bundles to the initC
+                        bundles to the...
                       type: string
                     tag:
                       description: Tag is the git tag in the Git repo
                       type: string
                     type:
                       description: Type is static or dynamic
+                      type: string
+                    vendor:
+                      description: Vendor i.e. Github, Gitlab, BitBucket, Azure
                       type: string
                   required:
                   - enabled
@@ -6529,7 +6579,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: l7apis.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6550,11 +6600,11 @@ spec:
         properties:
           apiVersion:
             description: APIVersion defines the versioned schema of this representation
-              of an object
+              of an...
             type: string
           kind:
             description: Kind is a string value representing the REST resource this
-              object represent
+              object...
             type: string
           metadata:
             type: object
@@ -6563,18 +6613,18 @@ spec:
             properties:
               deploymentTags:
                 description: DeploymentTags target Gateway deployments that this API
-                  should be published
+                  should be...
                 items:
                   type: string
                 type: array
               graphmanBundle:
                 description: |-
                   GraphmanBundle associated with this API
-                  currently limited to Service and Fr
+                  currently limited to Service and...
                 type: string
               l7Portal:
                 description: L7Portal is the L7Portal that this API is associated
-                  with when Portal Publi
+                  with when Portal...
                 type: string
               portalMeta:
                 description: PortalMeta is reserved for the API Developer Portal
@@ -6631,6 +6681,28 @@ spec:
                     type: array
                   publishedTs:
                     type: integer
+                  securePasswordIdsForUndeployment:
+                    items:
+                      type: string
+                    type: array
+                  securePasswords:
+                    items:
+                      properties:
+                        description:
+                          type: string
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        value:
+                          type: string
+                      required:
+                      - description
+                      - id
+                      - name
+                      - value
+                      type: object
+                    type: array
                   serviceId:
                     type: string
                   ssgServiceType:
@@ -6657,13 +6729,22 @@ spec:
               gateways:
                 items:
                   properties:
-                    checksum:
-                      type: string
+                    conditions:
+                      items:
+                        properties:
+                          action:
+                            type: string
+                          actionTime:
+                            type: string
+                          checksum:
+                            type: string
+                          reason:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
                     deployment:
-                      description: Phase       corev1.
-                      type: string
-                    lastUpdated:
-                      description: Ready       bool            `json:"ready,omitempty"`
                       type: string
                     name:
                       type: string
@@ -6682,7 +6763,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: l7portals.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6703,11 +6784,11 @@ spec:
         properties:
           apiVersion:
             description: APIVersion defines the versioned schema of this representation
-              of an object
+              of an...
             type: string
           kind:
             description: Kind is a string value representing the REST resource this
-              object represent
+              object...
             type: string
           metadata:
             type: object
@@ -6728,7 +6809,7 @@ spec:
                 type: object
               deploymentTags:
                 description: Deployment Tags - determines which Gateway deployments
-                  these APIs will be a
+                  these APIs will be...
                 items:
                   type: string
                 type: array
@@ -6741,7 +6822,7 @@ spec:
                 type: string
               enrollmentBundle:
                 description: EnrollmentBundle - allows a custom enrollment bundle
-                  to be set in the Porta
+                  to be set in the...
                 type: string
               labels:
                 additionalProperties:
@@ -6810,7 +6891,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: l7statestores.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6821,18 +6902,22 @@ spec:
     singular: l7statestore
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: L7StateStore is the Schema for the l7statestores API
         properties:
           apiVersion:
             description: APIVersion defines the versioned schema of this representation
-              of an object
+              of an...
             type: string
           kind:
             description: Kind is a string value representing the REST resource this
-              object represent
+              object...
             type: string
           metadata:
             type: object
@@ -6873,6 +6958,15 @@ spec:
                     type: object
                   storeId:
                     type: string
+                  tls:
+                    properties:
+                      enabled:
+                        type: boolean
+                      redisCrt:
+                        type: string
+                      verifyPeer:
+                        type: boolean
+                    type: object
                   type:
                     type: string
                   username:
@@ -6887,6 +6981,8 @@ spec:
             properties:
               ready:
                 type: boolean
+            required:
+            - ready
             type: object
         type: object
     served: true
@@ -6898,7 +6994,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: repositories.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -6916,18 +7012,38 @@ spec:
     singular: repository
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    - description: checksum of content or git commit id
+      jsonPath: .status.commit
+      name: Commit
+      type: string
+    - description: repository type
+      jsonPath: .spec.type
+      name: Type
+      type: string
+    - description: Git Branch
+      jsonPath: .spec.branch
+      name: Branch
+      type: string
+    - description: checksum of content or git commit id
+      jsonPath: .spec.tag
+      name: Tag
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: Repository is the Schema for the repositories API
         properties:
           apiVersion:
             description: APIVersion defines the versioned schema of this representation
-              of an object
+              of an...
             type: string
           kind:
             description: Kind is a string value representing the REST resource this
-              object represent
+              object...
             type: string
           metadata:
             type: object
@@ -6941,7 +7057,7 @@ spec:
                 type: object
               auth:
                 description: Auth contains a reference to the credentials required
-                  to connect to your Gi
+                  to connect to your...
                 properties:
                   existingSecretName:
                     description: ExistingSecretName reference an existing secret
@@ -6978,7 +7094,7 @@ spec:
               branch:
                 description: |-
                   Branch - specify which branch to clone
-                  if branch and tag are both specified
+                  if branch and tag are both...
                 type: string
               enabled:
                 description: Enabled - if enabled this repository will be synced
@@ -6993,7 +7109,7 @@ spec:
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
-                  Kubernetes Secret
+                  Kubernetes...
                 properties:
                   secretName:
                     type: string
@@ -7002,12 +7118,13 @@ spec:
                 description: Remote Name - defaults to "origin"
                 type: string
               stateStoreKey:
-                description: "StateStoreKey where the repository is stored in the
-                  L7StateStore\nthis only "
+                description: |-
+                  StateStoreKey where the repository is stored in the L7StateStore
+                  this only...
                 type: string
               stateStoreReference:
                 description: StateStoreReference which L7StateStore connection should
-                  be used to store o
+                  be used to store...
                 type: string
               sync:
                 description: RepositorySyncConfig defines how often this repository
@@ -7030,7 +7147,7 @@ spec:
             properties:
               commit:
                 description: Commit is either current git commit that has been synced
-                  or a sha1sum of th
+                  or a sha1sum of...
                 type: string
               lastAppliedSummary:
                 type: string
@@ -7042,14 +7159,11 @@ spec:
                 type: boolean
               stateStoreSynced:
                 description: StateStoreSynced whether or not the state store has been
-                  written to correct
+                  written to...
                 type: boolean
-              stateStoreVersion:
-                description: StateStoreVersion tracks version in state store
-                type: integer
               storageSecretName:
                 description: StorageSecretName is the Kubernetes Secret that this
-                  repository is stored i
+                  repository is stored...
                 type: string
               summary:
                 type: string
@@ -7059,6 +7173,8 @@ spec:
                 type: string
               vendor:
                 type: string
+            required:
+            - stateStoreSynced
             type: object
         type: object
     served: true

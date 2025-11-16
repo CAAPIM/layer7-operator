@@ -22,10 +22,13 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package reconcile
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -119,16 +122,106 @@ func StorageSecret(ctx context.Context, params Params) error {
 		return errors.New("exceededMaxSize")
 	}
 
-	bundleGzip, err := util.CompressGraphmanBundle("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
+	projects, err := util.DetectGraphmanFolders("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
+
 	if err != nil {
 		return err
 	}
 
-	data := map[string][]byte{
-		params.Instance.Name + ".gz": bundleGzip,
+	data := map[string][]byte{}
+
+	secretSize := 0
+	for _, p := range projects {
+
+		bundleGzip, err := util.CompressGraphmanBundle(p, false)
+		if err != nil {
+			return err
+		}
+		var buf bytes.Buffer
+		zw := gzip.NewWriter(&buf)
+		_, err = zw.Write(bundleGzip)
+		if err != nil {
+			return err
+		}
+
+		if err := zw.Close(); err != nil {
+			return err
+		}
+		if buf.Len() > 900000 {
+			return errors.New("file size exceeded")
+		}
+
+		secretSize = secretSize + buf.Len()
+
+		if secretSize > 900000 {
+			return errors.New("combined file size exceeded")
+		}
+
+		keyName := strings.Replace(p, "/tmp/"+params.Instance.Name+"-"+params.Instance.Namespace+"-"+ext, "", 1)
+		keyName = strings.Replace(strings.ReplaceAll(keyName, "/", "-"), "-", "", 1) + ".gz"
+		data[keyName] = bundleGzip
+		buf.Reset()
+	}
+
+	/// get secret if it exists and remove it, if it has the old format
+	currentSecret, _ := getRepositorySecret(ctx, *params.Instance, params)
+
+	if currentSecret.Data[params.Instance.Name+".gz"] != nil {
+		currentSecret.Data[params.Instance.Name+".gz"] = nil
 	}
 
 	desiredSecret := repository.NewSecret(params.Instance, storageSecretName, data)
+
+	if err := reconcileSecret(ctx, params, desiredSecret); err != nil {
+		return fmt.Errorf("failed to reconcile secrets: %w", err)
+	}
+
+	return nil
+}
+
+// StorageSecretFromBundleMap creates a storage secret from an existing bundleMap
+// This avoids rebuilding bundles that were already built in BuildRepositoryCache
+func StorageSecretFromBundleMap(ctx context.Context, params Params, bundleMap map[string][]byte, storageSecretName string) error {
+	if params.Instance.Status.StorageSecretName == "_" {
+		return nil
+	}
+
+	if len(bundleMap) == 0 {
+		params.Log.V(2).Info("bundleMap is empty, skipping storage secret creation")
+		return nil
+	}
+
+	// Calculate total size and check limits
+	secretSize := 0
+	for _, bundleGzip := range bundleMap {
+		var buf bytes.Buffer
+		zw := gzip.NewWriter(&buf)
+		_, err := zw.Write(bundleGzip)
+		if err != nil {
+			return err
+		}
+		if err := zw.Close(); err != nil {
+			return err
+		}
+
+		if buf.Len() > 900000 {
+			return errors.New("file size exceeded")
+		}
+
+		secretSize += buf.Len()
+		if secretSize > 900000 {
+			return errors.New("combined file size exceeded")
+		}
+	}
+
+	// Get secret if it exists and remove old format data
+	currentSecret, _ := getRepositorySecret(ctx, *params.Instance, params)
+	if currentSecret.Data[params.Instance.Name+".gz"] != nil {
+		currentSecret.Data[params.Instance.Name+".gz"] = nil
+	}
+
+	// Create new secret with bundleMap data
+	desiredSecret := repository.NewSecret(params.Instance, storageSecretName, bundleMap)
 
 	if err := reconcileSecret(ctx, params, desiredSecret); err != nil {
 		return fmt.Errorf("failed to reconcile secrets: %w", err)

@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package reconcile
 
@@ -29,6 +30,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"strconv"
 	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -42,7 +44,63 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// getOpenShiftUIDRange extracts the UID/GID range from OpenShift namespace annotations
+// Returns the minimum UID and GID from the assigned range, or nil if not found/not OpenShift
+func getOpenShiftUIDRange(ctx context.Context, k8sClient client.Client, namespace string) (*int64, *int64, error) {
+	// Get the namespace
+	ns := &corev1.Namespace{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: namespace}, ns); err != nil {
+		return nil, nil, fmt.Errorf("failed to get namespace: %w", err)
+	}
+
+	// Parse OpenShift UID annotation
+	// Example format: "openshift.io/sa.scc.uid-range: 1001620000/10000"
+	uidRange := ns.Annotations["openshift.io/sa.scc.uid-range"]
+	if uidRange == "" {
+		// Not OpenShift or no range set
+		return nil, nil, nil
+	}
+
+	// Parse "1001620000/10000" format
+	parts := strings.Split(uidRange, "/")
+	if len(parts) != 2 {
+		return nil, nil, fmt.Errorf("invalid uid-range format: %s", uidRange)
+	}
+
+	minUID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse UID: %w", err)
+	}
+
+	// Use the same value for GID (OpenShift typically assigns matching ranges)
+	return &minUID, &minUID, nil
+}
+
 func Deployment(ctx context.Context, params Params) error {
+	// Auto-detect and set OpenShift UID/GID if on OpenShift platform
+	// and user hasn't explicitly set RunAsUser
+	if params.Platform == "openshift" {
+		if params.Instance.Spec.App.PodSecurityContext.RunAsUser == nil {
+			uid, gid, err := getOpenShiftUIDRange(ctx, params.Client, params.Instance.Namespace)
+			if err != nil {
+				params.Log.V(2).Info("failed to detect OpenShift UID range, using defaults",
+					"namespace", params.Instance.Namespace,
+					"error", err.Error())
+			} else if uid != nil && gid != nil {
+				params.Log.Info("auto-detected OpenShift UID/GID from namespace annotations",
+					"namespace", params.Instance.Namespace,
+					"uid", *uid,
+					"gid", *gid)
+
+				// Set the detected values on the Gateway spec for this reconciliation
+				runAsNonRoot := true
+				params.Instance.Spec.App.PodSecurityContext.RunAsUser = uid
+				params.Instance.Spec.App.PodSecurityContext.RunAsGroup = gid
+				params.Instance.Spec.App.PodSecurityContext.RunAsNonRoot = &runAsNonRoot
+			}
+		}
+	}
+
 	desiredDeployment := gateway.NewDeployment(params.Instance, params.Platform)
 	currentDeployment := &appsv1.Deployment{}
 

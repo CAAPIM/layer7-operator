@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-AI assistance has been used in the creation of this code.
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
 */
 
 package v1
@@ -47,29 +47,33 @@ var _ admission.CustomDefaulter = &Gateway{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Gateway) Default(ctx context.Context, obj runtime.Object) error {
-	//gatewaylog.Info("default", "name", r.Name)
-
-	// TODO(user): fill in your defaulting logic.
 	return nil
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-security-brcmlabs-com-v1-gateway,mutating=false,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=gateways,verbs=create;update,versions=v1,name=vgateway.kb.io,admissionReviewVersions=v1
 
 var _ admission.CustomValidator = &Gateway{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Gateway) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	return validateGateway(r)
+	gateway, ok := obj.(*Gateway)
+	if !ok {
+		return nil, fmt.Errorf("expected a Gateway, received %T", obj)
+	}
+	return validateGateway(gateway)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Gateway) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	_, ok := oldObj.(*Gateway)
 	if !ok {
-		return nil, fmt.Errorf("expected a Gateway, received %T", r)
+		return nil, fmt.Errorf("expected a Gateway for oldObj, received %T", oldObj)
 	}
-	return validateGateway(r)
+	gateway, ok := newObj.(*Gateway)
+	if !ok {
+		return nil, fmt.Errorf("expected a Gateway for newObj, received %T", newObj)
+	}
+	return validateGateway(gateway)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

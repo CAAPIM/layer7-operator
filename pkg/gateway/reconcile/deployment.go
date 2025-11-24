@@ -30,6 +30,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -76,32 +77,130 @@ func getOpenShiftUIDRange(ctx context.Context, k8sClient client.Client, namespac
 	return &minUID, &minUID, nil
 }
 
-func Deployment(ctx context.Context, params Params) error {
-	// Auto-detect and set OpenShift UID/GID if on OpenShift platform
-	// and user hasn't explicitly set RunAsUser
-	if params.Platform == "openshift" {
-		if params.Instance.Spec.App.PodSecurityContext.RunAsUser == nil {
-			uid, gid, err := getOpenShiftUIDRange(ctx, params.Client, params.Instance.Namespace)
-			if err != nil {
-				params.Log.V(2).Info("failed to detect OpenShift UID range, using defaults",
-					"namespace", params.Instance.Namespace,
-					"error", err.Error())
-			} else if uid != nil && gid != nil {
-				params.Log.Info("auto-detected OpenShift UID/GID from namespace annotations",
-					"namespace", params.Instance.Namespace,
-					"uid", *uid,
-					"gid", *gid)
-
-				// Set the detected values on the Gateway spec for this reconciliation
-				runAsNonRoot := true
-				params.Instance.Spec.App.PodSecurityContext.RunAsUser = uid
-				params.Instance.Spec.App.PodSecurityContext.RunAsGroup = gid
-				params.Instance.Spec.App.PodSecurityContext.RunAsNonRoot = &runAsNonRoot
+// applyDefaultCapabilities ensures all init containers and sidecars drop ALL capabilities by default
+// This is a security best practice unless explicitly overridden by the user
+func applyDefaultCapabilities(dep *appsv1.Deployment) {
+	// Apply to all init containers
+	for i := range dep.Spec.Template.Spec.InitContainers {
+		if dep.Spec.Template.Spec.InitContainers[i].SecurityContext == nil {
+			dep.Spec.Template.Spec.InitContainers[i].SecurityContext = &corev1.SecurityContext{}
+		}
+		if dep.Spec.Template.Spec.InitContainers[i].SecurityContext.Capabilities == nil {
+			dep.Spec.Template.Spec.InitContainers[i].SecurityContext.Capabilities = &corev1.Capabilities{
+				Drop: []corev1.Capability{"ALL"},
 			}
 		}
 	}
 
+	// Apply to main container (gateway)
+	for i := range dep.Spec.Template.Spec.Containers {
+		if dep.Spec.Template.Spec.Containers[i].SecurityContext == nil {
+			dep.Spec.Template.Spec.Containers[i].SecurityContext = &corev1.SecurityContext{}
+		}
+		if dep.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities == nil {
+			dep.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{
+				Drop: []corev1.Capability{"ALL"},
+			}
+		}
+	}
+}
+
+// applyOpenShiftSecurityDefaults applies OpenShift-specific security context defaults
+// including UID/GID auto-detection and capability dropping
+func applyOpenShiftSecurityDefaults(ctx context.Context, params Params) {
+	// If either PodSecurityContext or ContainerSecurityContext has RunAsUser set, use it for both
+	// Otherwise, auto-detect from OpenShift namespace annotations
+	if params.Instance.Spec.App.PodSecurityContext.RunAsUser == nil || params.Instance.Spec.App.ContainerSecurityContext.RunAsUser == nil {
+		var uid, gid *int64
+		var runAsNonRootPtr *bool
+
+		// Check if one is already set and use it (only UID/GID/RunAsNonRoot)
+		if params.Instance.Spec.App.PodSecurityContext.RunAsUser != nil {
+			uid = params.Instance.Spec.App.PodSecurityContext.RunAsUser
+			gid = params.Instance.Spec.App.PodSecurityContext.RunAsGroup
+			runAsNonRootPtr = params.Instance.Spec.App.PodSecurityContext.RunAsNonRoot
+		} else if params.Instance.Spec.App.ContainerSecurityContext.RunAsUser != nil {
+			// Copy only UID/GID/RunAsNonRoot from ContainerSecurityContext to PodSecurityContext
+			// Don't copy container-specific fields like Capabilities or AllowPrivilegeEscalation
+			uid = params.Instance.Spec.App.ContainerSecurityContext.RunAsUser
+			gid = params.Instance.Spec.App.ContainerSecurityContext.RunAsGroup
+			runAsNonRootPtr = params.Instance.Spec.App.ContainerSecurityContext.RunAsNonRoot
+		} else {
+			// Neither is set, auto-detect from OpenShift
+			var err error
+			uid, gid, err = getOpenShiftUIDRange(ctx, params.Client, params.Instance.Namespace)
+			if err != nil {
+				params.Log.V(2).Info("failed to detect OpenShift UID range, using defaults",
+					"namespace", params.Instance.Namespace,
+					"error", err.Error())
+				uid = nil
+			} else if uid != nil && gid != nil {
+				params.Log.V(2).Info("auto-detected OpenShift UID/GID from namespace annotations",
+					"namespace", params.Instance.Namespace,
+					"uid", *uid,
+					"gid", *gid)
+				runAsNonRoot := true
+				runAsNonRootPtr = &runAsNonRoot
+			}
+		}
+
+		// Apply the UID/GID to both contexts if we have values
+		if uid != nil {
+			// Set PodSecurityContext if RunAsUser is not set
+			if params.Instance.Spec.App.PodSecurityContext.RunAsUser == nil {
+				params.Instance.Spec.App.PodSecurityContext.RunAsUser = uid
+				params.Instance.Spec.App.PodSecurityContext.RunAsGroup = gid
+				params.Instance.Spec.App.PodSecurityContext.RunAsNonRoot = runAsNonRootPtr
+			}
+
+			// Set ContainerSecurityContext if RunAsUser is not set
+			if params.Instance.Spec.App.ContainerSecurityContext.RunAsUser == nil {
+				params.Instance.Spec.App.ContainerSecurityContext.RunAsUser = uid
+				params.Instance.Spec.App.ContainerSecurityContext.RunAsGroup = gid
+				params.Instance.Spec.App.ContainerSecurityContext.RunAsNonRoot = runAsNonRootPtr
+			}
+
+			// Set security context for init containers if not already set
+			for i := range params.Instance.Spec.App.InitContainers {
+				if params.Instance.Spec.App.InitContainers[i].SecurityContext == nil {
+					params.Instance.Spec.App.InitContainers[i].SecurityContext = &corev1.SecurityContext{
+						RunAsUser:    uid,
+						RunAsGroup:   gid,
+						RunAsNonRoot: runAsNonRootPtr,
+					}
+				}
+			}
+
+			// Set security context for sidecar containers if not already set
+			for i := range params.Instance.Spec.App.Sidecars {
+				if params.Instance.Spec.App.Sidecars[i].SecurityContext == nil {
+					params.Instance.Spec.App.Sidecars[i].SecurityContext = &corev1.SecurityContext{
+						RunAsUser:    uid,
+						RunAsGroup:   gid,
+						RunAsNonRoot: runAsNonRootPtr,
+					}
+				}
+			}
+		}
+	}
+
+	// Drop all capabilities by default if not explicitly set
+	if params.Instance.Spec.App.ContainerSecurityContext.Capabilities == nil {
+		params.Instance.Spec.App.ContainerSecurityContext.Capabilities = &corev1.Capabilities{
+			Drop: []corev1.Capability{"ALL"},
+		}
+	}
+}
+
+func Deployment(ctx context.Context, params Params) error {
+	// Auto-detect and set OpenShift UID/GID if on OpenShift platform
+	// and user hasn't explicitly set RunAsUser
+	if params.Platform == "openshift" {
+		applyOpenShiftSecurityDefaults(ctx, params)
+	}
+
 	desiredDeployment := gateway.NewDeployment(params.Instance, params.Platform)
+
 	currentDeployment := &appsv1.Deployment{}
 
 	if err := controllerutil.SetControllerReference(params.Instance, desiredDeployment, params.Scheme); err != nil {
@@ -111,13 +210,16 @@ func Deployment(ctx context.Context, params Params) error {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, currentDeployment)
 
 	if err != nil && k8serrors.IsNotFound(err) {
-
 		desiredDeployment, err = setLabels(ctx, params, desiredDeployment)
 		if err != nil {
 			return err
 		}
-
 		desiredDeployment, err = setStateStoreConfig(ctx, params, desiredDeployment)
+		if err != nil {
+			return err
+		}
+
+		desiredDeployment, err = setGmanInitContainerVolumeMounts(ctx, params, desiredDeployment)
 		if err != nil {
 			return err
 		}
@@ -125,7 +227,6 @@ func Deployment(ctx context.Context, params Params) error {
 		if err = params.Client.Create(ctx, desiredDeployment); err != nil {
 			return fmt.Errorf("failed creating deployment: %w", err)
 		}
-
 		params.Log.Info("created deployment", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		return nil
 	}
@@ -144,6 +245,10 @@ func Deployment(ctx context.Context, params Params) error {
 	updatedDeployment.ObjectMeta.OwnerReferences = desiredDeployment.ObjectMeta.OwnerReferences
 
 	desiredDeployment, err = setLabels(ctx, params, desiredDeployment)
+	if err != nil {
+		return err
+	}
+	desiredDeployment, err = setGmanInitContainerVolumeMounts(ctx, params, desiredDeployment)
 	if err != nil {
 		return err
 	}
@@ -318,5 +423,199 @@ func setStateStoreConfig(ctx context.Context, params Params, dep *appsv1.Deploym
 			}
 		}
 	}
+	return dep, nil
+}
+
+func setGmanInitContainerVolumeMounts(ctx context.Context, params Params, dep *appsv1.Deployment) (*appsv1.Deployment, error) {
+
+	var (
+		gw                            = params.Instance
+		defaultMode                   = int32(444)
+		optional                      = false
+		gmanInitContainerVolumeMounts = []corev1.VolumeMount{}
+		repoRefStatuses               = []string{}
+	)
+
+	for _, repoRef := range gw.Status.RepositoryStatus {
+		if repoRef.Type == "static" || (gw.Spec.App.RepositoryReferenceBootstrap.Enabled && !gw.Spec.App.Management.Database.Enabled) {
+			repoRefStatuses = append(repoRefStatuses, repoRef.Name)
+			// if the repository compressed is less than 1mb in size it will be
+			// available as an existing Kubernetes secret which reduces reliance on an external Git repository for Gateway boot.
+			// these secrets are managed by the Repository controller.
+			// if the storageSecret is available we don't need to mount the secrets.
+			if repoRef.StorageSecretName != "" && repoRef.StorageSecretName != "_" {
+				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+					Name:      repoRef.StorageSecretName,
+					MountPath: "/graphman/localref/" + repoRef.StorageSecretName,
+				})
+
+				existingVolume := false
+				for _, v := range dep.Spec.Template.Spec.Volumes {
+					if v.Name == repoRef.StorageSecretName {
+						existingVolume = true
+					}
+				}
+
+				if !existingVolume {
+					dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
+						Name: repoRef.StorageSecretName,
+						VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+							SecretName:  repoRef.StorageSecretName,
+							DefaultMode: &defaultMode,
+							Optional:    &optional,
+						}},
+					})
+				}
+			} else {
+				if repoRef.SecretName != "" {
+					gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+						Name:      repoRef.SecretName,
+						MountPath: "/graphman/secrets/" + repoRef.Name,
+					})
+
+					existingVolume := false
+					for _, v := range dep.Spec.Template.Spec.Volumes {
+						if v.Name == repoRef.SecretName {
+							existingVolume = true
+						}
+					}
+					if !existingVolume {
+						dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
+							Name: repoRef.SecretName,
+							VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+								SecretName:  repoRef.SecretName,
+								DefaultMode: &defaultMode,
+								Optional:    &optional,
+							}},
+						})
+					}
+				}
+			}
+		}
+	}
+
+	// look at repoRefs in spec. If in spec but not in status then add or replace volumes
+	for _, repoRefSpec := range gw.Spec.App.RepositoryReferences {
+		found := false
+		for _, repoRefStatus := range repoRefStatuses {
+			if repoRefStatus == repoRefSpec.Name {
+				found = true
+
+			}
+		}
+		if !found {
+			repo := securityv1.Repository{}
+			err := params.Client.Get(ctx, types.NamespacedName{Name: repoRefSpec.Name, Namespace: params.Instance.Namespace}, &repo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to retrieve repository: %s", repoRefSpec.Name)
+			}
+
+			if repoRefSpec.Type == "static" || (gw.Spec.App.RepositoryReferenceBootstrap.Enabled && !gw.Spec.App.Management.Database.Enabled) {
+				repoRefStatuses = append(repoRefStatuses, repoRefSpec.Name)
+				// if the repository compressed is less than 1mb in size it will be
+				// available as an existing Kubernetes secret which reduces reliance on an external Git repository for Gateway boot.
+				// these secrets are managed by the Repository controller.
+				// if the storageSecret is available we don't need to mount the secrets.
+				if repo.Status.StorageSecretName != "_" {
+					gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+						Name:      repo.Status.StorageSecretName,
+						MountPath: "/graphman/localref/" + repo.Status.StorageSecretName,
+					})
+
+					existingVolume := false
+					for _, v := range dep.Spec.Template.Spec.Volumes {
+						if v.Name == repo.Status.StorageSecretName {
+							existingVolume = true
+						}
+					}
+
+					if !existingVolume {
+						dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
+							Name: repo.Status.StorageSecretName,
+							VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+								SecretName:  repo.Status.StorageSecretName,
+								DefaultMode: &defaultMode,
+								Optional:    &optional,
+							}},
+						})
+					}
+				} else {
+
+					secretName := repo.Name
+					if repo.Spec.Auth.ExistingSecretName != "" {
+						secretName = repo.Spec.Auth.ExistingSecretName
+					}
+
+					if repo.Spec.Auth == (securityv1.RepositoryAuth{}) {
+						secretName = ""
+					}
+
+					if secretName != "" {
+						gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+							Name:      secretName,
+							MountPath: "/graphman/secrets/" + repoRefSpec.Name,
+						})
+
+						existingVolume := false
+						for _, v := range dep.Spec.Template.Spec.Volumes {
+							if v.Name == secretName {
+								existingVolume = true
+							}
+						}
+						if !existingVolume {
+							dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
+								Name: secretName,
+								VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+									SecretName:  secretName,
+									DefaultMode: &defaultMode,
+									Optional:    &optional,
+								}},
+							})
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for index, ic := range dep.Spec.Template.Spec.InitContainers {
+		if ic.Name == "graphman-static-init" {
+
+			for _, nvm := range gmanInitContainerVolumeMounts {
+				found := false
+				for _, vm := range dep.Spec.Template.Spec.InitContainers[index].VolumeMounts {
+					if nvm.Name == vm.Name {
+						found = true
+					}
+				}
+				if !found {
+					dep.Spec.Template.Spec.InitContainers[index].VolumeMounts = append(dep.Spec.Template.Spec.InitContainers[index].VolumeMounts, nvm)
+				}
+			}
+
+			// Sort volume mounts to ensure consistent ordering
+			sort.Slice(dep.Spec.Template.Spec.InitContainers[index].VolumeMounts, func(i, j int) bool {
+				return dep.Spec.Template.Spec.InitContainers[index].VolumeMounts[i].Name <
+					dep.Spec.Template.Spec.InitContainers[index].VolumeMounts[j].Name
+			})
+		}
+	}
+
+	// Sort volumes to ensure consistent ordering across reconciliations
+	sort.Slice(dep.Spec.Template.Spec.Volumes, func(i, j int) bool {
+		return dep.Spec.Template.Spec.Volumes[i].Name < dep.Spec.Template.Spec.Volumes[j].Name
+	})
+
+	// Also sort volume mounts on the main gateway container
+	for i, container := range dep.Spec.Template.Spec.Containers {
+		if container.Name == "gateway" {
+			sort.Slice(dep.Spec.Template.Spec.Containers[i].VolumeMounts, func(j, k int) bool {
+				return dep.Spec.Template.Spec.Containers[i].VolumeMounts[j].Name <
+					dep.Spec.Template.Spec.Containers[i].VolumeMounts[k].Name
+			})
+			break
+		}
+	}
+
 	return dep, nil
 }

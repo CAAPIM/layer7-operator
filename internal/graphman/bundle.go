@@ -424,33 +424,6 @@ func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
 	return bundleBytes, nil
 }
 
-func AddMappings(src []byte, dest []byte) ([]byte, error) {
-	srcBundle := Bundle{}
-	destBundle := Bundle{}
-
-	if len(src) == 0 {
-		return dest, nil
-	}
-
-	err := json.Unmarshal(dest, &destBundle)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(src, &srcBundle)
-	if err != nil {
-		return nil, err
-	}
-
-	destBundle.Properties = srcBundle.Properties
-
-	bundleBytes, err := json.Marshal(destBundle)
-	if err != nil {
-		return nil, err
-	}
-	return bundleBytes, nil
-}
-
 func matchOptionsLevelFormat(value string) string {
 	re := regexp.MustCompile(`^{{(.*)}}`)
 	match := re.FindStringSubmatch(value)

@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-AI assistance has been used in the creation of this code.
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
 */
 
 package v1
@@ -42,7 +42,6 @@ var _ admission.CustomDefaulter = &Repository{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Repository) Default(ctx context.Context, obj runtime.Object) error {
-	//repositorylog.Info("default", "name", r.Name)
 	return nil
 }
 
@@ -52,16 +51,24 @@ var _ admission.CustomValidator = &Repository{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Repository) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	return validateRepository(r)
+	repository, ok := obj.(*Repository)
+	if !ok {
+		return nil, fmt.Errorf("expected a Repository, received %T", obj)
+	}
+	return validateRepository(repository)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Repository) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	_, ok := oldObj.(*Repository)
 	if !ok {
-		return nil, fmt.Errorf("expected a Repository, received %T", oldObj)
+		return nil, fmt.Errorf("expected a Repository for oldObj, received %T", oldObj)
 	}
-	return validateRepository(r)
+	repository, ok := newObj.(*Repository)
+	if !ok {
+		return nil, fmt.Errorf("expected a Repository for newObj, received %T", newObj)
+	}
+	return validateRepository(repository)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -92,9 +99,9 @@ func validateRepository(r *Repository) (admission.Warnings, error) {
 
 		switch strings.ToLower(string(r.Spec.Type)) {
 		case "git":
-			if !strings.HasPrefix(r.Spec.Endpoint, "https://") && !strings.HasPrefix(r.Spec.Endpoint, "ssh://") {
-				return warnings, fmt.Errorf("repository endpoint must start with https:// or ssh://. name: %s ", r.Name)
-			}
+			// if !strings.HasPrefix(r.Spec.Endpoint, "https://") && !strings.HasPrefix(r.Spec.Endpoint, "ssh://") {
+			// 	return warnings, fmt.Errorf("repository endpoint must start with https:// or ssh://. name: %s ", r.Name)
+			// }
 			if r.Spec.Auth != (RepositoryAuth{}) {
 				if r.Spec.Auth.Type != RepositoryAuthTypeNone && r.Spec.Auth.Type != RepositoryAuthTypeBasic && r.Spec.Auth.Type != RepositoryAuthTypeSSH {
 					return warnings, fmt.Errorf("please set a valid auth type, valid options for Git are none, basic and ssh. name: %s ", r.Name)

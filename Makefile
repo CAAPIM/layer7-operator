@@ -65,7 +65,7 @@ ENVTEST_K8S_VERSION = 1.30.0
 
 START_KIND_CLUSTER ?= true
 
-KUBE_VERSION ?= 1.30
+KUBE_VERSION ?= 1.34
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
 GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.3
@@ -218,7 +218,7 @@ build: manifests generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/main.go --zap-log-level=10
+	go run ./cmd/main.go --zap-log-level=5
 
 .PHONY: docker-build
 docker-build: dockerfile #test ## Build docker image with the manager.
@@ -328,7 +328,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.20
+	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.22.4
 
 .PHONY: operator-sdk
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk

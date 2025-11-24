@@ -101,8 +101,6 @@ func GatewayStatus(ctx context.Context, params Params) error {
 			}
 		}
 
-		// Only add new repository to status if it's enabled
-		// Disabled repositories should not be added until they are enabled and applied
 		if !found && repoRef.Enabled {
 			rs, err := buildRepoStatus(ctx, params, *repository, repoRef)
 			if err != nil {

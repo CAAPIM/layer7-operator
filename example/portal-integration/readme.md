@@ -252,7 +252,7 @@ kubectl get l7statestores
 ```
 
 ### Create a Gateway
-The [Gateway Custom Resource](../gateway/portal-gateway.yaml) is configured to use Redis and Gateway version 11.1.2
+The [Gateway Custom Resource](../gateway/portal-gateway.yaml) is configured to use Redis and Gateway version 11.1.3
 
 Make sure that you've accepted the license in [portal-gateway.yaml](../gateway/portal-gateway.yaml) and placed a gateway v11 license in [example/base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 ```
@@ -669,7 +669,7 @@ Repository Status:
     State Store Reference:  portal-state-store
     Storage Secret Name:    _
     Type:                   dynamic
-  Version:                  11.1.2
+  Version:                  11.1.3
 Events:                     <none>
 ```
 #### View the L7Api

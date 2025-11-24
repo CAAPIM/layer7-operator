@@ -21,7 +21,7 @@ spec:
             name: ssg-sa-test
         - secretRef:
             name: ssg-sa-test
-        image: docker.io/caapim/gateway:11.1.2
+        image: docker.io/caapim/gateway:11.1.3
         imagePullPolicy: IfNotPresent
         lifecycle: {}
         name: gateway
@@ -48,11 +48,11 @@ spec:
           subPath: update-service-account-token.xml
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-sa-test-listen-port-bundle
           name: ssg-sa-test-listen-port-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
+          name: ssg-sa-test-repository-bundle-dest
         - mountPath: /graphman/config.json
           name: ssg-sa-test-repository-init-config
           subPath: config.json
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
-          name: ssg-sa-test-repository-bundle-dest
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -90,10 +90,10 @@ spec:
           name: ssg-sa-test-listen-port-bundle
           optional: false
         name: ssg-sa-test-listen-port-bundle
+      - emptyDir: {}
+        name: ssg-sa-test-repository-bundle-dest
       - configMap:
           defaultMode: 493
           name: ssg-sa-test-repository-init-config
           optional: false
         name: ssg-sa-test-repository-init-config
-      - emptyDir: {}
-        name: ssg-sa-test-repository-bundle-dest

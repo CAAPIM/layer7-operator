@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"testing"
@@ -296,32 +297,36 @@ func TestCustomListenPortBundle(t *testing.T) {
 
 }
 
-func TestRepositoryConfigWithAuth(t *testing.T) {
+func TestRepositoryConfigWithLocalReference(t *testing.T) {
 	gateway := securityv1.Gateway{
 		ObjectMeta: v1.ObjectMeta{
 			Name: "test",
 		},
 		Status: securityv1.GatewayStatus{
 			RepositoryStatus: []securityv1.GatewayRepositoryStatus{{
-				Enabled:    true,
-				Name:       "testrepo",
-				Commit:     "1234",
-				Type:       "static",
-				SecretName: "testSecret",
-				Branch:     "testBranch",
-				Endpoint:   "github.com",
+				Enabled:           true,
+				Name:              "testrepo",
+				Commit:            "1234",
+				Type:              "static",
+				StorageSecretName: "testrepoSecret",
+				Branch:            "testBranch",
+				Endpoint:          "github.com",
 			}},
 		},
 	}
 
 	configMap := NewConfigMap(&gateway, gateway.Name+"-repository-init-config")
-	repositoryConfig := configMap.Data["config.json"]
-	if !strings.Contains(repositoryConfig, "/graphman/secrets/testrepo") {
-		t.Errorf("repositoryConfig %s should contain auth %s", repositoryConfig, "/graphman/secrets/testrepo")
+	initContainerStaticConfig := InitContainerStaticConfig{}
+	if err := json.Unmarshal([]byte(configMap.Data["config.json"]), &initContainerStaticConfig); err != nil {
+		t.Errorf("failed to unmarshal repository config")
+	}
+
+	if initContainerStaticConfig.Repositories[0].LocalReference != "/graphman/localref/testrepoSecret" {
+		t.Errorf("repository config localReference %v should be %s", initContainerStaticConfig.Repositories[0].LocalReference, "/graphman/localref/testSecret")
 	}
 }
 
-func TestRepositoryConfigWithLocalRef(t *testing.T) {
+func TestRepositoryConfigWithAuthentication(t *testing.T) {
 	gateway := securityv1.Gateway{
 		ObjectMeta: v1.ObjectMeta{
 			Name: "test",
@@ -331,14 +336,23 @@ func TestRepositoryConfigWithLocalRef(t *testing.T) {
 				Enabled:           true,
 				Name:              "testrepo",
 				Type:              "static",
-				StorageSecretName: "testStorageSecret",
+				Branch:            "testBranch",
+				Commit:            "1234",
+				Endpoint:          "github.com",
+				StorageSecretName: "_",
+				AuthType:          string(securityv1.RepositoryAuthTypeBasic),
 			}},
 		},
 	}
 
 	configMap := NewConfigMap(&gateway, gateway.Name+"-repository-init-config")
-	repositoryConfig := configMap.Data["config.json"]
-	if !strings.Contains(repositoryConfig, "/graphman/localref/testStorageSecret/testrepo.gz") {
-		t.Errorf("repositoryConfig %s should contain auth %s", repositoryConfig, "/graphman/secrets/testrepo")
+
+	initContainerStaticConfig := InitContainerStaticConfig{}
+	if err := json.Unmarshal([]byte(configMap.Data["config.json"]), &initContainerStaticConfig); err != nil {
+		t.Errorf("failed to unmarshal repository config")
+	}
+
+	if initContainerStaticConfig.Repositories[0].AuthType != string(securityv1.RepositoryAuthTypeBasic) {
+		t.Errorf("repository config authType %s should be %s", initContainerStaticConfig.Repositories[0].AuthType, "basic")
 	}
 }

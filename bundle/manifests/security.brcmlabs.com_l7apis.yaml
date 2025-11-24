@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.19.0
   creationTimestamp: null
   name: l7apis.security.brcmlabs.com
 spec:
@@ -25,11 +25,11 @@ spec:
         properties:
           apiVersion:
             description: APIVersion defines the versioned schema of this representation
-              of an object
+              of an...
             type: string
           kind:
             description: Kind is a string value representing the REST resource this
-              object represent
+              object...
             type: string
           metadata:
             type: object
@@ -38,18 +38,18 @@ spec:
             properties:
               deploymentTags:
                 description: DeploymentTags target Gateway deployments that this API
-                  should be published
+                  should be...
                 items:
                   type: string
                 type: array
               graphmanBundle:
                 description: |-
                   GraphmanBundle associated with this API
-                  currently limited to Service and Fr
+                  currently limited to Service and...
                 type: string
               l7Portal:
                 description: L7Portal is the L7Portal that this API is associated
-                  with when Portal Publi
+                  with when Portal...
                 type: string
               portalMeta:
                 description: PortalMeta is reserved for the API Developer Portal
@@ -106,6 +106,28 @@ spec:
                     type: array
                   publishedTs:
                     type: integer
+                  securePasswordIdsForUndeployment:
+                    items:
+                      type: string
+                    type: array
+                  securePasswords:
+                    items:
+                      properties:
+                        description:
+                          type: string
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        value:
+                          type: string
+                      required:
+                      - description
+                      - id
+                      - name
+                      - value
+                      type: object
+                    type: array
                   serviceId:
                     type: string
                   ssgServiceType:
@@ -132,13 +154,22 @@ spec:
               gateways:
                 items:
                   properties:
-                    checksum:
-                      type: string
+                    conditions:
+                      items:
+                        properties:
+                          action:
+                            type: string
+                          actionTime:
+                            type: string
+                          checksum:
+                            type: string
+                          reason:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
                     deployment:
-                      description: Phase       corev1.
-                      type: string
-                    lastUpdated:
-                      description: Ready       bool            `json:"ready,omitempty"`
                       type: string
                     name:
                       type: string

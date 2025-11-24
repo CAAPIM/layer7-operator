@@ -158,7 +158,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 	switch gwUpdReq.bundleType {
 	case BundleTypeRepository:
 
-		// Skip if repository is disabled, UNLESS we're trying to delete it
 		if !gwUpdReq.delete {
 			if (gwUpdReq.repository.Spec.StateStoreReference == "" && !gwUpdReq.repositoryReference.Enabled) || !gwUpdReq.repository.Spec.Enabled {
 				return nil, nil
@@ -168,7 +167,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		gwUpdReq.patchAnnotation = "security.brcmlabs.com/" + gwUpdReq.repositoryReference.Name + "-" + string(gwUpdReq.repositoryReference.Type)
 		graphmanEncryptionPassphrase := gwUpdReq.repositoryReference.Encryption.Passphrase
 		/// if no pods are ready return nil
-
 		if gwUpdReq.ephemeral {
 			updCntr := 0
 			ready := false
@@ -184,7 +182,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			}
 
 			// If all pods already updated, skip
-
 			directoryChange := false
 			for _, repoStatus := range gwUpdReq.gateway.Status.RepositoryStatus {
 				if gwUpdReq.repositoryReference.Name == repoStatus.Name {
@@ -779,20 +776,11 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 	tmpPath := "/tmp/bundles/" + repository.Name
 	fileName := calculateBundleFileName(repoRef.Directories, repository.Status.Commit)
 
-	// If deleting, check if repository is in status - if not, it was already deleted
-	if delete {
-		found := false
-		for _, repoStatus := range gateway.Status.RepositoryStatus {
-			if repoStatus.Name == repoRef.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			params.Log.V(2).Info("repository not in status, skipping delete", "repository", repoRef.Name)
-			// Return empty bundle - repository already deleted, nothing to do
-			return []byte("{}"), nil
-		}
+	// If deleting, first check if RepositoryReferenceDelete is enabled
+	// This takes precedence - if not enabled, don't delete even if repository is in status
+	if delete && !gateway.Spec.App.RepositoryReferenceDelete.Enabled {
+		params.Log.V(2).Info("repository delete skipped - RepositoryReferenceDelete.Enabled is false", "repository", repoRef.Name)
+		return []byte("{}"), nil
 	}
 
 	// Ensure temp directory exists
@@ -878,18 +866,21 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 		return bundleBytes, nil
 	}
 
-	// If directories changed, calculate delta against previous bundle
-	if directoryChanged && len(previousDirectories) > 0 {
-		bundleBytes, err = calculateDirectoryChangeDelta(repository, previousDirectories, bundleBytes, params)
-		if err != nil {
-			return nil, fmt.Errorf("failed to calculate directory change delta: %w", err)
-		}
-	}
-
-	// Clean up old bundles and cache the new one
+	// Cache the full new bundle for future comparisons
 	cleanupOldBundles(tmpPath)
 	if err := os.WriteFile(tmpPath+"/"+fileName, bundleBytes, 0755); err != nil {
 		return nil, fmt.Errorf("failed to write bundle cache: %w", err)
+	}
+
+	// If directories changed, calculate delta against previous bundle
+	// Do this AFTER caching the full bundle
+	if directoryChanged && len(previousDirectories) > 0 {
+		deltaBytes, err := calculateDirectoryChangeDelta(repository, previousDirectories, bundleBytes, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate directory change delta: %w", err)
+		}
+		// Return the delta for application, but the full bundle is already cached
+		return deltaBytes, nil
 	}
 
 	return bundleBytes, nil
@@ -907,11 +898,32 @@ func calculateDirectoryChangeDelta(repository *securityv1.Repository, previousDi
 	tmpPath := "/tmp/bundles/" + repository.Name
 	previousFileName := calculateBundleFileName(normalizedPrevDirs, repository.Status.Commit)
 
-	// Read the previous bundle from cache
+	// Try to read the previous bundle from cache
 	previousBundleBytes, err := os.ReadFile(tmpPath + "/" + previousFileName)
 	if err != nil {
-		params.Log.Info("failed to read previous bundle from cache, skipping delta calculation", "error", err)
-		return newBundleBytes, nil
+		// Previous bundle not in /tmp/bundles/, rebuild it from the repository cache
+		params.Log.Info("previous bundle not found in cache, rebuilding from repository cache",
+			"repository", repository.Name,
+			"previousDirs", normalizedPrevDirs)
+
+		// Determine cache path
+		var cachePath string
+		if repository.Spec.StateStoreReference != "" {
+			cachePath = "/tmp/statestore/" + repository.Name
+		} else {
+			cachePath = "/tmp/repo-cache/" + repository.Name
+		}
+
+		// Create a temp repoRef with previous directories
+		tempRepoRef := &securityv1.RepositoryReference{
+			Directories: normalizedPrevDirs,
+		}
+
+		previousBundleBytes, err = buildBundleFromCache(repository, tempRepoRef, cachePath)
+		if err != nil {
+			params.Log.Info("failed to rebuild previous bundle from cache, skipping delta calculation", "error", err)
+			return newBundleBytes, nil
+		}
 	}
 
 	// Parse bundles
@@ -988,6 +1000,7 @@ func buildBundleFromCache(repository *securityv1.Repository, repoRef *securityv1
 }
 
 // buildBundleFromDirectories combines bundles from specific directories
+// Processes directories in order, with later directories overwriting earlier ones
 func buildBundleFromDirectories(directories []string, bundleMap map[string][]byte) ([]byte, error) {
 	srcBundle := graphman.Bundle{}
 	bundleBytes, err := json.Marshal(srcBundle)
@@ -995,20 +1008,22 @@ func buildBundleFromDirectories(directories []string, bundleMap map[string][]byt
 		return nil, err
 	}
 
+	// Process directories in the order specified
 	for _, d := range directories {
 		normalizedDir := strings.TrimPrefix(strings.ReplaceAll(d, "/", "-"), "-")
 
-		for k, bundleGz := range bundleMap {
-			if normalizedDir == strings.Split(k, ".")[0] {
-				decompressedBytes, err := util.GzipDecompress(bundleGz)
-				if err != nil {
-					return nil, fmt.Errorf("failed to decompress bundle %s: %w", k, err)
-				}
+		// Look for matching bundle in the map
+		bundleKey := normalizedDir + ".gz"
+		if bundleGz, exists := bundleMap[bundleKey]; exists {
+			decompressedBytes, err := util.GzipDecompress(bundleGz)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decompress bundle %s: %w", bundleKey, err)
+			}
 
-				bundleBytes, err = graphman.ConcatBundle(decompressedBytes, bundleBytes)
-				if err != nil {
-					return nil, fmt.Errorf("failed to concat bundle %s: %w", k, err)
-				}
+			// Concatenate: new bundle overwrites accumulated bundle
+			bundleBytes, err = graphman.ConcatBundle(decompressedBytes, bundleBytes)
+			if err != nil {
+				return nil, fmt.Errorf("failed to concat bundle %s: %w", bundleKey, err)
 			}
 		}
 	}
@@ -1146,10 +1161,40 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 		ready = true
 	}
 
-	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", gwUpdReq.patchAnnotation, gwUpdReq.checksum)
+	// Build patch with annotations
+	annotations := make(map[string]string)
+
 	if gwUpdReq.delete {
-		patch = fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", gwUpdReq.patchAnnotation, "deleted")
+		annotations[gwUpdReq.patchAnnotation] = "deleted"
+
+		// If ReconcileReferences is enabled, also clear other repository annotations to force reapply
+		if gwUpdReq.gateway.Spec.App.RepositoryReferenceDelete.ReconcileReferences {
+			for _, repoRef := range gwUpdReq.gateway.Spec.App.RepositoryReferences {
+				if repoRef.Name == gwUpdReq.repositoryReference.Name {
+					continue
+				}
+				// Skip static type repositories - there are no singleton configs with database backed gateways
+				if repoRef.Type == securityv1.RepositoryReferenceTypeStatic {
+					continue
+				}
+				annotationKey := "security.brcmlabs.com/" + repoRef.Name + "-" + string(repoRef.Type)
+				annotations[annotationKey] = ""
+			}
+		}
+	} else {
+		annotations[gwUpdReq.patchAnnotation] = gwUpdReq.checksum
 	}
+
+	patchData := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"annotations": annotations,
+		},
+	}
+	patchBytes, err := json.Marshal(patchData)
+	if err != nil {
+		return err
+	}
+	patch := string(patchBytes)
 
 	if ready && update {
 		requestCacheEntry := gwUpdReq.deployment.Name + "-" + gwUpdReq.cacheEntry
@@ -1165,14 +1210,29 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 
 		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 		start := time.Now()
-		params.Log.V(5).Info("applying latest "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+
+		logAction := "applying latest"
+		if gwUpdReq.delete {
+			logAction = "removing"
+		}
+
+		params.Log.V(5).Info(logAction+" "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
 		err = util.ApplyToGraphmanTarget(gwUpdReq.bundle, true, gwUpdReq.username, gwUpdReq.password, endpoint, gwUpdReq.graphmanEncryptionPassphrase, gwUpdReq.delete)
 		if err != nil {
-			params.Log.Info("failed to apply "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+			failedAction := "failed to apply"
+			if gwUpdReq.delete {
+				failedAction = "failed to remove"
+			}
+			params.Log.Info(failedAction+" "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
 			_ = captureGraphmanMetrics(ctx, params, start, gwUpdReq.deployment.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, gwUpdReq.checksum, true)
 			return err
 		}
-		params.Log.Info("applied latest "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "hash", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+
+		successAction := "applied latest"
+		if gwUpdReq.delete {
+			successAction = "removed"
+		}
+		params.Log.Info(successAction+" "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "hash", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
 		_ = captureGraphmanMetrics(ctx, params, start, gwUpdReq.deployment.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, gwUpdReq.checksum, false)
 
 		err = updateEntityStatus(ctx, string(gwUpdReq.bundleType), gwUpdReq.bundleName, gwUpdReq.bundle, params)
@@ -1219,6 +1279,11 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 		}
 
 		currentChecksum := pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
+
+		// For repositories with SingletonExtraction, adjust checksum for leader before comparison
+		if gwUpdReq.bundleType == BundleTypeRepository && gwUpdReq.gateway.Spec.App.SingletonExtraction && pod.ObjectMeta.Labels["management-access"] == "leader" {
+			checksum = gwUpdReq.checksum + "-leader"
+		}
 
 		// Skip this pod if it already has the correct checksum and no directory change
 		if currentChecksum == checksum && !gwUpdReq.delete {
@@ -1270,7 +1335,13 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				singleton = true
 			}
 
+			// Handle static repositories - only apply to leader pod
 			if gwUpdReq.repositoryReference.Type == securityv1.RepositoryReferenceTypeStatic {
+				if pod.ObjectMeta.Labels["management-access"] != "leader" {
+					continue // Skip non-leader pods for static repos
+				}
+
+				// Extract singleton entities for static repos
 				bundle := graphman.Bundle{}
 				singletonBundle := graphman.Bundle{}
 				err = json.Unmarshal(gwUpdReq.bundle, &bundle)
@@ -1288,16 +1359,14 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 						singletonBundle.JmsDestinations = append(singletonBundle.JmsDestinations, jmsDestination)
 					}
 				}
+
 				if len(singletonBundle.ScheduledTasks) > 0 || len(singletonBundle.JmsDestinations) > 0 {
 					gwUpdReq.bundle, err = json.Marshal(singletonBundle)
 					if err != nil {
 						return err
 					}
 				} else {
-					continue
-				}
-				if pod.ObjectMeta.Labels["management-access"] != "leader" {
-					continue
+					continue // No singleton entities to apply for static repo
 				}
 			}
 		}
@@ -1358,14 +1427,29 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 			if tryRequest {
 				syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 				start := time.Now()
-				params.Log.V(5).Info("applying latest "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+
+				logAction := "applying latest"
+				if gwUpdReq.delete {
+					logAction = "removing"
+				}
+
+				params.Log.V(5).Info(logAction+" "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
 				err = util.ApplyToGraphmanTarget(gwUpdReq.bundle, singleton, gwUpdReq.username, gwUpdReq.password, endpoint, gwUpdReq.graphmanEncryptionPassphrase, gwUpdReq.delete)
 				if err != nil {
-					params.Log.Info("failed to apply "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+					failedAction := "failed to apply"
+					if gwUpdReq.delete {
+						failedAction = "failed to remove"
+					}
+					params.Log.Info(failedAction+" "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, true)
 					return err
 				}
-				params.Log.Info("applied latest "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "hash", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
+
+				successAction := "applied latest"
+				if gwUpdReq.delete {
+					successAction = "removed"
+				}
+				params.Log.Info(successAction+" "+string(gwUpdReq.bundleType)+" "+gwUpdReq.bundleName, "hash", checksum, "pod", pod.Name, "name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)
 				_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, false)
 
 				if err := params.Client.Patch(ctx, &gwUpdReq.podList.Items[i],
@@ -1375,7 +1459,10 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				}
 			}
 		} else {
-			if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) || (!ready && gwUpdReq.bundleType == BundleTypeListenPort) || (!ready && gwUpdReq.bundleType == BundleTypeRepository && gwUpdReq.gateway.Spec.App.RepositoryReferenceBootstrap.Enabled) {
+			// Patch annotation for non-ready pods
+			if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) ||
+				(!ready && gwUpdReq.bundleType == BundleTypeListenPort) ||
+				(!ready && gwUpdReq.bundleType == BundleTypeRepository && gwUpdReq.gateway.Spec.App.RepositoryReferenceBootstrap.Enabled) {
 				if err := params.Client.Patch(ctx, &gwUpdReq.podList.Items[i],
 					client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 					params.Log.Error(err, "failed to update pod label", "Name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)

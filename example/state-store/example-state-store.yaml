@@ -15,31 +15,8 @@ spec:
     storeId: test
     tls:
       enabled: false
-      verifyPeer: true
-      redisCrt: |+
-        -----BEGIN CERTIFICATE-----
-        MIIEWDCCA0CgAwIBAgIRALF58csY05FLO4YiGNED4yAwDQYJKoZIhvcNAQELBQAw
-        EzERMA8GA1UEAxMIcmVkaXMtY2EwHhcNMjUxMTE2MTIzODU5WhcNMjYxMTE2MTIz
-        ODU5WjAbMRkwFwYDVQQDExBzdGFuZGFsb25lLXJlZGlzMIIBIjANBgkqhkiG9w0B
-        AQEFAAOCAQ8AMIIBCgKCAQEAwEoJ66gyPbgGPCpPk/WaFEX3/Pc9GMyk3GKyr9gR
-        gZKt5wjwPrMHxeIOPvHkME1A9qQrO3a4fh3vM4KaOsGAT9k2aqpVylLAfxxcxGjK
-        SUQaESiLkEJ+f960LgU4Mbk4ZwvzUoOJDMapM7aPtxuLpzhcw8+zAqCYodVHzMc0
-        pJd2+xWoCg/1NP9p3yNBrL5Y2Woo+5an3gITAAkeUUQ/jbuvAIYT/hgbi7NELdTc
-        WlnPjBQS2uqpz8f2255Yf/kJEzLD7Jv1rvUGD1MhTeJvXP5386ddyYLjKhdbFY5l
-        23O/SgoSHMpRfwxq5KOsywUDj9mv7WUgOtENz4Pzh34FKQIDAQABo4IBnTCCAZkw
-        DgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjAM
-        BgNVHRMBAf8EAjAAMB8GA1UdIwQYMBaAFEDenRrHjE9ER/b5O8KvK0mb1B+hMIIB
-        NwYDVR0RBIIBLjCCASqCLCouc3RhbmRhbG9uZS1yZWRpcy5kZXZlbG9wLnN2Yy5j
-        bHVzdGVyLmxvY2FsgjFzdGFuZGFsb25lLXJlZGlzLW1hc3Rlci5kZXZlbG9wLnN2
-        Yy5jbHVzdGVyLmxvY2FsgjMqLnN0YW5kYWxvbmUtcmVkaXMtbWFzdGVyLmRldmVs
-        b3Auc3ZjLmNsdXN0ZXIubG9jYWyCNSouc3RhbmRhbG9uZS1yZWRpcy1oZWFkbGVz
-        cy5kZXZlbG9wLnN2Yy5jbHVzdGVyLmxvY2FsgjNzdGFuZGFsb25lLXJlZGlzLWhl
-        YWRsZXNzLmRldmVsb3Auc3ZjLmNsdXN0ZXIubG9jYWyCCTEyNy4wLjAuMYIJbG9j
-        YWxob3N0ghBzdGFuZGFsb25lLXJlZGlzMA0GCSqGSIb3DQEBCwUAA4IBAQC6Kso0
-        0w8KOs4tV4pRkTw9aMcapmSgPkiTVstS0eA7zDL4GxQEW2qymmxKPMtwpbAipiFw
-        2/8ppXErs7UKvwgc9p9e1uFqFMr9g5cbaGq/Y+bIOWCGaPFG44+0AY8iNEuorFc9
-        mRPWrwwf41TnKif8OkaEEa+9Qj2giqjNEOFjeJ9pYpMtuAYMBi7enY3WfaGmywdH
-        icoDxrh9Ik1aPFnPXxGi/kb5ONP6MqVEN6nD+AYW2bSX0I7DlpffD2TerBAI32Cl
-        XBJXAr3TM2WatldqBNL396/wtKVuqv8+vQ7jpQSUwjhexxVAfkGzq6UGjTKEOwr/
-        sUC5adSW6hK6tvjY
-        -----END CERTIFICATE-----
+      verifyPeer: false
+      # redisCrt: |+
+      #   -----BEGIN CERTIFICATE-----
+      #   MIIEWDCCA0CgAwIBAgIRAOp...
+      #   -----END CERTIFICATE-----

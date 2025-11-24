@@ -9,6 +9,12 @@ spec:
     secretName: gateway-license
   app:
     replicas: 1
+    repositoryReferenceBootstrap:
+      enabled: true
+      preferGit: false
+    repositoryReferenceDelete:
+      enabled: true
+      reconcileReferences: true
     restartOnConfigChange: true
     singletonExtraction: true
     image: docker.io/caapim/gateway:11.1.3

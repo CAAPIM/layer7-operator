@@ -220,7 +220,7 @@ redis:
       enabled: false
 `
 
-	secret, _ := NewSecret(&gateway, gateway.Name+"-shared-state-client-configuration")
+	secret, _ := NewSecret(&gateway, gateway.Name+"-shared-state-config")
 
 	if strings.TrimSpace(string(secret.Data["sharedstate_client.yaml"])) != strings.TrimSpace(expectedRedisConfig) {
 		t.Errorf("expected %s, actual %s", strings.TrimSpace(expectedRedisConfig), strings.TrimSpace(string(secret.Data["sharedstate_client.yaml"])))
@@ -251,7 +251,7 @@ redis:
       enabled: false
 `
 
-	secret, _ = NewSecret(&gateway, gateway.Name+"-shared-state-client-configuration")
+	secret, _ = NewSecret(&gateway, gateway.Name+"-shared-state-config")
 
 	if strings.TrimSpace(string(secret.Data["sharedstate_client.yaml"])) != strings.TrimSpace(expectedRedisConfig) {
 		t.Errorf("expected %s, actual %s", strings.TrimSpace(expectedRedisConfig), strings.TrimSpace(string(secret.Data["sharedstate_client.yaml"])))

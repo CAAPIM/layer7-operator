@@ -219,7 +219,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	if gw.Spec.App.Redis.Enabled {
-		secretName := gw.Name + "-shared-state-client-configuration"
+		secretName := gw.Name + "-shared-state-config"
 		if gw.Spec.App.Redis.ExistingSecret != "" {
 			secretName = gw.Spec.App.Redis.ExistingSecret
 		}

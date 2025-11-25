@@ -38,6 +38,7 @@ import (
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
+	"github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-git/go-git/v5"
 	"go.opentelemetry.io/otel"
@@ -177,21 +178,15 @@ func syncRepository(ctx context.Context, params Params) error {
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
-			if repository.Spec.StateStoreReference != "" {
-				err = StateStorage(ctx, params, statestore, commit)
-				if err != nil {
-					params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
-					stateStoreSynced = false
-				}
+
+			// Check if we need to build cache/storage secret (only if status doesn't match)
+			if params.Instance.Status.Commit == commit && (params.Instance.Status.StorageSecretName != "" || params.Instance.Status.StorageSecretName != "_") {
+				params.Log.V(5).Info("already up-to-date with cache built", "name", repository.Name, "namespace", repository.Namespace)
+				return nil
 			}
 
-			updateErr := updateStatus(ctx, params, commit, storageSecretName, stateStoreSynced)
-			if updateErr != nil {
-				_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
-				params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", updateErr.Error())
-			}
-
-			return nil
+			// Continue to build cache and storage secret if status doesn't match
+			err = nil
 		}
 
 		if err != nil {
@@ -232,21 +227,32 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	if strings.ToLower(string(repository.Spec.Type)) != "statestore" {
+		// Build directory-based bundle cache for all repos (state store and non-state store)
+		bundleMap, err := BuildRepositoryCache(ctx, params, commit, storageSecretName)
+		if err != nil {
+			params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+		}
+
 		if repository.Spec.StateStoreReference != "" {
+			// For state store repos, sync to Redis
 			err = StateStorage(ctx, params, statestore, commit)
 			if err != nil {
 				params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 				params.Instance.Status.StateStoreSynced = false
 			}
-		} else {
-			// Build directory-based bundle cache for non-statestore repos
-			bundleMap, err := BuildRepositoryCache(ctx, params, commit, storageSecretName)
-			if err != nil {
-				params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+		}
+
+		// Create storage secret from bundleMap for all repos
+		// Filter out delta bundles - we don't use them in Gateway yet and they take up space
+		if storageSecretName != "_" && storageSecretName != "" {
+			storageSecretBundleMap := make(map[string][]byte)
+			for k, v := range bundleMap {
+				if !strings.HasSuffix(k, "-delta.gz") {
+					storageSecretBundleMap[k] = v
+				}
 			}
 
-			// Reuse the bundleMap to create storage secret
-			err = StorageSecretFromBundleMap(ctx, params, bundleMap, storageSecretName)
+			err = StorageSecretFromBundleMap(ctx, params, storageSecretBundleMap, storageSecretName)
 			if err != nil {
 				params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 				storageSecretName = ""
@@ -506,7 +512,17 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 		return nil, err
 	}
 
+	// Load previous bundle map for delta calculation (if exists)
+	previousBundleMap := map[string][]byte{}
+	if repository.Status.Commit != "" && repository.Status.Commit != commit {
+		previousFileName := repository.Status.Commit + ".json"
+		if previousBytes, err := os.ReadFile(cachePath + "/" + previousFileName); err == nil {
+			_ = json.Unmarshal(previousBytes, &previousBundleMap)
+		}
+	}
+
 	bundleMap := map[string][]byte{}
+	currentBundles := map[string][]byte{} // Uncompressed source bundles for delta calculation
 
 	for _, projectPath := range projects {
 		// Build bundle for this directory
@@ -515,18 +531,148 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 			return nil, err
 		}
 
+		// Generate key name (normalize directory path)
+		keyName := strings.Replace(projectPath, basePath, "", 1)
+		keyName = strings.TrimPrefix(strings.ReplaceAll(keyName, "/", "-"), "-")
+
+		currentBundles[keyName+".json"] = bundleBytes
+
 		// Compress the bundle
 		bundleGzip, err := util.GzipCompress(bundleBytes)
 		if err != nil {
 			return nil, err
 		}
 
-		// Generate key name (normalize directory path)
-		keyName := strings.Replace(projectPath, basePath, "", 1)
-		keyName = strings.TrimPrefix(strings.ReplaceAll(keyName, "/", "-"), "-")
-
-		// Store compressed bundle in map
+		// Store compressed full bundle in map (will be overwritten with combined if previous exists)
 		bundleMap[keyName+".gz"] = bundleGzip
+	}
+
+	// Calculate deltas against previous version (exactly like StateStorage does)
+	if len(previousBundleMap) > 0 {
+		for k1, b1bytes := range currentBundles {
+			keyName := strings.TrimSuffix(k1, ".json")
+
+			for k2, b2 := range previousBundleMap {
+				// Look for the full bundle from previous commit (not delta)
+				if k2 == keyName+".gz" {
+					// Decompress previous bundle
+					b2Bytes, err := util.GzipDecompress(b2)
+					if err != nil {
+						b2Bytes = b2
+					}
+
+					srcBundle := graphman.Bundle{}
+					destBundle := graphman.Bundle{}
+
+					if err := json.Unmarshal(b2Bytes, &srcBundle); err != nil {
+						continue
+					}
+					if err := json.Unmarshal(b1bytes, &destBundle); err != nil {
+						continue
+					}
+
+					// Reset mappings from previous state (removes delete mappings from last iteration)
+					if err := graphman.ResetMappings(&srcBundle); err != nil {
+						continue
+					}
+
+					// Calculate delta: current (cleaned previous) vs desired (new)
+					deltaBundle, combinedBundle, err := graphman.CalculateDelta(srcBundle, destBundle)
+					if err != nil {
+						continue
+					}
+
+					// Store delta bundle
+					deltaBundleBytes, err := json.Marshal(deltaBundle)
+					if err != nil {
+						continue
+					}
+					deltaGzip, err := util.GzipCompress(deltaBundleBytes)
+					if err != nil {
+						continue
+					}
+					bundleMap[keyName+"-delta.gz"] = deltaGzip
+
+					// Overwrite the full bundle with combined (has delete mappings for next iteration)
+					// This is the same as StateStorage - the full bundle becomes the "state" for next delta
+					combinedBundleBytes, err := json.Marshal(combinedBundle)
+					if err != nil {
+						continue
+					}
+					combinedGzip, err := util.GzipCompress(combinedBundleBytes)
+					if err != nil {
+						continue
+					}
+					bundleMap[keyName+".gz"] = combinedGzip
+					break
+				}
+			}
+		}
+
+		// Handle deleted folders (folders in previous but not in current)
+		for k2, b2 := range previousBundleMap {
+			// Skip delta bundles, only process full bundles
+			if strings.HasSuffix(k2, "-delta.gz") {
+				continue
+			}
+
+			keyName := strings.TrimSuffix(k2, ".gz")
+			found := false
+
+			for k1 := range currentBundles {
+				if strings.TrimSuffix(k1, ".json") == keyName {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				// Folder was deleted - create delete bundle
+				b2Bytes, err := util.GzipDecompress(b2)
+				if err != nil {
+					b2Bytes = b2
+				}
+
+				srcBundle := graphman.Bundle{}
+				if err := json.Unmarshal(b2Bytes, &srcBundle); err != nil {
+					continue
+				}
+
+				// Reset mappings (clean the state)
+				if err := graphman.ResetMappings(&srcBundle); err != nil {
+					continue
+				}
+
+				// Calculate delta against empty bundle (deletes everything)
+				emptyBundle := graphman.Bundle{}
+				deltaBundle, combinedBundle, err := graphman.CalculateDelta(srcBundle, emptyBundle)
+				if err != nil {
+					continue
+				}
+
+				// Store delta bundle
+				deltaBundleBytes, err := json.Marshal(deltaBundle)
+				if err != nil {
+					continue
+				}
+				deltaGzip, err := util.GzipCompress(deltaBundleBytes)
+				if err != nil {
+					continue
+				}
+				bundleMap[keyName+"-delta.gz"] = deltaGzip
+
+				// Store combined bundle with delete mappings
+				combinedBundleBytes, err := json.Marshal(combinedBundle)
+				if err != nil {
+					continue
+				}
+				combinedGzip, err := util.GzipCompress(combinedBundleBytes)
+				if err != nil {
+					continue
+				}
+				bundleMap[keyName+".gz"] = combinedGzip
+			}
+		}
 	}
 
 	// Marshal the bundle map

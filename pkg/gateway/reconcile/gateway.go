@@ -166,6 +166,17 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 
 		gwUpdReq.patchAnnotation = "security.brcmlabs.com/" + gwUpdReq.repositoryReference.Name + "-" + string(gwUpdReq.repositoryReference.Type)
 		graphmanEncryptionPassphrase := gwUpdReq.repositoryReference.Encryption.Passphrase
+
+		// check for directory change
+		directoryChange := false
+		for _, repoStatus := range gwUpdReq.gateway.Status.RepositoryStatus {
+			if gwUpdReq.repositoryReference.Name == repoStatus.Name {
+				if !reflect.DeepEqual(gwUpdReq.repositoryReference.Directories, repoStatus.Directories) {
+					directoryChange = true
+				}
+			}
+		}
+
 		/// if no pods are ready return nil
 		if gwUpdReq.ephemeral {
 			updCntr := 0
@@ -177,16 +188,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				for _, ps := range pod.Status.ContainerStatuses {
 					if ps.Ready {
 						ready = true
-					}
-				}
-			}
-
-			// If all pods already updated, skip
-			directoryChange := false
-			for _, repoStatus := range gwUpdReq.gateway.Status.RepositoryStatus {
-				if gwUpdReq.repositoryReference.Name == repoStatus.Name {
-					if !reflect.DeepEqual(gwUpdReq.repositoryReference.Directories, repoStatus.Directories) {
-						directoryChange = true
 					}
 				}
 			}
@@ -205,7 +206,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			}
 
 		} else {
-			if (gwUpdReq.deployment.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || gwUpdReq.repositoryReference.Type == securityv1.RepositoryReferenceTypeStatic) && !gwUpdReq.delete {
+			if (gwUpdReq.deployment.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || gwUpdReq.repositoryReference.Type == securityv1.RepositoryReferenceTypeStatic) && !gwUpdReq.delete && !directoryChange {
 				return nil, nil
 			}
 		}
@@ -767,11 +768,6 @@ func SyncGateway(ctx context.Context, params Params, gwUpdReq GatewayUpdateReque
 	return nil
 }
 
-///
-/// TODO
-/// statestore - if apply fails with a format error we should have the ability to ignore the delta or remove the offending entity)
-///
-
 func buildBundle(ctx context.Context, params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository, gateway *securityv1.Gateway, delete bool) (bundleBytes []byte, err error) {
 	tmpPath := "/tmp/bundles/" + repository.Name
 	fileName := calculateBundleFileName(repoRef.Directories, repository.Status.Commit)
@@ -1014,18 +1010,35 @@ func buildBundleFromDirectories(directories []string, bundleMap map[string][]byt
 	for _, d := range directories {
 		normalizedDir := strings.TrimPrefix(strings.ReplaceAll(d, "/", "-"), "-")
 
-		// Look for matching bundle in the map
-		bundleKey := normalizedDir + ".gz"
-		if bundleGz, exists := bundleMap[bundleKey]; exists {
+		// Use full bundles (not deltas) for concatenation
+		fullBundleGz := normalizedDir + ".gz"
+
+		if bundleGz, exists := bundleMap[fullBundleGz]; exists {
 			decompressedBytes, err := util.GzipDecompress(bundleGz)
 			if err != nil {
-				return nil, fmt.Errorf("failed to decompress bundle %s: %w", bundleKey, err)
+				return nil, fmt.Errorf("failed to decompress bundle %s: %w", fullBundleGz, err)
 			}
 
-			// Concatenate: new bundle overwrites accumulated bundle
-			bundleBytes, err = graphman.ConcatBundle(decompressedBytes, bundleBytes)
+			// Reset mappings on the bundle to get clean state (removes delete mappings)
+			// This ensures we're concatenating clean bundles, not ones with stale delete mappings
+			var bundle graphman.Bundle
+			if err := json.Unmarshal(decompressedBytes, &bundle); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal bundle %s: %w", fullBundleGz, err)
+			}
+
+			if err := graphman.ResetMappings(&bundle); err != nil {
+				return nil, fmt.Errorf("failed to reset mappings on bundle %s: %w", fullBundleGz, err)
+			}
+
+			cleanBytes, err := json.Marshal(bundle)
 			if err != nil {
-				return nil, fmt.Errorf("failed to concat bundle %s: %w", bundleKey, err)
+				return nil, fmt.Errorf("failed to marshal clean bundle %s: %w", fullBundleGz, err)
+			}
+
+			// Concatenate: later bundle overwrites earlier bundle (latest wins)
+			bundleBytes, err = graphman.ConcatBundle(cleanBytes, bundleBytes)
+			if err != nil {
+				return nil, fmt.Errorf("failed to concat bundle %s: %w", fullBundleGz, err)
 			}
 		}
 	}
@@ -1145,14 +1158,39 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 
 	currentChecksum := gwUpdReq.deployment.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
 
+	// Skip if it already has the correct checksum and no directory change
+	if currentChecksum == gwUpdReq.checksum && !gwUpdReq.delete {
+		// Check if there's a directory change for repositories
+		if gwUpdReq.bundleType == BundleTypeRepository {
+			directoryChangeForPod := false
+			for _, repoStatus := range gwUpdReq.gateway.Status.RepositoryStatus {
+				if repoStatus.Name == gwUpdReq.repositoryReference.Name {
+					if !reflect.DeepEqual(gwUpdReq.repositoryReference.Directories, repoStatus.Directories) {
+						directoryChangeForPod = true
+					}
+					break
+				}
+			}
+			if !directoryChangeForPod {
+				return nil // skip, it's already up to date
+			}
+		} else {
+			return nil //skip, it's already up to date
+		}
+	}
+
 	if gwUpdReq.bundleType == BundleTypeRepository {
 		if (currentChecksum == "deleted" && !gwUpdReq.repositoryReference.Enabled) || (currentChecksum == "" && (gwUpdReq.delete || !gwUpdReq.repositoryReference.Enabled)) {
 			return nil
 		}
-	}
-
-	if currentChecksum == gwUpdReq.checksum && !gwUpdReq.delete {
-		return nil
+		for _, repoStatus := range gwUpdReq.gateway.Status.RepositoryStatus {
+			if repoStatus.Name == gwUpdReq.repositoryReference.Name {
+				if !reflect.DeepEqual(gwUpdReq.repositoryReference.Directories, repoStatus.Directories) {
+					update = true
+				}
+				break
+			}
+		}
 	}
 
 	if currentChecksum != gwUpdReq.checksum || currentChecksum == "" || gwUpdReq.delete {

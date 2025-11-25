@@ -152,16 +152,16 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 				/// always default to storage secret if it exists
 				if !gw.Spec.App.Management.Database.Enabled || gw.Status.RepositoryStatus[i].Type == "static" {
 					if gw.Status.RepositoryStatus[i].StorageSecretName != "_" {
-						localRef = "/graphman/localref/" + gw.Status.RepositoryStatus[i].StorageSecretName // + "/" + gw.Status.RepositoryStatus[i].Name + ".gz"
+						localRef = "/graphman/localref/" + gw.Status.RepositoryStatus[i].StorageSecretName
 						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
 							Name:                gw.Status.RepositoryStatus[i].Name,
 							LocalReference:      localRef,
 							SingletonExtraction: gw.Spec.App.SingletonExtraction,
+							Directories:         gw.Status.RepositoryStatus[i].Directories,
 						})
 					} else {
 						// only bootstrap if the Gateway is running in ephemeral mode
 						// bootstrapping large policy sets to database backed gateways causes start up delay
-						//if !gw.Spec.App.Management.Database.Enabled {
 						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
 							Name:                gw.Status.RepositoryStatus[i].Name,
 							Endpoint:            gw.Status.RepositoryStatus[i].Endpoint,
@@ -178,7 +178,6 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 							Directories:         gw.Status.RepositoryStatus[i].Directories,
 						})
 					}
-					//}
 				}
 			}
 		}

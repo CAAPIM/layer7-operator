@@ -239,12 +239,11 @@ func Deployment(ctx context.Context, params Params) error {
 		desiredDeployment.Spec.Replicas = currentDeployment.Spec.Replicas
 	}
 
-	updatedDeployment := currentDeployment.DeepCopy()
-	updatedDeployment.Spec = desiredDeployment.Spec
-
-	updatedDeployment.ObjectMeta.OwnerReferences = desiredDeployment.ObjectMeta.OwnerReferences
-
 	desiredDeployment, err = setLabels(ctx, params, desiredDeployment)
+	if err != nil {
+		return err
+	}
+	desiredDeployment, err = setStateStoreConfig(ctx, params, desiredDeployment)
 	if err != nil {
 		return err
 	}
@@ -252,6 +251,11 @@ func Deployment(ctx context.Context, params Params) error {
 	if err != nil {
 		return err
 	}
+
+	// Start with current deployment (preserves API server defaults) and merge in desired changes
+	updatedDeployment := currentDeployment.DeepCopy()
+	updatedDeployment.Spec = desiredDeployment.Spec
+	updatedDeployment.ObjectMeta.OwnerReferences = desiredDeployment.ObjectMeta.OwnerReferences
 
 	if params.Instance.Spec.App.Autoscaling.Enabled {
 		updatedDeployment.Spec.Replicas = currentDeployment.Spec.Replicas
@@ -273,15 +277,21 @@ func Deployment(ctx context.Context, params Params) error {
 		updatedDeployment.Spec.Template.ObjectMeta.Labels[k] = v
 	}
 
-	desiredDeployment, err = setStateStoreConfig(ctx, params, desiredDeployment)
+	patch := client.MergeFrom(currentDeployment)
+
+	// Check if there are actual changes
+	patchData, err := patch.Data(updatedDeployment)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate patch: %w", err)
 	}
 
-	updatedDeployment.Spec.Template.Spec.InitContainers = desiredDeployment.Spec.Template.Spec.InitContainers
-	updatedDeployment.Spec.Template.Spec.Volumes = desiredDeployment.Spec.Template.Spec.Volumes
-
-	patch := client.MergeFrom(currentDeployment)
+	// Skip empty patches
+	if string(patchData) == "{}" || string(patchData) == "{\"metadata\":{\"creationTimestamp\":null}}" {
+		params.Log.V(2).Info("no deployment changes detected, skipping patch",
+			"name", params.Instance.Name,
+			"namespace", params.Instance.Namespace)
+		return nil
+	}
 
 	if err := params.Client.Patch(ctx, updatedDeployment, patch); err != nil {
 		return fmt.Errorf("failed to apply updates: %w", err)

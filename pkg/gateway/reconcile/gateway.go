@@ -171,7 +171,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			updCntr := 0
 			ready := false
 			for _, pod := range gwUpdReq.podList.Items {
-				if pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum || pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum+"-leader" {
+				if (pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum && pod.ObjectMeta.Labels["management-access"] != "leader") || pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum+"-leader" {
 					updCntr = updCntr + 1
 				}
 				for _, ps := range pod.Status.ContainerStatuses {
@@ -797,7 +797,9 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 		for _, repoStatus := range gateway.Status.RepositoryStatus {
 			if repoStatus.Name == repoRef.Name {
 				previousDirectories = repoStatus.Directories
-				if !reflect.DeepEqual(repoRef.Directories, repoStatus.Directories) {
+				// Only detect directory change if previousDirectories is not empty
+				// (empty means first deployment, so use full bundle)
+				if len(previousDirectories) > 0 && !reflect.DeepEqual(repoRef.Directories, repoStatus.Directories) {
 					directoryChanged = true
 					params.Log.Info("directory change detected",
 						"repository", repoRef.Name,
@@ -1266,6 +1268,10 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 		update := false
 		ready := false
 
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.Name == "gateway" {
 				ready = containerStatus.Ready
@@ -1462,7 +1468,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 			// Patch annotation for non-ready pods
 			if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) ||
 				(!ready && gwUpdReq.bundleType == BundleTypeListenPort) ||
-				(!ready && gwUpdReq.bundleType == BundleTypeRepository && gwUpdReq.gateway.Spec.App.RepositoryReferenceBootstrap.Enabled) {
+				(!ready && gwUpdReq.bundleType == BundleTypeRepository && gwUpdReq.gateway.Spec.App.RepositoryReferenceBootstrap.Enabled && pod.ObjectMeta.Labels["management-access"] != "leader" && !singleton) {
 				if err := params.Client.Patch(ctx, &gwUpdReq.podList.Items[i],
 					client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
 					params.Log.Error(err, "failed to update pod label", "Name", gwUpdReq.gateway.Name, "namespace", gwUpdReq.gateway.Namespace)

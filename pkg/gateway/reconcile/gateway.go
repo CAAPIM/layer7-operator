@@ -36,7 +36,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"os"
 	"reflect"
 	"regexp"
@@ -220,6 +219,18 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 
 		if len(gwUpdReq.repositoryReference.Directories) == 0 {
 			gwUpdReq.repositoryReference.Directories = []string{"/"}
+		}
+
+		if gwUpdReq.repository.Spec.Type == securityv1.RepositoryTypeLocal {
+			gwUpdReq.bundle, err = readLocalReference(ctx, gwUpdReq.repository, params)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			gwUpdReq.bundle, err = buildBundle(ctx, params, gwUpdReq.repositoryReference, gwUpdReq.repository, gwUpdReq.gateway, gwUpdReq.delete)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		gwUpdReq.bundle, err = buildBundle(ctx, params, gwUpdReq.repositoryReference, gwUpdReq.repository, gwUpdReq.gateway, gwUpdReq.delete)
@@ -768,163 +779,205 @@ func SyncGateway(ctx context.Context, params Params, gwUpdReq GatewayUpdateReque
 	return nil
 }
 
-func buildBundle(ctx context.Context, params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository, gateway *securityv1.Gateway, delete bool) (bundleBytes []byte, err error) {
-	tmpPath := "/tmp/bundles/" + repository.Name
-	fileName := calculateBundleFileName(repoRef.Directories, repository.Status.Commit)
-
-	// If deleting, first check if RepositoryReferenceDelete is enabled
-	// This takes precedence - if not enabled, don't delete even if repository is in status
-	if delete && !gateway.Spec.App.RepositoryReferenceDelete.Enabled {
+// buildDeleteBundle handles repository deletion by creating a bundle with delete mappings
+func buildDeleteBundle(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, params Params) ([]byte, error) {
+	// Check if delete is enabled
+	if !gateway.Spec.App.RepositoryReferenceDelete.Enabled {
 		params.Log.V(2).Info("repository delete skipped - RepositoryReferenceDelete.Enabled is false", "repository", repoRef.Name)
 		return []byte("{}"), nil
 	}
 
-	// Ensure temp directory exists
-	if err := os.MkdirAll(tmpPath, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create temp directory: %w", err)
+	// Check if we should skip delete for non-statestore repos
+	if repository.Spec.StateStoreReference == "" && !gateway.Spec.App.RepositoryReferenceDelete.IncludeEfs {
+		params.Log.V(2).Info("repository delete skipped - non-statestore repo and IncludeEfs is false", "repository", repoRef.Name)
+		return []byte("{}"), nil
 	}
 
-	// Check if directories have changed from the last known state
-	// Skip this check if we're deleting - directory changes don't matter for deletes
-	var previousDirectories []string
-	directoryChanged := false
+	// Determine cache location
+	cachePath, cacheFileName := determineCacheLocation(repository, gateway)
 
-	if !delete {
-		for _, repoStatus := range gateway.Status.RepositoryStatus {
-			if repoStatus.Name == repoRef.Name {
-				previousDirectories = repoStatus.Directories
-				// Only detect directory change if previousDirectories is not empty
-				// (empty means first deployment, so use full bundle)
-				if len(previousDirectories) > 0 && !reflect.DeepEqual(repoRef.Directories, repoStatus.Directories) {
-					directoryChanged = true
-					params.Log.Info("directory change detected",
-						"repository", repoRef.Name,
-						"previous", previousDirectories,
-						"current", repoRef.Directories)
+	// Build bundle from cache
+	bundleBytes, err := buildBundleFromCache(repository, repoRef, cachePath, cacheFileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build delete bundle from cache: %w", err)
+	}
+
+	// Set default action to delete
+	var bundle graphman.Bundle
+	if err := json.Unmarshal(bundleBytes, &bundle); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal bundle for delete: %w", err)
+	}
+
+	bundle.Properties = &graphman.BundleProperties{DefaultAction: graphman.MappingActionDelete}
+
+	bundleBytes, err = json.Marshal(bundle)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal bundle with delete mapping: %w", err)
+	}
+
+	params.Log.V(2).Info("applied delete mapping to bundle", "repository", repoRef.Name)
+	return bundleBytes, nil
+}
+
+// checkRetryScenario checks if we should retry the last applied bundle due to previous failure
+func checkRetryScenario(gateway *securityv1.Gateway, repoRefName string, currentCommit string, tmpPath string, params Params) (shouldRetry bool, bundle []byte) {
+	// Check gateway status for apply failures for this repository
+	for _, repoStatus := range gateway.Status.RepositoryStatus {
+		if repoStatus.Name == repoRefName {
+			// Check if there's a failure condition with "failed" or "error" in reason
+			for _, condition := range repoStatus.Conditions {
+				// Look for failures in the reason field
+				reasonLower := strings.ToLower(condition.Reason)
+				if (strings.Contains(reasonLower, "failed") || strings.Contains(reasonLower, "error")) && condition.Status != "success" {
+					// Found a failure - check if commit has changed
+					if repoStatus.Commit == currentCommit {
+						// Commit unchanged, this is a retry scenario
+						lastAppliedFile := tmpPath + "/last_applied_" + repoRefName + ".json"
+						if bundleBytes, err := os.ReadFile(lastAppliedFile); err == nil {
+							params.Log.V(2).Info("retry scenario detected - using last applied bundle",
+								"repository", repoRefName,
+								"commit", currentCommit,
+								"failureReason", condition.Reason)
+							return true, bundleBytes
+						} else {
+							params.Log.V(2).Info("retry scenario but last applied bundle not found, will rebuild",
+								"repository", repoRefName,
+								"error", err)
+							return true, nil
+						}
+					}
 				}
-				break
 			}
 		}
 	}
+	return false, nil
+}
 
-	// Try to read from cache first (skip cache if directories changed or deleting)
-	if !directoryChanged && !delete {
-		if bundleBytes, err := os.ReadFile(tmpPath + "/" + fileName); err == nil {
-			return bundleBytes, nil
-		}
-	}
-
-	// Handle local repositories separately (they don't use cache)
-	if strings.ToLower(string(repository.Spec.Type)) == "local" {
-		bundleBytes, err = readLocalReference(ctx, repository, params)
-		if err != nil {
-			return nil, err
-		}
+// determineCacheLocation returns the cache path and filename based on repository and gateway configuration
+func determineCacheLocation(repository *securityv1.Repository, gateway *securityv1.Gateway) (cachePath string, cacheFileName string) {
+	if repository.Spec.StateStoreReference != "" {
+		// Statestore-backed repository
+		cachePath = "/tmp/statestore/" + repository.Name
+		cacheFileName = "latest.json"
+	} else if gateway.Spec.App.RepositoryReferenceDelete.Enabled && gateway.Spec.App.RepositoryReferenceDelete.IncludeEfs {
+		// Non-statestore with delete enabled
+		cachePath = "/tmp/repo-cache/" + repository.Name
+		cacheFileName = "combined.json"
 	} else {
-		// Route to appropriate cache path based on repository type
-		var cachePath string
-		if repository.Spec.StateStoreReference != "" {
-			cachePath = "/tmp/statestore/" + repository.Name
-		} else {
-			cachePath = "/tmp/repo-cache/" + repository.Name
-		}
+		// Non-statestore with delete disabled (vanilla)
+		cachePath = "/tmp/repo-cache/" + repository.Name
+		cacheFileName = repository.Status.Commit + ".json"
+	}
+	return cachePath, cacheFileName
+}
 
-		bundleBytes, err = buildBundleFromCache(repository, repoRef, cachePath)
-		if err != nil {
-			// If cache failed and storage secret is available, try reading from storage secret
-			if repository.Status.StorageSecretName != "" && repository.Status.StorageSecretName != "_" {
-				params.Log.V(2).Info("cache not available, attempting to read from storage secret",
-					"repository", repository.Name,
-					"secret", repository.Status.StorageSecretName)
-				bundleBytes, err = buildBundleFromStorageSecret(ctx, repository, repoRef, params)
-				if err != nil {
-					return nil, fmt.Errorf("failed to build bundle from cache and storage secret: %w", err)
-				}
-			} else {
-				return nil, err
-			}
-		}
+// shouldSkipDeltaComparison determines if we should skip delta comparison and build a vanilla bundle
+func shouldSkipDeltaComparison(gateway *securityv1.Gateway, repository *securityv1.Repository) bool {
+	// If master flag is disabled, always skip delta comparison
+	if !gateway.Spec.App.RepositoryReferenceDelete.Enabled {
+		return true
 	}
 
-	// If delete is true, set the bundle's default action to delete
-	if delete {
-		var srcBundle graphman.Bundle
-		if err := json.Unmarshal(bundleBytes, &srcBundle); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal bundle for delete: %w", err)
-		}
-
-		srcBundle.Properties = &graphman.BundleProperties{DefaultAction: graphman.MappingActionDelete}
-
-		bundleBytes, err = json.Marshal(srcBundle)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal bundle with delete mapping: %w", err)
-		}
-
-		params.Log.V(2).Info("applied delete mapping to bundle", "repository", repoRef.Name)
-		return bundleBytes, nil
+	// If non-statestore and includeEfs is false, skip delta comparison
+	if repository.Spec.StateStoreReference == "" && !gateway.Spec.App.RepositoryReferenceDelete.IncludeEfs {
+		return true
 	}
 
-	// Cache the full new bundle for future comparisons
-	cleanupOldBundles(tmpPath)
-	if err := os.WriteFile(tmpPath+"/"+fileName, bundleBytes, 0755); err != nil {
-		return nil, fmt.Errorf("failed to write bundle cache: %w", err)
+	return false
+}
+
+// buildVanillaBundleAndCache builds a vanilla bundle from cache and stores it
+func buildVanillaBundleAndCache(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, cachePath string, cacheFileName string, tmpPath string, fileName string, params Params) ([]byte, error) {
+	// Build bundle from cache
+	bundleBytes, err := buildBundleFromCache(repository, repoRef, cachePath, cacheFileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build vanilla bundle: %w", err)
 	}
 
-	// If directories changed, calculate delta against previous bundle
-	// Do this AFTER caching the full bundle
-	if directoryChanged && len(previousDirectories) > 0 {
-		deltaBytes, err := calculateDirectoryChangeDelta(repository, previousDirectories, bundleBytes, params)
-		if err != nil {
-			return nil, fmt.Errorf("failed to calculate directory change delta: %w", err)
-		}
-		// Return the delta for application, but the full bundle is already cached
-		return deltaBytes, nil
+	// Write to cache and last_applied
+	if err := writeBundlesToDisk(repository, repoRef, gateway, bundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+		return nil, err
 	}
 
 	return bundleBytes, nil
 }
 
-// calculateDirectoryChangeDelta builds a delta bundle when directories change
-func calculateDirectoryChangeDelta(repository *securityv1.Repository, previousDirectories []string, newBundleBytes []byte, params Params) ([]byte, error) {
-	// Normalize empty directories to "/" for comparison
-	normalizedPrevDirs := previousDirectories
-	if len(normalizedPrevDirs) == 0 {
-		normalizedPrevDirs = []string{"/"}
-	}
-
-	// Calculate the filename for the previous bundle (already cached on filesystem)
-	tmpPath := "/tmp/bundles/" + repository.Name
-	previousFileName := calculateBundleFileName(normalizedPrevDirs, repository.Status.Commit)
-
-	// Try to read the previous bundle from cache
-	previousBundleBytes, err := os.ReadFile(tmpPath + "/" + previousFileName)
+// handleDirectoryChange handles directory changes with delta calculation
+func handleDirectoryChange(ctx context.Context, params Params, repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, cachePath string, cacheFileName string, tmpPath string, fileName string, previousDirectories []string) ([]byte, error) {
+	// Step 1: Build new bundle from current directories
+	newBundleBytes, err := buildBundleFromCache(repository, repoRef, cachePath, cacheFileName)
 	if err != nil {
-		// Previous bundle not in /tmp/bundles/, rebuild it from the repository cache
-		params.Log.Info("previous bundle not found in cache, rebuilding from repository cache",
-			"repository", repository.Name,
-			"previousDirs", normalizedPrevDirs)
+		return nil, fmt.Errorf("failed to build new bundle for directory change: %w", err)
+	}
 
-		// Determine cache path
-		var cachePath string
-		if repository.Spec.StateStoreReference != "" {
-			cachePath = "/tmp/statestore/" + repository.Name
-		} else {
-			cachePath = "/tmp/repo-cache/" + repository.Name
+	// For combined.json and latest.json (StateStore) with directory additions/reordering (not removals), repository mappings are correct
+	// But if directories were removed, we need to calculate delta to generate DELETE mappings
+	// Check if any previous directories are missing from current directories
+	directoriesRemoved := false
+	for _, prevDir := range previousDirectories {
+		found := false
+		for _, currDir := range repoRef.Directories {
+			if prevDir == currDir {
+				found = true
+				break
+			}
 		}
-
-		// Create a temp repoRef with previous directories
-		tempRepoRef := &securityv1.RepositoryReference{
-			Directories: normalizedPrevDirs,
-		}
-
-		previousBundleBytes, err = buildBundleFromCache(repository, tempRepoRef, cachePath)
-		if err != nil {
-			params.Log.Info("failed to rebuild previous bundle from cache, skipping delta calculation", "error", err)
-			return newBundleBytes, nil
+		if !found {
+			directoriesRemoved = true
+			params.Log.Info("directory removed, calculating delta",
+				"repository", repoRef.Name,
+				"removedDirectory", prevDir)
+			break
 		}
 	}
 
-	// Parse bundles
+	// If no directories were removed, just use repository bundle as-is for repository-controlled mappings
+	if (cacheFileName == "combined.json" || cacheFileName == "latest.json") && !directoriesRemoved {
+		sourceType := cacheFileName
+		params.Log.V(2).Info("directory change with repository-controlled mappings - using repository mappings",
+			"repository", repoRef.Name,
+			"sourceType", sourceType,
+			"previousDirs", previousDirectories,
+			"currentDirs", repoRef.Directories)
+
+		if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+			return nil, err
+		}
+		return newBundleBytes, nil
+	}
+
+	// Step 2: Look up previous bundle
+	// Try cachePath first (persistent), then tmpPath (ephemeral) for backwards compatibility
+	previousFileName := calculateBundleFileName(params.Instance, repoRef.Name, previousDirectories)
+	previousBundleBytes, err := os.ReadFile(cachePath + "/" + previousFileName)
+	if err != nil {
+		// Try tmpPath as fallback
+		previousBundleBytes, err = os.ReadFile(tmpPath + "/" + previousFileName)
+		if err != nil {
+			// Previous bundle not found - treat as first deployment
+			params.Log.Info("previous bundle not found in cache or tmp, treating as first deployment",
+				"repository", repoRef.Name,
+				"previousFileName", previousFileName,
+				"cachePath", cachePath,
+				"tmpPath", tmpPath)
+
+			// Just write and return the new bundle
+			if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+				return nil, err
+			}
+			return newBundleBytes, nil
+		} else {
+			params.Log.V(2).Info("found previous bundle in tmpPath",
+				"repository", repoRef.Name,
+				"previousFileName", previousFileName)
+		}
+	} else {
+		params.Log.V(2).Info("found previous bundle in cachePath",
+			"repository", repoRef.Name,
+			"previousFileName", previousFileName)
+	}
+
+	// Step 3: Parse bundles
 	var previousBundle, newBundle graphman.Bundle
 	if err := json.Unmarshal(previousBundleBytes, &previousBundle); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal previous bundle: %w", err)
@@ -933,32 +986,299 @@ func calculateDirectoryChangeDelta(repository *securityv1.Repository, previousDi
 		return nil, fmt.Errorf("failed to unmarshal new bundle: %w", err)
 	}
 
-	// Reset mappings on previous bundle to get clean state
+	// Step 4: For repository-controlled mappings (combined.json/latest.json), preserve existing DELETE mappings
+	// The repository controller has already determined what should be deleted based on commit changes
+	// We only need to ADD delete mappings for entities in removed directories
+	preserveRepoMappings := (cacheFileName == "combined.json" || cacheFileName == "latest.json")
+
+	// Save the repository-generated DELETE mappings before any processing
+	var repoDeleteMappings graphman.BundleMappings
+	if preserveRepoMappings && newBundle.Properties != nil {
+		repoDeleteMappings = newBundle.Properties.Mappings
+	}
+
+	// Step 5: Reset mappings on previous bundle
 	if err := graphman.ResetMappings(&previousBundle); err != nil {
-		return nil, fmt.Errorf("failed to reset previous bundle mappings: %w", err)
+		params.Log.V(2).Info("failed to reset mappings on previous bundle, continuing anyway", "error", err)
 	}
 
-	// Calculate delta: current=previousBundle (cleaned), desired=newBundle
-	deltaBundle, _, err := graphman.CalculateDelta(previousBundle, newBundle)
+	// Step 6: Calculate delta for removed directories
+	_, combinedBundle, err := graphman.CalculateDelta(previousBundle, newBundle)
 	if err != nil {
-		return nil, fmt.Errorf("failed to calculate delta: %w", err)
+		return nil, fmt.Errorf("failed to calculate delta for directory change: %w", err)
 	}
 
-	// Marshal the delta bundle
-	deltaBundleBytes, err := json.Marshal(deltaBundle)
+	// Step 7: For repository-controlled mappings, merge back the repository DELETE mappings
+	// This ensures DELETE mappings from commit changes are preserved alongside directory-change DELETEs
+	if preserveRepoMappings {
+		if combinedBundle.Properties == nil {
+			combinedBundle.Properties = &graphman.BundleProperties{}
+		}
+		// Merge repository DELETE mappings with calculated delta DELETE mappings
+		// We need to preserve DELETE mappings from the repository (commit-based deletes)
+		// while adding new DELETE mappings from directory changes
+		combinedBundle.Properties.Mappings.Services = append(combinedBundle.Properties.Mappings.Services, repoDeleteMappings.Services...)
+		combinedBundle.Properties.Mappings.Policies = append(combinedBundle.Properties.Mappings.Policies, repoDeleteMappings.Policies...)
+		combinedBundle.Properties.Mappings.PolicyFragments = append(combinedBundle.Properties.Mappings.PolicyFragments, repoDeleteMappings.PolicyFragments...)
+		combinedBundle.Properties.Mappings.HttpConfigurations = append(combinedBundle.Properties.Mappings.HttpConfigurations, repoDeleteMappings.HttpConfigurations...)
+		combinedBundle.Properties.Mappings.Keys = append(combinedBundle.Properties.Mappings.Keys, repoDeleteMappings.Keys...)
+		combinedBundle.Properties.Mappings.TrustedCerts = append(combinedBundle.Properties.Mappings.TrustedCerts, repoDeleteMappings.TrustedCerts...)
+		combinedBundle.Properties.Mappings.Schemas = append(combinedBundle.Properties.Mappings.Schemas, repoDeleteMappings.Schemas...)
+		combinedBundle.Properties.Mappings.Dtds = append(combinedBundle.Properties.Mappings.Dtds, repoDeleteMappings.Dtds...)
+		combinedBundle.Properties.Mappings.CustomKeyValues = append(combinedBundle.Properties.Mappings.CustomKeyValues, repoDeleteMappings.CustomKeyValues...)
+		combinedBundle.Properties.Mappings.ClusterProperties = append(combinedBundle.Properties.Mappings.ClusterProperties, repoDeleteMappings.ClusterProperties...)
+
+		params.Log.V(2).Info("merged repository DELETE mappings with directory delta",
+			"repository", repoRef.Name,
+			"sourceType", cacheFileName,
+			"repoServiceMappings", len(repoDeleteMappings.Services),
+			"deltaServiceMappings", len(combinedBundle.Properties.Mappings.Services)-len(repoDeleteMappings.Services))
+	}
+
+	// Step 8: Marshal the combined bundle (with delete mappings)
+	bundleWithMappings, err := json.Marshal(combinedBundle)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal delta bundle: %w", err)
+		return nil, fmt.Errorf("failed to marshal combined bundle: %w", err)
 	}
 
-	params.Log.Info("calculated delta for directory change",
-		"repository", repository.Name,
-		"previous", normalizedPrevDirs)
+	// Step 9: Create clean version (reset mappings)
+	cleanBundle := combinedBundle
+	if err := graphman.ResetMappings(&cleanBundle); err != nil {
+		params.Log.V(2).Info("failed to reset mappings for clean bundle", "error", err)
+	}
+	cleanBundleBytes, err := json.Marshal(cleanBundle)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal clean bundle: %w", err)
+	}
 
-	return deltaBundleBytes, nil
+	// Step 10: Write bundles to disk
+	if err := writeBundlesToDisk(repository, repoRef, gateway, bundleWithMappings, cleanBundleBytes, tmpPath, fileName, cachePath, params); err != nil {
+		return nil, err
+	}
+
+	params.Log.V(2).Info("directory change handled with delta calculation",
+		"repository", repoRef.Name,
+		"previousDirs", previousDirectories,
+		"currentDirs", repoRef.Directories)
+
+	return bundleWithMappings, nil
+}
+
+// handleCommitChange handles commit changes with optional delta calculation
+func handleCommitChange(ctx context.Context, params Params, repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, cachePath string, cacheFileName string, tmpPath string, fileName string) ([]byte, error) {
+	// Step 1: Build new bundle from latest commit
+	newBundleBytes, err := buildBundleFromCache(repository, repoRef, cachePath, cacheFileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build bundle for new commit: %w", err)
+	}
+
+	// Step 2: For combined.json and statestore, the repository controller already calculated deltas
+	// Just apply the bundle with its mappings as-is
+	if cacheFileName == "combined.json" || repository.Spec.StateStoreReference != "" {
+		sourceType := "combined.json"
+		if repository.Spec.StateStoreReference != "" {
+			sourceType = "statestore"
+		}
+
+		params.Log.V(2).Info("commit change - using repository-calculated mappings",
+			"repository", repoRef.Name,
+			"commit", repository.Status.Commit,
+			"sourceType", sourceType)
+
+		// Log bundle details to verify mappings are present
+		var newBundle graphman.Bundle
+		if err := json.Unmarshal(newBundleBytes, &newBundle); err == nil {
+			serviceMappingsCount := 0
+			if newBundle.Properties != nil {
+				serviceMappingsCount = len(newBundle.Properties.Mappings.Services)
+			}
+			params.Log.Info("bundle from repository",
+				"repository", repoRef.Name,
+				"services", len(newBundle.Services),
+				"serviceMappings", serviceMappingsCount)
+		}
+
+		// Write and return the bundle (repository controller already added delete mappings)
+		if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+			return nil, err
+		}
+		return newBundleBytes, nil
+	}
+
+	// Step 3: For {commit}.json (vanilla bundles), just write and return
+	// User controls all mappings explicitly - no operator-generated deletes
+	params.Log.V(2).Info("commit change with vanilla bundle - no delta calculation",
+		"repository", repoRef.Name,
+		"commit", repository.Status.Commit)
+
+	// Write and return the bundle as-is (user-defined mappings only)
+	if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+		return nil, err
+	}
+	return newBundleBytes, nil
+}
+
+// writeBundlesToDisk writes bundle versions to disk for caching and retry
+func writeBundlesToDisk(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, bundleWithMappings []byte, cleanBundle []byte, tmpPath string, fileName string, cachePath string, params Params) error {
+	// Clean up old bundles
+	cleanupOldBundles(tmpPath)
+
+	// Write commit marker
+	commitMarkerPath := tmpPath + "/" + repository.Status.Commit + ".txt"
+	if err := os.WriteFile(commitMarkerPath, []byte{}, 0755); err != nil {
+		return fmt.Errorf("failed to write commit marker: %w", err)
+	}
+
+	// Write clean bundle (if provided)
+	if cleanBundle != nil {
+		// Write to tmpPath for immediate access
+		cleanBundlePath := tmpPath + "/" + fileName
+		if err := os.WriteFile(cleanBundlePath, cleanBundle, 0755); err != nil {
+			return fmt.Errorf("failed to write clean bundle to tmp: %w", err)
+		}
+		params.Log.V(5).Info("wrote clean bundle to tmp", "path", cleanBundlePath)
+
+		// Also write to cachePath for persistence (for directory change comparisons)
+		cleanBundleCachePath := cachePath + "/" + fileName
+		if err := os.WriteFile(cleanBundleCachePath, cleanBundle, 0755); err != nil {
+			params.Log.V(2).Info("failed to write clean bundle to cache, continuing", "error", err, "path", cleanBundleCachePath)
+		} else {
+			params.Log.V(5).Info("wrote clean bundle to cache", "path", cleanBundleCachePath)
+		}
+	} else {
+		// If no separate clean bundle, write the main bundle as clean
+		cleanBundlePath := tmpPath + "/" + fileName
+		if err := os.WriteFile(cleanBundlePath, bundleWithMappings, 0755); err != nil {
+			return fmt.Errorf("failed to write bundle to tmp: %w", err)
+		}
+		params.Log.V(5).Info("wrote bundle to tmp", "path", cleanBundlePath)
+
+		// Also write to cachePath for persistence
+		cleanBundleCachePath := cachePath + "/" + fileName
+		if err := os.WriteFile(cleanBundleCachePath, bundleWithMappings, 0755); err != nil {
+			params.Log.V(2).Info("failed to write bundle to cache, continuing", "error", err, "path", cleanBundleCachePath)
+		} else {
+			params.Log.V(5).Info("wrote bundle to cache", "path", cleanBundleCachePath)
+		}
+	}
+
+	// Write bundle with mappings (if different from clean)
+	if cleanBundle != nil {
+		bundleWithMappingsPath := tmpPath + "/" + fileName + "_with_mappings"
+		if err := os.WriteFile(bundleWithMappingsPath, bundleWithMappings, 0755); err != nil {
+			return fmt.Errorf("failed to write bundle with mappings: %w", err)
+		}
+		params.Log.V(5).Info("wrote bundle with mappings", "path", bundleWithMappingsPath)
+	}
+
+	// Write last applied bundle for retry mechanism (to tmpPath for immediate access)
+	lastAppliedTmpPath := tmpPath + "/last_applied_" + repoRef.Name + ".json"
+	if err := os.WriteFile(lastAppliedTmpPath, bundleWithMappings, 0755); err != nil {
+		return fmt.Errorf("failed to write last applied bundle to tmp: %w", err)
+	}
+	params.Log.V(5).Info("wrote last applied bundle to tmp", "path", lastAppliedTmpPath)
+
+	// Also write to cachePath for persistence across pod restarts
+	// Use repository name + reference name for consistency across directory changes
+	lastAppliedCachePath := cachePath + "/last_applied_" + repoRef.Name + ".json"
+	if err := os.WriteFile(lastAppliedCachePath, bundleWithMappings, 0755); err != nil {
+		return fmt.Errorf("failed to write last applied bundle to cache: %w", err)
+	}
+	params.Log.V(5).Info("wrote last applied bundle to cache", "path", lastAppliedCachePath)
+
+	return nil
+}
+
+func buildBundle(ctx context.Context, params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository, gateway *securityv1.Gateway, delete bool) (bundleBytes []byte, err error) {
+	tmpPath := "/tmp/bundles/" + repository.Name
+	fileName := calculateBundleFileName(params.Instance, repoRef.Name, repoRef.Directories)
+
+	// Ensure temp directory exists
+	if err := os.MkdirAll(tmpPath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create temp directory: %w", err)
+	}
+
+	// Step 1: Handle delete operations
+	if delete {
+		return buildDeleteBundle(repository, repoRef, gateway, params)
+	}
+
+	// Step 2: Check for retry scenario
+	if shouldRetry, retryBundle := checkRetryScenario(gateway, repoRef.Name, repository.Status.Commit, tmpPath, params); shouldRetry {
+		if retryBundle != nil {
+			params.Log.V(2).Info("retrying last applied bundle due to previous failure", "repository", repoRef.Name)
+			return retryBundle, nil
+		}
+	}
+
+	// Step 3: Determine cache location and file
+	cachePath, cacheFileName := determineCacheLocation(repository, gateway)
+	params.Log.V(5).Info("using cache", "cachePath", cachePath, "cacheFileName", cacheFileName, "repository", repoRef.Name)
+
+	// Step 4: Check if we should skip delta comparison (vanilla bundle)
+	if shouldSkipDeltaComparison(gateway, repository) {
+		params.Log.V(5).Info("skipping delta comparison, building vanilla bundle", "repository", repoRef.Name)
+		return buildVanillaBundleAndCache(repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName, params)
+	}
+
+	// Step 5: Check if commit changed
+	newCommit := false
+	if _, err := os.Stat(tmpPath + "/" + repository.Status.Commit + ".txt"); err != nil {
+		newCommit = true
+		params.Log.V(5).Info("new commit detected", "repository", repoRef.Name, "commit", repository.Status.Commit)
+	}
+
+	// Step 6: Check if directories changed
+	directoryChanged := false
+	var previousDirectories []string
+	for _, repoStatus := range gateway.Status.RepositoryStatus {
+		if repoStatus.Name == repoRef.Name {
+			previousDirectories = repoStatus.Directories
+			if len(previousDirectories) > 0 && !reflect.DeepEqual(repoRef.Directories, repoStatus.Directories) {
+				directoryChanged = true
+				params.Log.Info("directory change detected", "repository", repoRef.Name, "previous", previousDirectories, "current", repoRef.Directories)
+			}
+			break
+		}
+	}
+
+	// Step 7: Return cached bundle if nothing changed
+	if !newCommit && !directoryChanged {
+		// If delete/reconcile is enabled, try to use the bundle with mappings first
+		// This ensures we continue applying delete mappings if needed
+		if !shouldSkipDeltaComparison(gateway, repository) {
+			if bundleWithMappings, err := os.ReadFile(tmpPath + "/" + fileName + "_with_mappings"); err == nil {
+				params.Log.V(5).Info("returning cached bundle with mappings (no changes)", "repository", repoRef.Name)
+				return bundleWithMappings, nil
+			}
+		}
+
+		// Otherwise use the clean bundle
+		if cachedBundle, err := os.ReadFile(tmpPath + "/" + fileName); err == nil {
+			params.Log.V(5).Info("returning cached bundle (no changes)", "repository", repoRef.Name)
+			return cachedBundle, nil
+		}
+	}
+
+	// Step 8: Route to appropriate handler
+	if directoryChanged && gateway.Spec.App.RepositoryReferenceDelete.ReconcileDirectoryChanges {
+		params.Log.V(2).Info("handling directory change with reconciliation", "repository", repoRef.Name)
+		return handleDirectoryChange(ctx, params, repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName, previousDirectories)
+	} else if directoryChanged && !gateway.Spec.App.RepositoryReferenceDelete.ReconcileDirectoryChanges {
+		params.Log.V(5).Info("directory changed but reconciliation disabled, building vanilla bundle", "repository", repoRef.Name)
+		return buildVanillaBundleAndCache(repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName, params)
+	} else if newCommit {
+		params.Log.V(2).Info("handling commit change", "repository", repoRef.Name, "commit", repository.Status.Commit)
+		return handleCommitChange(ctx, params, repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName)
+	}
+
+	// Fallback: build vanilla bundle
+	params.Log.V(5).Info("building vanilla bundle (fallback)", "repository", repoRef.Name)
+	return buildVanillaBundleAndCache(repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName, params)
 }
 
 // calculateBundleFileName generates a unique filename based on directories and commit
-func calculateBundleFileName(directories []string, commit string) string {
+func calculateBundleFileName(gateway *securityv1.Gateway, referenceName string, directories []string) string {
 	dirChecksum := ""
 	for _, d := range directories {
 		h := sha1.New()
@@ -967,14 +1287,14 @@ func calculateBundleFileName(directories []string, commit string) string {
 	}
 
 	h := sha1.New()
-	h.Write([]byte(commit + dirChecksum))
+	h.Write([]byte(gateway.Name + "-" + referenceName + "-" + dirChecksum))
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 	return sha1Sum[30:] + ".json"
 }
 
 // buildBundleFromCache loads bundles from cached directory structure or storage secret
-func buildBundleFromCache(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, cachePath string) ([]byte, error) {
-	fileName := repository.Status.Commit + ".json"
+func buildBundleFromCache(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, cachePath string, fileName string) ([]byte, error) {
+	//fileName := repository.Status.Commit + ".json"
 
 	bundleMapBytes, err := os.ReadFile(cachePath + "/" + fileName)
 	if err != nil {
@@ -988,18 +1308,29 @@ func buildBundleFromCache(repository *securityv1.Repository, repoRef *securityv1
 		return nil, fmt.Errorf("failed to unmarshal bundle map: %w", err)
 	}
 
-	// If requesting all directories, concatenate everything
+	// Determine if we should preserve repository mappings
+	// For combined.json and latest.json (StateStore), preserve DELETE mappings from repository controller
+	// For commit.json (user-controlled), clean DELETE mappings for re-added entities
+	preserveRepoMappings := (fileName == "combined.json" || fileName == "latest.json")
+
+	// If requesting all directories, concatenate everything, no ordering
 	if len(repoRef.Directories) == 1 && repoRef.Directories[0] == "/" {
+		if preserveRepoMappings {
+			return util.ConcatBundlesPreservingMappings(bundleMap)
+		}
 		return util.ConcatBundles(bundleMap)
 	}
 
 	// Otherwise, filter by specific directories
-	return buildBundleFromDirectories(repoRef.Directories, bundleMap)
+	return buildBundleFromDirectories(repoRef.Directories, bundleMap, preserveRepoMappings)
 }
 
 // buildBundleFromDirectories combines bundles from specific directories
 // Processes directories in order, with later directories overwriting earlier ones
-func buildBundleFromDirectories(directories []string, bundleMap map[string][]byte) ([]byte, error) {
+// preserveRepoMappings: if true, preserve DELETE mappings from repository controller (for combined.json)
+//
+//	if false, clean DELETE mappings for re-added entities (for commit.json)
+func buildBundleFromDirectories(directories []string, bundleMap map[string][]byte, preserveRepoMappings bool) ([]byte, error) {
 	srcBundle := graphman.Bundle{}
 	bundleBytes, err := json.Marshal(srcBundle)
 	if err != nil {
@@ -1008,37 +1339,39 @@ func buildBundleFromDirectories(directories []string, bundleMap map[string][]byt
 
 	// Process directories in the order specified
 	for _, d := range directories {
-		normalizedDir := strings.TrimPrefix(strings.ReplaceAll(d, "/", "-"), "-")
+		keyName := strings.TrimPrefix(strings.ReplaceAll(d, "/", "-"), "-")
 
 		// Use full bundles (not deltas) for concatenation
-		fullBundleGz := normalizedDir + ".gz"
+		bundleKey := keyName + ".gz"
 
-		if bundleGz, exists := bundleMap[fullBundleGz]; exists {
+		if bundleGz, exists := bundleMap[bundleKey]; exists {
 			decompressedBytes, err := util.GzipDecompress(bundleGz)
 			if err != nil {
-				return nil, fmt.Errorf("failed to decompress bundle %s: %w", fullBundleGz, err)
+				return nil, fmt.Errorf("failed to decompress bundle %s: %w", bundleKey, err)
 			}
 
-			// Reset mappings on the bundle to get clean state (removes delete mappings)
-			// This ensures we're concatenating clean bundles, not ones with stale delete mappings
 			var bundle graphman.Bundle
 			if err := json.Unmarshal(decompressedBytes, &bundle); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal bundle %s: %w", fullBundleGz, err)
-			}
-
-			if err := graphman.ResetMappings(&bundle); err != nil {
-				return nil, fmt.Errorf("failed to reset mappings on bundle %s: %w", fullBundleGz, err)
+				return nil, fmt.Errorf("failed to unmarshal bundle from %s: %w", bundleKey, err)
 			}
 
 			cleanBytes, err := json.Marshal(bundle)
 			if err != nil {
-				return nil, fmt.Errorf("failed to marshal clean bundle %s: %w", fullBundleGz, err)
+				return nil, fmt.Errorf("failed to marshal clean bundle from %s: %w", bundleKey, err)
 			}
 
-			// Concatenate: later bundle overwrites earlier bundle (latest wins)
-			bundleBytes, err = graphman.ConcatBundle(cleanBytes, bundleBytes)
+			// Concatenate bundles
+			if preserveRepoMappings {
+				// For repository-controlled mappings (combined.json, latest.json),
+				// preserve DELETE mappings as-is - don't clean them
+				bundleBytes, err = graphman.ConcatBundlePreservingMappings(cleanBytes, bundleBytes)
+			} else {
+				// For user-controlled mappings (commit.json),
+				// clean DELETE mappings for re-added entities
+				bundleBytes, err = graphman.ConcatBundle(cleanBytes, bundleBytes)
+			}
 			if err != nil {
-				return nil, fmt.Errorf("failed to concat bundle %s: %w", fullBundleGz, err)
+				return nil, fmt.Errorf("failed to concat bundle from %s: %w", bundleKey, err)
 			}
 		}
 	}
@@ -1060,7 +1393,8 @@ func buildBundleFromStorageSecret(ctx context.Context, repository *securityv1.Re
 	}
 
 	// Otherwise, filter by specific directories
-	return buildBundleFromDirectories(repoRef.Directories, storageSecret.Data)
+	// For storage secret, we preserve user-defined mappings (not repository-controlled)
+	return buildBundleFromDirectories(repoRef.Directories, storageSecret.Data, false)
 }
 
 // cleanupOldBundles removes bundles older than 10 days
@@ -1087,14 +1421,17 @@ func checkLocalRepoOnFs(params Params, repository *securityv1.Repository) (bool,
 	var cachePath string
 	if repository.Spec.StateStoreReference != "" {
 		cachePath = "/tmp/statestore/" + repository.Name
+		fileName := "latest.json"
+		if _, err := os.Stat(cachePath + "/" + fileName); err == nil {
+			return true, nil
+		}
 	} else {
 		cachePath = "/tmp/repo-cache/" + repository.Name
-	}
-
-	fileName := repository.Status.Commit + ".json"
-	if _, err := os.Stat(cachePath + "/" + fileName); err == nil {
-		// Pre-built bundle cache exists, can use it
-		return true, nil
+		fileName := repository.Status.Commit + ".json"
+		if _, err := os.Stat(cachePath + "/" + fileName); err == nil {
+			// Pre-built bundle cache exists, can use it
+			return true, nil
+		}
 	}
 
 	// If no cache, check if raw repository exists on filesystem
@@ -1103,36 +1440,6 @@ func checkLocalRepoOnFs(params Params, repository *securityv1.Repository) (bool,
 		stateStorePath := "/tmp/statestore/" + repository.Name
 		if _, err := os.Stat(stateStorePath); err == nil {
 			return true, nil
-		}
-	}
-
-	gitPath := ""
-	ext := repository.Spec.Branch
-	dir := "/"
-
-	gitPath = "/tmp/" + repository.Name + "-" + params.Instance.Namespace + "-" + ext + "/" + dir
-
-	switch strings.ToLower(string(repository.Spec.Type)) {
-	case "http":
-		fileURL, err := url.Parse(repository.Spec.Endpoint)
-		if err != nil {
-			return false, err
-		}
-		path := fileURL.Path
-		segments := strings.Split(path, "/")
-		fileName := segments[len(segments)-1]
-		ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
-		folderName := strings.ReplaceAll(fileName, "."+ext, "")
-		if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
-			folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
-		}
-		gitPath = "/tmp/" + repository.Name + "-" + params.Instance.Namespace + "-" + folderName
-	}
-
-	if gitPath != "" {
-		_, fErr := os.Stat(gitPath)
-		if fErr != nil {
-			return false, nil
 		}
 	}
 
@@ -1157,7 +1464,6 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 	}
 
 	currentChecksum := gwUpdReq.deployment.ObjectMeta.Annotations[gwUpdReq.patchAnnotation]
-
 	// Skip if it already has the correct checksum and no directory change
 	if currentChecksum == gwUpdReq.checksum && !gwUpdReq.delete {
 		// Check if there's a directory change for repositories

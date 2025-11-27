@@ -181,6 +181,154 @@ func CombineWithOverwrite(src Bundle, dest Bundle) (Bundle, error) {
 	return dest, nil
 }
 
+// CombineWithOverwritePreservingDeleteMappings merges bundles like CombineWithOverwrite but preserves ALL DELETE mappings.
+// This is used when concatenating repository-controlled bundles (combined.json, latest.json) where the
+// repository controller has already determined the correct DELETE mappings.
+// Unlike CombineWithOverwrite, this does NOT call CleanDeleteMappingsForEntities.
+func CombineWithOverwritePreservingDeleteMappings(src Bundle, dest Bundle) (Bundle, error) {
+	// Recover from reflection panics
+	defer func() {
+		if r := recover(); r != nil {
+			dest = Bundle{}
+		}
+	}()
+
+	// Merge using reflection - src overwrites dest
+	destVal := reflect.ValueOf(&dest).Elem()
+	srcVal := reflect.ValueOf(src)
+
+	for i := 0; i < srcVal.NumField(); i++ {
+		srcField := srcVal.Field(i)
+		destField := destVal.Field(i)
+		fieldName := srcVal.Type().Field(i).Name
+
+		// Skip Properties field - handle separately
+		if fieldName == "Properties" {
+			continue
+		}
+
+		// Only process slice fields (entity lists)
+		if srcField.Kind() != reflect.Slice || destField.Kind() != reflect.Slice {
+			continue
+		}
+
+		if srcField.Len() == 0 {
+			continue
+		}
+
+		// Get ID for entity matching
+		// Uses primary identifier fields based on entity type
+		getID := func(e reflect.Value, fieldName string) string {
+			if e.Kind() == reflect.Ptr {
+				e = e.Elem()
+			}
+
+			// Define primary identifiers for different entity types
+			// These determine when entities are considered "the same"
+			var primaryFields []string
+
+			switch fieldName {
+			case "Services", "Policies", "PolicyFragments":
+				// Services/Policies: Match on Name only (folder is just a property)
+				primaryFields = []string{"Name"}
+			case "HttpConfigurations":
+				// HTTP configs: Must match both Host AND Port
+				primaryFields = []string{"Host", "Port"}
+			case "Keys":
+				// Keys: Match on Alias (within default keystore)
+				primaryFields = []string{"Alias"}
+			case "TrustedCerts":
+				// Certs: Match on thumbprint
+				primaryFields = []string{"ThumbprintSha1"}
+			case "Schemas", "Dtds":
+				// Schemas/DTDs: Match on SystemId
+				primaryFields = []string{"SystemId"}
+			case "CustomKeyValues":
+				// Custom KV: Match on Key
+				primaryFields = []string{"Key"}
+			default:
+				// Default: Match on Name
+				primaryFields = []string{"Name"}
+			}
+
+			// Build ID from primary fields
+			var parts []string
+			for _, field := range primaryFields {
+				if f := e.FieldByName(field); f.IsValid() {
+					var val string
+					switch f.Kind() {
+					case reflect.String:
+						val = f.String()
+					case reflect.Int, reflect.Int32, reflect.Int64:
+						if f.Int() != 0 {
+							val = fmt.Sprintf("%d", f.Int())
+						}
+					}
+					if val != "" {
+						parts = append(parts, val)
+					}
+				}
+			}
+
+			if len(parts) == 0 {
+				return ""
+			}
+
+			return strings.Join(parts, "|")
+		}
+
+		// Build map of src entities by ID (deduplicates within src itself)
+		srcMap := make(map[string]reflect.Value)
+		for j := 0; j < srcField.Len(); j++ {
+			entity := srcField.Index(j)
+			if id := getID(entity, fieldName); id != "" {
+				srcMap[id] = entity // Later entries with same ID overwrite earlier ones
+			}
+		}
+
+		// Overwrite/append: replace dest entities with src if same ID, keep others
+		newSlice := reflect.MakeSlice(destField.Type(), 0, destField.Len()+len(srcMap))
+
+		// Add dest entities (but skip if being overwritten by src)
+		for j := 0; j < destField.Len(); j++ {
+			entity := destField.Index(j)
+			id := getID(entity, fieldName)
+			if _, beingOverwritten := srcMap[id]; !beingOverwritten {
+				newSlice = reflect.Append(newSlice, entity)
+			}
+		}
+
+		// Add unique src entities from map (this automatically deduplicates)
+		for _, entity := range srcMap {
+			newSlice = reflect.Append(newSlice, entity)
+		}
+
+		destField.Set(newSlice)
+	}
+
+	// Merge properties
+	if src.Properties != nil {
+		if dest.Properties == nil {
+			dest.Properties = &BundleProperties{}
+		}
+		if src.Properties.DefaultAction != "" {
+			dest.Properties.DefaultAction = src.Properties.DefaultAction
+		}
+		if src.Properties.Meta.Id != "" {
+			dest.Properties.Meta = src.Properties.Meta
+		}
+		// Merge mappings from src
+		if err := mergeMappings(&dest.Properties.Mappings, src.Properties.Mappings); err != nil {
+			return dest, fmt.Errorf("failed to merge mappings: %w", err)
+		}
+	}
+
+	// SKIP CleanDeleteMappingsForEntities - preserve ALL DELETE mappings as-is
+	// The repository controller has already determined the correct mappings
+
+	return dest, nil
+}
+
 // mergeMappings combines mapping instructions from src into dest
 func mergeMappings(dest *BundleMappings, src BundleMappings) error {
 	defer func() {

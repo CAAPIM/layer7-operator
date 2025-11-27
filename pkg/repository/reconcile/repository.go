@@ -29,7 +29,6 @@ package reconcile
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"os"
 	"reflect"
@@ -180,7 +179,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 
 			// Check if we need to build cache/storage secret (only if status doesn't match)
-			if params.Instance.Status.Commit == commit && (params.Instance.Status.StorageSecretName != "" || params.Instance.Status.StorageSecretName != "_") {
+			if params.Instance.Status.Commit == commit && (params.Instance.Status.StorageSecretName != "" && params.Instance.Status.StorageSecretName != "_") {
 				params.Log.V(5).Info("already up-to-date with cache built", "name", repository.Name, "namespace", repository.Namespace)
 				return nil
 			}
@@ -227,11 +226,6 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	if strings.ToLower(string(repository.Spec.Type)) != "statestore" {
-		// Build directory-based bundle cache for all repos (state store and non-state store)
-		bundleMap, err := BuildRepositoryCache(ctx, params, commit, storageSecretName)
-		if err != nil {
-			params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
-		}
 
 		if repository.Spec.StateStoreReference != "" {
 			// For state store repos, sync to Redis
@@ -245,6 +239,12 @@ func syncRepository(ctx context.Context, params Params) error {
 		// Create storage secret from bundleMap for all repos
 		// Filter out delta bundles - we don't use them in Gateway yet and they take up space
 		if storageSecretName != "_" && storageSecretName != "" {
+			// Build directory-based bundle cache for all repos (state store and non-state store)
+			bundleMap, err := BuildRepositoryCache(ctx, params, commit, storageSecretName)
+			if err != nil {
+				params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+			}
+
 			storageSecretBundleMap := make(map[string][]byte)
 			for k, v := range bundleMap {
 				if !strings.HasSuffix(k, "-delta.gz") {
@@ -355,106 +355,18 @@ func setRepoReady(ctx context.Context, params Params, patch []byte) error {
 	return nil
 }
 
-func captureRepositorySyncMetrics(ctx context.Context, params Params, start time.Time, commitId string, hasError bool) error {
-	operatorNamespace, err := util.GetOperatorNamespace()
-	if err != nil {
-		params.Log.Info("could not determine operator namespace")
-		return err
-	}
-	gateway := params.Instance
-	otelEnabled, err := util.GetOtelEnabled()
-	if err != nil {
-		params.Log.Info("could not determine if OTel is enabled")
-		return err
-	}
-
-	if !otelEnabled {
-		return nil
-	}
-
-	otelMetricPrefix, err := util.GetOtelMetricPrefix()
-	if err != nil {
-		params.Log.Info("could not determine otel metric prefix")
-		return err
-	}
-
-	if otelMetricPrefix == "" {
-		otelMetricPrefix = "layer7_"
-	}
-
-	hostname, err := util.GetHostname()
-	if err != nil {
-		params.Log.Error(err, "failed to retrieve operator hostname")
-		return err
-	}
-
-	meter := otel.Meter("layer7-operator-repository-sync-metrics")
-	repoSyncLatency, err := meter.Float64Histogram(otelMetricPrefix+"operator_repository_sync_latency",
-		metric.WithDescription("repository sync latency"), metric.WithUnit("ms"))
-	if err != nil {
-		return err
-	}
-
-	repoSyncSuccess, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_success",
-		metric.WithDescription("graphman request success"))
-	if err != nil {
-		return err
-	}
-
-	repoSyncFailure, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_failure",
-		metric.WithDescription("graphman request failure"))
-	if err != nil {
-		return err
-	}
-
-	repoSyncTotal, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_total",
-		metric.WithDescription("graphman request total"))
-	if err != nil {
-		return err
-	}
-
-	duration := time.Since(start)
-	repoSyncLatency.Record(ctx, duration.Seconds(),
-		metric.WithAttributes(
-			attribute.String("k8s.pod.name", hostname),
-			attribute.String("k8s.namespace.name", operatorNamespace),
-			attribute.String("repository_namespace", gateway.Namespace)))
-
-	repoSyncTotal.Add(ctx, 1,
-		metric.WithAttributes(
-			attribute.String("k8s.pod.name", hostname),
-			attribute.String("k8s.namespace.name", operatorNamespace),
-			attribute.String("repository_namespace", gateway.Namespace)))
-
-	if hasError {
-		repoSyncFailure.Add(ctx, 1,
-			metric.WithAttributes(
-				attribute.String("k8s.pod.name", hostname),
-				attribute.String("k8s.namespace.name", operatorNamespace),
-				attribute.String("repository_namespace", gateway.Namespace),
-				attribute.String("repository_type", string(params.Instance.Spec.Type)),
-				attribute.String("repository_name", params.Instance.Name),
-				attribute.String("commit_id", commitId)))
-	} else {
-		repoSyncSuccess.Add(ctx, 1,
-			metric.WithAttributes(
-				attribute.String("k8s.pod.name", hostname),
-				attribute.String("k8s.namespace.name", operatorNamespace),
-				attribute.String("repository_namespace", gateway.Namespace),
-				attribute.String("repository_type", string(params.Instance.Spec.Type)),
-				attribute.String("repository_name", params.Instance.Name),
-				attribute.String("commit_id", commitId)))
-	}
-
-	return nil
-}
-
 // BuildRepositoryCache scans a repository, builds bundles per directory, and caches them
 // Returns the bundleMap for reuse (e.g., in StorageSecret)
 func BuildRepositoryCache(ctx context.Context, params Params, commit string, storageSecretName string) (map[string][]byte, error) {
 	repository := params.Instance
 	cachePath := "/tmp/repo-cache/" + repository.Name
-	fileName := commit + ".json"
+	// fileName := commit + ".json"
+
+	// there is a flag that facilitates delete being managed using mappings outside of the operator which is the default
+	// behaviour if you are not using a L7StateStore.
+	// This is a safer approach for database backed gateways.
+	combinedBundlefileName := "combined.json"
+	trackedBundleFileName := commit + ".json"
 
 	// Create cache directory
 	if err := os.MkdirAll(cachePath, 0755); err != nil {
@@ -462,11 +374,11 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 	}
 
 	// Check if already cached - load and return existing bundleMap
-	if _, err := os.Stat(cachePath + "/" + fileName); err == nil {
+	if _, err := os.Stat(cachePath + "/" + trackedBundleFileName); err == nil {
 		params.Log.V(2).Info("repository cache already exists", "name", repository.Name, "commit", commit)
 
 		// Read existing cache
-		bundleMapBytes, err := os.ReadFile(cachePath + "/" + fileName)
+		bundleMapBytes, err := os.ReadFile(cachePath + "/" + trackedBundleFileName)
 		if err != nil {
 			return nil, err
 		}
@@ -475,64 +387,36 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 		if err := json.Unmarshal(bundleMapBytes, &bundleMap); err != nil {
 			return nil, err
 		}
-
 		return bundleMap, nil
 	}
 
-	// Get the base path for the repository
-	var basePath string
-	switch strings.ToLower(string(repository.Spec.Type)) {
-	case "http":
-		fileURL, err := url.Parse(repository.Spec.Endpoint)
-		if err != nil {
-			return nil, err
-		}
-		path := fileURL.Path
-		segments := strings.Split(path, "/")
-		fileName := segments[len(segments)-1]
-		ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
-		folderName := strings.ReplaceAll(fileName, "."+ext, "")
-		if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
-			folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
-		}
-		basePath = "/tmp/" + repository.Name + "-" + repository.Namespace + "-" + folderName
-	case "git":
-		ext := repository.Spec.Branch
-		if ext == "" {
-			ext = repository.Spec.Tag
-		}
-		basePath = "/tmp/" + repository.Name + "-" + repository.Namespace + "-" + ext
-	default:
-		return nil, fmt.Errorf("unsupported repository type: %s", repository.Spec.Type)
-	}
-
-	// Detect all graphman folders in the repository
-	projects, err := util.DetectGraphmanFolders(basePath)
+	_, repositoryPath, _, err := localRepoStorageInfo(params)
 	if err != nil {
 		return nil, err
 	}
 
-	// Load previous bundle map for delta calculation (if exists)
-	previousBundleMap := map[string][]byte{}
-	if repository.Status.Commit != "" && repository.Status.Commit != commit {
-		previousFileName := repository.Status.Commit + ".json"
-		if previousBytes, err := os.ReadFile(cachePath + "/" + previousFileName); err == nil {
-			_ = json.Unmarshal(previousBytes, &previousBundleMap)
-		}
+	// Detect all graphman folders in the repository
+	projects, err := util.DetectGraphmanFolders(repositoryPath)
+	if err != nil {
+		return nil, err
 	}
 
 	bundleMap := map[string][]byte{}
-	currentBundles := map[string][]byte{} // Uncompressed source bundles for delta calculation
+	currentBundles := map[string][]byte{}
 
-	for _, projectPath := range projects {
-		// Build bundle for this directory
-		bundleBytes, err := util.BuildAndValidateBundle(projectPath, false)
+	// Build the current commit
+	for _, project := range projects {
+		// need to see what a base level directory has here so we can account for that
+		// may require new build of graphman-static-init
+		// empty directory prob covers it already..
+
+		bundleBytes, err := util.BuildAndValidateBundle(project, false)
 		if err != nil {
 			return nil, err
 		}
 
 		// Generate key name (normalize directory path)
-		keyName := strings.Replace(projectPath, basePath, "", 1)
+		keyName := strings.Replace(project, repositoryPath, "", 1)
 		keyName = strings.TrimPrefix(strings.ReplaceAll(keyName, "/", "-"), "-")
 
 		currentBundles[keyName+".json"] = bundleBytes
@@ -543,8 +427,25 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 			return nil, err
 		}
 
-		// Store compressed full bundle in map (will be overwritten with combined if previous exists)
 		bundleMap[keyName+".gz"] = bundleGzip
+	}
+
+	// Write the current commit to file
+	bundleMapBytes, err := json.Marshal(bundleMap)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.WriteFile(cachePath+"/"+trackedBundleFileName, bundleMapBytes, 0755); err != nil {
+		return nil, err
+	}
+
+	// Load previous bundle map for delta calculation (if exists)
+	previousBundleMap := map[string][]byte{}
+	if repository.Status.Commit != "" && repository.Status.Commit != commit {
+		if previousBytes, err := os.ReadFile(cachePath + "/" + combinedBundlefileName); err == nil {
+			_ = json.Unmarshal(previousBytes, &previousBundleMap)
+		}
 	}
 
 	// Calculate deltas against previous version (exactly like StateStorage does)
@@ -676,13 +577,13 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 	}
 
 	// Marshal the bundle map
-	bundleMapBytes, err := json.Marshal(bundleMap)
+	bundleMapBytes, err = json.Marshal(bundleMap)
 	if err != nil {
 		return nil, err
 	}
 
-	// Write to cache
-	if err := os.WriteFile(cachePath+"/"+fileName, bundleMapBytes, 0755); err != nil {
+	// Write dynamic bundle to file
+	if err := os.WriteFile(cachePath+"/"+combinedBundlefileName, bundleMapBytes, 0755); err != nil {
 		return nil, err
 	}
 
@@ -692,4 +593,98 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 		"commit", commit)
 
 	return bundleMap, nil
+}
+
+func captureRepositorySyncMetrics(ctx context.Context, params Params, start time.Time, commitId string, hasError bool) error {
+	operatorNamespace, err := util.GetOperatorNamespace()
+	if err != nil {
+		params.Log.Info("could not determine operator namespace")
+		return err
+	}
+	gateway := params.Instance
+	otelEnabled, err := util.GetOtelEnabled()
+	if err != nil {
+		params.Log.Info("could not determine if OTel is enabled")
+		return err
+	}
+
+	if !otelEnabled {
+		return nil
+	}
+
+	otelMetricPrefix, err := util.GetOtelMetricPrefix()
+	if err != nil {
+		params.Log.Info("could not determine otel metric prefix")
+		return err
+	}
+
+	if otelMetricPrefix == "" {
+		otelMetricPrefix = "layer7_"
+	}
+
+	hostname, err := util.GetHostname()
+	if err != nil {
+		params.Log.Error(err, "failed to retrieve operator hostname")
+		return err
+	}
+
+	meter := otel.Meter("layer7-operator-repository-sync-metrics")
+	repoSyncLatency, err := meter.Float64Histogram(otelMetricPrefix+"operator_repository_sync_latency",
+		metric.WithDescription("repository sync latency"), metric.WithUnit("ms"))
+	if err != nil {
+		return err
+	}
+
+	repoSyncSuccess, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_success",
+		metric.WithDescription("graphman request success"))
+	if err != nil {
+		return err
+	}
+
+	repoSyncFailure, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_failure",
+		metric.WithDescription("graphman request failure"))
+	if err != nil {
+		return err
+	}
+
+	repoSyncTotal, err := meter.Int64Counter(otelMetricPrefix+"operator_repository_sync_total",
+		metric.WithDescription("graphman request total"))
+	if err != nil {
+		return err
+	}
+
+	duration := time.Since(start)
+	repoSyncLatency.Record(ctx, duration.Seconds(),
+		metric.WithAttributes(
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
+			attribute.String("repository_namespace", gateway.Namespace)))
+
+	repoSyncTotal.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("k8s.pod.name", hostname),
+			attribute.String("k8s.namespace.name", operatorNamespace),
+			attribute.String("repository_namespace", gateway.Namespace)))
+
+	if hasError {
+		repoSyncFailure.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
+				attribute.String("repository_namespace", gateway.Namespace),
+				attribute.String("repository_type", string(params.Instance.Spec.Type)),
+				attribute.String("repository_name", params.Instance.Name),
+				attribute.String("commit_id", commitId)))
+	} else {
+		repoSyncSuccess.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("k8s.pod.name", hostname),
+				attribute.String("k8s.namespace.name", operatorNamespace),
+				attribute.String("repository_namespace", gateway.Namespace),
+				attribute.String("repository_type", string(params.Instance.Spec.Type)),
+				attribute.String("repository_name", params.Instance.Name),
+				attribute.String("commit_id", commitId)))
+	}
+
+	return nil
 }

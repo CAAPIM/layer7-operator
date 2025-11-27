@@ -53,13 +53,14 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 	}
 
 	tmpPath := "/tmp/statestore/" + params.Instance.Name
-	fileName := commit + ".json"
+	commitTracker := commit + ".txt"
+	fileName := "latest.json"
 	_, dErr := os.Stat(tmpPath)
 	if dErr != nil {
 		_ = os.MkdirAll(tmpPath, 0755)
 	}
 
-	_, fErr := os.Stat(tmpPath + "/" + fileName)
+	_, fErr := os.Stat(tmpPath + "/" + commitTracker)
 	if fErr == nil {
 		return nil
 	}
@@ -128,6 +129,17 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		if rs.Err() != nil {
 			return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
 		}
+
+		// then write that to file...
+		err = os.WriteFile(tmpPath+"/"+fileName, compressedBundleBytes, 0755)
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile(tmpPath+"/"+commitTracker, []byte{}, 0755)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -270,6 +282,12 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 	if err != nil {
 		return err
 	}
+
+	err = os.WriteFile(tmpPath+"/"+commitTracker, []byte{}, 0755)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

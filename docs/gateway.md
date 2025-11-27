@@ -13844,14 +13844,29 @@ delete
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          Enable or disable deleting repository references<br/>
+          Enable or disable deleting repository references
+by default this only applies to repositories that have a statestore reference<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>limitToStateStore</b></td>
+        <td><b>includeEfs</b></td>
         <td>boolean</td>
         <td>
-          Limit deletion to repositories that have an external statestore<br/>
+          IncludeEfs we track deltas between repositories on the operators ephemeral filesystem
+setting this to true will enable delete functionality for all repositoryReferences
+USE WITH CAUTION, an operator restart removes the ephemeral filesystem with the state that is tracked there.
+We DO NOT recommend this setting for database backed gateways, ephemeral gateways can be restarted to reset state.
+use mappings instead<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reconcileDirectoryChanges</b></td>
+        <td>boolean</td>
+        <td>
+          ReconcileDirectoryChanges will create and apply mappings if your dynamic repositoryReference folders change.
+Changes will be based on the current commit
+This is not recommended if you are using a database backed gateway
+Use mappings in your repo instead<br/>
         </td>
         <td>false</td>
       </tr><tr>

@@ -446,6 +446,53 @@ func ConcatBundles(bundleMap map[string][]byte) (combinedBundleBytes []byte, err
 
 }
 
+// ConcatBundlesPreservingMappings concatenates all bundles in a bundle map while preserving DELETE mappings
+// This is used for repository-controlled bundles (combined.json, latest.json) when directories=["/"]
+func ConcatBundlesPreservingMappings(bundleMap map[string][]byte) (combinedBundleBytes []byte, err error) {
+
+	combinedBundle := graphman.Bundle{}
+
+	for k, v := range bundleMap {
+		if strings.HasSuffix(k, "-delta.gz") || strings.HasSuffix(k, "-delta.json") {
+			continue
+		}
+
+		bundle := graphman.Bundle{}
+		if strings.HasSuffix(k, ".json") {
+			err = json.Unmarshal(v, &bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle, err = graphman.CombineWithOverwritePreservingDeleteMappings(bundle, combinedBundle)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if strings.HasSuffix(k, ".gz") {
+			bundleBytes, err := GzipDecompress(v)
+			if err != nil {
+				return nil, err
+			}
+			err = json.Unmarshal(bundleBytes, &bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle, err = graphman.CombineWithOverwritePreservingDeleteMappings(bundle, combinedBundle)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	combinedBundleBytes, err = json.Marshal(combinedBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	return combinedBundleBytes, nil
+
+}
+
 func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes []byte, err error) {
 	if path == "" {
 		return nil, nil

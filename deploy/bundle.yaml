@@ -4882,11 +4882,17 @@ spec:
                       when a...
                     properties:
                       enabled:
-                        description: Enable or disable deleting repository references
+                        description: |-
+                          Enable or disable deleting repository references
+                          by default this only...
                         type: boolean
-                      limitToStateStore:
-                        description: Limit deletion to repositories that have an external
-                          statestore
+                      includeEfs:
+                        description: IncludeEfs we track deltas between repositories
+                          on the operators ephemeral...
+                        type: boolean
+                      reconcileDirectoryChanges:
+                        description: ReconcileDirectoryChanges will create and apply
+                          mappings if your dynamic...
                         type: boolean
                       reconcileReferences:
                         description: ReconcileReferences resets the commits for all

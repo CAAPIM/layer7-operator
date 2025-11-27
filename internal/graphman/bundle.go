@@ -424,6 +424,41 @@ func ConcatBundle(src []byte, dest []byte) ([]byte, error) {
 	return bundleBytes, nil
 }
 
+// ConcatBundlePreservingMappings concatenates bundles while preserving ALL DELETE mappings
+// This is used for repository-controlled mappings (combined.json, latest.json) where the
+// repository controller has already determined which entities should be deleted.
+// Unlike ConcatBundle, this does NOT call CleanDeleteMappingsForEntities.
+func ConcatBundlePreservingMappings(src []byte, dest []byte) ([]byte, error) {
+	srcBundle := Bundle{}
+	destBundle := Bundle{}
+
+	if len(src) == 0 {
+		return dest, nil
+	}
+
+	err := json.Unmarshal(dest, &destBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(src, &srcBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use CombineWithOverwritePreservingDeleteMappings instead of CombineWithOverwrite
+	destBundle, err = CombineWithOverwritePreservingDeleteMappings(srcBundle, destBundle)
+
+	if err != nil {
+		return nil, err
+	}
+	bundleBytes, err := json.Marshal(destBundle)
+	if err != nil {
+		return nil, err
+	}
+	return bundleBytes, nil
+}
+
 func matchOptionsLevelFormat(value string) string {
 	re := regexp.MustCompile(`^{{(.*)}}`)
 	match := re.FindStringSubmatch(value)

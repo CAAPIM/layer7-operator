@@ -27,7 +27,7 @@ package reconcile
 
 import (
 	"context"
-	"strings"
+	"fmt"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -86,56 +86,21 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 		localRepoAvailable, err := checkLocalRepoOnFs(params, repository)
 		if err != nil {
-			return err
+			//return err
+			params.Log.Info("repository not available on local fs", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 		}
-
-		// If repository not available locally, check if storage secret exists with required bundles
+		// If repository not available locally, check if storage secret exists
+		// storageSecret primary use is bootstrap, does not track delta so this is not reliable for delete
 		if !localRepoAvailable {
-			if repository.Status.StorageSecretName != "" && repository.Status.StorageSecretName != "_" {
-				storageSecret, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
+			if !gateway.Spec.App.RepositoryReferenceDelete.Enabled && (repository.Status.StorageSecretName != "" && repository.Status.StorageSecretName != "_") {
+				_, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
 				if err != nil {
 					params.Log.V(2).Info("storage secret not found", "secret", repository.Status.StorageSecretName, "repository", repository.Name)
 					return nil
 				}
-
-				// Check if the storage secret has bundles matching the requested directories
-				hasBundles := false
-				for _, dir := range repoRef.Directories {
-					// Normalize directory name to match bundle key format
-					normalizedDir := strings.TrimPrefix(strings.ReplaceAll(dir, "/", "-"), "-")
-					if normalizedDir == "" || normalizedDir == "-" {
-						normalizedDir = "bundle" // Root directory bundles might be stored as "bundle.gz"
-					}
-
-					// Check for both .gz and non-.gz variants
-					bundleKey := normalizedDir + ".gz"
-					if bundleData, exists := storageSecret.Data[bundleKey]; exists && len(bundleData) > 20 {
-						hasBundles = true
-						break
-					}
-
-					// Also check without .gz extension
-					if bundleData, exists := storageSecret.Data[normalizedDir]; exists && len(bundleData) > 20 {
-						hasBundles = true
-						break
-					}
-				}
-
-				if !hasBundles {
-					params.Log.V(2).Info("storage secret exists but does not contain required bundles",
-						"secret", repository.Status.StorageSecretName,
-						"repository", repository.Name,
-						"directories", repoRef.Directories)
-					return nil
-				}
-
-				params.Log.Info("using storage secret for repository",
-					"secret", repository.Status.StorageSecretName,
-					"repository", repository.Name,
-					"directories", repoRef.Directories)
-				// Continue with bundle building - buildBundleFromCache will use the storage secret
 			} else {
-				return nil
+				params.Log.Info("repository not reconcilable via storage secret", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+				return fmt.Errorf("unable to apply repository reference: %s to gateway: %s in namespace: %s", repository.Name, gateway.Name, gateway.Namespace)
 			}
 		}
 	}
@@ -144,8 +109,13 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 	// Only enable delete functionality if delete was requested (repository disabled/removed)
 	// AND RepositoryReferenceDelete is enabled
+
+	if delete && !gateway.Spec.App.RepositoryReferenceDelete.Enabled {
+		delete = false
+	}
+
 	if delete && gateway.Spec.App.RepositoryReferenceDelete.Enabled {
-		if gateway.Spec.App.RepositoryReferenceDelete.LimitToStateStore && repository.Spec.StateStoreReference == "" {
+		if !gateway.Spec.App.RepositoryReferenceDelete.IncludeEfs && repository.Spec.StateStoreReference == "" {
 			delete = false
 		}
 	}

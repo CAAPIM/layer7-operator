@@ -282,9 +282,14 @@ type RepositoryReferenceBootstrap struct {
 // RepositoryReferenceBootstrap facilitates bootstrap of dynamic repo references and the desired source of truth.
 type RepositoryReferenceDelete struct {
 	// Enable or disable deleting repository references
+	// by default this only applies to repositories that have a statestore reference
 	Enabled bool `json:"enabled,omitempty"`
-	// Limit deletion to repositories that have an external statestore
-	LimitToStateStore bool `json:"limitToStateStore,omitempty"`
+	// IncludeEfs we track deltas between repositories on the operators ephemeral filesystem
+	// setting this to true will enable delete functionality for all repositoryReferences
+	// USE WITH CAUTION, an operator restart removes the ephemeral filesystem with the state that is tracked there.
+	// We DO NOT recommend this setting for database backed gateways, ephemeral gateways can be restarted to reset state.
+	// use mappings instead
+	IncludeEfs bool `json:"includeEfs,omitempty"`
 	// ReconcileReferences resets the commits for all other repositories that have been applied
 	// this triggers a reconcile which replaces any entities that may have overlapped with the repository that was removed.
 	// example:
@@ -292,6 +297,11 @@ type RepositoryReferenceDelete struct {
 	// myrepo2 ==> also contains a cwp1
 	// if myrepo1 is deleted cwp1 will be removed. This functionality will then reapply myrepo2 which will reconcile cwp1
 	ReconcileReferences bool `json:"reconcileReferences,omitempty"`
+	// ReconcileDirectoryChanges will create and apply mappings if your dynamic repositoryReference folders change.
+	// Changes will be based on the current commit
+	// This is not recommended if you are using a database backed gateway
+	// Use mappings in your repo instead
+	ReconcileDirectoryChanges bool `json:"reconcileDirectoryChanges,omitempty"`
 }
 
 // Otel used when no dedicated OTel agent is present. This enriches the telemetry that the SDK is able to emit to your observability backend

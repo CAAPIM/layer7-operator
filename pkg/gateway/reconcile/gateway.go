@@ -233,11 +233,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			}
 		}
 
-		gwUpdReq.bundle, err = buildBundle(ctx, params, gwUpdReq.repositoryReference, gwUpdReq.repository, gwUpdReq.gateway, gwUpdReq.delete)
-		if err != nil {
-			return nil, err
-		}
-
 		gwUpdReq.graphmanEncryptionPassphrase = graphmanEncryptionPassphrase
 
 		gwUpdReq.cacheEntry = gwUpdReq.repositoryReference.Name + "-" + gwUpdReq.checksum
@@ -855,6 +850,13 @@ func checkRetryScenario(gateway *securityv1.Gateway, repoRefName string, current
 
 // determineCacheLocation returns the cache path and filename based on repository and gateway configuration
 func determineCacheLocation(repository *securityv1.Repository, gateway *securityv1.Gateway) (cachePath string, cacheFileName string) {
+	// Local and HTTP repos always use vanilla bundles (no operator-generated delete mappings)
+	if repository.Spec.Type == securityv1.RepositoryTypeLocal || repository.Spec.Type == securityv1.RepositoryTypeHttp {
+		cachePath = "/tmp/repo-cache/" + repository.Name
+		cacheFileName = repository.Status.Commit + ".json"
+		return cachePath, cacheFileName
+	}
+
 	if repository.Spec.StateStoreReference != "" {
 		// Statestore-backed repository
 		cachePath = "/tmp/statestore/" + repository.Name
@@ -873,6 +875,11 @@ func determineCacheLocation(repository *securityv1.Repository, gateway *security
 
 // shouldSkipDeltaComparison determines if we should skip delta comparison and build a vanilla bundle
 func shouldSkipDeltaComparison(gateway *securityv1.Gateway, repository *securityv1.Repository) bool {
+	// Local and HTTP repos are ALWAYS vanilla (no delta comparison)
+	if repository.Spec.Type == securityv1.RepositoryTypeLocal || repository.Spec.Type == securityv1.RepositoryTypeHttp {
+		return true
+	}
+
 	// If master flag is disabled, always skip delta comparison
 	if !gateway.Spec.App.RepositoryReferenceDelete.Enabled {
 		return true
@@ -947,25 +954,53 @@ func handleDirectoryChange(ctx context.Context, params Params, repository *secur
 	}
 
 	// Step 2: Look up previous bundle
-	// Try cachePath first (persistent), then tmpPath (ephemeral) for backwards compatibility
+	var previousBundleBytes []byte
+
+	if len(previousDirectories) == 0 {
+		// No previous directories tracked - treat as first deployment
+		params.Log.Info("no previous directories tracked, treating as first deployment",
+			"repository", repoRef.Name)
+
+		// Just write and return the new bundle
+		if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+			return nil, err
+		}
+		return newBundleBytes, nil
+	}
+
+	// Known previous directories - try to read the bundle
 	previousFileName := calculateBundleFileName(params.Instance, repoRef.Name, previousDirectories)
-	previousBundleBytes, err := os.ReadFile(cachePath + "/" + previousFileName)
+
+	// Try cachePath first (persistent for StateStore), then tmpPath (ephemeral)
+	previousBundleBytes, err = os.ReadFile(cachePath + "/" + previousFileName)
 	if err != nil {
 		// Try tmpPath as fallback
 		previousBundleBytes, err = os.ReadFile(tmpPath + "/" + previousFileName)
 		if err != nil {
-			// Previous bundle not found - treat as first deployment
-			params.Log.Info("previous bundle not found in cache or tmp, treating as first deployment",
+			// Previous bundle file not found (e.g. after operator restart)
+			// But we know what directories were applied from status
+			// Reconstruct the previous bundle from cache
+			params.Log.Info("previous bundle file not found, reconstructing from cache",
 				"repository", repoRef.Name,
-				"previousFileName", previousFileName,
-				"cachePath", cachePath,
-				"tmpPath", tmpPath)
+				"previousDirectories", previousDirectories,
+				"previousFileName", previousFileName)
 
-			// Just write and return the new bundle
-			if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
-				return nil, err
+			// Create a temporary repoRef with previous directories to reconstruct
+			tempRepoRef := &securityv1.RepositoryReference{
+				Name:        repoRef.Name,
+				Enabled:     repoRef.Enabled,
+				Type:        repoRef.Type,
+				Directories: previousDirectories,
 			}
-			return newBundleBytes, nil
+
+			previousBundleBytes, err = buildBundleFromCache(repository, tempRepoRef, cachePath, cacheFileName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to reconstruct previous bundle from cache: %w", err)
+			}
+
+			params.Log.V(2).Info("successfully reconstructed previous bundle from cache",
+				"repository", repoRef.Name,
+				"previousDirectories", previousDirectories)
 		} else {
 			params.Log.V(2).Info("found previous bundle in tmpPath",
 				"repository", repoRef.Name,
@@ -1018,8 +1053,13 @@ func handleDirectoryChange(ctx context.Context, params Params, repository *secur
 		// We need to preserve DELETE mappings from the repository (commit-based deletes)
 		// while adding new DELETE mappings from directory changes
 		combinedBundle.Properties.Mappings.Services = append(combinedBundle.Properties.Mappings.Services, repoDeleteMappings.Services...)
+		combinedBundle.Properties.Mappings.WebApiServices = append(combinedBundle.Properties.Mappings.WebApiServices, repoDeleteMappings.WebApiServices...)
+		combinedBundle.Properties.Mappings.InternalWebApiServices = append(combinedBundle.Properties.Mappings.InternalWebApiServices, repoDeleteMappings.InternalWebApiServices...)
+		combinedBundle.Properties.Mappings.SoapServices = append(combinedBundle.Properties.Mappings.SoapServices, repoDeleteMappings.SoapServices...)
+		combinedBundle.Properties.Mappings.InternalSoapServices = append(combinedBundle.Properties.Mappings.InternalSoapServices, repoDeleteMappings.InternalSoapServices...)
 		combinedBundle.Properties.Mappings.Policies = append(combinedBundle.Properties.Mappings.Policies, repoDeleteMappings.Policies...)
 		combinedBundle.Properties.Mappings.PolicyFragments = append(combinedBundle.Properties.Mappings.PolicyFragments, repoDeleteMappings.PolicyFragments...)
+		combinedBundle.Properties.Mappings.EncassConfigs = append(combinedBundle.Properties.Mappings.EncassConfigs, repoDeleteMappings.EncassConfigs...)
 		combinedBundle.Properties.Mappings.HttpConfigurations = append(combinedBundle.Properties.Mappings.HttpConfigurations, repoDeleteMappings.HttpConfigurations...)
 		combinedBundle.Properties.Mappings.Keys = append(combinedBundle.Properties.Mappings.Keys, repoDeleteMappings.Keys...)
 		combinedBundle.Properties.Mappings.TrustedCerts = append(combinedBundle.Properties.Mappings.TrustedCerts, repoDeleteMappings.TrustedCerts...)
@@ -1027,6 +1067,40 @@ func handleDirectoryChange(ctx context.Context, params Params, repository *secur
 		combinedBundle.Properties.Mappings.Dtds = append(combinedBundle.Properties.Mappings.Dtds, repoDeleteMappings.Dtds...)
 		combinedBundle.Properties.Mappings.CustomKeyValues = append(combinedBundle.Properties.Mappings.CustomKeyValues, repoDeleteMappings.CustomKeyValues...)
 		combinedBundle.Properties.Mappings.ClusterProperties = append(combinedBundle.Properties.Mappings.ClusterProperties, repoDeleteMappings.ClusterProperties...)
+		combinedBundle.Properties.Mappings.JdbcConnections = append(combinedBundle.Properties.Mappings.JdbcConnections, repoDeleteMappings.JdbcConnections...)
+		combinedBundle.Properties.Mappings.CassandraConnections = append(combinedBundle.Properties.Mappings.CassandraConnections, repoDeleteMappings.CassandraConnections...)
+		combinedBundle.Properties.Mappings.JmsDestinations = append(combinedBundle.Properties.Mappings.JmsDestinations, repoDeleteMappings.JmsDestinations...)
+		combinedBundle.Properties.Mappings.Secrets = append(combinedBundle.Properties.Mappings.Secrets, repoDeleteMappings.Secrets...)
+		combinedBundle.Properties.Mappings.Fips = append(combinedBundle.Properties.Mappings.Fips, repoDeleteMappings.Fips...)
+		combinedBundle.Properties.Mappings.Ldaps = append(combinedBundle.Properties.Mappings.Ldaps, repoDeleteMappings.Ldaps...)
+		combinedBundle.Properties.Mappings.InternalGroups = append(combinedBundle.Properties.Mappings.InternalGroups, repoDeleteMappings.InternalGroups...)
+		combinedBundle.Properties.Mappings.FipGroups = append(combinedBundle.Properties.Mappings.FipGroups, repoDeleteMappings.FipGroups...)
+		combinedBundle.Properties.Mappings.InternalUsers = append(combinedBundle.Properties.Mappings.InternalUsers, repoDeleteMappings.InternalUsers...)
+		combinedBundle.Properties.Mappings.FipUsers = append(combinedBundle.Properties.Mappings.FipUsers, repoDeleteMappings.FipUsers...)
+		combinedBundle.Properties.Mappings.GlobalPolicies = append(combinedBundle.Properties.Mappings.GlobalPolicies, repoDeleteMappings.GlobalPolicies...)
+		combinedBundle.Properties.Mappings.BackgroundTasks = append(combinedBundle.Properties.Mappings.BackgroundTasks, repoDeleteMappings.BackgroundTasks...)
+		combinedBundle.Properties.Mappings.ScheduledTasks = append(combinedBundle.Properties.Mappings.ScheduledTasks, repoDeleteMappings.ScheduledTasks...)
+		combinedBundle.Properties.Mappings.ServerModuleFiles = append(combinedBundle.Properties.Mappings.ServerModuleFiles, repoDeleteMappings.ServerModuleFiles...)
+		combinedBundle.Properties.Mappings.SiteMinderConfigs = append(combinedBundle.Properties.Mappings.SiteMinderConfigs, repoDeleteMappings.SiteMinderConfigs...)
+		combinedBundle.Properties.Mappings.ActiveConnectors = append(combinedBundle.Properties.Mappings.ActiveConnectors, repoDeleteMappings.ActiveConnectors...)
+		combinedBundle.Properties.Mappings.EmailListeners = append(combinedBundle.Properties.Mappings.EmailListeners, repoDeleteMappings.EmailListeners...)
+		combinedBundle.Properties.Mappings.ListenPorts = append(combinedBundle.Properties.Mappings.ListenPorts, repoDeleteMappings.ListenPorts...)
+		combinedBundle.Properties.Mappings.AdministrativeUserAccountProperties = append(combinedBundle.Properties.Mappings.AdministrativeUserAccountProperties, repoDeleteMappings.AdministrativeUserAccountProperties...)
+		combinedBundle.Properties.Mappings.PasswordPolicies = append(combinedBundle.Properties.Mappings.PasswordPolicies, repoDeleteMappings.PasswordPolicies...)
+		combinedBundle.Properties.Mappings.RevocationCheckPolicies = append(combinedBundle.Properties.Mappings.RevocationCheckPolicies, repoDeleteMappings.RevocationCheckPolicies...)
+		combinedBundle.Properties.Mappings.LogSinks = append(combinedBundle.Properties.Mappings.LogSinks, repoDeleteMappings.LogSinks...)
+		combinedBundle.Properties.Mappings.ServiceResolutionConfigs = append(combinedBundle.Properties.Mappings.ServiceResolutionConfigs, repoDeleteMappings.ServiceResolutionConfigs...)
+		combinedBundle.Properties.Mappings.Folders = append(combinedBundle.Properties.Mappings.Folders, repoDeleteMappings.Folders...)
+		combinedBundle.Properties.Mappings.FederatedIdps = append(combinedBundle.Properties.Mappings.FederatedIdps, repoDeleteMappings.FederatedIdps...)
+		combinedBundle.Properties.Mappings.FederatedGroups = append(combinedBundle.Properties.Mappings.FederatedGroups, repoDeleteMappings.FederatedGroups...)
+		combinedBundle.Properties.Mappings.FederatedUsers = append(combinedBundle.Properties.Mappings.FederatedUsers, repoDeleteMappings.FederatedUsers...)
+		combinedBundle.Properties.Mappings.InternalIdps = append(combinedBundle.Properties.Mappings.InternalIdps, repoDeleteMappings.InternalIdps...)
+		combinedBundle.Properties.Mappings.LdapIdps = append(combinedBundle.Properties.Mappings.LdapIdps, repoDeleteMappings.LdapIdps...)
+		combinedBundle.Properties.Mappings.SimpleLdapIdps = append(combinedBundle.Properties.Mappings.SimpleLdapIdps, repoDeleteMappings.SimpleLdapIdps...)
+		combinedBundle.Properties.Mappings.PolicyBackedIdps = append(combinedBundle.Properties.Mappings.PolicyBackedIdps, repoDeleteMappings.PolicyBackedIdps...)
+		combinedBundle.Properties.Mappings.Roles = append(combinedBundle.Properties.Mappings.Roles, repoDeleteMappings.Roles...)
+		combinedBundle.Properties.Mappings.GenericEntities = append(combinedBundle.Properties.Mappings.GenericEntities, repoDeleteMappings.GenericEntities...)
+		combinedBundle.Properties.Mappings.AuditConfigurations = append(combinedBundle.Properties.Mappings.AuditConfigurations, repoDeleteMappings.AuditConfigurations...)
 
 		params.Log.V(2).Info("merged repository DELETE mappings with directory delta",
 			"repository", repoRef.Name,
@@ -1313,15 +1387,19 @@ func buildBundleFromCache(repository *securityv1.Repository, repoRef *securityv1
 	// For commit.json (user-controlled), clean DELETE mappings for re-added entities
 	preserveRepoMappings := (fileName == "combined.json" || fileName == "latest.json")
 
-	// If requesting all directories, concatenate everything, no ordering
-	if len(repoRef.Directories) == 1 && repoRef.Directories[0] == "/" {
+	// Local and HTTP repos ALWAYS use all directories ["/"] regardless of what's specified in Gateway CR
+	// This gives users full control and simplifies the model for development/testing repos
+	isLocalOrHttp := (repository.Spec.Type == securityv1.RepositoryTypeLocal || repository.Spec.Type == securityv1.RepositoryTypeHttp)
+
+	// If requesting all directories OR if it's a local/http repo, concatenate everything, no ordering
+	if isLocalOrHttp || (len(repoRef.Directories) == 1 && repoRef.Directories[0] == "/") {
 		if preserveRepoMappings {
 			return util.ConcatBundlesPreservingMappings(bundleMap)
 		}
 		return util.ConcatBundles(bundleMap)
 	}
 
-	// Otherwise, filter by specific directories
+	// Otherwise, filter by specific directories (git repos only)
 	return buildBundleFromDirectories(repoRef.Directories, bundleMap, preserveRepoMappings)
 }
 

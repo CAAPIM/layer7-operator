@@ -21,8 +21,8 @@ var _ = Describe("Gateway controller", func() {
 			gwLicenseSecretName = "gateway-license"
 			namespace           = "l7operator"
 			gatewayName         = "git-repo-ssg"
-			version             = "11.1.2"
-			image               = "docker.io/caapim/gateway:11.1.2"
+			version             = "11.1.3"
+			image               = "docker.io/caapim/gateway:11.1.3"
 			repoType            = securityv1.RepositoryTypeGit
 		)
 
@@ -151,7 +151,7 @@ var _ = Describe("Gateway controller", func() {
 						Management: securityv1.Management{
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
-								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.3",
+								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.4",
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",
@@ -187,7 +187,7 @@ var _ = Describe("Gateway controller", func() {
 				if err != nil {
 					return false
 				}
-				req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
+				//req.Header.Add("Authorization", "Basic "+basicAuth("admin", "7layer"))
 				req.Header.Add("client-id", "D63FA04C8447")
 				resp, err := httpclient.Do(req)
 				if err != nil {

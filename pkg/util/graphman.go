@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package util
 
@@ -85,14 +86,6 @@ type GraphmanCert struct {
 type GraphmanOtkConfig struct {
 	Type                     string `json:"type,omitempty"`
 	InternalGatewayReference string `json:"internalGatewayReference,omitempty"`
-}
-
-type MappingSource struct {
-	Name           string `json:"name,omitempty"`
-	Alias          string `json:"alias,omitempty"`
-	KeystoreId     string `json:"keystoreId,omitempty"`
-	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
-	SystemId       string `json:"systemId,omitempty"`
 }
 
 func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, password string, target string, encpass string, delete bool) error {
@@ -174,9 +167,9 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 			KeystoreId: "00000000000000000000000000000002",
 			Pem:        key.Key,
 			Alias:      key.Name,
-			KeyType:    "RSA",
-			SubjectDn:  "CN=" + certDN,
-			CertChain:  certsChain,
+			//KeyType:    "RSA",
+			SubjectDn: "CN=" + certDN,
+			CertChain: certsChain,
 		}
 
 		if key.Alias != "" {
@@ -203,7 +196,7 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 			//UsageTypes: []graphman.KeyUsageType{graphman.KeyUsageTypeSsl},
 			KeystoreId: "00000000000000000000000000000002",
 		})
-		mappingSource := MappingSource{Alias: nf, KeystoreId: "00000000000000000000000000000002"}
+		mappingSource := graphman.MappingSource{Alias: nf, KeystoreId: "00000000000000000000000000000002"}
 		if bundle.Properties == nil {
 			bundle.Properties = &graphman.BundleProperties{}
 		}
@@ -272,7 +265,7 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 			TrustedFor:                []graphman.TrustedForType{graphman.TrustedForTypeSsl},
 			RevocationCheckPolicyType: graphman.PolicyUsageTypeUseDefault,
 		})
-		mappingSource := MappingSource{ThumbprintSha1: strings.Split(nf, "-")[1]}
+		mappingSource := graphman.MappingSource{ThumbprintSha1: strings.Split(nf, "-")[1]}
 		if bundle.Properties == nil {
 			bundle.Properties = &graphman.BundleProperties{}
 		}
@@ -324,7 +317,7 @@ func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret, notFound []strin
 			VariableReferencable: false,
 			Secret:               "DELETED",
 		})
-		mappingSource := MappingSource{Name: nf}
+		mappingSource := graphman.MappingSource{Name: nf}
 		if bundle.Properties == nil {
 			bundle.Properties = &graphman.BundleProperties{}
 		}
@@ -378,8 +371,8 @@ func DeleteBundle(src []byte) (bundle []byte, err error) {
 	return bundle, nil
 }
 
-func CompressGraphmanBundle(path string) ([]byte, error) {
-	bundleBytes, err := BuildAndValidateBundle(path)
+func CompressGraphmanBundle(path string, statestore bool) ([]byte, error) {
+	bundleBytes, err := BuildAndValidateBundle(path, false)
 	if err != nil {
 		return nil, err
 	}
@@ -394,9 +387,12 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 	if err := zw.Close(); err != nil {
 		return nil, err
 	}
-	if buf.Len() > 900000 {
-		buf.Reset()
-		return nil, errors.New("exceededMaxSize")
+
+	if !statestore {
+		if buf.Len() > 900000 {
+			buf.Reset()
+			return nil, errors.New("exceededMaxSize")
+		}
 	}
 
 	compressedBundle := buf.Bytes()
@@ -405,38 +401,99 @@ func CompressGraphmanBundle(path string) ([]byte, error) {
 	return compressedBundle, nil
 }
 
-func ConcatBundles(bundleMap map[string][]byte) (combinedBundle []byte, err error) {
+func ConcatBundles(bundleMap map[string][]byte) (combinedBundleBytes []byte, err error) {
 
-	for k, bundle := range bundleMap {
+	combinedBundle := graphman.Bundle{}
+
+	for k, v := range bundleMap {
+		if strings.HasSuffix(k, "-delta.gz") || strings.HasSuffix(k, "-delta.json") {
+			continue
+		}
+
+		bundle := graphman.Bundle{}
 		if strings.HasSuffix(k, ".json") {
-			combinedBundle, err = graphman.ConcatBundle(combinedBundle, bundle)
+			err = json.Unmarshal(v, &bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle, err = graphman.CombineWithOverwrite(bundle, combinedBundle)
 			if err != nil {
 				return nil, err
 			}
 		}
 		if strings.HasSuffix(k, ".gz") {
-			bundle, err := GzipDecompress(bundle)
+			bundleBytes, err := GzipDecompress(v)
 			if err != nil {
 				return nil, err
 			}
-			combinedBundle, err = graphman.ConcatBundle(combinedBundle, bundle)
+			err = json.Unmarshal(bundleBytes, &bundle)
 			if err != nil {
 				return nil, err
 			}
-		}
-		if k == "bundle-properties.json" {
-			combinedBundle, err = graphman.AddMappings(combinedBundle, bundle)
+			combinedBundle, err = graphman.CombineWithOverwrite(bundle, combinedBundle)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	return combinedBundle, nil
+	combinedBundleBytes, err = json.Marshal(combinedBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	return combinedBundleBytes, nil
 
 }
 
-func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
+// ConcatBundlesPreservingMappings concatenates all bundles in a bundle map while preserving DELETE mappings
+// This is used for repository-controlled bundles (combined.json, latest.json) when directories=["/"]
+func ConcatBundlesPreservingMappings(bundleMap map[string][]byte) (combinedBundleBytes []byte, err error) {
+
+	combinedBundle := graphman.Bundle{}
+
+	for k, v := range bundleMap {
+		if strings.HasSuffix(k, "-delta.gz") || strings.HasSuffix(k, "-delta.json") {
+			continue
+		}
+
+		bundle := graphman.Bundle{}
+		if strings.HasSuffix(k, ".json") {
+			err = json.Unmarshal(v, &bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle, err = graphman.CombineWithOverwritePreservingDeleteMappings(bundle, combinedBundle)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if strings.HasSuffix(k, ".gz") {
+			bundleBytes, err := GzipDecompress(v)
+			if err != nil {
+				return nil, err
+			}
+			err = json.Unmarshal(bundleBytes, &bundle)
+			if err != nil {
+				return nil, err
+			}
+			combinedBundle, err = graphman.CombineWithOverwritePreservingDeleteMappings(bundle, combinedBundle)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	combinedBundleBytes, err = json.Marshal(combinedBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	return combinedBundleBytes, nil
+
+}
+
+func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes []byte, err error) {
 	if path == "" {
 		return nil, nil
 	}
@@ -445,7 +502,7 @@ func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
 		return nil, err
 	}
 
-	bundleBytes, err = graphman.Implode(path)
+	bundleBytes, err = graphman.Implode(path, processNestedRepos)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +511,7 @@ func BuildAndValidateBundle(path string) (bundleBytes []byte, err error) {
 		if err != nil {
 			return err
 		}
-		if strings.Contains(path, "/.git") {
+		if strings.Contains(path, ".git") {
 			return nil
 		}
 		if !d.IsDir() {
@@ -594,6 +651,14 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 	bundleCheckSum := sha1Sum
 
 	return bundleBytes.Bytes(), bundleCheckSum, nil
+}
+
+func DetectGraphmanFolders(path string) (projects []string, err error) {
+	projects, err = graphman.DetectGraphmanFolders(path)
+	if err != nil {
+		return nil, err
+	}
+	return projects, nil
 }
 
 func createDummyKey() (string, string, error) {

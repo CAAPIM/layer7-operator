@@ -208,7 +208,7 @@ func validateGraphmanBundle(fileName string, folderName string) error {
 		return nil
 	}
 
-	bundleBytes, err := graphman.Implode(folderName)
+	bundleBytes, err := graphman.Implode(folderName, true)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func validateGraphmanBundle(fileName string, folderName string) error {
 		if err != nil {
 			return err
 		}
-		if strings.Contains(path, "/.git") {
+		if strings.Contains(path, ".git") {
 			return nil
 		}
 		if !d.IsDir() {

@@ -1,0 +1,7 @@
+# The following patch adds printer collumns to the repository CRD
+- op: add
+  path: /spec/versions/0/additionalPrinterColumns
+  value:
+    - name: Ready
+      type: boolean
+      jsonPath: .status.ready

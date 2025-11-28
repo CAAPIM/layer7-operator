@@ -29,6 +29,7 @@ package statestore
 import (
 	"context"
 	"sync"
+	"time"
 
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	"github.com/caapim/layer7-operator/pkg/statestore/reconcile"
@@ -52,7 +53,6 @@ type L7StateStoreReconciler struct {
 
 func (r *L7StateStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("L7StateStore", req.NamespacedName)
-	log.Info("connecting to statestore", "statestore", "stateStore.Name")
 	stateStore := &securityv1alpha1.L7StateStore{}
 	err := r.Get(ctx, req.NamespacedName, stateStore)
 	if err != nil {
@@ -61,7 +61,7 @@ func (r *L7StateStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 		return ctrl.Result{}, err
 	}
-	log.Info("connecting to statestore", "statestore", stateStore.Name)
+	log.V(5).Info("connecting to statestore", "statestore", stateStore.Name)
 
 	params := reconcile.Params{
 		Client:   r.Client,
@@ -80,7 +80,7 @@ func (r *L7StateStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

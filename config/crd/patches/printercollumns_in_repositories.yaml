@@ -1,0 +1,23 @@
+# The following patch adds printer collumns to the repository CRD
+- op: add
+  path: /spec/versions/0/additionalPrinterColumns
+  value:
+    - name: Ready
+      type: boolean
+      jsonPath: .status.ready
+    - name: Commit
+      type: string
+      description: checksum of content or git commit id
+      jsonPath: .status.commit
+    - name: Type
+      type: string
+      description: repository type
+      jsonPath: .spec.type
+    - name: Branch
+      type: string
+      description: Git Branch
+      jsonPath: .spec.branch
+    - name: Tag
+      type: string
+      description: checksum of content or git commit id
+      jsonPath: .spec.tag

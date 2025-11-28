@@ -1,4 +1,4 @@
-FROM GO_BUILD_IMG AS builder
+FROM --platform=$BUILDPLATFORM GO_BUILD_IMG AS builder
 
 ARG AUTHOR=Layer7
 ARG VENDOR="Broadcom Inc."
@@ -28,7 +28,7 @@ COPY scripts/ scripts/
 ENV GOPROXY=${GOPROXY}
 RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager cmd/main.go
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -a -o manager cmd/main.go
 
 FROM DISTROLESS_IMG
 

@@ -38,42 +38,63 @@ import (
 
 func RedisStateStore(ctx context.Context, params Params) error {
 	statestore := params.Instance
+	status := statestore.Status
+
 	// Retrieve existing secret for Redis
 	// this will need to be updated for multi-state store provider support
 	if statestore.Spec.Redis.ExistingSecret != "" {
 		stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, *statestore, params)
 		if err != nil {
+			params.Log.V(2).Info("failed to retrieve credential secret", "name", statestore.Name, "namespace", statestore.Namespace, "message", err.Error())
+			status.Ready = false
+			statusErr := updateStatus(ctx, params, status)
+			if statusErr != nil {
+				return statusErr
+			}
 			return err
 		}
 		statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
 		statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
 	}
 
-	c := util.RedisClient(&statestore.Spec.Redis)
-	ping := c.Ping(ctx)
-	status := statestore.Status
-
-	pong, err := ping.Result()
+	c, err := util.RedisClient(&statestore.Spec.Redis)
 	if err != nil {
 		params.Recorder.Eventf(statestore, "Warning", "ConnectionFailed", "%s in namespace %s", statestore.Name, statestore.Namespace)
 		params.Log.V(2).Info("failed to connect to state store", "name", statestore.Name, "namespace", statestore.Namespace, "message", err.Error())
+		status.Ready = false
+		statusErr := updateStatus(ctx, params, status)
+		if statusErr != nil {
+			return statusErr
+		}
+		return err
 	}
+	ping := c.Ping(ctx)
 
-	status.Ready = false
+	pong, err := ping.Result()
+	if err != nil {
+		if status.Ready {
+			params.Recorder.Eventf(statestore, "Warning", "ConnectionFailed", "%s in namespace %s", statestore.Name, statestore.Namespace)
+			status.Ready = false
+		}
+		params.Log.V(2).Info("failed to connect to state store", "name", statestore.Name, "namespace", statestore.Namespace, "message", err.Error())
+
+		statusErr := updateStatus(ctx, params, status)
+		if statusErr != nil {
+			return statusErr
+		}
+		return err
+	}
 
 	if pong == "PONG" {
-		params.Recorder.Eventf(statestore, "Normal", "ConnectionSuccess", "%s status in namespace %s", statestore.Name, statestore.Namespace)
-		status.Ready = true
+		if !status.Ready {
+			params.Recorder.Eventf(statestore, "Normal", "ConnectionSuccess", "Successfully connected to l7statestore %s in namespace %s", statestore.Name, statestore.Namespace)
+			status.Ready = true
+		}
 	}
 
-	if !reflect.DeepEqual(statestore, status) {
-		statestore.Status = status
-		err = params.Client.Status().Update(ctx, statestore)
-		if err != nil {
-			params.Log.V(2).Info("failed to update state store status", "name", statestore.Name, "namespace", statestore.Namespace, "message", err.Error())
-			return err
-		}
-		params.Log.V(2).Info("updated state store status", "name", statestore.Name, "namespace", statestore.Namespace)
+	statusErr := updateStatus(ctx, params, status)
+	if statusErr != nil {
+		return statusErr
 	}
 	return nil
 }
@@ -86,4 +107,17 @@ func getStateStoreSecret(ctx context.Context, name string, statestore securityv1
 		return statestoreSecret, err
 	}
 	return statestoreSecret, nil
+}
+
+func updateStatus(ctx context.Context, params Params, status securityv1alpha1.L7StateStoreStatus) error {
+	if !reflect.DeepEqual(params.Instance, status) {
+		params.Instance.Status = status
+		err := params.Client.Status().Update(ctx, params.Instance)
+		if err != nil {
+			params.Log.V(2).Info("failed to update state store status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
+			return err
+		}
+		params.Log.V(2).Info("updated state store status", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+	}
+	return nil
 }

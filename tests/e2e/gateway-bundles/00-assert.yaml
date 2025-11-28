@@ -17,7 +17,7 @@ spec:
             name: ssg-bundle-test
         - secretRef:
             name: ssg-bundle-test
-        image: docker.io/caapim/gateway:11.1.2
+        image: docker.io/caapim/gateway:11.1.3
         imagePullPolicy: IfNotPresent
         lifecycle: {}
         livenessProbe:
@@ -56,21 +56,21 @@ spec:
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
           name: gateway-license
           subPath: license.xml
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-bundle-test-listen-port-bundle
-          name: ssg-bundle-test-listen-port-bundle
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/restman-bootstrap-bundle
-          name: restman-bootstrap-bundle
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/restman-bootstrap-secret-bundle
-          name: restman-bootstrap-secret-bundle
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/2
           name: graphman-bootstrap-bundle
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/3
           name: graphman-bootstrap-secret-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/restman-bootstrap-bundle
+          name: restman-bootstrap-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/restman-bootstrap-secret-bundle
+          name: restman-bootstrap-secret-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-bundle-test-listen-port-bundle
+          name: ssg-bundle-test-listen-port-bundle
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
+          name: ssg-bundle-test-repository-bundle-dest
         - mountPath: /graphman/config.json
           name: ssg-bundle-test-repository-init-config
           subPath: config.json
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
-          name: ssg-bundle-test-repository-bundle-dest
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -88,10 +88,14 @@ spec:
           optional: false
           secretName: gateway-license
       - configMap:
-          defaultMode: 493
-          name: ssg-bundle-test-listen-port-bundle
+          defaultMode: 444
+          name: graphman-bootstrap-bundle
           optional: false
-        name: ssg-bundle-test-listen-port-bundle
+        name: graphman-bootstrap-bundle
+      - name: graphman-bootstrap-secret-bundle
+        secret:
+          defaultMode: 444
+          secretName: graphman-bootstrap-secret-bundle
       - configMap:
           defaultMode: 444
           name: restman-bootstrap-bundle
@@ -102,20 +106,15 @@ spec:
           defaultMode: 444
           secretName: restman-bootstrap-secret-bundle
       - configMap:
-          defaultMode: 444
-          name: graphman-bootstrap-bundle
+          defaultMode: 493
+          name: ssg-bundle-test-listen-port-bundle
           optional: false
-        name: graphman-bootstrap-bundle
-      - name: graphman-bootstrap-secret-bundle
-        secret:
-          defaultMode: 444
-          secretName: graphman-bootstrap-secret-bundle
+        name: ssg-bundle-test-listen-port-bundle
+      - emptyDir: {}
+        name: ssg-bundle-test-repository-bundle-dest
       - configMap:
           defaultMode: 493
           name: ssg-bundle-test-repository-init-config
           optional: false
         name: ssg-bundle-test-repository-init-config
-      - emptyDir: {}
-        name: ssg-bundle-test-repository-bundle-dest
-
 

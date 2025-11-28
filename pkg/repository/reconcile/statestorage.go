@@ -22,15 +22,20 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package reconcile
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha1"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	v1 "github.com/caapim/layer7-operator/api/v1"
@@ -41,10 +46,23 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func StateStorage(ctx context.Context, params Params, statestore securityv1alpha1.L7StateStore) error {
+func StateStorage(ctx context.Context, params Params, statestore securityv1alpha1.L7StateStore, commit string) error {
 	storageSecretName, repositoryPath, _, err := localRepoStorageInfo(params)
 	if err != nil {
 		return err
+	}
+
+	tmpPath := "/tmp/statestore/" + params.Instance.Name
+	commitTracker := commit + ".txt"
+	fileName := "latest.json"
+	_, dErr := os.Stat(tmpPath)
+	if dErr != nil {
+		_ = os.MkdirAll(tmpPath, 0755)
+	}
+
+	_, fErr := os.Stat(tmpPath + "/" + commitTracker)
+	if fErr == nil {
+		return nil
 	}
 
 	// Retrieve existing secret for Redis
@@ -58,67 +76,218 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
 	}
 
-	rc := util.RedisClient(&statestore.Spec.Redis)
-	version := params.Instance.Status.StateStoreVersion
+	rc, err := util.RedisClient(&statestore.Spec.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to connect to state store: %w", err)
+	}
 
-	// this represents the current version
-	bundleGzip, err := util.CompressGraphmanBundle(repositoryPath)
-
+	projects, err := util.DetectGraphmanFolders(repositoryPath)
 	if err != nil {
 		return err
 	}
 
-	if version == 0 {
-		rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", bundleGzip, 0)
-		if rs.Err() != nil {
-			return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
+	bundles := map[string][]byte{}
+	compressedBundle := map[string][]byte{}
+	for _, p := range projects {
+		bundle, err := util.BuildAndValidateBundle(p, false)
+		if err != nil {
+			return err
 		}
-		return nil
+		bundleGzip, err := util.GzipCompress(bundle)
+		if err != nil {
+			return err
+		}
+		var buf bytes.Buffer
+		zw := gzip.NewWriter(&buf)
+		_, err = zw.Write(bundleGzip)
+		if err != nil {
+			return err
+		}
+
+		if err := zw.Close(); err != nil {
+			return err
+		}
+
+		keyName := strings.Replace(p, repositoryPath, "", 1)
+		keyName = strings.Replace(strings.ReplaceAll(keyName, "/", "-"), "-", "", 1)
+		bundles[keyName+".json"] = bundle
+		compressedBundle[keyName+".gz"] = bundleGzip
+
+		buf.Reset()
+	}
+
+	compressedBundleBytes, err := json.Marshal(compressedBundle)
+	if err != nil {
+		return err
 	}
 
 	// check for previous version - statestore may be empty
-	previousVersionGzip, err := rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest").Result()
+	stateStoreBundleMapString, err := rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest").Result()
 	if err != nil {
 		// if the previous version can't be retrieved, write the current version
-		rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", bundleGzip, 0)
+		rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", compressedBundleBytes, 0)
 		if rs.Err() != nil {
 			return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
 		}
+
+		// then write that to file...
+		err = os.WriteFile(tmpPath+"/"+fileName, compressedBundleBytes, 0755)
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile(tmpPath+"/"+commitTracker, []byte{}, 0755)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
-	// calculate delta
-	currentVersion, err := util.GzipDecompress(bundleGzip)
+	stateStoreBundleMap := map[string][]byte{}
+	err = json.Unmarshal([]byte(stateStoreBundleMapString), &stateStoreBundleMap)
 	if err != nil {
-		return fmt.Errorf("failed to decompress bundle: %w", err)
+		return err
 	}
 
-	previousVersion, err := util.GzipDecompress([]byte(previousVersionGzip))
-	if err != nil {
-		return fmt.Errorf("failed to decompress previous version bundle: %w", err)
-	}
-	deltaBytes, combinedBytes, err := graphman.SubtractBundle(previousVersion, currentVersion)
-	if err != nil {
-		return fmt.Errorf("failed to subtract current and previous version bundles: %w", err)
-	}
-	combinedGzip, err := util.GzipCompress(combinedBytes)
-	if err != nil {
-		return fmt.Errorf("failed to compress combined bundle: %w", err)
-	}
-	deltaGzip, err := util.GzipCompress(deltaBytes)
-	if err != nil {
-		return fmt.Errorf("failed to compress delta bundle: %w", err)
+	for k1, b1bytes := range bundles {
+		for k2, b2 := range stateStoreBundleMap {
+			if strings.Split(k1, ".")[0] == strings.Split(k2, ".")[0] {
+				b2Bytes, err := util.GzipDecompress(b2)
+				if err != nil {
+					//return fmt.Errorf("failed to decompress bundle 1: %s %w", k2, err)
+					b2Bytes = b2
+				}
+
+				// reset current mappings from statestore
+				// delete mappings should only persist for one version.
+				srcBundle := graphman.Bundle{}
+				destBundle := graphman.Bundle{}
+				err = json.Unmarshal(b2Bytes, &srcBundle)
+				if err != nil {
+					return fmt.Errorf("failed to unmarshal state store bundle: %s %w", strings.Split(k2, ".")[0], err)
+				}
+				err = json.Unmarshal(b1bytes, &destBundle)
+				if err != nil {
+					return fmt.Errorf("failed to unmarshal local bundle: %s %w", strings.Split(k2, ".")[0], err)
+				}
+
+				// Reset mappings - removes entities marked for delete and clears all mappings
+				// This represents the actual state after the last apply
+				err = graphman.ResetMappings(&srcBundle)
+				if err != nil {
+					return fmt.Errorf("failed to reset mappings: %s %w", strings.Split(k2, ".")[0], err)
+				}
+
+				// Calculate delta: current=srcBundle (cleaned), desired=destBundle (filesystem)
+				deltaBundle, combinedBundle, err := graphman.CalculateDelta(srcBundle, destBundle)
+				if err != nil {
+					return fmt.Errorf("failed to subtract current and previous version bundle: %s %w", strings.Split(k2, ".")[0], err)
+				}
+
+				deltaBundleBytes, err := json.Marshal(deltaBundle)
+				if err != nil {
+					return fmt.Errorf("failed to marshal delta bundle: %s %w", strings.Split(k1, ".")[0], err)
+				}
+				deltaGzip, err := util.GzipCompress(deltaBundleBytes)
+				if err != nil {
+					return fmt.Errorf("failed to compress delta bundle: %s %w", strings.Split(k1, ".")[0], err)
+				}
+				compressedBundle[strings.Split(k1, ".")[0]+"-delta.gz"] = deltaGzip
+
+				// Store combined bundle (with delete mappings) for next iteration
+				combinedBundleBytes, err := json.Marshal(combinedBundle)
+				if err != nil {
+					return fmt.Errorf("failed to marshal combined bundle: %s %w", strings.Split(k1, ".")[0], err)
+				}
+				combinedGzip, err := util.GzipCompress(combinedBundleBytes)
+				if err != nil {
+					return fmt.Errorf("failed to compress combined bundle: %w", err)
+				}
+				compressedBundle[strings.Split(k1, ".")[0]+".gz"] = combinedGzip
+			}
+		}
 	}
 
-	rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", combinedGzip, 0)
+	// prepare delete bundles for folders that have been removed
+	for k2, b2 := range stateStoreBundleMap {
+		found := false
+		for k1 := range bundles {
+			if strings.Split(k2, ".")[0] == strings.Split(k1, ".")[0] || strings.HasSuffix(k2, "-delta.gz") {
+				found = true
+			}
+		}
+		if !found {
+			b2Bytes, err := util.GzipDecompress(b2)
+			if err != nil {
+				b2Bytes = b2
+			}
+
+			// reset current mappings from statestore
+			// delete mappings should only persist for one version.
+			srcBundle := graphman.Bundle{}
+			err = json.Unmarshal(b2Bytes, &srcBundle)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal state store bundle: %s %w", strings.Split(k2, ".")[0], err)
+			}
+
+			// Reset mappings to get clean state (what's actually on gateway after last apply)
+			err = graphman.ResetMappings(&srcBundle)
+			if err != nil {
+				return fmt.Errorf("failed to reset mappings: %s %w", strings.Split(k2, ".")[0], err)
+			}
+
+			// To delete all entities in srcBundle: current=srcBundle (cleaned), desired=empty
+			// This generates delete mappings for everything.
+			emptyBundle := graphman.Bundle{}
+			deltaBundle, combinedBundle, err := graphman.CalculateDelta(srcBundle, emptyBundle)
+			if err != nil {
+				return fmt.Errorf("failed to subtract current and previous version bundle: %s %w", strings.Split(k2, ".")[0], err)
+			}
+
+			deltaBundleBytes, err := json.Marshal(deltaBundle)
+			if err != nil {
+				return fmt.Errorf("failed to marshal delta bundle: %s %w", strings.Split(k2, ".")[0], err)
+			}
+
+			deltaGzip, err := util.GzipCompress(deltaBundleBytes)
+			if err != nil {
+				return fmt.Errorf("failed to compress delta bundle: %s %w", strings.Split(k2, ".")[0], err)
+			}
+			compressedBundle[strings.Split(k2, ".")[0]+"-delta.gz"] = deltaGzip
+
+			// Store combined bundle with delete mappings
+			combinedBundleBytes, err := json.Marshal(combinedBundle)
+			if err != nil {
+				return fmt.Errorf("failed to marshal combined bundle: %s %w", strings.Split(k2, ".")[0], err)
+			}
+			combinedGzip, err := util.GzipCompress(combinedBundleBytes)
+			if err != nil {
+				return fmt.Errorf("failed to compress combined bundle: %w", err)
+			}
+			compressedBundle[strings.Split(k2, ".")[0]+".gz"] = combinedGzip
+		}
+	}
+
+	compressedBundleBytes, err = json.Marshal(compressedBundle)
+	if err != nil {
+		return err
+	}
+
+	rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", compressedBundleBytes, 0)
 	if rs.Err() != nil {
 		return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
 	}
 
-	rs = rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":delta", deltaGzip, 0)
-	if rs.Err() != nil {
-		return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
+	err = os.WriteFile(tmpPath+"/"+fileName, compressedBundleBytes, 0755)
+	if err != nil {
+		return err
 	}
+
+	err = os.WriteFile(tmpPath+"/"+commitTracker, []byte{}, 0755)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -136,11 +305,14 @@ func GetStateStoreChecksum(ctx context.Context, params Params, statestore securi
 		statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
 	}
 
-	rc := util.RedisClient(&statestore.Spec.Redis)
+	rc, err := util.RedisClient(&statestore.Spec.Redis)
+	if err != nil {
+		return "", fmt.Errorf("failed to connect to state store: %w", err)
+	}
 
 	bundle, err := rc.Get(ctx, params.Instance.Spec.StateStoreKey).Result()
 	if err != nil {
-		return "", fmt.Errorf("failed to bundle from state store: %w", err)
+		return "", fmt.Errorf("failed to retrieve bundle from state store: %w", err)
 	}
 
 	h := sha1.New()

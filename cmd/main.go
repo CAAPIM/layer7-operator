@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 
 package main
@@ -48,6 +49,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
@@ -142,9 +144,15 @@ func main() {
 		setupLog.Error(err, "failed to determine if Otel should be enabled")
 	}
 
+	// Always configure webhook server to avoid errors, but only register webhooks if enabled
+	webhookServer := webhook.NewServer(webhook.Options{
+		Port: 9443,
+	})
+
 	options := ctrl.Options{
 		Scheme:                  scheme,
 		Metrics:                 metricsServerOptions,
+		WebhookServer:           webhookServer,
 		HealthProbeBindAddress:  probeAddr,
 		LeaderElection:          enableLeaderElection,
 		LeaderElectionNamespace: oNamespace,

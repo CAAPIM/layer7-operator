@@ -142,6 +142,12 @@ type GatewayRepositoryStatus struct {
 	Commit string `json:"commit,omitempty"`
 	// Type is static or dynamic
 	Type string `json:"type,omitempty"`
+	// RepoType - git, http, local, statestore
+	RepoType string `json:"repoType,omitempty"`
+	// Vendor i.e. Github, Gitlab, BitBucket, Azure
+	Vendor string `json:"vendor,omitempty"`
+	// AuthType defaults to basic, possible options are none, basic or ssh
+	AuthType string `json:"authType,omitempty"`
 	//SecretName is used to mount the correct repository secret to the initContainer
 	SecretName string `json:"secretName,omitempty"`
 	//StorageSecretName is used to mount existing repository bundles to the initContainer
@@ -161,6 +167,8 @@ type GatewayRepositoryStatus struct {
 	StateStoreKey string `json:"stateStoreKey,omitempty"`
 	// Conditions
 	Conditions []RepositoryCondition `json:"conditions,omitempty"`
+	// Directories
+	Directories []string `json:"directories,omitempty"`
 }
 
 type RepositoryCondition struct {
@@ -221,13 +229,19 @@ type App struct {
 	// this enables scheduled tasks that are set to execute on a single node and jms destinations that are outbound
 	// to be applied to one ephemeral gateway only.
 	// This works inconjunction with repository references and only supports dynamic repository references.
-	SingletonExtraction  bool                  `json:"singletonExtraction,omitempty"`
-	RepositoryReferences []RepositoryReference `json:"repositoryReferences,omitempty"`
-	Ingress              Ingress               `json:"ingress,omitempty"`
-	Sidecars             []corev1.Container    `json:"sidecars,omitempty"`
-	InitContainers       []corev1.Container    `json:"initContainers,omitempty"`
-	Resources            PodResources          `json:"resources,omitempty"`
-	Autoscaling          Autoscaling           `json:"autoscaling,omitempty"`
+	SingletonExtraction bool `json:"singletonExtraction,omitempty"`
+	// BootstrapRepositoryReferences bootstraps repositoryReferences of type dynamic to avoid service unavailable at gateway ready.
+	RepositoryReferenceBootstrap RepositoryReferenceBootstrap `json:"repositoryReferenceBootstrap,omitempty"`
+	// RepositoryReferenceDelete enables repository delete when a repositoryReference is disabled or removed.
+	// To avoid potential conflicts the current gateway state is reset by reapplying all other repository references post
+	// delete
+	RepositoryReferenceDelete RepositoryReferenceDelete `json:"repositoryReferenceDelete,omitempty"`
+	RepositoryReferences      []RepositoryReference     `json:"repositoryReferences,omitempty"`
+	Ingress                   Ingress                   `json:"ingress,omitempty"`
+	Sidecars                  []corev1.Container        `json:"sidecars,omitempty"`
+	InitContainers            []corev1.Container        `json:"initContainers,omitempty"`
+	Resources                 PodResources              `json:"resources,omitempty"`
+	Autoscaling               Autoscaling               `json:"autoscaling,omitempty"`
 	// ServiceAccount to use for the Gateway Deployment
 	ServiceAccount            ServiceAccount                    `json:"serviceAccount,omitempty"`
 	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
@@ -254,6 +268,40 @@ type App struct {
 	CustomHosts                   CustomHosts      `json:"customHosts,omitempty"`
 	Otk                           Otk              `json:"otk,omitempty"`
 	Otel                          Otel             `json:"otel,omitempty"`
+}
+
+// RepositoryReferenceBootstrap facilitates bootstrap of dynamic repo references and the desired source of truth.
+type RepositoryReferenceBootstrap struct {
+	// Enable or disable bootstrapping repository references
+	Enabled bool `json:"enabled,omitempty"`
+	// If a L7StateStore is configured the initContainer will default to retrieving configuration from redis over git if a secret is not available (i.e. the repository is greater than 1MB in size)
+	// this configuration prioritizes git over the L7StateStore configuration to avoid excessive redis egress for large gateway deployments.
+	PreferGit bool `json:"preferGit,omitempty"`
+}
+
+// RepositoryReferenceBootstrap facilitates bootstrap of dynamic repo references and the desired source of truth.
+type RepositoryReferenceDelete struct {
+	// Enable or disable deleting repository references
+	// by default this only applies to repositories that have a statestore reference
+	Enabled bool `json:"enabled,omitempty"`
+	// IncludeEfs we track deltas between repositories on the operators ephemeral filesystem
+	// setting this to true will enable delete functionality for all repositoryReferences
+	// USE WITH CAUTION, an operator restart removes the ephemeral filesystem with the state that is tracked there.
+	// We DO NOT recommend this setting for database backed gateways, ephemeral gateways can be restarted to reset state.
+	// use mappings instead
+	IncludeEfs bool `json:"includeEfs,omitempty"`
+	// ReconcileReferences resets the commits for all other repositories that have been applied
+	// this triggers a reconcile which replaces any entities that may have overlapped with the repository that was removed.
+	// example:
+	// myrepo1 ==> contains cwp1
+	// myrepo2 ==> also contains a cwp1
+	// if myrepo1 is deleted cwp1 will be removed. This functionality will then reapply myrepo2 which will reconcile cwp1
+	ReconcileReferences bool `json:"reconcileReferences,omitempty"`
+	// ReconcileDirectoryChanges will create and apply mappings if your dynamic repositoryReference folders change.
+	// Changes will be based on the current commit
+	// This is not recommended if you are using a database backed gateway
+	// Use mappings in your repo instead
+	ReconcileDirectoryChanges bool `json:"reconcileDirectoryChanges,omitempty"`
 }
 
 // Otel used when no dedicated OTel agent is present. This enriches the telemetry that the SDK is able to emit to your observability backend

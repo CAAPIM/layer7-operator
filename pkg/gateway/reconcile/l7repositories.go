@@ -27,6 +27,7 @@ package reconcile
 
 import (
 	"context"
+	"fmt"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,38 +84,40 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 	if !repository.Status.Ready {
 		params.Log.Info("repository not ready", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 
-		ok, err := checkLocalRepoOnFs(params, repository)
+		localRepoAvailable, err := checkLocalRepoOnFs(params, repository)
 		if err != nil {
-			return err
+			//return err
+			params.Log.Info("repository not available on local fs", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 		}
-
-		if !ok {
-			return nil
+		// If repository not available locally, check if storage secret exists
+		// storageSecret primary use is bootstrap, does not track delta so this is not reliable for delete
+		if !localRepoAvailable {
+			if !gateway.Spec.App.RepositoryReferenceDelete.Enabled && (repository.Status.StorageSecretName != "" && repository.Status.StorageSecretName != "_") {
+				_, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
+				if err != nil {
+					params.Log.V(2).Info("storage secret not found", "secret", repository.Status.StorageSecretName, "repository", repository.Name)
+					return nil
+				}
+			} else {
+				params.Log.Info("repository not reconcilable via storage secret", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+				return fmt.Errorf("unable to apply repository reference: %s to gateway: %s in namespace: %s", repository.Name, gateway.Name, gateway.Namespace)
+			}
 		}
-
-		// check secret if not using directories...
-
-		// if !found {
-		// 	if repository.Status.StorageSecretName != "" {
-		// 		rs, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
-		// 		if err != nil {
-		// 			return err
-		// 		}
-		// 		for k, v := range rs.Data {
-		// 			if strings.HasSuffix(k, ".gz") {
-		// 				if len(v) < 20 {
-		// 					return nil
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// }
 	}
 
 	commit := repository.Status.Commit
-	// only support delete if a statestore is used
-	if repository.Spec.StateStoreReference == "" {
+
+	// Only enable delete functionality if delete was requested (repository disabled/removed)
+	// AND RepositoryReferenceDelete is enabled
+
+	if delete && !gateway.Spec.App.RepositoryReferenceDelete.Enabled {
 		delete = false
+	}
+
+	if delete && gateway.Spec.App.RepositoryReferenceDelete.Enabled {
+		if !gateway.Spec.App.RepositoryReferenceDelete.IncludeEfs && repository.Spec.StateStoreReference == "" {
+			delete = false
+		}
 	}
 
 	gwUpdReq, err := NewGwUpdateRequest(
@@ -138,7 +141,7 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 
 	err = SyncGateway(ctx, params, *gwUpdReq)
 
-	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, gwUpdReq.repositoryReference.Type, gwUpdReq.checksum, err, delete)
+	_ = updateRepoRefStatus(ctx, params, *gwUpdReq.repository, *gwUpdReq.repositoryReference, gwUpdReq.checksum, err, delete)
 	gwUpdReq = nil
 	if err != nil {
 		return err

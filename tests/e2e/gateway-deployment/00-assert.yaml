@@ -30,7 +30,7 @@ spec:
             name: ssg-deployment-test
         - secretRef:
             name: ssg-deployment-test
-        image: docker.io/caapim/gateway:11.1.2
+        image: docker.io/caapim/gateway:11.1.3
         imagePullPolicy: IfNotPresent
         lifecycle:
           postStart:
@@ -80,29 +80,29 @@ spec:
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
-          name: gateway-license
-          subPath: license.xml
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-deployment-test-listen-port-bundle
-          name: ssg-deployment-test-listen-port-bundle
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/restman
-          name: restman
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/graphman
-          name: graphman
-        - mountPath: /opt/docker/rc.d/003-parse-custom-files.sh
-          name: ssg-deployment-test-parse-custom-files-script
-          subPath: 003-parse-custom-files.sh
         - mountPath: /opt/SecureSpan/Gateway/node/default/etc/conf/sample.properties
           name: config-override-secret
           subPath: sample.properties
-        - mountPath: /opt/docker/test.properties
-          name: test-system-override
-          subPath: test.properties
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/license/license.xml
+          name: gateway-license
+          subPath: license.xml
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/graphman
+          name: graphman
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/services/restman
+          name: restman
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/ssg-deployment-test-listen-port-bundle
+          name: ssg-deployment-test-listen-port-bundle
+        - mountPath: /opt/docker/rc.d/003-parse-custom-files.sh
+          name: ssg-deployment-test-parse-custom-files-script
+          subPath: 003-parse-custom-files.sh
+        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
+          name: ssg-deployment-test-repository-bundle-dest
         - mountPath: /graphman/config.json
           name: ssg-deployment-test-repository-init-config
           subPath: config.json
-        - mountPath: /opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0
-          name: ssg-deployment-test-repository-bundle-dest
+        - mountPath: /opt/docker/test.properties
+          name: test-system-override
+          subPath: test.properties
       dnsPolicy: ClusterFirst
       hostAliases:
       - hostnames:
@@ -134,6 +134,10 @@ spec:
         topologyKey: testTopology
         whenUnsatisfiable: ScheduleAnyway
       volumes:
+      - name: config-override-secret
+        secret:
+          defaultMode: 444
+          secretName: config-override-secret
       - name: gateway-license
         secret:
           defaultMode: 493
@@ -142,15 +146,15 @@ spec:
             path: license.xml
           optional: false
           secretName: gateway-license
+      - emptyDir: {}
+        name: graphman
+      - emptyDir: {}
+        name: restman
       - configMap:
           defaultMode: 493
           name: ssg-deployment-test-listen-port-bundle
           optional: false
         name: ssg-deployment-test-listen-port-bundle
-      - emptyDir: {}
-        name: restman
-      - emptyDir: {}
-        name: graphman
       - configMap:
           defaultMode: 493
           items:
@@ -159,19 +163,15 @@ spec:
           name: ssg-deployment-test-gateway-files
           optional: false
         name: ssg-deployment-test-parse-custom-files-script
-      - name: config-override-secret
-        secret:
-          defaultMode: 444
-          secretName: config-override-secret
-      - configMap:
-          defaultMode: 444
-          name: test-system-override
-          optional: false
-        name: test-system-override
+      - emptyDir: {}
+        name: ssg-deployment-test-repository-bundle-dest
       - configMap:
           defaultMode: 493
           name: ssg-deployment-test-repository-init-config
           optional: false
         name: ssg-deployment-test-repository-init-config
-      - emptyDir: {}
-        name: ssg-deployment-test-repository-bundle-dest
+      - configMap:
+          defaultMode: 444
+          name: test-system-override
+          optional: false
+        name: test-system-override

@@ -26,6 +26,11 @@
 package util
 
 import (
+	"bytes"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -33,7 +38,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func RedisClient(c *v1alpha1.Redis) *redis.Client {
+func RedisClient(c *v1alpha1.Redis) (rdb *redis.Client, err error) {
 	username := ""
 	if c.Username != "" {
 		username = c.Username
@@ -51,6 +56,52 @@ func RedisClient(c *v1alpha1.Redis) *redis.Client {
 
 	rType := strings.ToLower(string(c.Type))
 
+	tlsConfig := tls.Config{}
+
+	if c.Tls.Enabled {
+		tlsConfig.MinVersion = tls.VersionTLS12
+		localCrts := []x509.Certificate{}
+
+		tlsConfig.InsecureSkipVerify = false
+
+		if !c.Tls.VerifyPeer {
+			tlsConfig.InsecureSkipVerify = true
+		}
+
+		if c.Tls.VerifyPeer && c.Tls.RedisCrt != "" {
+			certValidations := 0
+			tlsConfig.InsecureSkipVerify = true
+			if strings.Contains(string(c.Tls.RedisCrt), "-----BEGIN CERTIFICATE-----") {
+				crtStrings := strings.SplitAfter(string(c.Tls.RedisCrt), "-----END CERTIFICATE-----")
+				crtStrings = crtStrings[:len(crtStrings)-1]
+				for crt := range crtStrings {
+					b, _ := pem.Decode([]byte(crtStrings[crt]))
+					crtX509, err := x509.ParseCertificate(b.Bytes)
+					if err != nil {
+						return nil, err
+					}
+					localCrts = append(localCrts, *crtX509)
+				}
+
+				tlsConfig.VerifyConnection = func(cs tls.ConnectionState) error {
+					// validate local certs against server certs
+					for _, localCert := range localCrts {
+						for _, peerCert := range cs.PeerCertificates {
+							if bytes.Equal(localCert.Raw, peerCert.Raw) {
+								certValidations = certValidations + 1
+							}
+						}
+					}
+
+					if certValidations != len(localCrts) {
+						return fmt.Errorf("certificate validation failed")
+					}
+					return nil
+				}
+			}
+		}
+	}
+
 	switch rType {
 	case string(v1alpha1.RedisTypeStandalone):
 		rdb := redis.NewClient(&redis.Options{
@@ -60,7 +111,11 @@ func RedisClient(c *v1alpha1.Redis) *redis.Client {
 			DB:       database,
 		})
 
-		return rdb
+		if c.Tls.Enabled {
+			rdb.Options().TLSConfig = &tlsConfig
+		}
+
+		return rdb, nil
 
 	case string(v1alpha1.RedisTypeSentinel):
 		sentinelAddrs := []string{}
@@ -74,7 +129,12 @@ func RedisClient(c *v1alpha1.Redis) *redis.Client {
 			Password:      password,
 			DB:            database,
 		})
-		return rdb
+
+		if c.Tls.Enabled {
+			rdb.Options().TLSConfig = &tlsConfig
+		}
+
+		return rdb, nil
 	}
-	return nil
+	return nil, err
 }

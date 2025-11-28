@@ -55,7 +55,7 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 			data["OTK_CLIENT_READ_DATABASE_PASSWORD"] = []byte(gw.Spec.App.Otk.Database.Auth.ClientReadOnlyUser.Password)
 		}
 
-	case gw.Name + "-shared-state-client-configuration":
+	case gw.Name + "-shared-state-config":
 		redisGroupName := "l7GW"
 		sentinelMasterSet := "mymaster"
 		commandTimeout := 5000

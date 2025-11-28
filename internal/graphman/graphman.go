@@ -33,8 +33,8 @@ import (
 )
 
 // Implode - convert an exploded Graphman directory into a single JSON file.
-func Implode(path string) ([]byte, error) {
-	bundle, err := implodeBundle(path)
+func Implode(path string, processNestedRepos bool) ([]byte, error) {
+	bundle, err := implodeBundle(path, processNestedRepos)
 	if err != nil {
 		return nil, err
 	}

@@ -49,9 +49,12 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	creconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+const repositoryFinalizer = "security.brcmlabs.com/layer7-operator"
 
 // RepositoryReconciler reconciles a Repository object
 type RepositoryReconciler struct {
@@ -75,6 +78,7 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		{reconcile.Secret, "secrets"},
 		{reconcile.LocalReference, "local repositories"},
 		{reconcile.ScheduledJobs, "scheduled jobs"},
+		{reconcile.Finalizer, "finalizer"},
 	}
 
 	l7repository := &securityv1.Repository{}
@@ -93,6 +97,15 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Scheme:   r.Scheme,
 		Log:      log,
 		Instance: l7repository,
+	}
+
+	// Add a finalizer for the L7Api
+	if !controllerutil.ContainsFinalizer(l7repository, repositoryFinalizer) {
+		controllerutil.AddFinalizer(l7repository, repositoryFinalizer)
+		err = r.Update(ctx, l7repository)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	for _, op := range ops {

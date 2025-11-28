@@ -165,6 +165,13 @@ rules:
   - list
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
   - networking.k8s.io
   resources:
   - ingresses

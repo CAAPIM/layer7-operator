@@ -230,9 +230,9 @@ Portal Configured to use Redis
 ``` -->
 
 ### Deploy the Layer7 Operator
-This integration example uses v1.2.1 of the Layer7 Operator
+This integration example uses v1.2.2 of the Layer7 Operator
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.1/bundle.yaml -n ${NAMESPACE}
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml -n ${NAMESPACE}
 kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 ```
 
@@ -857,5 +857,5 @@ helm del portal
 kubectl delete statefulset portal-mysql
 kubectl delete pvc data-portal-mysql-0 data-rabbitmq-0
 helm del redis
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.1/bundle.yaml -n ${NAMESPACE}
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml -n ${NAMESPACE}
 ```

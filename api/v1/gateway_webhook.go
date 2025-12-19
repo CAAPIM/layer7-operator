@@ -12,11 +12,14 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
 */
 
 package v1
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -24,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -34,42 +36,48 @@ import (
 func (r *Gateway) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r).
+		WithValidator(r).
 		Complete()
 }
 
 //+kubebuilder:webhook:path=/mutate-security-brcmlabs-com-v1-gateway,mutating=true,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=gateways,verbs=create;update,versions=v1,name=mgateway.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Defaulter = &Gateway{}
+var _ admission.CustomDefaulter = &Gateway{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *Gateway) Default() {
-	//gatewaylog.Info("default", "name", r.Name)
-
-	// TODO(user): fill in your defaulting logic.
-
+func (r *Gateway) Default(ctx context.Context, obj runtime.Object) error {
+	return nil
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-security-brcmlabs-com-v1-gateway,mutating=false,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=gateways,verbs=create;update,versions=v1,name=vgateway.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &Gateway{}
+var _ admission.CustomValidator = &Gateway{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Gateway) ValidateCreate() (admission.Warnings, error) {
-	return validateGateway(r)
+func (r *Gateway) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	gateway, ok := obj.(*Gateway)
+	if !ok {
+		return nil, fmt.Errorf("expected a Gateway, received %T", obj)
+	}
+	return validateGateway(gateway)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Gateway) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	_, ok := old.(*Gateway)
+func (r *Gateway) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	_, ok := oldObj.(*Gateway)
 	if !ok {
-		return nil, fmt.Errorf("expected a Gateway, received %T", r)
+		return nil, fmt.Errorf("expected a Gateway for oldObj, received %T", oldObj)
 	}
-	return validateGateway(r)
+	gateway, ok := newObj.(*Gateway)
+	if !ok {
+		return nil, fmt.Errorf("expected a Gateway for newObj, received %T", newObj)
+	}
+	return validateGateway(gateway)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Gateway) ValidateDelete() (admission.Warnings, error) {
+func (r *Gateway) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	//gatewaylog.Info("validate delete", "name", r.Name)
 	return []string{}, nil
 }

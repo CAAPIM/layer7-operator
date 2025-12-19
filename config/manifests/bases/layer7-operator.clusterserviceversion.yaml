@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     certified: "false"
-    containerImage: docker.io/caapim/layer7-operator:v1.2.1
+    containerImage: docker.io/caapim/layer7-operator:v1.2.2
     operatorframework.io/suggested-namespace: layer7-operator-system
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community
@@ -243,9 +243,6 @@ spec:
           to correctly
         displayName: State Store Synced
         path: stateStoreSynced
-      - description: StateStoreVersion tracks version in state store
-        displayName: State Store Version
-        path: stateStoreVersion
       - description: StorageSecretName is the Kubernetes Secret that this repository
           is stored in
         displayName: Storage Secret Name

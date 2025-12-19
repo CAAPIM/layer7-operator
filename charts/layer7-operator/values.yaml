@@ -92,7 +92,7 @@ containerSecurityContext: {}
 image:
   registry: docker.io
   repository: caapim/layer7-operator
-  tag: v1.2.1
+  tag: v1.2.2
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
@@ -117,7 +117,7 @@ image:
 resources:
   limits:
     cpu: 500m
-    memory: 256Mi
+    memory: 512Mi
   requests:
     cpu: 100m
     memory: 64Mi

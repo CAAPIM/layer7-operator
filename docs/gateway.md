@@ -427,6 +427,22 @@ alive or ready to receive traffic.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecapprepositoryreferencebootstrap">repositoryReferenceBootstrap</a></b></td>
+        <td>object</td>
+        <td>
+          BootstrapRepositoryReferences bootstraps repositoryReferences of type dynamic to avoid service unavailable at gateway ready.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecapprepositoryreferencedelete">repositoryReferenceDelete</a></b></td>
+        <td>object</td>
+        <td>
+          RepositoryReferenceDelete enables repository delete when a repositoryReference is disabled or removed.
+To avoid potential conflicts the current gateway state is reset by reapplying all other repository references post
+delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecapprepositoryreferencesindex">repositoryReferences</a></b></td>
         <td>[]object</td>
         <td>
@@ -1063,8 +1079,7 @@ to select the group of existing pods which pods will be taken into consideration
 for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
 pod labels will be ignored. The default value is empty.
 The same key is forbidden to exist in both matchLabelKeys and labelSelector.
-Also, matchLabelKeys cannot be set when labelSelector isn't set.
-This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).<br/>
+Also, matchLabelKeys cannot be set when labelSelector isn't set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1078,8 +1093,7 @@ to select the group of existing pods which pods will be taken into consideration
 for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
 pod labels will be ignored. The default value is empty.
 The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
-Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).<br/>
+Also, mismatchLabelKeys cannot be set when labelSelector isn't set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1327,8 +1341,7 @@ to select the group of existing pods which pods will be taken into consideration
 for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
 pod labels will be ignored. The default value is empty.
 The same key is forbidden to exist in both matchLabelKeys and labelSelector.
-Also, matchLabelKeys cannot be set when labelSelector isn't set.
-This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).<br/>
+Also, matchLabelKeys cannot be set when labelSelector isn't set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1342,8 +1355,7 @@ to select the group of existing pods which pods will be taken into consideration
 for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
 pod labels will be ignored. The default value is empty.
 The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
-Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).<br/>
+Also, mismatchLabelKeys cannot be set when labelSelector isn't set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1671,8 +1683,7 @@ to select the group of existing pods which pods will be taken into consideration
 for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
 pod labels will be ignored. The default value is empty.
 The same key is forbidden to exist in both matchLabelKeys and labelSelector.
-Also, matchLabelKeys cannot be set when labelSelector isn't set.
-This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).<br/>
+Also, matchLabelKeys cannot be set when labelSelector isn't set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1686,8 +1697,7 @@ to select the group of existing pods which pods will be taken into consideration
 for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
 pod labels will be ignored. The default value is empty.
 The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
-Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).<br/>
+Also, mismatchLabelKeys cannot be set when labelSelector isn't set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1935,8 +1945,7 @@ to select the group of existing pods which pods will be taken into consideration
 for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
 pod labels will be ignored. The default value is empty.
 The same key is forbidden to exist in both matchLabelKeys and labelSelector.
-Also, matchLabelKeys cannot be set when labelSelector isn't set.
-This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).<br/>
+Also, matchLabelKeys cannot be set when labelSelector isn't set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1950,8 +1959,7 @@ to select the group of existing pods which pods will be taken into consideration
 for the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming
 pod labels will be ignored. The default value is empty.
 The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
-Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).<br/>
+Also, mismatchLabelKeys cannot be set when labelSelector isn't set.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2301,7 +2309,9 @@ the last 300sec is used).
         <td>[]object</td>
         <td>
           policies is a list of potential scaling polices which can be used during scaling.
-At least one policy must be specified, otherwise the HPAScalingRules will be discarded as invalid<br/>
+If not set, use the default values:
+- For scale up: allow doubling the number of pods, or an absolute change of 4 pods in a 15s window.
+- For scale down: allow all pods to be removed in a 15s window.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2324,6 +2334,23 @@ If not set, use the default values:
 - For scale down: 300 (i.e. the stabilization window is 300 seconds long).<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>tolerance</b></td>
+        <td>int or string</td>
+        <td>
+          tolerance is the tolerance on the ratio between the current and desired
+metric value under which no updates are made to the desired number of
+replicas (e.g. 0.01 for 1%). Must be greater than or equal to zero. If not
+set, the default cluster-wide tolerance is applied (by default 10%).
+
+For example, if autoscaling is configured with a memory consumption target of 100Mi,
+and scale-down and scale-up tolerances of 5% and 1% respectively, scaling will be
+triggered when the actual consumption falls below 95Mi or exceeds 101Mi.
+
+This is an alpha field and requires enabling the HPAConfigurableTolerance
+feature gate.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2402,7 +2429,9 @@ No stabilization is used.
         <td>[]object</td>
         <td>
           policies is a list of potential scaling polices which can be used during scaling.
-At least one policy must be specified, otherwise the HPAScalingRules will be discarded as invalid<br/>
+If not set, use the default values:
+- For scale up: allow doubling the number of pods, or an absolute change of 4 pods in a 15s window.
+- For scale down: allow all pods to be removed in a 15s window.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2425,6 +2454,23 @@ If not set, use the default values:
 - For scale down: 300 (i.e. the stabilization window is 300 seconds long).<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>tolerance</b></td>
+        <td>int or string</td>
+        <td>
+          tolerance is the tolerance on the ratio between the current and desired
+metric value under which no updates are made to the desired number of
+replicas (e.g. 0.01 for 1%). Must be greater than or equal to zero. If not
+set, the default cluster-wide tolerance is applied (by default 10%).
+
+For example, if autoscaling is configured with a memory consumption target of 100Mi,
+and scale-down and scale-up tolerances of 5% and 1% respectively, scaling will be
+triggered when the actual consumption falls below 95Mi or exceeds 101Mi.
+
+This is an alpha field and requires enabling the HPAConfigurableTolerance
+feature gate.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2500,9 +2546,7 @@ MetricSpec specifies how to scale based on a single metric
         <td>string</td>
         <td>
           type is the type of metric source.  It should be one of "ContainerResource", "External",
-"Object", "Pods" or "Resource", each mapping to a matching field in the object.
-Note: "ContainerResource" type is available on when the feature-gate
-HPAContainerMetrics is enabled<br/>
+"Object", "Pods" or "Resource", each mapping to a matching field in the object.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2513,8 +2557,7 @@ HPAContainerMetrics is enabled<br/>
 requests and limits) known to Kubernetes describing a single container in
 each pod of the current scale target (e.g. CPU or memory). Such metrics are
 built in to Kubernetes, and have special scaling options on top of those
-available to normal per-pod metrics using the "pods" source.
-This is an alpha feature and can be enabled by the HPAContainerMetrics feature flag.<br/>
+available to normal per-pod metrics using the "pods" source.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2570,7 +2613,6 @@ requests and limits) known to Kubernetes describing a single container in
 each pod of the current scale target (e.g. CPU or memory). Such metrics are
 built in to Kubernetes, and have special scaling options on top of those
 available to normal per-pod metrics using the "pods" source.
-This is an alpha feature and can be enabled by the HPAContainerMetrics feature flag.
 
 <table>
     <thead>
@@ -5801,7 +5843,7 @@ More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/nam
 
 
 
-EnvFromSource represents the source of a set of ConfigMaps
+EnvFromSource represents the source of a set of ConfigMaps or Secrets
 
 <table>
     <thead>
@@ -5823,7 +5865,7 @@ EnvFromSource represents the source of a set of ConfigMaps
         <td><b>prefix</b></td>
         <td>string</td>
         <td>
-          An optional identifier to prepend to each key in the ConfigMap. Must be a C_IDENTIFIER.<br/>
+          Optional text to prepend to the name of each environment variable. Must be a C_IDENTIFIER.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5959,6 +6001,15 @@ or until the termination grace period is reached.
 More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>stopSignal</b></td>
+        <td>string</td>
+        <td>
+          StopSignal defines which signal will be sent to a container when it is being stopped.
+If not specified, the default is defined by the container runtime in use.
+StopSignal can only be set for Pods with a non-empty .spec.os.name<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -5986,21 +6037,21 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td><b><a href="#gatewayspecappinitcontainersindexlifecyclepoststartexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlifecyclepoststarthttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlifecyclepoststartsleep">sleep</a></b></td>
         <td>object</td>
         <td>
-          Sleep represents the duration that the container should sleep before being terminated.<br/>
+          Sleep represents a duration that the container should sleep.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6008,8 +6059,8 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td>object</td>
         <td>
           Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6021,7 +6072,7 @@ lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -6052,7 +6103,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -6146,7 +6197,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-Sleep represents the duration that the container should sleep before being terminated.
+Sleep represents a duration that the container should sleep.
 
 <table>
     <thead>
@@ -6176,8 +6227,8 @@ Sleep represents the duration that the container should sleep before being termi
 
 
 Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.
 
 <table>
     <thead>
@@ -6236,21 +6287,21 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td><b><a href="#gatewayspecappinitcontainersindexlifecycleprestopexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlifecycleprestophttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlifecycleprestopsleep">sleep</a></b></td>
         <td>object</td>
         <td>
-          Sleep represents the duration that the container should sleep before being terminated.<br/>
+          Sleep represents a duration that the container should sleep.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6258,8 +6309,8 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td>object</td>
         <td>
           Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6271,7 +6322,7 @@ lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -6302,7 +6353,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -6396,7 +6447,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-Sleep represents the duration that the container should sleep before being terminated.
+Sleep represents a duration that the container should sleep.
 
 <table>
     <thead>
@@ -6426,8 +6477,8 @@ Sleep represents the duration that the container should sleep before being termi
 
 
 Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.
 
 <table>
     <thead>
@@ -6481,7 +6532,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
         <td><b><a href="#gatewayspecappinitcontainersindexlivenessprobeexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6498,14 +6549,14 @@ Defaults to 3. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappinitcontainersindexlivenessprobegrpc">grpc</a></b></td>
         <td>object</td>
         <td>
-          GRPC specifies an action involving a GRPC port.<br/>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexlivenessprobehttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6542,7 +6593,7 @@ Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappinitcontainersindexlivenessprobetcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          TCPSocket specifies an action involving a TCP port.<br/>
+          TCPSocket specifies a connection to a TCP port.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6583,7 +6634,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -6614,7 +6665,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-GRPC specifies an action involving a GRPC port.
+GRPC specifies a GRPC HealthCheckRequest.
 
 <table>
     <thead>
@@ -6655,7 +6706,7 @@ If this is not specified, the default behavior is defined by gRPC.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -6749,7 +6800,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-TCPSocket specifies an action involving a TCP port.
+TCPSocket specifies a connection to a TCP port.
 
 <table>
     <thead>
@@ -6871,7 +6922,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
         <td><b><a href="#gatewayspecappinitcontainersindexreadinessprobeexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6888,14 +6939,14 @@ Defaults to 3. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappinitcontainersindexreadinessprobegrpc">grpc</a></b></td>
         <td>object</td>
         <td>
-          GRPC specifies an action involving a GRPC port.<br/>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexreadinessprobehttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6932,7 +6983,7 @@ Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappinitcontainersindexreadinessprobetcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          TCPSocket specifies an action involving a TCP port.<br/>
+          TCPSocket specifies a connection to a TCP port.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6973,7 +7024,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -7004,7 +7055,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-GRPC specifies an action involving a GRPC port.
+GRPC specifies a GRPC HealthCheckRequest.
 
 <table>
     <thead>
@@ -7045,7 +7096,7 @@ If this is not specified, the default behavior is defined by gRPC.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -7139,7 +7190,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-TCPSocket specifies an action involving a TCP port.
+TCPSocket specifies a connection to a TCP port.
 
 <table>
     <thead>
@@ -7710,7 +7761,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
         <td><b><a href="#gatewayspecappinitcontainersindexstartupprobeexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7727,14 +7778,14 @@ Defaults to 3. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappinitcontainersindexstartupprobegrpc">grpc</a></b></td>
         <td>object</td>
         <td>
-          GRPC specifies an action involving a GRPC port.<br/>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappinitcontainersindexstartupprobehttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7771,7 +7822,7 @@ Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappinitcontainersindexstartupprobetcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          TCPSocket specifies an action involving a TCP port.<br/>
+          TCPSocket specifies a connection to a TCP port.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7812,7 +7863,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -7843,7 +7894,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-GRPC specifies an action involving a GRPC port.
+GRPC specifies a GRPC HealthCheckRequest.
 
 <table>
     <thead>
@@ -7884,7 +7935,7 @@ If this is not specified, the default behavior is defined by gRPC.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -7978,7 +8029,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-TCPSocket specifies an action involving a TCP port.
+TCPSocket specifies a connection to a TCP port.
 
 <table>
     <thead>
@@ -8289,6 +8340,15 @@ or until the termination grace period is reached.
 More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>stopSignal</b></td>
+        <td>string</td>
+        <td>
+          StopSignal defines which signal will be sent to a container when it is being stopped.
+If not specified, the default is defined by the container runtime in use.
+StopSignal can only be set for Pods with a non-empty .spec.os.name<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -8316,21 +8376,21 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td><b><a href="#gatewayspecapplifecyclehookspoststartexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapplifecyclehookspoststarthttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapplifecyclehookspoststartsleep">sleep</a></b></td>
         <td>object</td>
         <td>
-          Sleep represents the duration that the container should sleep before being terminated.<br/>
+          Sleep represents a duration that the container should sleep.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8338,8 +8398,8 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td>object</td>
         <td>
           Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8351,7 +8411,7 @@ lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -8382,7 +8442,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -8476,7 +8536,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-Sleep represents the duration that the container should sleep before being terminated.
+Sleep represents a duration that the container should sleep.
 
 <table>
     <thead>
@@ -8506,8 +8566,8 @@ Sleep represents the duration that the container should sleep before being termi
 
 
 Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.
 
 <table>
     <thead>
@@ -8566,21 +8626,21 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td><b><a href="#gatewayspecapplifecyclehooksprestopexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapplifecyclehooksprestophttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapplifecyclehooksprestopsleep">sleep</a></b></td>
         <td>object</td>
         <td>
-          Sleep represents the duration that the container should sleep before being terminated.<br/>
+          Sleep represents a duration that the container should sleep.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8588,8 +8648,8 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td>object</td>
         <td>
           Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8601,7 +8661,7 @@ lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -8632,7 +8692,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -8726,7 +8786,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-Sleep represents the duration that the container should sleep before being terminated.
+Sleep represents a duration that the container should sleep.
 
 <table>
     <thead>
@@ -8756,8 +8816,8 @@ Sleep represents the duration that the container should sleep before being termi
 
 
 Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.
 
 <table>
     <thead>
@@ -9114,7 +9174,7 @@ alive or ready to receive traffic.
         <td><b><a href="#gatewayspecapplivenessprobeexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9131,14 +9191,14 @@ Defaults to 3. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecapplivenessprobegrpc">grpc</a></b></td>
         <td>object</td>
         <td>
-          GRPC specifies an action involving a GRPC port.<br/>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecapplivenessprobehttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9175,7 +9235,7 @@ Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecapplivenessprobetcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          TCPSocket specifies an action involving a TCP port.<br/>
+          TCPSocket specifies a connection to a TCP port.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9216,7 +9276,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -9247,7 +9307,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-GRPC specifies an action involving a GRPC port.
+GRPC specifies a GRPC HealthCheckRequest.
 
 <table>
     <thead>
@@ -9288,7 +9348,7 @@ If this is not specified, the default behavior is defined by gRPC.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -9382,7 +9442,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-TCPSocket specifies an action involving a TCP port.
+TCPSocket specifies a connection to a TCP port.
 
 <table>
     <thead>
@@ -11881,6 +11941,35 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>seLinuxChangePolicy</b></td>
+        <td>string</td>
+        <td>
+          seLinuxChangePolicy defines how the container's SELinux label is applied to all volumes used by the Pod.
+It has no effect on nodes that do not support SELinux or to volumes does not support SELinux.
+Valid values are "MountOption" and "Recursive".
+
+"Recursive" means relabeling of all files on all Pod volumes by the container runtime.
+This may be slow for large volumes, but allows mixing privileged and unprivileged Pods sharing the same volume on the same node.
+
+"MountOption" mounts all eligible Pod volumes with `-o context` mount option.
+This requires all Pods that share the same volume to use the same SELinux label.
+It is not possible to share the same volume among privileged and unprivileged Pods.
+Eligible volumes are in-tree FibreChannel and iSCSI volumes, and all CSI volumes
+whose CSI driver announces SELinux support by setting spec.seLinuxMount: true in their
+CSIDriver instance. Other volumes are always re-labelled recursively.
+"MountOption" value is allowed only when SELinuxMount feature gate is enabled.
+
+If not specified and SELinuxMount feature gate is enabled, "MountOption" is used.
+If not specified and SELinuxMount feature gate is disabled, "MountOption" is used for ReadWriteOncePod volumes
+and "Recursive" for all other volumes.
+
+This field affects only Pods that have SELinux label set, either in PodSecurityContext or in SecurityContext of all containers.
+
+All Pods that use the same volume should use the same seLinuxChangePolicy, otherwise some pods can get stuck in ContainerCreating state.
+Note that this field cannot be set when spec.os.name is windows.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecapppodsecuritycontextselinuxoptions">seLinuxOptions</a></b></td>
         <td>object</td>
         <td>
@@ -12697,7 +12786,7 @@ alive or ready to receive traffic.
         <td><b><a href="#gatewayspecappreadinessprobeexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12714,14 +12803,14 @@ Defaults to 3. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappreadinessprobegrpc">grpc</a></b></td>
         <td>object</td>
         <td>
-          GRPC specifies an action involving a GRPC port.<br/>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappreadinessprobehttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12758,7 +12847,7 @@ Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappreadinessprobetcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          TCPSocket specifies an action involving a TCP port.<br/>
+          TCPSocket specifies a connection to a TCP port.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12799,7 +12888,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -12830,7 +12919,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-GRPC specifies an action involving a GRPC port.
+GRPC specifies a GRPC HealthCheckRequest.
 
 <table>
     <thead>
@@ -12871,7 +12960,7 @@ If this is not specified, the default behavior is defined by gRPC.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -12965,7 +13054,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-TCPSocket specifies an action involving a TCP port.
+TCPSocket specifies a connection to a TCP port.
 
 <table>
     <thead>
@@ -13692,6 +13781,104 @@ Standalone configuration
         <td>integer</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.repositoryReferenceBootstrap
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+BootstrapRepositoryReferences bootstraps repositoryReferences of type dynamic to avoid service unavailable at gateway ready.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable bootstrapping repository references<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>preferGit</b></td>
+        <td>boolean</td>
+        <td>
+          If a L7StateStore is configured the initContainer will default to retrieving configuration from redis over git if a secret is not available (i.e. the repository is greater than 1MB in size)
+this configuration prioritizes git over the L7StateStore configuration to avoid excessive redis egress for large gateway deployments.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.repositoryReferenceDelete
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+RepositoryReferenceDelete enables repository delete when a repositoryReference is disabled or removed.
+To avoid potential conflicts the current gateway state is reset by reapplying all other repository references post
+delete
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable deleting repository references
+by default this only applies to repositories that have a statestore reference<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>includeEfs</b></td>
+        <td>boolean</td>
+        <td>
+          IncludeEfs we track deltas between repositories on the operators ephemeral filesystem
+setting this to true will enable delete functionality for all repositoryReferences
+USE WITH CAUTION, an operator restart removes the ephemeral filesystem with the state that is tracked there.
+We DO NOT recommend this setting for database backed gateways, ephemeral gateways can be restarted to reset state.
+use mappings instead<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reconcileDirectoryChanges</b></td>
+        <td>boolean</td>
+        <td>
+          ReconcileDirectoryChanges will create and apply mappings if your dynamic repositoryReference folders change.
+Changes will be based on the current commit
+This is not recommended if you are using a database backed gateway
+Use mappings in your repo instead<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>reconcileReferences</b></td>
+        <td>boolean</td>
+        <td>
+          ReconcileReferences resets the commits for all other repositories that have been applied
+this triggers a reconcile which replaces any entities that may have overlapped with the repository that was removed.
+example:
+myrepo1 ==> contains cwp1
+myrepo2 ==> also contains a cwp1
+if myrepo1 is deleted cwp1 will be removed. This functionality will then reapply myrepo2 which will reconcile cwp1<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -14870,7 +15057,7 @@ More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/nam
 
 
 
-EnvFromSource represents the source of a set of ConfigMaps
+EnvFromSource represents the source of a set of ConfigMaps or Secrets
 
 <table>
     <thead>
@@ -14892,7 +15079,7 @@ EnvFromSource represents the source of a set of ConfigMaps
         <td><b>prefix</b></td>
         <td>string</td>
         <td>
-          An optional identifier to prepend to each key in the ConfigMap. Must be a C_IDENTIFIER.<br/>
+          Optional text to prepend to the name of each environment variable. Must be a C_IDENTIFIER.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15028,6 +15215,15 @@ or until the termination grace period is reached.
 More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>stopSignal</b></td>
+        <td>string</td>
+        <td>
+          StopSignal defines which signal will be sent to a container when it is being stopped.
+If not specified, the default is defined by the container runtime in use.
+StopSignal can only be set for Pods with a non-empty .spec.os.name<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -15055,21 +15251,21 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td><b><a href="#gatewayspecappsidecarsindexlifecyclepoststartexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlifecyclepoststarthttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlifecyclepoststartsleep">sleep</a></b></td>
         <td>object</td>
         <td>
-          Sleep represents the duration that the container should sleep before being terminated.<br/>
+          Sleep represents a duration that the container should sleep.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15077,8 +15273,8 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td>object</td>
         <td>
           Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -15090,7 +15286,7 @@ lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -15121,7 +15317,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -15215,7 +15411,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-Sleep represents the duration that the container should sleep before being terminated.
+Sleep represents a duration that the container should sleep.
 
 <table>
     <thead>
@@ -15245,8 +15441,8 @@ Sleep represents the duration that the container should sleep before being termi
 
 
 Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.
 
 <table>
     <thead>
@@ -15305,21 +15501,21 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td><b><a href="#gatewayspecappsidecarsindexlifecycleprestopexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlifecycleprestophttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlifecycleprestopsleep">sleep</a></b></td>
         <td>object</td>
         <td>
-          Sleep represents the duration that the container should sleep before being terminated.<br/>
+          Sleep represents a duration that the container should sleep.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15327,8 +15523,8 @@ More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-ho
         <td>object</td>
         <td>
           Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -15340,7 +15536,7 @@ lifecycle hooks will fail in runtime when tcp handler is specified.<br/>
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -15371,7 +15567,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -15465,7 +15661,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-Sleep represents the duration that the container should sleep before being terminated.
+Sleep represents a duration that the container should sleep.
 
 <table>
     <thead>
@@ -15495,8 +15691,8 @@ Sleep represents the duration that the container should sleep before being termi
 
 
 Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
-for the backward compatibility. There are no validation of this field and
-lifecycle hooks will fail in runtime when tcp handler is specified.
+for backward compatibility. There is no validation of this field and
+lifecycle hooks will fail at runtime when it is specified.
 
 <table>
     <thead>
@@ -15550,7 +15746,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
         <td><b><a href="#gatewayspecappsidecarsindexlivenessprobeexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15567,14 +15763,14 @@ Defaults to 3. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappsidecarsindexlivenessprobegrpc">grpc</a></b></td>
         <td>object</td>
         <td>
-          GRPC specifies an action involving a GRPC port.<br/>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexlivenessprobehttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15611,7 +15807,7 @@ Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappsidecarsindexlivenessprobetcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          TCPSocket specifies an action involving a TCP port.<br/>
+          TCPSocket specifies a connection to a TCP port.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15652,7 +15848,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -15683,7 +15879,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-GRPC specifies an action involving a GRPC port.
+GRPC specifies a GRPC HealthCheckRequest.
 
 <table>
     <thead>
@@ -15724,7 +15920,7 @@ If this is not specified, the default behavior is defined by gRPC.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -15818,7 +16014,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-TCPSocket specifies an action involving a TCP port.
+TCPSocket specifies a connection to a TCP port.
 
 <table>
     <thead>
@@ -15940,7 +16136,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
         <td><b><a href="#gatewayspecappsidecarsindexreadinessprobeexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15957,14 +16153,14 @@ Defaults to 3. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappsidecarsindexreadinessprobegrpc">grpc</a></b></td>
         <td>object</td>
         <td>
-          GRPC specifies an action involving a GRPC port.<br/>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexreadinessprobehttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16001,7 +16197,7 @@ Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappsidecarsindexreadinessprobetcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          TCPSocket specifies an action involving a TCP port.<br/>
+          TCPSocket specifies a connection to a TCP port.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16042,7 +16238,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -16073,7 +16269,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-GRPC specifies an action involving a GRPC port.
+GRPC specifies a GRPC HealthCheckRequest.
 
 <table>
     <thead>
@@ -16114,7 +16310,7 @@ If this is not specified, the default behavior is defined by gRPC.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -16208,7 +16404,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-TCPSocket specifies an action involving a TCP port.
+TCPSocket specifies a connection to a TCP port.
 
 <table>
     <thead>
@@ -16779,7 +16975,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
         <td><b><a href="#gatewayspecappsidecarsindexstartupprobeexec">exec</a></b></td>
         <td>object</td>
         <td>
-          Exec specifies the action to take.<br/>
+          Exec specifies a command to execute in the container.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16796,14 +16992,14 @@ Defaults to 3. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappsidecarsindexstartupprobegrpc">grpc</a></b></td>
         <td>object</td>
         <td>
-          GRPC specifies an action involving a GRPC port.<br/>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#gatewayspecappsidecarsindexstartupprobehttpget">httpGet</a></b></td>
         <td>object</td>
         <td>
-          HTTPGet specifies the http request to perform.<br/>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16840,7 +17036,7 @@ Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
         <td><b><a href="#gatewayspecappsidecarsindexstartupprobetcpsocket">tcpSocket</a></b></td>
         <td>object</td>
         <td>
-          TCPSocket specifies an action involving a TCP port.<br/>
+          TCPSocket specifies a connection to a TCP port.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16881,7 +17077,7 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
 
 
 
-Exec specifies the action to take.
+Exec specifies a command to execute in the container.
 
 <table>
     <thead>
@@ -16912,7 +17108,7 @@ Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
 
 
 
-GRPC specifies an action involving a GRPC port.
+GRPC specifies a GRPC HealthCheckRequest.
 
 <table>
     <thead>
@@ -16953,7 +17149,7 @@ If this is not specified, the default behavior is defined by gRPC.<br/>
 
 
 
-HTTPGet specifies the http request to perform.
+HTTPGet specifies an HTTP GET request to perform.
 
 <table>
     <thead>
@@ -17047,7 +17243,7 @@ This will be canonicalized upon output, so case-variant names will be understood
 
 
 
-TCPSocket specifies an action involving a TCP port.
+TCPSocket specifies a connection to a TCP port.
 
 <table>
     <thead>
@@ -17443,8 +17639,7 @@ when calculating pod topology spread skew. Options are:
 - Honor: only nodes matching nodeAffinity/nodeSelector are included in the calculations.
 - Ignore: nodeAffinity/nodeSelector are ignored. All nodes are included in the calculations.
 
-If this value is nil, the behavior is equivalent to the Honor policy.
-This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.<br/>
+If this value is nil, the behavior is equivalent to the Honor policy.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17457,8 +17652,7 @@ pod topology spread skew. Options are:
 has a toleration, are included.
 - Ignore: node taints are ignored. All nodes are included.
 
-If this value is nil, the behavior is equivalent to the Ignore policy.
-This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.<br/>
+If this value is nil, the behavior is equivalent to the Ignore policy.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -18001,6 +18195,13 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>authType</b></td>
+        <td>string</td>
+        <td>
+          AuthType defaults to basic, possible options are none, basic or ssh<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>branch</b></td>
         <td>string</td>
         <td>
@@ -18022,6 +18223,13 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>directories</b></td>
+        <td>[]string</td>
+        <td>
+          Directories<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>endpoint</b></td>
         <td>string</td>
         <td>
@@ -18040,6 +18248,13 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         <td>string</td>
         <td>
           RemoteName<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>repoType</b></td>
+        <td>string</td>
+        <td>
+          RepoType - git, http, local, statestore<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -18083,6 +18298,13 @@ these will be less than 1mb in size<br/>
         <td>string</td>
         <td>
           Type is static or dynamic<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>vendor</b></td>
+        <td>string</td>
+        <td>
+          Vendor i.e. Github, Gitlab, BitBucket, Azure<br/>
         </td>
         <td>false</td>
       </tr></tbody>

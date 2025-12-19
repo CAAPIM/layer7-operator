@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+
 	"github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/caapim/layer7-operator/internal/templategen"
 )

@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.19.0
   creationTimestamp: null
   name: repositories.security.brcmlabs.com
 spec:
@@ -22,18 +22,38 @@ spec:
     singular: repository
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    - description: checksum of content or git commit id
+      jsonPath: .status.commit
+      name: Commit
+      type: string
+    - description: repository type
+      jsonPath: .spec.type
+      name: Type
+      type: string
+    - description: Git Branch
+      jsonPath: .spec.branch
+      name: Branch
+      type: string
+    - description: checksum of content or git commit id
+      jsonPath: .spec.tag
+      name: Tag
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: Repository is the Schema for the repositories API
         properties:
           apiVersion:
             description: APIVersion defines the versioned schema of this representation
-              of an object
+              of an...
             type: string
           kind:
             description: Kind is a string value representing the REST resource this
-              object represent
+              object...
             type: string
           metadata:
             type: object
@@ -47,7 +67,7 @@ spec:
                 type: object
               auth:
                 description: Auth contains a reference to the credentials required
-                  to connect to your Gi
+                  to connect to your...
                 properties:
                   existingSecretName:
                     description: ExistingSecretName reference an existing secret
@@ -84,7 +104,7 @@ spec:
               branch:
                 description: |-
                   Branch - specify which branch to clone
-                  if branch and tag are both specified
+                  if branch and tag are both...
                 type: string
               enabled:
                 description: Enabled - if enabled this repository will be synced
@@ -99,7 +119,7 @@ spec:
                 type: object
               localReference:
                 description: LocalReference lets the Repository controller use a local
-                  Kubernetes Secret
+                  Kubernetes...
                 properties:
                   secretName:
                     type: string
@@ -108,12 +128,13 @@ spec:
                 description: Remote Name - defaults to "origin"
                 type: string
               stateStoreKey:
-                description: "StateStoreKey where the repository is stored in the
-                  L7StateStore\nthis only "
+                description: |-
+                  StateStoreKey where the repository is stored in the L7StateStore
+                  this only...
                 type: string
               stateStoreReference:
                 description: StateStoreReference which L7StateStore connection should
-                  be used to store o
+                  be used to store...
                 type: string
               sync:
                 description: RepositorySyncConfig defines how often this repository
@@ -136,7 +157,7 @@ spec:
             properties:
               commit:
                 description: Commit is either current git commit that has been synced
-                  or a sha1sum of th
+                  or a sha1sum of...
                 type: string
               lastAppliedSummary:
                 type: string
@@ -148,14 +169,11 @@ spec:
                 type: boolean
               stateStoreSynced:
                 description: StateStoreSynced whether or not the state store has been
-                  written to correct
+                  written to...
                 type: boolean
-              stateStoreVersion:
-                description: StateStoreVersion tracks version in state store
-                type: integer
               storageSecretName:
                 description: StorageSecretName is the Kubernetes Secret that this
-                  repository is stored i
+                  repository is stored...
                 type: string
               summary:
                 type: string
@@ -165,6 +183,8 @@ spec:
                 type: string
               vendor:
                 type: string
+            required:
+            - stateStoreSynced
             type: object
         type: object
     served: true

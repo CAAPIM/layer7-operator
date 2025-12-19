@@ -45,7 +45,7 @@ type L7StateStoreSpec struct {
 
 // L7StateStoreStatus defines the observed state of L7StateStore
 type L7StateStoreStatus struct {
-	Ready bool `json:"ready,omitempty"`
+	Ready bool `json:"ready"`
 }
 
 // +kubebuilder:object:root=true
@@ -72,6 +72,7 @@ type L7StateStoreList struct {
 type Redis struct {
 	Type           RedisType       `json:"type,omitempty"`
 	ExistingSecret string          `json:"existingSecret,omitempty"`
+	Tls            RedisTls        `json:"tls,omitempty"`
 	Username       string          `json:"username,omitempty"`
 	MasterPassword string          `json:"masterPassword,omitempty"`
 	GroupName      string          `json:"groupName,omitempty"`
@@ -79,6 +80,12 @@ type Redis struct {
 	Standalone     RedisStandalone `json:"standalone,omitempty"`
 	Sentinel       RedisSentinel   `json:"sentinel,omitempty"`
 	Database       int             `json:"database,omitempty"`
+}
+
+type RedisTls struct {
+	Enabled    bool   `json:"enabled,omitempty"`
+	RedisCrt   string `json:"redisCrt,omitempty"`
+	VerifyPeer bool   `json:"verifyPeer,omitempty"`
 }
 
 type RedisSentinel struct {

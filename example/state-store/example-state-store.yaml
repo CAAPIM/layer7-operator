@@ -13,3 +13,10 @@ spec:
       host: standalone-redis-master
       port: 6379
     storeId: test
+    tls:
+      enabled: false
+      verifyPeer: false
+      # redisCrt: |+
+      #   -----BEGIN CERTIFICATE-----
+      #   MIIEWDCCA0CgAwIBAgIRAOp...
+      #   -----END CERTIFICATE-----

@@ -339,6 +339,13 @@ Status - Repository Status
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>stateStoreSynced</b></td>
+        <td>boolean</td>
+        <td>
+          StateStoreSynced whether or not the state store has been written to correctly<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
         <td><b>commit</b></td>
         <td>string</td>
         <td>
@@ -364,20 +371,6 @@ Status - Repository Status
         <td>boolean</td>
         <td>
           Ready to apply to Gateway Deployments<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>stateStoreSynced</b></td>
-        <td>boolean</td>
-        <td>
-          StateStoreSynced whether or not the state store has been written to correctly<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>stateStoreVersion</b></td>
-        <td>integer</td>
-        <td>
-          StateStoreVersion tracks version in state store<br/>
         </td>
         <td>false</td>
       </tr><tr>

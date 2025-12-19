@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 
 package gateway
@@ -268,6 +269,10 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 						return true
 					}
 
+					if oldGw.Status.ManagementPod != newGw.Status.ManagementPod {
+						return true
+					}
+
 					if reflect.DeepEqual(oldGw.Spec, newGw.Spec) {
 						return false
 					}
@@ -293,10 +298,18 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					if err != nil {
 						return true
 					}
-					if oldDep.Status.ReadyReplicas == newDep.Status.ReadyReplicas || newDep.Status.ReadyReplicas == 0 { //|| oldDep.Status.ReadyReplicas > newDep.Status.ReadyReplicas
-						return false
+
+					// Trigger reconcile if ReadyReplicas changed
+					if oldDep.Status.ReadyReplicas != newDep.Status.ReadyReplicas {
+						return true
 					}
-					return true
+
+					// Trigger reconcile if annotations changed (e.g., repository delete/update)
+					if !reflect.DeepEqual(oldDep.ObjectMeta.Annotations, newDep.ObjectMeta.Annotations) {
+						return true
+					}
+
+					return false
 				}
 
 				if objType == "*v1.PodDisruptionBudget" {

@@ -4,13 +4,14 @@ pipeline {
     agent { label "default" }
     environment {
         ARTIFACTORY_DOCKER_IMS_IMAGE_REG = "ims-base-images-docker-release-local.usw1.packages.broadcom.com"
-        ARTIFACTORY_DOCKER_IMS_IMAGE = "ims-distro-debian12-static:202505-amd64"
+        ARTIFACTORY_DOCKER_IMS_IMAGE = "ims-distro-debian13-static:202510"
         ARTIFACTORY_DOCKER_GO_IMAGE_REG = "docker-hub.usw1.packages.broadcom.com"
         ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST = "apim-docker-dev-local.usw1.packages.broadcom.com"
         ARTIFACT_HOST =  "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}"
         ARTIFACTORY_DOCKER_DEV_LOCAL_REG_PROJECT = "apim-gateway"
         IMAGE_NAME = "layer7-operator"
         IMAGE_TAG_BASE = "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_PROJECT}/${IMAGE_NAME}"
+        TARGET_PLATFORMS="linux/amd64,linux/arm64"
         ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
         DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
         def CREATED = sh(script: "echo `date -u +%Y-%m-%dT%H:%M:%SZ`", returnStdout: true).trim() 
@@ -37,15 +38,34 @@ pipeline {
                         fi
                       fi
 
+                      info "Getting the Docker and driver info"
+                      docker --version
+                      
+                      DOCKER_BUILDER_NAME=multiarch-builder
+                      info "Using docker buildx builder ${DOCKER_BUILDER_NAME}"
+                      
+                      # temporary workaround for buildx builder with driver docker-container
+                      if docker buildx inspect ${DOCKER_BUILDER_NAME}; then
+                      	info "${DOCKER_BUILDER_NAME} already exists"
+                      
+                      	if docker buildx inspect ${DOCKER_BUILDER_NAME} | grep ^Driver: | grep -q docker-container; then
+                      		info "docker builder ${DOCKER_BUILDER_NAME} is using docker-container driver."
+                      	else
+                      		error "docker builder ${DOCKER_BUILDER_NAME} is not using docker-container driver."
+                      	fi
+                      else
+                      	info "Creating docker builder ${DOCKER_BUILDER_NAME}"
+                      	docker buildx create --name ${DOCKER_BUILDER_NAME} --driver docker-container
+                      fi
+
                       GOPROXY="https://${ARTIFACTORY_DEV_LOCAL_USERNAME}:${ARTIFACTORY_DEV_LOCAL_APIKEY}@usw1.packages.broadcom.com/artifactory/api/go/apim-golang-virtual"
                       docker login ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST} -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}                    
                       docker login ${ARTIFACTORY_DOCKER_IMS_IMAGE_REG} -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}
                       docker login ${ARTIFACTORY_DOCKER_GO_IMAGE_REG}  -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}
                       DISTROLESS_IMG=${ARTIFACTORY_DOCKER_IMS_IMAGE_REG}/${ARTIFACTORY_DOCKER_IMS_IMAGE}
-                      GO_BUILD_IMG=${ARTIFACTORY_DOCKER_GO_IMAGE_REG}/golang:1.23
+                      GO_BUILD_IMG=${ARTIFACTORY_DOCKER_GO_IMAGE_REG}/golang:1.24
                       cat Dockerfile | sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" | sed -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" > operator.Dockerfile
-                      docker build -f operator.Dockerfile -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION} . --build-arg TITLE="${IMAGE_NAME}" --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${RELEASE_VERSION}" --build-arg CREATED="${CREATED}" --build-arg GOPROXY="${GOPROXY}"
-                      docker push ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION}
+                      docker buildx build -f operator.Dockerfile -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION} --builder "${DOCKER_BUILDER_NAME}" --platform="${TARGET_PLATFORMS}" --build-arg TITLE="${IMAGE_NAME}" --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${RELEASE_VERSION}" --build-arg CREATED="${CREATED}" --build-arg GOPROXY="${GOPROXY}" . --push
                   '''
                   }
             }

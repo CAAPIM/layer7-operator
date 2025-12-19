@@ -166,14 +166,10 @@ type RepositoryStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:displayName="StorageSecretName"
 	StorageSecretName string `json:"storageSecretName,omitempty"`
-	// StateStoreVersion tracks version in state store
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	// +operator-sdk:csv:customresourcedefinitions:displayName="StateStoreVersion"
-	StateStoreVersion int `json:"stateStoreVersion,omitempty"`
 	// StateStoreSynced whether or not the state store has been written to correctly
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	// +operator-sdk:csv:customresourcedefinitions:displayName="StateStoreVersion"
-	StateStoreSynced bool `json:"stateStoreSynced,omitempty"`
+	StateStoreSynced bool `json:"stateStoreSynced"`
 }
 
 func init() {

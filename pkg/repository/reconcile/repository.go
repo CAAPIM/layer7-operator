@@ -22,18 +22,22 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package reconcile
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"time"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
+	"github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-git/go-git/v5"
 	"go.opentelemetry.io/otel"
@@ -54,6 +58,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	var sshKeyPass string
 	var knownHosts []byte
 	var statestore securityv1alpha1.L7StateStore
+	stateStoreSynced := true
 
 	authType := repository.Spec.Auth.Type
 	if err != nil {
@@ -88,16 +93,6 @@ func syncRepository(ctx context.Context, params Params) error {
 		sshKey = repositorySecret.Data["SSH_KEY"]
 		sshKeyPass = string(repositorySecret.Data["SSH_KEY_PASS"])
 		knownHosts = repositorySecret.Data["KNOWN_HOSTS"]
-		authType = repository.Spec.Auth.Type
-
-		if authType == "" && username != "" && token != "" {
-			authType = securityv1.RepositoryAuthTypeBasic
-		}
-
-		if authType == "" && username == "" && sshKey != nil {
-			authType = securityv1.RepositoryAuthTypeSSH
-		}
-
 	}
 
 	ext := repository.Spec.Branch
@@ -124,6 +119,7 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	if repository.Spec.StateStoreReference != "" {
+		storageSecretName = "_"
 		statestore, err = getStateStore(ctx, params)
 		if err != nil {
 			params.Log.V(2).Error(err, "failed to retrieve statestore", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
@@ -179,26 +175,17 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 	case "git":
 		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
-
-		stateStoreSynced := true
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 
-			if repository.Spec.StateStoreReference != "" && !repository.Status.StateStoreSynced {
-				err = StateStorage(ctx, params, statestore)
-				if err != nil {
-					params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
-					stateStoreSynced = false
-				}
+			// Check if we need to build cache/storage secret (only if status doesn't match)
+			if params.Instance.Status.Commit == commit && (params.Instance.Status.StorageSecretName != "" && params.Instance.Status.StorageSecretName != "_") {
+				params.Log.V(5).Info("already up-to-date with cache built", "name", repository.Name, "namespace", repository.Namespace)
+				return nil
 			}
-			params.Instance.Status.StateStoreSynced = stateStoreSynced
 
-			updateErr := updateStatus(ctx, params, commit, storageSecretName)
-			if updateErr != nil {
-				_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
-				params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
-			}
-			return nil
+			// Continue to build cache and storage secret if status doesn't match
+			err = nil
 		}
 
 		if err != nil {
@@ -231,7 +218,6 @@ func syncRepository(ctx context.Context, params Params) error {
 			params.Log.V(5).Info("already up-to-date", "name", repository.Name, "namespace", repository.Namespace)
 			return nil
 		}
-
 	case "local":
 		return nil
 	default:
@@ -240,16 +226,34 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	if strings.ToLower(string(repository.Spec.Type)) != "statestore" {
+
 		if repository.Spec.StateStoreReference != "" {
-			err = StateStorage(ctx, params, statestore)
+			// For state store repos, sync to Redis
+			err = StateStorage(ctx, params, statestore, commit)
 			if err != nil {
 				params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 				params.Instance.Status.StateStoreSynced = false
 			}
-		} else {
-			err = StorageSecret(ctx, params)
+		}
+
+		// Create storage secret from bundleMap for all repos
+		// Filter out delta bundles - we don't use them in Gateway yet and they take up space
+		if storageSecretName != "_" && storageSecretName != "" {
+			// Build directory-based bundle cache for all repos (state store and non-state store)
+			bundleMap, err := BuildRepositoryCache(ctx, params, commit, storageSecretName)
 			if err != nil {
-				// add a check here that prevents the Operator trying to sync the secret repeatedly
+				params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+			}
+
+			storageSecretBundleMap := make(map[string][]byte)
+			for k, v := range bundleMap {
+				if !strings.HasSuffix(k, "-delta.gz") {
+					storageSecretBundleMap[k] = v
+				}
+			}
+
+			err = StorageSecretFromBundleMap(ctx, params, storageSecretBundleMap, storageSecretName)
+			if err != nil {
 				params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 				storageSecretName = ""
 				if err.Error() == "exceededMaxSize" {
@@ -259,7 +263,15 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 	}
 
-	err = updateStatus(ctx, params, commit, storageSecretName)
+	if repository.Spec.StateStoreReference != "" && (!repository.Status.StateStoreSynced || commit != repository.Status.Commit) {
+		err = StateStorage(ctx, params, statestore, commit)
+		if err != nil {
+			params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+			stateStoreSynced = false
+		}
+	}
+
+	err = updateStatus(ctx, params, commit, storageSecretName, stateStoreSynced)
 	if err != nil {
 		_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
 		params.Log.Info("failed to update repository status", "namespace", repository.Namespace, "name", repository.Name, "error", err.Error())
@@ -296,7 +308,7 @@ func getRepository(ctx context.Context, params Params) (securityv1.Repository, e
 	return repository, nil
 }
 
-func updateStatus(ctx context.Context, params Params, commit string, storageSecretName string) (err error) {
+func updateStatus(ctx context.Context, params Params, commit string, storageSecretName string, stateStoreSynced bool) (err error) {
 
 	if params.Instance.Status.StorageSecretName == "_" {
 		storageSecretName = "_"
@@ -309,6 +321,7 @@ func updateStatus(ctx context.Context, params Params, commit string, storageSecr
 	rs.Name = r.Name
 	rs.Vendor = r.Spec.Auth.Vendor
 	rs.Ready = true
+	rs.StateStoreSynced = stateStoreSynced
 
 	if r.Spec.Type == "http" {
 		rs.Summary = r.Spec.Endpoint
@@ -316,20 +329,9 @@ func updateStatus(ctx context.Context, params Params, commit string, storageSecr
 
 	rs.StorageSecretName = storageSecretName
 
-	if !reflect.DeepEqual(rs, r.Status) {
+	if !reflect.DeepEqual(rs, r.Status) || r.Status.StateStoreSynced != rs.StateStoreSynced {
 		params.Log.Info("syncing repository", "name", r.Name, "namespace", r.Namespace)
 		rs.Updated = time.Now().String()
-
-		if rs.StateStoreSynced {
-			if r.Spec.StateStoreReference != "" {
-				if rs.StateStoreVersion == 0 {
-					rs.StateStoreVersion = 1
-				} else {
-					rs.StateStoreVersion = rs.StateStoreVersion + 1
-				}
-			}
-		}
-
 		r.Status = rs
 		err = params.Client.Status().Update(ctx, r)
 		if err != nil {
@@ -351,6 +353,246 @@ func setRepoReady(ctx context.Context, params Params, patch []byte) error {
 	}
 	params.Log.Info("repository status has been updated", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
 	return nil
+}
+
+// BuildRepositoryCache scans a repository, builds bundles per directory, and caches them
+// Returns the bundleMap for reuse (e.g., in StorageSecret)
+func BuildRepositoryCache(ctx context.Context, params Params, commit string, storageSecretName string) (map[string][]byte, error) {
+	repository := params.Instance
+	cachePath := "/tmp/repo-cache/" + repository.Name
+	// fileName := commit + ".json"
+
+	// there is a flag that facilitates delete being managed using mappings outside of the operator which is the default
+	// behaviour if you are not using a L7StateStore.
+	// This is a safer approach for database backed gateways.
+	combinedBundlefileName := "combined.json"
+	trackedBundleFileName := commit + ".json"
+
+	// Create cache directory
+	if err := os.MkdirAll(cachePath, 0755); err != nil {
+		return nil, err
+	}
+
+	// Check if already cached - load and return existing bundleMap
+	if _, err := os.Stat(cachePath + "/" + trackedBundleFileName); err == nil {
+		params.Log.V(2).Info("repository cache already exists", "name", repository.Name, "commit", commit)
+
+		// Read existing cache
+		bundleMapBytes, err := os.ReadFile(cachePath + "/" + trackedBundleFileName)
+		if err != nil {
+			return nil, err
+		}
+
+		bundleMap := map[string][]byte{}
+		if err := json.Unmarshal(bundleMapBytes, &bundleMap); err != nil {
+			return nil, err
+		}
+		return bundleMap, nil
+	}
+
+	_, repositoryPath, _, err := localRepoStorageInfo(params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Detect all graphman folders in the repository
+	projects, err := util.DetectGraphmanFolders(repositoryPath)
+	if err != nil {
+		return nil, err
+	}
+
+	bundleMap := map[string][]byte{}
+	currentBundles := map[string][]byte{}
+
+	// Build the current commit
+	for _, project := range projects {
+		// need to see what a base level directory has here so we can account for that
+		// may require new build of graphman-static-init
+		// empty directory prob covers it already..
+
+		bundleBytes, err := util.BuildAndValidateBundle(project, false)
+		if err != nil {
+			return nil, err
+		}
+
+		// Generate key name (normalize directory path)
+		keyName := strings.Replace(project, repositoryPath, "", 1)
+		keyName = strings.TrimPrefix(strings.ReplaceAll(keyName, "/", "-"), "-")
+
+		currentBundles[keyName+".json"] = bundleBytes
+
+		// Compress the bundle
+		bundleGzip, err := util.GzipCompress(bundleBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		bundleMap[keyName+".gz"] = bundleGzip
+	}
+
+	// Write the current commit to file
+	bundleMapBytes, err := json.Marshal(bundleMap)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.WriteFile(cachePath+"/"+trackedBundleFileName, bundleMapBytes, 0755); err != nil {
+		return nil, err
+	}
+
+	// Load previous bundle map for delta calculation (if exists)
+	previousBundleMap := map[string][]byte{}
+	if repository.Status.Commit != "" && repository.Status.Commit != commit {
+		if previousBytes, err := os.ReadFile(cachePath + "/" + combinedBundlefileName); err == nil {
+			_ = json.Unmarshal(previousBytes, &previousBundleMap)
+		}
+	}
+
+	// Calculate deltas against previous version (exactly like StateStorage does)
+	if len(previousBundleMap) > 0 {
+		for k1, b1bytes := range currentBundles {
+			keyName := strings.TrimSuffix(k1, ".json")
+
+			for k2, b2 := range previousBundleMap {
+				// Look for the full bundle from previous commit (not delta)
+				if k2 == keyName+".gz" {
+					// Decompress previous bundle
+					b2Bytes, err := util.GzipDecompress(b2)
+					if err != nil {
+						b2Bytes = b2
+					}
+
+					srcBundle := graphman.Bundle{}
+					destBundle := graphman.Bundle{}
+
+					if err := json.Unmarshal(b2Bytes, &srcBundle); err != nil {
+						continue
+					}
+					if err := json.Unmarshal(b1bytes, &destBundle); err != nil {
+						continue
+					}
+
+					// Reset mappings from previous state (removes delete mappings from last iteration)
+					if err := graphman.ResetMappings(&srcBundle); err != nil {
+						continue
+					}
+
+					// Calculate delta: current (cleaned previous) vs desired (new)
+					deltaBundle, combinedBundle, err := graphman.CalculateDelta(srcBundle, destBundle)
+					if err != nil {
+						continue
+					}
+
+					// Store delta bundle
+					deltaBundleBytes, err := json.Marshal(deltaBundle)
+					if err != nil {
+						continue
+					}
+					deltaGzip, err := util.GzipCompress(deltaBundleBytes)
+					if err != nil {
+						continue
+					}
+					bundleMap[keyName+"-delta.gz"] = deltaGzip
+
+					// Overwrite the full bundle with combined (has delete mappings for next iteration)
+					// This is the same as StateStorage - the full bundle becomes the "state" for next delta
+					combinedBundleBytes, err := json.Marshal(combinedBundle)
+					if err != nil {
+						continue
+					}
+					combinedGzip, err := util.GzipCompress(combinedBundleBytes)
+					if err != nil {
+						continue
+					}
+					bundleMap[keyName+".gz"] = combinedGzip
+					break
+				}
+			}
+		}
+
+		// Handle deleted folders (folders in previous but not in current)
+		for k2, b2 := range previousBundleMap {
+			// Skip delta bundles, only process full bundles
+			if strings.HasSuffix(k2, "-delta.gz") {
+				continue
+			}
+
+			keyName := strings.TrimSuffix(k2, ".gz")
+			found := false
+
+			for k1 := range currentBundles {
+				if strings.TrimSuffix(k1, ".json") == keyName {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				// Folder was deleted - create delete bundle
+				b2Bytes, err := util.GzipDecompress(b2)
+				if err != nil {
+					b2Bytes = b2
+				}
+
+				srcBundle := graphman.Bundle{}
+				if err := json.Unmarshal(b2Bytes, &srcBundle); err != nil {
+					continue
+				}
+
+				// Reset mappings (clean the state)
+				if err := graphman.ResetMappings(&srcBundle); err != nil {
+					continue
+				}
+
+				// Calculate delta against empty bundle (deletes everything)
+				emptyBundle := graphman.Bundle{}
+				deltaBundle, combinedBundle, err := graphman.CalculateDelta(srcBundle, emptyBundle)
+				if err != nil {
+					continue
+				}
+
+				// Store delta bundle
+				deltaBundleBytes, err := json.Marshal(deltaBundle)
+				if err != nil {
+					continue
+				}
+				deltaGzip, err := util.GzipCompress(deltaBundleBytes)
+				if err != nil {
+					continue
+				}
+				bundleMap[keyName+"-delta.gz"] = deltaGzip
+
+				// Store combined bundle with delete mappings
+				combinedBundleBytes, err := json.Marshal(combinedBundle)
+				if err != nil {
+					continue
+				}
+				combinedGzip, err := util.GzipCompress(combinedBundleBytes)
+				if err != nil {
+					continue
+				}
+				bundleMap[keyName+".gz"] = combinedGzip
+			}
+		}
+	}
+
+	// Marshal the bundle map
+	bundleMapBytes, err = json.Marshal(bundleMap)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write dynamic bundle to file
+	if err := os.WriteFile(cachePath+"/"+combinedBundlefileName, bundleMapBytes, 0755); err != nil {
+		return nil, err
+	}
+
+	params.Log.Info("built repository cache",
+		"name", repository.Name,
+		"directories", len(bundleMap),
+		"commit", commit)
+
+	return bundleMap, nil
 }
 
 func captureRepositorySyncMetrics(ctx context.Context, params Params, start time.Time, commitId string, hasError bool) error {

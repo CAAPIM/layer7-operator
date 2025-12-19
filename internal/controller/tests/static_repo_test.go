@@ -37,8 +37,8 @@ var _ = Describe("Gateway controller", func() {
 			repoSecretName      = "test-static-repository-secret"
 			namespace           = "l7operator"
 			gatewayName         = "static-repo-ssg"
-			version             = "11.1.2"
-			image               = "docker.io/caapim/gateway:11.1.2"
+			version             = "11.1.3"
+			image               = "docker.io/caapim/gateway:11.1.3"
 			repoName            = "local-repo"
 			repoType            = securityv1.RepositoryTypeLocal
 			staticChecksum      = ""
@@ -159,7 +159,7 @@ var _ = Describe("Gateway controller", func() {
 							},
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
-								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.3",
+								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.4",
 							},
 							Username: "admin",
 							Password: "7layer",

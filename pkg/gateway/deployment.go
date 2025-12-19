@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package gateway
 
@@ -44,21 +45,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	defaultMode := int32(0755)
 	optional := false
 	ports := []corev1.ContainerPort{}
-
-	defaultUser := int64(1001)
-	defaultGroup := int64(1001)
-	runAsNonRoot := true
-
-	ocPodSecurityContext := corev1.PodSecurityContext{
-		RunAsUser:    &defaultUser,
-		RunAsGroup:   &defaultGroup,
-		RunAsNonRoot: &runAsNonRoot,
-	}
-	ocContainerSecurityContext := corev1.SecurityContext{
-		RunAsUser:    &defaultUser,
-		RunAsNonRoot: &runAsNonRoot,
-		Capabilities: &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
-	}
 
 	for p := range gw.Spec.App.Service.Ports {
 		ports = append(ports, corev1.ContainerPort{
@@ -233,7 +219,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	if gw.Spec.App.Redis.Enabled {
-		secretName := gw.Name + "-shared-state-client-configuration"
+		secretName := gw.Name + "-shared-state-config"
 		if gw.Spec.App.Redis.ExistingSecret != "" {
 			secretName = gw.Spec.App.Redis.ExistingSecret
 		}
@@ -640,12 +626,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	for _, ic := range gw.Spec.App.InitContainers {
 		ic.TerminationMessagePath = corev1.TerminationMessagePathDefault
 		ic.TerminationMessagePolicy = corev1.TerminationMessageReadFile
-		if platform == "openshift" && ic.SecurityContext == nil {
-			ic.SecurityContext = &ocContainerSecurityContext
-			if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
-				ic.SecurityContext = &gw.Spec.App.ContainerSecurityContext
-			}
-		}
 		if ic.ImagePullPolicy == "" {
 			ic.ImagePullPolicy = corev1.PullIfNotPresent
 		}
@@ -653,42 +633,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	gmanInitContainerVolumeMounts := []corev1.VolumeMount{}
-	for _, staticRepository := range gw.Status.RepositoryStatus {
-		if staticRepository.Enabled && staticRepository.Type == "static" {
-			if staticRepository.SecretName != "" {
-				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-					Name:      staticRepository.SecretName,
-					MountPath: "/graphman/secrets/" + staticRepository.Name,
-				})
-				volumes = append(volumes, corev1.Volume{
-					Name: staticRepository.SecretName,
-					VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
-						SecretName:  staticRepository.SecretName,
-						DefaultMode: &defaultMode,
-						Optional:    &optional,
-					}},
-				})
-			}
-
-			// if the repository compressed is less than 1mb in size it will be
-			// available as an existing Kubernetes secret which reduces reliance on an external Git repository for Gateway boot.
-			// these secrets are managed by the Repository controller.
-			if staticRepository.StorageSecretName != "" && staticRepository.StorageSecretName != "_" {
-				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-					Name:      staticRepository.StorageSecretName,
-					MountPath: "/graphman/localref/" + staticRepository.StorageSecretName,
-				})
-				volumes = append(volumes, corev1.Volume{
-					Name: staticRepository.StorageSecretName,
-					VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
-						SecretName:  staticRepository.StorageSecretName,
-						DefaultMode: &defaultMode,
-						Optional:    &optional,
-					}},
-				})
-			}
-		}
-	}
 
 	gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 		Name:      gw.Name + "-repository-init-config",
@@ -720,7 +664,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
 
-	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.3"
+	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.4"
 	graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
 	graphmanInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -730,10 +674,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	if gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy != "" {
 		graphmanInitContainerImagePullPolicy = gw.Spec.App.Management.Graphman.InitContainerImagePullPolicy
-	}
-
-	if platform == "openshift" {
-		graphmanInitContainerSecurityContext = ocContainerSecurityContext
 	}
 
 	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
@@ -753,6 +693,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		Env: []corev1.EnvVar{{
 			Name:  "BOOTSTRAP_BASE",
 			Value: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/graphman/0",
+		}, {
+			Name:  "STATESTORE_CONFIG",
+			Value: "/graphman/statestore-config/",
+		}, {
+			Name:  "STATESTORE_SECRET",
+			Value: "/graphman/statestore-secret/",
 		}},
 		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
@@ -808,10 +754,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			portalInitContainerImagePullPolicy = gw.Spec.App.PortalReference.InitContainerImagePullPolicy
 		}
 
-		if platform == "openshift" {
-			portalInitContainerSecurityContext = ocContainerSecurityContext
-		}
-
 		if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
 			portalInitContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
 		}
@@ -854,10 +796,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	if gw.Spec.App.Otk.InitContainerImagePullPolicy != "" {
 		otkInitContainerImagePullPolicy = gw.Spec.App.Otk.InitContainerImagePullPolicy
-	}
-
-	if platform == "openshift" {
-		otkInitContainerSecurityContext = ocContainerSecurityContext
 	}
 
 	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
@@ -974,11 +912,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	gatewayContainerSecurityContext := corev1.SecurityContext{}
 	podSecurityContext := corev1.PodSecurityContext{}
-
-	if platform == "openshift" {
-		gatewayContainerSecurityContext = ocContainerSecurityContext
-		podSecurityContext = ocPodSecurityContext
-	}
 
 	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
 		gatewayContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
@@ -1109,12 +1042,6 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	sidecars := []corev1.Container{}
 
 	for _, sc := range gw.Spec.App.Sidecars {
-		if platform == "openshift" && sc.SecurityContext == nil {
-			sc.SecurityContext = &ocContainerSecurityContext
-			if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
-				sc.SecurityContext = &gw.Spec.App.ContainerSecurityContext
-			}
-		}
 		sidecars = append(sidecars, sc)
 	}
 

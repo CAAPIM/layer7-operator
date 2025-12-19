@@ -87,58 +87,25 @@ func GatewayStatus(ctx context.Context, params Params) error {
 		found := false
 		for i, repoStatus := range gatewayStatus.RepositoryStatus {
 			if repoStatus.Name == repository.Name {
-				gatewayStatus.RepositoryStatus[i].Enabled = repoRef.Enabled
-				gatewayStatus.RepositoryStatus[i].Commit = repository.Status.Commit
-				gatewayStatus.RepositoryStatus[i].Type = string(repoRef.Type)
+				rs, err := buildRepoStatus(ctx, params, *repository, repoRef)
+				if err != nil {
+					params.Log.V(2).Info("failed to build repository status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
+					return err
+				}
+				if len(gatewayStatus.RepositoryStatus[i].Conditions) > 0 {
+					rs.Conditions = gatewayStatus.RepositoryStatus[i].Conditions
+				}
+				rs.Directories = gatewayStatus.RepositoryStatus[i].Directories
+				gatewayStatus.RepositoryStatus[i] = rs
 				found = true
 			}
 		}
 
-		if !found {
-			secretName := repository.Name
-			if repository.Spec.Auth.ExistingSecretName != "" {
-				secretName = repository.Spec.Auth.ExistingSecretName
-			}
-
-			if repository.Spec.Auth == (securityv1.RepositoryAuth{}) {
-				secretName = ""
-			}
-
-			rs := securityv1.GatewayRepositoryStatus{
-				Commit:            repository.Status.Commit,
-				Enabled:           repoRef.Enabled,
-				Name:              repoRef.Name,
-				Type:              string(repoRef.Type),
-				SecretName:        secretName,
-				StorageSecretName: repository.Status.StorageSecretName,
-				Endpoint:          repository.Spec.Endpoint,
-			}
-
-			if repository.Spec.Tag != "" && repository.Spec.Branch == "" {
-				rs.Tag = repository.Spec.Tag
-			}
-
-			if repository.Spec.Branch != "" {
-				rs.Branch = repository.Spec.Branch
-			}
-
-			rs.RemoteName = "origin"
-			if repository.Spec.RemoteName != "" {
-				rs.RemoteName = repository.Spec.RemoteName
-			}
-
-			if repository.Spec.StateStoreReference != "" {
-				rs.StateStoreReference = repository.Spec.StateStoreReference
-				statestore := &securityv1alpha1.L7StateStore{}
-				err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Spec.StateStoreReference, Namespace: params.Instance.Namespace}, statestore)
-				if err != nil && k8serrors.IsNotFound(err) {
-					params.Log.Info("state store not found", "name", repository.Spec.StateStoreReference, "repository", repository.Name, "namespace", params.Instance.Namespace)
-					return err
-				}
-				rs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + repository.Status.StorageSecretName + ":latest"
-				if repository.Spec.StateStoreKey != "" {
-					rs.StateStoreKey = repository.Spec.StateStoreKey
-				}
+		if !found && repoRef.Enabled {
+			rs, err := buildRepoStatus(ctx, params, *repository, repoRef)
+			if err != nil {
+				params.Log.V(2).Info("failed to build repository status", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "message", err.Error())
+				return err
 			}
 			gatewayStatus.RepositoryStatus = append(gatewayStatus.RepositoryStatus, rs)
 		}
@@ -162,4 +129,62 @@ func GatewayStatus(ctx context.Context, params Params) error {
 		params.Log.V(2).Info("updated gateway status", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 	}
 	return nil
+}
+
+func buildRepoStatus(ctx context.Context, params Params, repository securityv1.Repository, repoRef securityv1.RepositoryReference) (repoStatus securityv1.GatewayRepositoryStatus, err error) {
+	secretName := repository.Name
+	if repository.Spec.Auth.ExistingSecretName != "" {
+		secretName = repository.Spec.Auth.ExistingSecretName
+	}
+
+	if repository.Spec.Auth == (securityv1.RepositoryAuth{}) {
+		secretName = ""
+	}
+
+	rs := securityv1.GatewayRepositoryStatus{
+		Commit:            repository.Status.Commit,
+		Enabled:           repoRef.Enabled,
+		Name:              repoRef.Name,
+		RepoType:          string(repository.Spec.Type),
+		Vendor:            repository.Spec.Auth.Vendor,
+		AuthType:          string(repository.Spec.Auth.Type),
+		Type:              string(repoRef.Type),
+		SecretName:        secretName,
+		StorageSecretName: repository.Status.StorageSecretName,
+		Endpoint:          repository.Spec.Endpoint,
+		//Directories:       repoRef.Directories,
+	}
+
+	if repository.Spec.Tag != "" && repository.Spec.Branch == "" {
+		rs.Tag = repository.Spec.Tag
+	}
+
+	if repository.Spec.Branch != "" {
+		rs.Branch = repository.Spec.Branch
+	}
+
+	rs.RemoteName = "origin"
+	if repository.Spec.RemoteName != "" {
+		rs.RemoteName = repository.Spec.RemoteName
+	}
+
+	if repository.Spec.StateStoreReference != "" {
+		ext := repository.Spec.Branch
+		if ext == "" {
+			ext = repository.Spec.Tag
+		}
+		stateStoreKey := repository.Name + "-repository-" + ext
+		rs.StateStoreReference = repository.Spec.StateStoreReference
+		statestore := &securityv1alpha1.L7StateStore{}
+		err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Spec.StateStoreReference, Namespace: params.Instance.Namespace}, statestore)
+		if err != nil && k8serrors.IsNotFound(err) {
+			params.Log.Info("state store not found", "name", repository.Spec.StateStoreReference, "repository", repository.Name, "namespace", params.Instance.Namespace)
+			return securityv1.GatewayRepositoryStatus{}, err
+		}
+		rs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + stateStoreKey + ":latest"
+		if repository.Spec.StateStoreKey != "" {
+			rs.StateStoreKey = repository.Spec.StateStoreKey
+		}
+	}
+	return rs, nil
 }

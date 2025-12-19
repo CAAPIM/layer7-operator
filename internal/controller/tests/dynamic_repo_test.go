@@ -21,8 +21,8 @@ var _ = Describe("Gateway controller", func() {
 			repoSecretName      = "test-dynamic-repository-secret"
 			namespace           = "l7operator"
 			gatewayName         = "local-repo-ssg"
-			version             = "11.1.2"
-			image               = "docker.io/caapim/gateway:11.1.2"
+			version             = "11.1.3"
+			image               = "docker.io/caapim/gateway:11.1.3"
 			repoName            = "local-repo"
 			repoType            = securityv1.RepositoryTypeLocal
 			dynamicChecksum     = ""
@@ -137,7 +137,7 @@ var _ = Describe("Gateway controller", func() {
 							},
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
-								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.3",
+								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.4",
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",

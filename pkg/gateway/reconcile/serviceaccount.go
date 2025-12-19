@@ -11,7 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// / TODO: Should auto-delete if not used...
 func ServiceAccount(ctx context.Context, params Params) error {
 
 	if !params.Instance.Spec.App.ServiceAccount.Create {

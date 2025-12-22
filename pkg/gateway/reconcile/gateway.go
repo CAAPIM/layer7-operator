@@ -1534,7 +1534,7 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 	leaderAvailable := false
 	for _, pod := range gwUpdReq.podList.Items {
 		if pod.ObjectMeta.Labels["management-access"] == "leader" {
-			endpoint = "127.0.0.1" + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
+			endpoint = podIP(pod.Status.PodIP) + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
 			leaderAvailable = true
 		}
 	}
@@ -1840,8 +1840,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 
 		if update && ready {
 			updateStatus = true
-			endpoint := "127.0.0.1" + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
-
+			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
 			requestCacheEntry := pod.Name + "-" + gwUpdReq.cacheEntry
 			syncRequest, err := syncCache.Read(requestCacheEntry)
 			tryRequest := true
@@ -2120,7 +2119,7 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 
 		if update && ready {
 			updateStatus = true
-			endpoint := "127.0.0.1" + ":" + strconv.Itoa(graphmanPort) + "/graphman"
+			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(graphmanPort) + "/graphman"
 
 			requestCacheEntry := pod.Name + "-" + gateway.Name + "-" + name + "-" + sha1Sum
 			syncRequest, err := syncCache.Read(requestCacheEntry)

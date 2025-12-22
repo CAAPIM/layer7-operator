@@ -27,15 +27,10 @@ package reconcile
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"strconv"
-
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/internal/graphman"
-	"github.com/caapim/layer7-operator/pkg/gateway"
-	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -142,116 +137,4 @@ func applyOtkCertificates(ctx context.Context, params Params, gateway *securityv
 	}
 
 	return nil
-}
-
-func manageCertificateSecrets(ctx context.Context, params Params) {
-	gw := &securityv1.Gateway{}
-	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, gw)
-	if err != nil && k8serrors.IsNotFound(err) {
-		params.Log.Error(err, "gateway not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-		_ = removeJob(params.Instance.Name + "-sync-otk-certificate-secret")
-		return
-	}
-
-	if !gw.Spec.App.Otk.Enabled {
-		_ = removeJob(params.Instance.Name + "-sync-otk-certificate-secret")
-		return
-	}
-	params.Instance = gw
-	internalGatewayPort := 9443
-	defaultOtkPort := 8443
-	rawInternalCertList := map[string][]byte{}
-	rawDMZCertList := map[string][]byte{}
-	desiredSecrets := []*corev1.Secret{}
-	if gw.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
-		internalGatewayPort = gw.Spec.App.Management.Graphman.DynamicSyncPort
-
-	}
-
-	if gw.Spec.App.Otk.InternalGatewayPort != 0 {
-		internalGatewayPort = gw.Spec.App.Otk.InternalGatewayPort
-	}
-
-	if gw.Spec.App.Otk.OTKPort != 0 {
-		defaultOtkPort = gw.Spec.App.Otk.OTKPort
-	}
-	podList, err := getGatewayPods(ctx, params)
-	if err != nil {
-		params.Log.Error(err, "failed to retrieve gateway pods", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-		return
-	}
-
-	for _, pod := range podList.Items {
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.Name == "gateway" {
-				if !containerStatus.Ready {
-					params.Log.V(2).Info("pod not ready", "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-					return
-				}
-			}
-		}
-
-		switch gw.Spec.App.Otk.Type {
-		case securityv1.OtkTypeDMZ:
-			rawCert, err := retrieveCertificate(pod.Status.PodIP, strconv.Itoa(defaultOtkPort))
-			if err != nil {
-				params.Log.Error(err, "failed to retrieve certificate", "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-				return
-			}
-			if len(rawDMZCertList) > 0 {
-				for _, cert := range rawDMZCertList {
-					if string(rawCert) != string(cert) {
-						rawDMZCertList[pod.Name] = rawCert
-					}
-				}
-			} else {
-				rawDMZCertList[pod.Name] = rawCert
-			}
-		case securityv1.OtkTypeInternal:
-			rawCert, err := retrieveCertificate(pod.Status.PodIP, strconv.Itoa(internalGatewayPort))
-			if err != nil {
-				params.Log.Error(err, "failed to retrieve certificate", "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-				return
-			}
-			if len(rawInternalCertList) > 0 {
-				for _, cert := range rawInternalCertList {
-					if string(rawCert) != string(cert) {
-						rawInternalCertList[pod.Name] = rawCert
-					}
-				}
-			} else {
-				rawInternalCertList[pod.Name] = rawCert
-			}
-
-		}
-	}
-
-	if gw.Spec.App.Otk.Type == securityv1.OtkTypeDMZ && len(rawDMZCertList) > 0 {
-		desiredSecrets = append(desiredSecrets, gateway.NewOtkCertificateSecret(gw, gw.Name+"-otk-dmz-certificates", rawDMZCertList))
-	}
-
-	if gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal && len(rawInternalCertList) > 0 {
-		desiredSecrets = append(desiredSecrets, gateway.NewOtkCertificateSecret(gw, gw.Name+"-otk-internal-certificates", rawInternalCertList))
-	}
-
-	err = reconcileSecrets(ctx, params, desiredSecrets)
-	if err != nil {
-		params.Log.Error(err, "failed to reconcile otk certificates", "Name", gw.Name, "namespace", gw.Namespace)
-		return
-	}
-
-}
-
-func retrieveCertificate(host string, port string) ([]byte, error) {
-	conf := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	conn, err := tls.Dial("tcp", host+":"+port, conf)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-	cert := conn.ConnectionState().PeerCertificates[0].Raw
-	return cert, nil
 }

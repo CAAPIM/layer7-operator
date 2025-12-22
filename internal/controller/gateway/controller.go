@@ -236,6 +236,11 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
 					}
 				}
+				if gateway.Spec.App.Otk.Enabled {
+					if gateway.Spec.App.Otk.DmzKeySecret == a.GetName() || gateway.Spec.App.Otk.InternalKeySecret == a.GetName() {
+						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
+					}
+				}
 			}
 			return req
 		}),

@@ -1589,6 +1589,10 @@ spec:
                           description: Name of the kubernetes.io/tls Secret which
                             already exists in Kubernetes
                           type: string
+                        otk:
+                          description: Otk indicates that this key usage was specific
+                            for OTK
+                          type: boolean
                       type: object
                     type: array
                   externalSecrets:
@@ -4003,8 +4007,20 @@ spec:
                             description: Type of OTK Database
                             type: string
                         type: object
+                      dmzAuthSecret:
+                        description: DmzAuthSecret is a reference to a Secret containing
+                          username and password...
+                        type: string
+                      dmzGatewayPort:
+                        description: |-
+                          DmzGatewayPort defaults to 9443 or graphmanDynamicSync port
+                          This port is...
+                        type: integer
                       dmzGatewayReference:
                         description: OTKPort is used in Single mode - sets the otk.
+                        type: string
+                      dmzKeySecret:
+                        description: DmzKeySecret is a reference to a kubernetes.
                         type: string
                       enabled:
                         description: Enable or disable the OTK initContainer
@@ -4142,13 +4158,21 @@ spec:
                                 type: string
                             type: object
                         type: object
+                      internalAuthSecret:
+                        description: InternalAuthSecret is a reference to a Secret
+                          containing username and...
+                        type: string
                       internalGatewayPort:
-                        description: InternalGatewayPort defaults to 9443 or graphmanDynamicSync
-                          port
+                        description: |-
+                          InternalGatewayPort defaults to 9443 or graphmanDynamicSync port
+                          This port...
                         type: integer
                       internalGatewayReference:
                         description: InternalOtkGatewayReference to an Operator managed
                           Gateway deployment that...
+                        type: string
+                      internalKeySecret:
+                        description: InternalKeySecret is a reference to a kubernetes.
                         type: string
                       maintenanceTasks:
                         description: MaintenanceTasks for the OTK database are disabled
@@ -4202,6 +4226,10 @@ spec:
                         items:
                           type: string
                         type: array
+                      syncIntervalSeconds:
+                        description: SyncIntervalSeconds determines how often DMZ
+                          and Internal gateways should...
+                        type: integer
                       type:
                         description: Type of OTK installation single, internal or
                           dmz

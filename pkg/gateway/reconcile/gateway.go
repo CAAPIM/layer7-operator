@@ -499,7 +499,8 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		for _, k := range gateway.Status.LastAppliedExternalKeys {
 			found := false
 			for _, ek := range gateway.Spec.App.ExternalKeys {
-				if k == ek.Alias && ek.Enabled {
+				if k == ek.Alias && ek.Enabled && !ek.Otk {
+					// Only process non-OTK keys in regular external keys flow
 					found = true
 				}
 			}
@@ -511,7 +512,8 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		var sha1Sum string
 		for _, externalKey := range gateway.Spec.App.ExternalKeys {
 
-			if externalKey.Enabled {
+			if externalKey.Enabled && !externalKey.Otk {
+				// Skip keys with otk: true - they are handled separately by OTK reconciliation
 				secret, err := getGatewaySecret(ctx, params, externalKey.Name)
 				if err != nil {
 					return nil, err
@@ -1532,7 +1534,7 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 	leaderAvailable := false
 	for _, pod := range gwUpdReq.podList.Items {
 		if pod.ObjectMeta.Labels["management-access"] == "leader" {
-			endpoint = podIP(pod.Status.PodIP) + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
+			endpoint = "127.0.0.1" + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
 			leaderAvailable = true
 		}
 	}
@@ -1838,7 +1840,8 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 
 		if update && ready {
 			updateStatus = true
-			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
+			endpoint := "127.0.0.1" + ":" + strconv.Itoa(gwUpdReq.graphmanPort) + "/graphman"
+
 			requestCacheEntry := pod.Name + "-" + gwUpdReq.cacheEntry
 			syncRequest, err := syncCache.Read(requestCacheEntry)
 			tryRequest := true
@@ -2117,7 +2120,7 @@ func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, 
 
 		if update && ready {
 			updateStatus = true
-			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(graphmanPort) + "/graphman"
+			endpoint := "127.0.0.1" + ":" + strconv.Itoa(graphmanPort) + "/graphman"
 
 			requestCacheEntry := pod.Name + "-" + gateway.Name + "-" + name + "-" + sha1Sum
 			syncRequest, err := syncCache.Read(requestCacheEntry)

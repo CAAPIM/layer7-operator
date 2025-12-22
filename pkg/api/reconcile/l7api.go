@@ -188,7 +188,7 @@ func deployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gatewa
 			}
 
 			if tryRequest {
-				endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"
+				endpoint := "127.0.0.1" + ":" + strconv.Itoa(graphmanPort) + "/graphman"
 				var errorMessage string
 				status := SUCCESS
 				name := gateway.Name
@@ -264,7 +264,7 @@ func undeployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gate
 			}
 
 			if tryRequest {
-				endpoint := pod.Status.PodIP + ":" + strconv.Itoa(graphmanPort) + "/graphman"
+				endpoint := "127.0.0.1" + ":" + strconv.Itoa(graphmanPort) + "/graphman"
 				status := SUCCESS
 				name := gateway.Name
 				if gateway.Spec.App.Management.SecretName != "" {

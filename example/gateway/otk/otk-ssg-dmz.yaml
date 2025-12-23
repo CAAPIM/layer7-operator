@@ -84,8 +84,40 @@ spec:
           databaseWaitTimeout: 60
     autoscaling:
       enabled: false
-    bundle: []
-    repositoryReferences: []
+    bundle:
+      - type: restman
+        source: secret
+        name: restman-bootstrap-bundle
+      - type: graphman
+        source: secret
+        name: graphman-bootstrap-bundle
+    repositoryReferences:
+      - name: l7-gw-myframework
+        enabled: true
+        type: static
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: FRAMEWORK_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-myapis
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: APIS_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-mysubscriptions
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+      - name: local-reference-repository
+        enabled: true
+        type: dynamic
+        encryption: { }
+      - name: otk-customizations-dmz
+        enabled: true
+        type: dynamic
+        encryption: { }
     bootstrap:
       script:
         enabled: true

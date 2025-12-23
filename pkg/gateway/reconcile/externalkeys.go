@@ -228,7 +228,7 @@ func updateDmzWithKey(ctx context.Context, params Params, gateway *securityv1.Ga
 			Crt:       string(certData),
 			Key:       string(keyData),
 			Alias:     "otk-dmz-key",
-			UsageType: "SSL",
+			UsageType: "",
 		},
 	}
 
@@ -257,13 +257,13 @@ func updateDmzWithKey(ctx context.Context, params Params, gateway *securityv1.Ga
 
 	// Check if DMZ key was already applied (to determine if update is needed)
 	keyWasUpdated := false
+	currentSha1Sum := ""
 	if !gateway.Spec.App.Management.Database.Enabled {
 		podList, err := getGatewayPods(ctx, params)
 		if err != nil {
 			return err
 		}
 		// Check current annotation value before update
-		currentSha1Sum := ""
 		for _, pod := range podList.Items {
 			if val, ok := pod.ObjectMeta.Annotations[annotation]; ok {
 				currentSha1Sum = val
@@ -275,29 +275,30 @@ func updateDmzWithKey(ctx context.Context, params Params, gateway *securityv1.Ga
 			return err
 		}
 		// Key was updated if sha1Sum changed
-		keyWasUpdated = (currentSha1Sum != sha1Sum)
+		keyWasUpdated = currentSha1Sum != sha1Sum
 	} else {
 		gatewayDeployment, err := getGatewayDeployment(ctx, params)
 		if err != nil {
 			return err
 		}
 		// Check current annotation value before update
-		currentSha1Sum := gatewayDeployment.ObjectMeta.Annotations[annotation]
+		currentSha1Sum = gatewayDeployment.ObjectMeta.Annotations[annotation]
 		err = ReconcileDBGateway(ctx, params, "otk dmz key", *gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, "otk dmz key", bundleBytes)
 		if err != nil {
 			return err
 		}
 		// Key was updated if sha1Sum changed (ReconcileDBGateway returns early if already applied)
-		keyWasUpdated = (currentSha1Sum != sha1Sum)
+		keyWasUpdated = currentSha1Sum != sha1Sum
 	}
 
-	// Update cluster property only if DMZ key was updated
-	if keyWasUpdated {
+	// Update cluster property if DMZ key was updated OR if this is the first reconciliation (currentSha1Sum is empty)
+	// This ensures the CWP is set on first reconciliation, not just on key updates
+	if keyWasUpdated || currentSha1Sum == "" {
 		if err := updateDmzPrivateKeyClusterProperty(ctx, params, gateway, "otk-dmz-key"); err != nil {
 			params.Log.V(2).Info("Failed to update DMZ private key cluster property", "error", err, "gateway", gateway.Name)
 			// Don't fail the entire operation if cluster property update fails
 		}
-	} else if !keyWasUpdated {
+	} else {
 		params.Log.V(2).Info("DMZ key was not updated, skipping cluster property update", "gateway", gateway.Name)
 	}
 
@@ -340,7 +341,7 @@ func updateInternalWithKey(ctx context.Context, params Params, gateway *security
 			Crt:       string(certData),
 			Key:       string(keyData),
 			Alias:     "otk-internal-key",
-			UsageType: "SSL",
+			UsageType: "",
 		},
 	}
 

@@ -26,10 +26,12 @@
 package reconcile
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -136,7 +138,7 @@ func publishDmzCertificatesToInternal(ctx context.Context, params Params, gatewa
 			Crt:       string(certData),
 			Key:       string(keyData),
 			Alias:     "otk-dmz-key",
-			UsageType: "SSL",
+			UsageType: "",
 		},
 	}
 
@@ -217,7 +219,7 @@ func publishInternalCertificatesToDmz(ctx context.Context, params Params, gatewa
 			Crt:       string(certData),
 			Key:       string(keyData),
 			Alias:     "otk-internal-key",
-			UsageType: "SSL",
+			UsageType: "",
 		},
 	}
 
@@ -274,9 +276,82 @@ func publishDmzCertToInternal(ctx context.Context, params Params, gateway *secur
 		return fmt.Errorf("invalid certificate format")
 	}
 
+	// Before adding new certs, remove existing ones if they were previously applied
+	// Check if certs were previously applied by checking the annotation
+	annotation := "security.brcmlabs.com/" + gateway.Name + "-dmz-certificates"
+	thumbprintAnnotation := "security.brcmlabs.com/" + gateway.Name + "-dmz-certificates-thumbprints"
+	previousCertChecksum := ""
+	var oldThumbprints []string
+	if !isExternalGateway {
+		if !internalGateway.Spec.App.Management.Database.Enabled {
+			podList, err := getGatewayPods(ctx, params)
+			if err == nil {
+				for _, pod := range podList.Items {
+					if val, ok := pod.ObjectMeta.Annotations[annotation]; ok {
+						previousCertChecksum = val
+					}
+					if val, ok := pod.ObjectMeta.Annotations[thumbprintAnnotation]; ok && val != "" {
+						// Parse comma-separated thumbprints
+						oldThumbprints = strings.Split(val, ",")
+					}
+					if previousCertChecksum != "" {
+						break
+					}
+				}
+			}
+		} else {
+			gatewayDeployment, err := getGatewayDeployment(ctx, params)
+			if err == nil {
+				previousCertChecksum = gatewayDeployment.ObjectMeta.Annotations[annotation]
+				if val, ok := gatewayDeployment.ObjectMeta.Annotations[thumbprintAnnotation]; ok && val != "" {
+					oldThumbprints = strings.Split(val, ",")
+				}
+			}
+		}
+	}
+
 	bundle := graphman.Bundle{}
 
-	// Add to TrustedCerts
+	// If we have old thumbprints, add deletion mappings before adding new certs
+	if len(oldThumbprints) > 0 && previousCertChecksum != "" {
+		if bundle.Properties == nil {
+			bundle.Properties = &graphman.BundleProperties{
+				Mappings: graphman.BundleMappings{},
+			}
+		}
+		for _, thumbprint := range oldThumbprints {
+			thumbprint = strings.TrimSpace(thumbprint)
+			if thumbprint != "" {
+				bundle.Properties.Mappings.TrustedCerts = append(bundle.Properties.Mappings.TrustedCerts, &graphman.MappingInstructionInput{
+					Action: graphman.MappingActionDelete,
+					Source: graphman.MappingSource{ThumbprintSha1: thumbprint},
+				})
+			}
+		}
+		// Also remove old FIP users with the same names
+		// We'll identify them by the cert CommonName pattern
+		for _, certStr := range crtStrings {
+			if certStr == "" {
+				continue
+			}
+			b, _ := pem.Decode([]byte(certStr))
+			if b == nil {
+				continue
+			}
+			crtX509, err := x509.ParseCertificate(b.Bytes)
+			if err != nil {
+				continue
+			}
+			// Remove FIP user by name (CommonName)
+			bundle.Properties.Mappings.FipUsers = append(bundle.Properties.Mappings.FipUsers, &graphman.MappingInstructionInput{
+				Action: graphman.MappingActionDelete,
+				Source: graphman.MappingSource{Name: crtX509.Subject.CommonName},
+			})
+		}
+	}
+
+	// Calculate thumbprints for new certs and add to TrustedCerts
+	var newThumbprints []string
 	for _, certStr := range crtStrings {
 		if certStr == "" {
 			continue
@@ -290,9 +365,19 @@ func publishDmzCertToInternal(ctx context.Context, params Params, gateway *secur
 			continue
 		}
 
+		// Calculate thumbprint for this cert
+		thumbprint, err := calculateCertThumbprint(crtX509.Raw)
+		if err != nil {
+			params.Log.V(2).Info("Failed to calculate cert thumbprint", "error", err, "cert", crtX509.Subject.CommonName)
+			thumbprint = "" // Continue without thumbprint
+		} else {
+			newThumbprints = append(newThumbprints, thumbprint)
+		}
+
 		bundle.TrustedCerts = append(bundle.TrustedCerts, &graphman.TrustedCertInput{
 			Name:                      crtX509.Subject.CommonName,
 			CertBase64:                base64.StdEncoding.EncodeToString([]byte(certStr)),
+			ThumbprintSha1:            thumbprint,
 			TrustAnchor:               true,
 			VerifyHostname:            false,
 			RevocationCheckPolicyType: "USE_DEFAULT",
@@ -370,8 +455,6 @@ func publishDmzCertToInternal(ctx context.Context, params Params, gateway *secur
 		return err
 	}
 
-	annotation := "security.brcmlabs.com/" + gateway.Name + "-dmz-certificates"
-
 	internalParams := params
 	internalParams.Instance = internalGateway
 
@@ -439,9 +522,66 @@ func publishInternalCertToDmz(ctx context.Context, params Params, gateway *secur
 		return fmt.Errorf("invalid certificate format")
 	}
 
+	// Before adding new certs, remove existing ones if they were previously applied
+	// Check if certs were previously applied by checking the annotation
+	annotation := "security.brcmlabs.com/" + gateway.Name + "-internal-certificates"
+	thumbprintAnnotation := "security.brcmlabs.com/" + gateway.Name + "-internal-certificates-thumbprints"
+	previousCertChecksum := ""
+	var oldThumbprints []string
+	if !isExternalGateway {
+		if !dmzGateway.Spec.App.Management.Database.Enabled {
+			dmzParams := params
+			dmzParams.Instance = dmzGateway
+			podList, err := getGatewayPods(ctx, dmzParams)
+			if err == nil {
+				for _, pod := range podList.Items {
+					if val, ok := pod.ObjectMeta.Annotations[annotation]; ok {
+						previousCertChecksum = val
+					}
+					if val, ok := pod.ObjectMeta.Annotations[thumbprintAnnotation]; ok && val != "" {
+						// Parse comma-separated thumbprints
+						oldThumbprints = strings.Split(val, ",")
+					}
+					if previousCertChecksum != "" {
+						break
+					}
+				}
+			}
+		} else {
+			dmzParams := params
+			dmzParams.Instance = dmzGateway
+			gatewayDeployment, err := getGatewayDeployment(ctx, dmzParams)
+			if err == nil {
+				previousCertChecksum = gatewayDeployment.ObjectMeta.Annotations[annotation]
+				if val, ok := gatewayDeployment.ObjectMeta.Annotations[thumbprintAnnotation]; ok && val != "" {
+					oldThumbprints = strings.Split(val, ",")
+				}
+			}
+		}
+	}
+
 	bundle := graphman.Bundle{}
 
-	// Add to TrustedCerts
+	// If we have old thumbprints, add deletion mappings before adding new certs
+	if len(oldThumbprints) > 0 && previousCertChecksum != "" {
+		if bundle.Properties == nil {
+			bundle.Properties = &graphman.BundleProperties{
+				Mappings: graphman.BundleMappings{},
+			}
+		}
+		for _, thumbprint := range oldThumbprints {
+			thumbprint = strings.TrimSpace(thumbprint)
+			if thumbprint != "" {
+				bundle.Properties.Mappings.TrustedCerts = append(bundle.Properties.Mappings.TrustedCerts, &graphman.MappingInstructionInput{
+					Action: graphman.MappingActionDelete,
+					Source: graphman.MappingSource{ThumbprintSha1: thumbprint},
+				})
+			}
+		}
+	}
+
+	// Calculate thumbprints for new certs and add to TrustedCerts
+	var newThumbprints []string
 	for _, certStr := range crtStrings {
 		if certStr == "" {
 			continue
@@ -455,9 +595,19 @@ func publishInternalCertToDmz(ctx context.Context, params Params, gateway *secur
 			continue
 		}
 
+		// Calculate thumbprint for this cert
+		thumbprint, err := calculateCertThumbprint(crtX509.Raw)
+		if err != nil {
+			params.Log.V(2).Info("Failed to calculate cert thumbprint", "error", err, "cert", crtX509.Subject.CommonName)
+			thumbprint = "" // Continue without thumbprint
+		} else {
+			newThumbprints = append(newThumbprints, thumbprint)
+		}
+
 		bundle.TrustedCerts = append(bundle.TrustedCerts, &graphman.TrustedCertInput{
 			Name:                      crtX509.Subject.CommonName,
 			CertBase64:                base64.StdEncoding.EncodeToString([]byte(certStr)),
+			ThumbprintSha1:            thumbprint,
 			TrustAnchor:               true,
 			VerifyHostname:            false,
 			RevocationCheckPolicyType: "USE_DEFAULT",
@@ -493,7 +643,8 @@ func publishInternalCertToDmz(ctx context.Context, params Params, gateway *secur
 		return err
 	}
 
-	annotation := "security.brcmlabs.com/" + gateway.Name + "-internal-certificates"
+	// annotation is already declared above, reuse it
+	// annotation := "security.brcmlabs.com/" + gateway.Name + "-internal-certificates"
 
 	dmzParams := params
 	dmzParams.Instance = dmzGateway
@@ -780,4 +931,20 @@ func syncInternalCertToExternalDmzGateway(ctx context.Context, params Params, ga
 		"sha1Sum", sha1Sum)
 
 	return nil
+}
+
+// calculateCertThumbprint calculates the SHA1 thumbprint of a certificate in the format expected by Graphman
+// Format: base64-encoded hex string of SHA1 fingerprint
+func calculateCertThumbprint(rawCert []byte) (string, error) {
+	fingerprint := sha1.Sum(rawCert)
+	var buf bytes.Buffer
+	for _, f := range fingerprint {
+		fmt.Fprintf(&buf, "%02X", f)
+	}
+	hexDump, err := hex.DecodeString(buf.String())
+	if err != nil {
+		return "", err
+	}
+	buf.Reset()
+	return base64.StdEncoding.EncodeToString(hexDump), nil
 }

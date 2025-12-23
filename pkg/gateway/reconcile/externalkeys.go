@@ -30,7 +30,6 @@ import (
 	"context"
 	"crypto/sha1"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -42,7 +41,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -159,18 +157,10 @@ func handleDmzKeyUpdate(ctx context.Context, params Params, gateway *securityv1.
 	isOperatorManaged := !gateway.Spec.App.Management.Database.Enabled
 
 	if isOperatorManaged {
-		// Update DMZ with the new key
+		// Update DMZ with the new key (key sync only, cert publishing handled by syncOtkCertificates)
 		err = updateDmzWithKey(ctx, params, gateway, dmzKeySecret)
 		if err != nil {
 			return fmt.Errorf("failed to update DMZ with key: %w", err)
-		}
-	}
-
-	// Publish DMZ cert to Internal for Truststore & FIP User
-	if gateway.Spec.App.Otk.InternalOtkGatewayReference != "" {
-		err = publishDmzCertToInternal(ctx, params, gateway, dmzKeySecret)
-		if err != nil {
-			return fmt.Errorf("failed to publish DMZ cert to Internal: %w", err)
 		}
 	}
 
@@ -192,18 +182,10 @@ func handleInternalKeyUpdate(ctx context.Context, params Params, gateway *securi
 	isOperatorManaged := !gateway.Spec.App.Management.Database.Enabled
 
 	if isOperatorManaged {
-		// Update Internal with the new key
+		// Update Internal with the new key (key sync only, cert publishing handled by syncOtkCertificates)
 		err = updateInternalWithKey(ctx, params, gateway, internalKeySecret)
 		if err != nil {
 			return fmt.Errorf("failed to update Internal with key: %w", err)
-		}
-	}
-
-	// Publish Internal cert to DMZ for Truststore
-	if gateway.Spec.App.Otk.DmzOtkGatewayReference != "" {
-		err = publishInternalCertToDmz(ctx, params, gateway, internalKeySecret)
-		if err != nil {
-			return fmt.Errorf("failed to publish Internal cert to DMZ: %w", err)
 		}
 	}
 
@@ -273,31 +255,51 @@ func updateDmzWithKey(ctx context.Context, params Params, gateway *securityv1.Ga
 
 	annotation := "security.brcmlabs.com/otk-dmz-key"
 
+	// Check if DMZ key was already applied (to determine if update is needed)
+	keyWasUpdated := false
 	if !gateway.Spec.App.Management.Database.Enabled {
 		podList, err := getGatewayPods(ctx, params)
 		if err != nil {
 			return err
 		}
+		// Check current annotation value before update
+		currentSha1Sum := ""
+		for _, pod := range podList.Items {
+			if val, ok := pod.ObjectMeta.Annotations[annotation]; ok {
+				currentSha1Sum = val
+				break
+			}
+		}
 		err = ReconcileEphemeralGateway(ctx, params, "otk dmz key", *podList, gateway, gwSecret, "", annotation, sha1Sum, false, "otk dmz key", bundleBytes)
 		if err != nil {
 			return err
 		}
+		// Key was updated if sha1Sum changed
+		keyWasUpdated = (currentSha1Sum != sha1Sum)
 	} else {
 		gatewayDeployment, err := getGatewayDeployment(ctx, params)
 		if err != nil {
 			return err
 		}
+		// Check current annotation value before update
+		currentSha1Sum := gatewayDeployment.ObjectMeta.Annotations[annotation]
 		err = ReconcileDBGateway(ctx, params, "otk dmz key", *gatewayDeployment, gateway, gwSecret, "", annotation, sha1Sum, false, "otk dmz key", bundleBytes)
 		if err != nil {
 			return err
 		}
+		// Key was updated if sha1Sum changed (ReconcileDBGateway returns early if already applied)
+		keyWasUpdated = (currentSha1Sum != sha1Sum)
 	}
 
-	// Update cluster property otk.dmz.private_key.name after DMZ key is updated
-	//if err := updateDmzPrivateKeyClusterProperty(ctx, params, gateway, "otk-dmz-key"); err != nil {
-	//	params.Log.V(2).Info("Failed to update DMZ private key cluster property", "error", err, "gateway", gateway.Name)
-	//	// Don't fail the entire operation if cluster property update fails
-	//}
+	// Update cluster property only if DMZ key was updated
+	if keyWasUpdated {
+		if err := updateDmzPrivateKeyClusterProperty(ctx, params, gateway, "otk-dmz-key"); err != nil {
+			params.Log.V(2).Info("Failed to update DMZ private key cluster property", "error", err, "gateway", gateway.Name)
+			// Don't fail the entire operation if cluster property update fails
+		}
+	} else if !keyWasUpdated {
+		params.Log.V(2).Info("DMZ key was not updated, skipping cluster property update", "gateway", gateway.Name)
+	}
 
 	return nil
 }
@@ -388,299 +390,68 @@ func updateInternalWithKey(ctx context.Context, params Params, gateway *security
 	return nil
 }
 
-func publishDmzCertToInternal(ctx context.Context, params Params, gateway *securityv1.Gateway, dmzKeySecret *corev1.Secret) error {
-	// Get Internal gateway
-	internalGateway := &securityv1.Gateway{}
-	err := params.Client.Get(ctx, types.NamespacedName{
-		Name:      gateway.Spec.App.Otk.InternalOtkGatewayReference,
-		Namespace: gateway.Namespace,
-	}, internalGateway)
+// checkClusterPropertyExists checks if the cluster property exists in the ConfigMap
+func checkClusterPropertyExists(ctx context.Context, params Params, gateway *securityv1.Gateway, propertyName string) bool {
+	// Only check for DMZ gateway type
+	if gateway.Spec.App.Otk.Type != securityv1.OtkTypeDMZ {
+		return false
+	}
 
-	isExternalGateway := false
+	// Get the cluster properties ConfigMap
+	cmName := gateway.Name + "-cwp-bundle"
+	cm, err := getGatewayConfigMap(ctx, params, cmName)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			// Gateway not found - check if it's external (port specified)
-			if gateway.Spec.App.Otk.InternalGatewayPort != 0 {
-				params.Log.V(2).Info("Internal gateway not found but port specified, treating as external",
-					"gateway", gateway.Spec.App.Otk.InternalOtkGatewayReference,
-					"port", gateway.Spec.App.Otk.InternalGatewayPort)
-				isExternalGateway = true
-			} else {
-				params.Log.V(2).Info("Internal gateway not found and no port specified, skipping cert publish",
-					"gateway", gateway.Spec.App.Otk.InternalOtkGatewayReference)
-				return nil
-			}
-		} else {
-			return err
-		}
+		return false
 	}
 
-	certData := dmzKeySecret.Data["tls.crt"]
-	if len(certData) == 0 {
-		return fmt.Errorf("DMZ key secret must contain tls.crt")
-	}
-
-	// Parse certificate
-	crtStrings := strings.SplitAfter(string(certData), "-----END CERTIFICATE-----")
-	if len(crtStrings) == 0 {
-		return fmt.Errorf("invalid certificate format")
+	// Parse existing bundle
+	bundleJSON := cm.Data["cwp.json"]
+	if bundleJSON == "" {
+		return false
 	}
 
 	bundle := graphman.Bundle{}
-
-	// Add to TrustedCerts
-	for _, certStr := range crtStrings {
-		if certStr == "" {
-			continue
-		}
-		b, _ := pem.Decode([]byte(certStr))
-		if b == nil {
-			continue
-		}
-		crtX509, err := x509.ParseCertificate(b.Bytes)
-		if err != nil {
-			continue
-		}
-
-		bundle.TrustedCerts = append(bundle.TrustedCerts, &graphman.TrustedCertInput{
-			Name:                      crtX509.Subject.CommonName,
-			CertBase64:                base64.StdEncoding.EncodeToString([]byte(certStr)),
-			TrustAnchor:               true,
-			VerifyHostname:            false,
-			RevocationCheckPolicyType: "USE_DEFAULT",
-			TrustedFor: []graphman.TrustedForType{
-				"SSL",
-				"SIGNING_SERVER_CERTS",
-			},
-		})
-
-		// Add to FIP Users
-		bundle.FipUsers = append(bundle.FipUsers, &graphman.FipUserInput{
-			Name:         crtX509.Subject.CommonName,
-			ProviderName: "otk-fips-provider",
-			SubjectDn:    "cn=" + crtX509.Subject.CommonName,
-			CertBase64:   base64.RawStdEncoding.EncodeToString(crtX509.Raw),
-		})
-	}
-
-	bundleBytes, err := json.Marshal(bundle)
+	err = json.Unmarshal([]byte(bundleJSON), &bundle)
 	if err != nil {
-		return err
+		return false
 	}
 
-	// Calculate checksum
-	h := sha1.New()
-	h.Write(bundleBytes)
-	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
-
-	// If gateway is external (not managed by operator), use specified port
-	if isExternalGateway {
-		// For external gateways, we can't use the standard reconciliation
-		// Log that external gateway support requires additional configuration
-		params.Log.V(2).Info("External Internal gateway detected, port will be used for connection",
-			"gateway", gateway.Spec.App.Otk.InternalOtkGatewayReference,
-			"port", gateway.Spec.App.Otk.InternalGatewayPort)
-		// Note: External gateway connection would require additional implementation
-		// For now, we skip reconciliation for external gateways
-		return nil
-	}
-
-	// Get Internal gateway secret
-	name := internalGateway.Name
-	if internalGateway.Spec.App.Management.SecretName != "" {
-		name = internalGateway.Spec.App.Management.SecretName
-	}
-	gwSecret, err := getGatewaySecret(ctx, params, name)
-	if err != nil {
-		return err
-	}
-
-	annotation := "security.brcmlabs.com/" + gateway.Name + "-dmz-certificates"
-
-	internalParams := params
-	internalParams.Instance = internalGateway
-
-	// Note: InternalGatewayPort is used when the gateway is external (not found in cluster)
-	// For operator-managed gateways, the gateway's own graphman port configuration is used
-
-	if !internalGateway.Spec.App.Management.Database.Enabled {
-		podList, err := getGatewayPods(ctx, internalParams)
-		if err != nil {
-			return err
-		}
-		err = ReconcileEphemeralGateway(ctx, internalParams, "otk certificates", *podList, internalGateway, gwSecret, "", annotation, sha1Sum, true, "otk certificates", bundleBytes)
-		if err != nil {
-			return err
-		}
-	} else {
-		gatewayDeployment, err := getGatewayDeployment(ctx, internalParams)
-		if err != nil {
-			return err
-		}
-		err = ReconcileDBGateway(ctx, internalParams, "otk certificates", *gatewayDeployment, internalGateway, gwSecret, "", annotation, sha1Sum, false, "otk certificates", bundleBytes)
-		if err != nil {
-			return err
+	// Check if property exists
+	for _, cwp := range bundle.ClusterProperties {
+		if cwp.Name == propertyName {
+			return true
 		}
 	}
 
-	return nil
-}
-
-func publishInternalCertToDmz(ctx context.Context, params Params, gateway *securityv1.Gateway, internalKeySecret *corev1.Secret) error {
-	// Get DMZ gateway
-	dmzGateway := &securityv1.Gateway{}
-	err := params.Client.Get(ctx, types.NamespacedName{
-		Name:      gateway.Spec.App.Otk.DmzOtkGatewayReference,
-		Namespace: gateway.Namespace,
-	}, dmzGateway)
-
-	isExternalGateway := false
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			// Gateway not found - check if it's external (port specified)
-			if gateway.Spec.App.Otk.DmzGatewayPort != 0 {
-				params.Log.V(2).Info("DMZ gateway not found but port specified, treating as external",
-					"gateway", gateway.Spec.App.Otk.DmzOtkGatewayReference,
-					"port", gateway.Spec.App.Otk.DmzGatewayPort)
-				isExternalGateway = true
-			} else {
-				params.Log.V(2).Info("DMZ gateway not found and no port specified, skipping cert publish",
-					"gateway", gateway.Spec.App.Otk.DmzOtkGatewayReference)
-				return nil
-			}
-		} else {
-			return err
-		}
-	}
-
-	certData := internalKeySecret.Data["tls.crt"]
-	if len(certData) == 0 {
-		return fmt.Errorf("Internal key secret must contain tls.crt")
-	}
-
-	// Parse certificate
-	crtStrings := strings.SplitAfter(string(certData), "-----END CERTIFICATE-----")
-	if len(crtStrings) == 0 {
-		return fmt.Errorf("invalid certificate format")
-	}
-
-	bundle := graphman.Bundle{}
-
-	// Add to TrustedCerts
-	for _, certStr := range crtStrings {
-		if certStr == "" {
-			continue
-		}
-		b, _ := pem.Decode([]byte(certStr))
-		if b == nil {
-			continue
-		}
-		crtX509, err := x509.ParseCertificate(b.Bytes)
-		if err != nil {
-			continue
-		}
-
-		bundle.TrustedCerts = append(bundle.TrustedCerts, &graphman.TrustedCertInput{
-			Name:                      crtX509.Subject.CommonName,
-			CertBase64:                base64.StdEncoding.EncodeToString([]byte(certStr)),
-			TrustAnchor:               true,
-			VerifyHostname:            false,
-			RevocationCheckPolicyType: "USE_DEFAULT",
-			TrustedFor: []graphman.TrustedForType{
-				"SSL",
-				"SIGNING_SERVER_CERTS",
-			},
-		})
-	}
-
-	bundleBytes, err := json.Marshal(bundle)
-	if err != nil {
-		return err
-	}
-
-	// Calculate checksum
-	h := sha1.New()
-	h.Write(bundleBytes)
-	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
-
-	// If gateway is external (not managed by operator), use specified port
-	if isExternalGateway {
-		// For external gateways, we can't use the standard reconciliation
-		// Log that external gateway support requires additional configuration
-		params.Log.V(2).Info("External DMZ gateway detected, port will be used for connection",
-			"gateway", gateway.Spec.App.Otk.DmzOtkGatewayReference,
-			"port", gateway.Spec.App.Otk.DmzGatewayPort)
-		// Note: External gateway connection would require additional implementation
-		// For now, we skip reconciliation for external gateways
-		return nil
-	}
-
-	// Get DMZ gateway secret
-	name := dmzGateway.Name
-	if dmzGateway.Spec.App.Management.SecretName != "" {
-		name = dmzGateway.Spec.App.Management.SecretName
-	}
-	gwSecret, err := getGatewaySecret(ctx, params, name)
-	if err != nil {
-		return err
-	}
-
-	annotation := "security.brcmlabs.com/" + gateway.Name + "-internal-certificates"
-
-	dmzParams := params
-	dmzParams.Instance = dmzGateway
-
-	// Note: DmzGatewayPort is used when the gateway is external (not found in cluster)
-	// For operator-managed gateways, the gateway's own graphman port configuration is used
-
-	if !dmzGateway.Spec.App.Management.Database.Enabled {
-		podList, err := getGatewayPods(ctx, dmzParams)
-		if err != nil {
-			return err
-		}
-		err = ReconcileEphemeralGateway(ctx, dmzParams, "otk certificates", *podList, dmzGateway, gwSecret, "", annotation, sha1Sum, true, "otk certificates", bundleBytes)
-		if err != nil {
-			return err
-		}
-	} else {
-		gatewayDeployment, err := getGatewayDeployment(ctx, dmzParams)
-		if err != nil {
-			return err
-		}
-		err = ReconcileDBGateway(ctx, dmzParams, "otk certificates", *gatewayDeployment, dmzGateway, gwSecret, "", annotation, sha1Sum, false, "otk certificates", bundleBytes)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return false
 }
 
 // updateDmzPrivateKeyClusterProperty updates the cluster property otk.dmz.private_key.name
-// with the DMZ private key name. This is called after the DMZ key is successfully updated.
+// with the DMZ private key name. This function only updates the property if it exists.
+// It does not create the property if it doesn't exist.
 func updateDmzPrivateKeyClusterProperty(ctx context.Context, params Params, gateway *securityv1.Gateway, keyName string) error {
 	// Only update cluster property for DMZ gateway type
 	if gateway.Spec.App.Otk.Type != securityv1.OtkTypeDMZ {
 		return nil
 	}
 
-	// Get or create the cluster properties ConfigMap
+	// Get the cluster properties ConfigMap
 	cmName := gateway.Name + "-cwp-bundle"
 	cm, err := getGatewayConfigMap(ctx, params, cmName)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return fmt.Errorf("failed to get cluster properties ConfigMap: %w", err)
 		}
-		// ConfigMap doesn't exist, create it with the property
-		return createDmzPrivateKeyClusterProperty(ctx, params, gateway, keyName, cmName)
+		// ConfigMap doesn't exist, property doesn't exist - skip update
+		return fmt.Errorf("cluster property ConfigMap does not exist")
 	}
 
 	// Parse existing bundle
 	bundle := graphman.Bundle{}
 	bundleJSON := cm.Data["cwp.json"]
 	if bundleJSON == "" {
-		// Empty bundle, create new one
-		return createDmzPrivateKeyClusterProperty(ctx, params, gateway, keyName, cmName)
+		// Empty bundle, property doesn't exist - skip update
+		return fmt.Errorf("cluster property bundle is empty")
 	}
 
 	err = json.Unmarshal([]byte(bundleJSON), &bundle)
@@ -695,7 +466,7 @@ func updateDmzPrivateKeyClusterProperty(ctx context.Context, params Params, gate
 		}
 	}
 
-	// Check if property already exists and update it, or add new one
+	// Check if property exists and update it
 	propertyName := "otk.dmz.private_key.name"
 	found := false
 	for _, cwp := range bundle.ClusterProperties {
@@ -707,11 +478,8 @@ func updateDmzPrivateKeyClusterProperty(ctx context.Context, params Params, gate
 	}
 
 	if !found {
-		// Add new cluster property
-		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
-			Name:  propertyName,
-			Value: keyName,
-		})
+		// Property doesn't exist - skip update (only update, don't create)
+		return fmt.Errorf("cluster property %s does not exist", propertyName)
 	}
 
 	// Marshal bundle back to JSON

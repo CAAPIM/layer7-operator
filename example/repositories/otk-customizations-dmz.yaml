@@ -1,0 +1,10 @@
+apiVersion: security.brcmlabs.com/v1
+kind: Repository
+metadata:
+  name: otk-customizations-dmz
+spec:
+  enabled: true
+  endpoint: https://github.com/Layer7-Community/otk-customizations-dmz
+  branch: main
+  type: git
+  auth: {}

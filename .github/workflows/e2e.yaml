@@ -31,7 +31,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "~1.24.10"
+          go-version: "~1.24.13"
       - name: Setup kind
         env:
           KIND_VERSION: "0.30.0"

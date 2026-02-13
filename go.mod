@@ -1,6 +1,6 @@
 module github.com/caapim/layer7-operator
 
-go 1.24.10
+go 1.24.13
 
 require (
 	github.com/Khan/genqlient v0.8.1

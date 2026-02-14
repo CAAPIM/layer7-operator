@@ -72,16 +72,37 @@ func registerJobs(ctx context.Context, params Params) {
 		if err != nil {
 			params.Log.V(2).Info("otk policy sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 		}
-		if params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeDMZ || params.Instance.Spec.App.Otk.Type == securityv1.OtkTypeInternal {
-			_, err = s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-otk-certificates").Do(syncOtkCertificates, ctx, params)
-			if err != nil {
-				params.Log.V(2).Info("otk certificate sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-			}
-			_, err = s.Every(otkSyncInterval).Seconds().Tag(params.Instance.Name+"-"+params.Instance.Namespace+"-sync-otk-certificate-secret").Do(manageCertificateSecrets, ctx, params)
-			if err != nil {
-				params.Log.V(2).Info("otk certificate secret sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-			}
+
+		// Register certificate sync job for DMZ and Internal gateways
+		// Use SyncIntervalSeconds if specified, otherwise fall back to RuntimeSyncIntervalSeconds or default
+		certSyncInterval := otkSyncInterval
+		if params.Instance.Spec.App.Otk.SyncIntervalSeconds != 0 {
+			certSyncInterval = params.Instance.Spec.App.Otk.SyncIntervalSeconds
 		}
+
+		_, err = s.Every(certSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-otk-certificates").Do(syncOtkCertificates, ctx, params)
+
+		if err != nil {
+			params.Log.V(2).Info("otk certificate sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		}
+
+		// Register external keys sync job for certificate publishing between DMZ and Internal
+		_, err = s.Every(certSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-otk-external-keys").Do(syncOtkExternalKeys, ctx, params)
+
+		if err != nil {
+			params.Log.V(2).Info("otk external keys sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		}
+	}
+}
+
+func syncOtkExternalKeys(ctx context.Context, params Params) {
+	// Sync certificates between DMZ and Internal gateways via ExternalKeys
+	// This handles OTK certificate publishing (publishDmzCertToInternal, publishInternalCertToDmz)
+	err := ExternalKeys(ctx, params)
+	if err != nil {
+		params.Log.Error(err, "failed to sync OTK external keys certificates", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+	} else {
+		params.Log.V(2).Info("OTK external keys certificates synced", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "interval", params.Instance.Spec.App.Otk.SyncIntervalSeconds)
 	}
 }
 

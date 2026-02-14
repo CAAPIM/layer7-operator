@@ -360,17 +360,32 @@ type Otk struct {
 	// This configures a relationship between DMZ and Internal Gateways.
 	InternalOtkGatewayReference string `json:"internalGatewayReference,omitempty"`
 	// InternalGatewayPort defaults to 9443 or graphmanDynamicSync port
+	// This port is used when the Internal gateway is external (not managed by operator)
 	InternalGatewayPort int `json:"internalGatewayPort,omitempty"`
 	// OTKPort is used in Single mode - sets the otk.port cluster-wide property and in Dual-Mode
 	// sets host_oauth2_auth_server port in #OTK Client Context Variables
 	// TODO: Make this an array for many dmz deployments to one internal
 	DmzOtkGatewayReference string `json:"dmzGatewayReference,omitempty"`
+	// DmzGatewayPort defaults to 9443 or graphmanDynamicSync port
+	// This port is used when the DMZ gateway is external (not managed by operator)
+	DmzGatewayPort int `json:"dmzGatewayPort,omitempty"`
 	// OTKPort defaults to 8443
 	OTKPort int `json:"port,omitempty"`
 	// MaintenanceTasks for the OTK database are disabled by default
 	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
 	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
 	RuntimeSyncIntervalSeconds int `json:"runtimeSyncIntervalSeconds,omitempty"`
+	// SyncIntervalSeconds determines how often DMZ and Internal gateways should update certificates
+	// Defaults to RuntimeSyncIntervalSeconds if not specified, or 10 seconds if neither is set
+	SyncIntervalSeconds int `json:"syncIntervalSeconds,omitempty"`
+	// DmzKeySecret is a reference to a kubernetes.io/tls Secret containing the DMZ private key and certificate
+	DmzKeySecret string `json:"dmzKeySecret,omitempty"`
+	// InternalKeySecret is a reference to a kubernetes.io/tls Secret containing the Internal private key and certificate
+	InternalKeySecret string `json:"internalKeySecret,omitempty"`
+	// DmzAuthSecret is a reference to a Secret containing username and password for DMZ authentication
+	DmzAuthSecret string `json:"dmzAuthSecret,omitempty"`
+	// InternalAuthSecret is a reference to a Secret containing username and password for Internal authentication
+	InternalAuthSecret string `json:"internalAuthSecret,omitempty"`
 }
 
 // OtkMaintenanceTasks are included in the install bundle as disabled scheduled tasks
@@ -893,6 +908,8 @@ type ExternalKey struct {
 	// only one key usage type is allowed
 	// SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER
 	KeyUsageType KeyUsageType `json:"keyUsageType,omitempty"`
+	// Otk indicates that this key usage was specific for OTK
+	Otk bool `json:"otk,omitempty"`
 }
 
 type KeyUsageType string

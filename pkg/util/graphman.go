@@ -595,6 +595,11 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 					Soap:       false,
 				})
 			}
+			bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
+				Name:        "otk.port",
+				Value:       strconv.Itoa(otkPort),
+				Description: "OTK Port",
+			})
 		}
 
 		bundle.FederatedIdps = append(bundle.FederatedIdps, &graphman.FederatedIdpInput{
@@ -629,6 +634,11 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 					Soap:       false,
 				})
 			}
+			bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
+				Name:        "otk.port",
+				Value:       strconv.Itoa(otkPort),
+				Description: "OTK Port",
+			})
 		}
 	case "SINGLE":
 		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{

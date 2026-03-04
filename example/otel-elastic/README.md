@@ -398,7 +398,7 @@ export elasticPass=$(kubectl get secret quickstart-es-elastic-user -o go-templat
 ```
 Create Dashboard
 ```
-curl -XPOST https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false -H "kbn-xsrf: true" -k -uelastic:$elasticPass -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
+curl -XPOST "https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false" -H "kbn-xsrf: true" -k -uelastic:$elasticPass -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
 ```
 
 - wait for all components to be ready

@@ -57,4 +57,4 @@ spec:
       certificate: {}
   updateStrategy:
     changeBudget: {}
-  version: 8.8.2
+  version: 9.3.1

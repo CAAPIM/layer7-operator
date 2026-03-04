@@ -1,11 +1,11 @@
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: ssg-eck
 spec:
-  image: otel/opentelemetry-collector-contrib:0.97.0
+  image: otel/opentelemetry-collector-contrib:0.147.0
   mode: sidecar
-  config: |
+  config:
     receivers:
       otlp:
         protocols:

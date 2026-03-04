@@ -149,7 +149,7 @@ If you use Quickstart you do not need to install/deploy any additional resources
 The container gateway configuration required for this integration is relatively simple. We will set some environment variables in our OTel [instrumentation](./instrumentation.yaml) that the Otel Agent present on the Container Gateway will use to send logs, traces and metrics to the Otel Collector sidecar.
 
 ```
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: Instrumentation
 metadata:
   name: otel-instrumentation

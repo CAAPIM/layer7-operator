@@ -409,7 +409,7 @@ You can now move on to test your gateway deployment!
 ### Install Cert Manager
 These steps are based the official documentation for installing Cert-Manager [here](https://cert-manager.io/docs/installation/). Cert-Manager is a pre-requisite for the Open Telemetry Operator.
 ```
- kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
+ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 ```
 
 #### View CertManager Components
@@ -443,7 +443,7 @@ These steps are based the official documentation for installing Open Telemetry [
 
 - Install the Open Telemetry Operator.
 ```
-kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.97.1/opentelemetry-operator.yaml
+kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.146.0/opentelemetry-operator.yaml
 ```
 
 #### View Open Telemetry Components
@@ -500,7 +500,7 @@ kubectl apply -f ./example/otel-prometheus/servicemonitor.yaml
 ```
 
 ### Install Jaeger
-These steps are based on instructions that can be found in the Jaeger [documentation](https://www.jaegertracing.io/docs/1.44/operator/)
+These steps are based on instructions that can be found in the Jaeger [documentation](https://www.jaegertracing.io/docs/1.65/operator/)
 
 - Create a namespace called observability
 ```
@@ -508,7 +508,7 @@ kubectl create namespace observability
 ```
 - Install the Jaeger Operator
 ```
-kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.44.0/jaeger-operator.yaml -n observability
+kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.65.0/jaeger-operator.yaml -n observability
 ```
 
 #### View Jaeger Components
@@ -658,8 +658,8 @@ kubectl describe pods ssg-57d96567cb-n24g9
 Init Containers:
   graphman-static-init-c1b58adb6d:
     Container ID:   containerd://21924ae85d25437d3634ea5da1415c9bb58d678600f9fd67d4f0b0360857d7c5
-    Image:          docker.io/layer7api/graphman-static-init:1.0.0
-    Image ID:       docker.io/layer7api/graphman-static-init@sha256:24189a432c0283845664c6fd54c3e8d9f86ad9d35ef12714bb3a18b7aba85aa4
+    Image:          docker.io/caapim/graphman-static-init:1.0.4
+    Image ID:       docker.io/caapim/graphman-static-init@sha256:8cb1035035b18fa9dc2c95e2b584c758e78909b3f615ee5f49dce166e8aae213
     Port:           <none>
     Host Port:      <none>
     State:          Terminated
@@ -835,8 +835,9 @@ kubectl delete -f ./example/otel-prometheus/collector.yaml
 kubectl delete -f ./example/otel-prometheus/instrumentation.yaml
 kubectl delete -f ./example/otel-prometheus/observability/jaeger/jaeger.yaml
 kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
-kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.146.0/opentelemetry-operator.yaml
+kubectl delete -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.65.0/jaeger-operator.yaml -n observability
+kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 helm uninstall prometheus -n monitoring
 kubectl delete ns monitoring
 kubectl delete ns observability

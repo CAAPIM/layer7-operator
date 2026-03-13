@@ -149,7 +149,7 @@ If you use Quickstart you do not need to install/deploy any additional resources
 The container gateway configuration required for this integration is relatively simple. We will set some environment variables in our OTel [instrumentation](./instrumentation.yaml) that the Otel Agent present on the Container Gateway will use to send logs, traces and metrics to the Otel Collector sidecar.
 
 ```
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: Instrumentation
 metadata:
   name: otel-instrumentation
@@ -398,7 +398,7 @@ export elasticPass=$(kubectl get secret quickstart-es-elastic-user -o go-templat
 ```
 Create Dashboard
 ```
-curl -XPOST https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false -H "kbn-xsrf: true" -k -uelastic:$elasticPass -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
+curl -XPOST "https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false" -H "kbn-xsrf: true" -k -uelastic:$elasticPass -F "file=@./otel-elastic/dashboard/apim-dashboard.ndjson"
 ```
 
 - wait for all components to be ready
@@ -428,7 +428,7 @@ You can now move on to test your gateway deployment!
 ### Install Cert Manager
 These steps are based the official documentation for installing Cert-Manager [here](https://cert-manager.io/docs/installation/). Cert-Manager is a pre-requisite for the Open Telemetry Operator.
 ```
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 ```
 
 #### View CertManager Components
@@ -462,7 +462,7 @@ These steps are based the official documentation for installing Open Telemetry [
 
 - Install the Open Telemetry Operator.
 ```
-kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
+kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.146.0/opentelemetry-operator.yaml
 ```
 
 ##### View Open Telemetry Components
@@ -677,8 +677,8 @@ kubectl describe pods ssg-57d96567cb-n24g9
 Init Containers:
   graphman-static-init-c1b58adb6d:
     Container ID:   containerd://21924ae85d25437d3634ea5da1415c9bb58d678600f9fd67d4f0b0360857d7c5
-    Image:          docker.io/layer7api/graphman-static-init:1.0.0
-    Image ID:       docker.io/layer7api/graphman-static-init@sha256:24189a432c0283845664c6fd54c3e8d9f86ad9d35ef12714bb3a18b7aba85aa4
+    Image:          docker.io/caapim/graphman-static-init:1.0.4
+    Image ID:       docker.io/caapim/graphman-static-init@sha256:8cb1035035b18fa9dc2c95e2b584c758e78909b3f615ee5f49dce166e8aae213
     Port:           <none>
     Host Port:      <none>
     State:          Terminated
@@ -857,8 +857,8 @@ kubectl delete -f ./example/otel-elastic/collector.yaml
 kubectl delete -f ./example/otel-elastic/instrumentation.yaml
 kubectl delete -f https://download.elastic.co/downloads/eck/2.8.0/crds.yaml
 kubectl delete -f https://download.elastic.co/downloads/eck/2.8.0/operator.yaml
-kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.76.1/opentelemetry-operator.yaml
-kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.146.0/opentelemetry-operator.yaml
+kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 
 kubectl delete -k ./example/repositories/
 kubectl delete -f ./example/gateway/otel-elastic-gateway.yaml

@@ -260,7 +260,7 @@ the OpenTelemetry Operator is not a requirement, it makes configuring the Gatewa
 
 - Deploy Cert-Manager (OTel Operator dependency)
 ```
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 ```
 verify cert-manager has been successfully deployed
 ```
@@ -271,7 +271,7 @@ kubectl wait --for=condition=ready --timeout=600s pod -l app=webhook -n cert-man
 
 - Deploy the OpenTelemetry Operator
 ```
-kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.97.1/opentelemetry-operator.yaml
+kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.146.0/opentelemetry-operator.yaml
 ```
 verify that the OpenTelemetry Operator has been successfully deployed
 ```
@@ -407,8 +407,8 @@ kubectl describe pods ssg-57d96567cb-n24g9
 Init Containers:
   graphman-static-init-c1b58adb6d:
     Container ID:   containerd://21924ae85d25437d3634ea5da1415c9bb58d678600f9fd67d4f0b0360857d7c5
-    Image:          docker.io/layer7api/graphman-static-init:1.0.0
-    Image ID:       docker.io/layer7api/graphman-static-init@sha256:24189a432c0283845664c6fd54c3e8d9f86ad9d35ef12714bb3a18b7aba85aa4
+    Image:          docker.io/caapim/graphman-static-init:1.0.4
+    Image ID:       docker.io/caapim/graphman-static-init@sha256:8cb1035035b18fa9dc2c95e2b584c758e78909b3f615ee5f49dce166e8aae213
     Port:           <none>
     Host Port:      <none>
     State:          Terminated

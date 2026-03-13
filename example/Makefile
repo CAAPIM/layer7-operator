@@ -150,15 +150,15 @@ otel-elastic-example: install cert-manager open-telemetry elastic
 	@echo "#####################################################\n"
 
 cert-manager:
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=cert-manager -n cert-manager
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=cainjector -n cert-manager
 	kubectl wait --for=condition=ready --timeout=600s pod -l app=webhook -n cert-manager
 
 elastic:
-	kubectl create -f https://download.elastic.co/downloads/eck/2.8.0/crds.yaml
-	kubectl apply -f https://download.elastic.co/downloads/eck/2.8.0/operator.yaml
+	kubectl create -f https://download.elastic.co/downloads/eck/3.3.1/crds.yaml
+	kubectl apply -f https://download.elastic.co/downloads/eck/3.3.1/operator.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l control-plane=elastic-operator -n elastic-system
 	kubectl apply -f ./otel-elastic/components
@@ -174,7 +174,7 @@ metrics-server:
 	kubectl apply -f ./metrics-server/metrics-server-0-6-3.yaml
 
 open-telemetry:
-	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.97.1/opentelemetry-operator.yaml
+	kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.146.0/opentelemetry-operator.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=opentelemetry-operator -n opentelemetry-operator-system
 
@@ -195,7 +195,7 @@ prometheus-lgtm:
 
 jaeger:
 	-kubectl create namespace observability
-	kubectl apply -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.44.0/jaeger-operator.yaml -n observability
+	kubectl apply -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.65.0/jaeger-operator.yaml -n observability
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l name=jaeger-operator -n observability
 
@@ -228,11 +228,11 @@ uninstall:
 	-kubectl delete -f ./otel-prometheus/instrumentation.yaml
 	-kubectl delete -f ./otel-elastic/instrumentation.yaml
 	-kubectl delete -f ./otel-prometheus/observability/jaeger
-	-kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.97.1/opentelemetry-operator.yaml
+	-kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.146.0/opentelemetry-operator.yaml
 	-helm uninstall prometheus -n monitoring
 	-kubectl delete -k ./otel-prometheus/monitoring/grafana/
-	-kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
-	-kubectl delete -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.44.0/jaeger-operator.yaml -n observability
+	-kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
+	-kubectl delete -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.65.0/jaeger-operator.yaml -n observability
 	-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 	-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 	-kubectl delete ns observability

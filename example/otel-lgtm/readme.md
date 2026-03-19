@@ -21,7 +21,7 @@ As part of this guide we will deploy the following components
 ## Prerequisites
 - Kubernetes v1.26+
 - Ingress Controller (important for grafana)
-  - the quickstart examples deploy the nginx ingress controller
+  - the quickstart examples deploy the contour ingress controller
 
 You will also need to add the following entries to your hosts file
 
@@ -42,8 +42,8 @@ kubectl get ingress -n monitoring
 ```
 output
 ```
-NAME                 CLASS   HOSTS                  ADDRESS     PORTS     AGE
-prometheus-grafana   nginx   grafana.brcmlabs.com   <ip-address>   80, 443   57m
+NAME                 CLASS     HOSTS                  ADDRESS     PORTS     AGE
+prometheus-grafana   contour   grafana.brcmlabs.com   <ip-address>   80, 443   57m
 ```
 /etc/hosts - the ingress address will be the same for the Gateway Ingress record
 ```
@@ -62,15 +62,15 @@ prometheus-grafana   nginx   grafana.brcmlabs.com   <ip-address>   80, 443   57m
   ```
 3. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
-4. You will need an ingress controller like nginx
+4. You will need an ingress controller like contour
     - if you do not have one installed already you can use the makefile in the example directory to deploy one
         - ```cd example```
         - Generic Kubernetes
-            - ```make nginx```
+            - ```make contour```
         - Kind (Kubernetes in Docker)
             - follow the steps in Quickstart
             or
-            - ```make nginx-kind```
+            - ```make contour-kind```
     - return to the previous folder
         - ```cd ..```
 
@@ -79,7 +79,7 @@ This example uses multiple namespaces for the additional components. Your Kubern
 The following namespaces will be created/used if you use the [quickstart](#quickstart) option to deploy this example
 - monitoring (prometheus, grafana)
 - grafana-loki (loki, tempo, promtail)
-- ingress-nginx (nginx ingress controller)
+- projectcontour (contour ingress controller)
 
 If you deploy the OpenTelemetry Operator and Certmanager
 - cert-manager
@@ -92,7 +92,7 @@ If you wish to use a different host and or configure a signed certificate for Gr
 grafana:
   ingress:
     enabled: true
-    ingressClassName: nginx
+    ingressClassName: contour
     labels: {}
     hosts:
       - grafana.brcmlabs.com
@@ -113,10 +113,8 @@ If you wish to use a different host and or configure a signed certificate for th
 ```
 ingress:
   enabled: true
-  ingressClassName: nginx
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+  ingressClassName: contour
+  annotations: {}
   tls:
   - hosts: 
     - gateway.brcmlabs.com
@@ -174,13 +172,13 @@ make kind-cluster otel-lgtm-example-kind enable-otel-l7operator
 ```
 make otel-lgtm-example enable-otel-l7operator
 ```
-if you don't have an ingress controller you can deploy nginx with the following
+if you don't have an ingress controller you can deploy contour with the following
 ```
-make nginx
+make contour
 ```
 if you are using kind
 ```
-make nginx-kind
+make contour-kind
 ```
 
 #### Enabling OTel Metrics for the Layer7 Operator
@@ -499,30 +497,31 @@ kubectl get pods -n grafana-loki
 ```
 output
 ```
-NAME                                       READY   STATUS      RESTARTS   AGE
-loki-0                                     1/1     Running     0          4m
-loki-canary-hr5n6                          1/1     Running     0          4m
-loki-chunks-cache-0                        2/2     Running     0          4m
-loki-gateway-5cd888fb5b-lx68d              1/1     Running     0          4m
-loki-minio-0                               1/1     Running     0          4m
-loki-results-cache-0                       2/2     Running     0          4m
-mimir-alertmanager-0                       1/1     Running     0          2m7s
-mimir-compactor-0                          1/1     Running     0          2m7s
-mimir-distributor-75db4845b5-fwgx5         1/1     Running     0          2m7s
-mimir-ingester-0                           1/1     Running     0          2m7s
-mimir-ingester-1                           1/1     Running     0          2m7s
-mimir-make-minio-buckets-5.0.14-9ddtx      0/1     Completed   0          2m7s
-mimir-minio-66c9c9446c-vr6tx               1/1     Running     0          2m7s
-mimir-nginx-6c54df9bbf-xw5wm               1/1     Running     0          2m7s
-mimir-overrides-exporter-75c74b879-l4vd2   1/1     Running     0          2m7s
-mimir-querier-f4c7668c7-c2lkr              1/1     Running     0          2m7s
-mimir-query-frontend-86f49bdd54-57njx      1/1     Running     0          2m7s
-mimir-query-scheduler-9c9db55-ns8bw        1/1     Running     0          2m7s
-mimir-rollout-operator-589445cccd-2gktd    1/1     Running     0          2m7s
-mimir-ruler-87b575f97-xxv8z                1/1     Running     0          2m7s
-mimir-store-gateway-0                      1/1     Running     0          2m7s
-promtail-92scb                             1/1     Running     0          3m25s
-tempo-0                                    1/1     Running     0          3m17s
+NAME                                        READY   STATUS      RESTARTS       AGE
+loki-0                                      2/2     Running     0              3m
+loki-canary-dnc8b                           1/1     Running     0              3m
+loki-chunks-cache-0                         2/2     Running     0              3m
+loki-gateway-599bd8b86-wdpqg                1/1     Running     0              3m
+loki-minio-0                                1/1     Running     0              3m
+loki-results-cache-0                        2/2     Running     0              3m
+mimir-alertmanager-0                        1/1     Running     0              3m
+mimir-compactor-0                           1/1     Running     0              3m
+mimir-distributor-7495b688fb-s4jgc          1/1     Running     0              3m
+mimir-gateway-647dcf69cb-bbzzl              1/1     Running     0              3m
+mimir-ingester-0                            1/1     Running     0              3m
+mimir-ingester-1                            1/1     Running     0              3m
+mimir-kafka-0                               1/1     Running     0              3m
+mimir-make-minio-buckets-5.4.0-xvxc6        0/1     Completed   0              3m
+mimir-minio-76f9f549db-4pvpm                1/1     Running     0              3m
+mimir-overrides-exporter-7d7b775fb8-w4pm9   1/1     Running     0              3m
+mimir-querier-85c594d56c-46d5m              1/1     Running     0              3m
+mimir-query-frontend-557b948666-sfrsf       1/1     Running     0              3m
+mimir-query-scheduler-9857bc85f-lkb5l       1/1     Running     0              3m
+mimir-rollout-operator-65b97658df-8dd98     1/1     Running     0              3m
+mimir-ruler-65f68d7c8d-zrhwj                1/1     Running     0              3m
+mimir-store-gateway-0                       1/1     Running     0              3m
+promtail-2kvn4                              1/1     Running     0              3m
+tempo-0                                     1/1     Running     0              3m
 ```
 
 - Confirm all datasources are configured correctly in Grafana
@@ -542,8 +541,8 @@ tempo-0                                    1/1     Running     0          3m17s
 ```
 kubectl get ingress
 
-NAME   CLASS   HOSTS                  ADDRESS        PORTS     AGE
-ssg    nginx   gateway.brcmlabs.com   34.89.126.80   80, 443   54m
+NAME   CLASS     HOSTS                  ADDRESS        PORTS     AGE
+ssg    contour   gateway.brcmlabs.com   34.89.126.80   80, 443   54m
 ```
 
 Add the following to your hosts file for DNS resolution
@@ -601,13 +600,7 @@ If you used an existing Kubernetes Cluster
 make uninstall
 ```
 
-- If you deployed nginx
-
-If you used kind
+- If you deployed contour
 ```
-make uninstall-nginx-kind
-```
-If you used an existing Kubernetes Cluster
-```
-make uninstall-nginx
+make uninstall-contour
 ```

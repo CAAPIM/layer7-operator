@@ -10,7 +10,7 @@ By the end of this example you should have a better understanding of the how to 
   - Filebeat
   - MetricBeat
   - Kibana
-- Nginx (Ingress Controller)
+- [Contour](https://projectcontour.io/) (Ingress Controller)
 
 ### Elastic Stack Note
 This example creates a single [Elastic Search](./components/es.yaml) node with a 100GB volume. This is not production ready implementation, please refer to the [Official Elastic Documentation](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html) for sizing guidelines and additional configuration options.
@@ -24,9 +24,10 @@ We make use of Filebeat for container log files (the Gateway + everything else) 
 ![otel-eck-beats-example-overview](../images/beats.png)
 
 ## Prerequisites
-- Kubernetes v1.25+
+- Kubernetes v1.34+
 - Gateway v11.x License
 - Ingress Controller (for kibana)
+  - we have switched all examples from [Nginx](https://kubernetes.github.io/ingress-nginx/) to [Contour](https://projectcontour.io/)
 
 This OTel Elastic Example requires multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc.
 
@@ -105,15 +106,15 @@ If you have a docker machine available you can use [Kind](https://kind.sigs.k8s.
   ```
 3. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
-4. You will need an ingress controller like nginx
+4. You will need an ingress controller like contour
     - if you do not have one installed already you can use the makefile in the example directory to deploy one
         - ```cd example```
         - Generic Kubernetes
-            - ```make nginx```
+            - ```make contour```
         - Kind (Kubernetes in Docker)
             - follow the steps in Quickstart
             or
-            - ```make nginx-kind```
+            - ```make contour-kind```
     - return to the previous folder
         - ```cd ..```
 
@@ -133,9 +134,9 @@ If you use Quickstart you do not need to install/deploy any additional resources
 ### Monitoring/Observability Components
 - [Install Cert Manager](#install-cert-manager)
 - [Install Open Telemetry](#install-open-telemetry)
-- [Install an Ingress Controller(optional)](#install-nginx)
+- [Install an Ingress Controller(optional)](#install-contour)
 - [Install the Elastic Stack](#install-the-elastic-stack)
-- [Install APM Components (Kibana UI)](#elastic-post-installation-tasks)
+- [Deploy the Layer7 Dashboard (Kibana UI)](#elastic-post-installation-tasks)
 
 ### Layer7 Operator
 - [Deploy the Operator](#deploy-the-layer7-operator)
@@ -354,29 +355,30 @@ This quickstart uses the Makefile to install of the necessary components into yo
 ```
 cd example
 ```
-If you don't already have an ingress controller you can deploy nginx with the following command
+If you don't already have an ingress controller you can deploy contour with the following command
 
 - Suppports most Kubernetes Environments
 ```
-make nginx
+make contour
 ```
 - If you're using Kind
 ```
-make nginx-kind
+make contour-kind
 ```
 - Additional options can be found here
 ```
-https://github.com/kubernetes/ingress-nginx/tree/main/deploy/static/provider
+https://projectcontour.io/docs/1.33/
 ```
-- Once nginx has been installed get the L4 LoadBalancer address
+- Once contour has been installed get the L4 LoadBalancer address
 ```
-kubectl get svc -n ingress-nginx
+kubectl get svc -n projectcontour
 ```
 output
 ```
-NAME                                 TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
-ingress-nginx-controller             LoadBalancer   10.152.183.52    192.168.1.190   80:30183/TCP,443:30886/TCP   24m
-ingress-nginx-controller-admission   ClusterIP      10.152.183.132   <none>          443/TCP                      24m
+NAME            TYPE           CLUSTER-IP      EXTERNAL-IP       PORT(S)                      AGE
+contour         ClusterIP      10.96.134.188   <none>            8001/TCP                     29m
+contour-envoy   LoadBalancer   10.96.165.146   192.168.1.190     80:30377/TCP,443:31908/TCP   29m
+
 ```
 - You probably don't have access to a DNS server for this demo so you will need to add the following entries to your hosts file
 ```
@@ -483,20 +485,51 @@ NAME                                                                   DESIRED  
 replicaset.apps/opentelemetry-operator-controller-manager-5d84764d4b   1         1         1       72d
 ```
 
-### Install Nginx
-This command will deploy an nginx ingress controller. If you already have nginx or another ingress controller running in your Kubernetes cluster you can safely ignore this step.
+### Install Contour
+This command will deploy the [contour](https://projectcontour.io/) ingress controller. If you already have contour or another ingress controller running in your Kubernetes cluster you can safely ignore this step.
 
 Suppports most Kubernetes Environments
 ```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+helm repo add contour https://projectcontour.github.io/helm-charts/
+helm upgrade --install contour contour/contour --namespace projectcontour  --create-namespace
+kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=contour,app.kubernetes.io/component=contour -n projectcontour
+kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=contour,app.kubernetes.io/component=envoy -n projectcontour
 ```
 If you're using Kind
 ```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+helm repo add contour https://projectcontour.github.io/helm-charts/
+helm upgrade --install contour contour/contour --namespace projectcontour --set envoy.useHostPort.http=true --set envoy.useHostPort.https=true  --create-namespace
+kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=contour,app.kubernetes.io/component=contour -n projectcontour
+kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=contour,app.kubernetes.io/component=envoy -n projectcontour
 ```
 Additional options can be found here
 ```
-https://github.com/kubernetes/ingress-nginx/tree/main/deploy/static/provider
+https://projectcontour.io/docs/1.33/
+```
+
+#### Create a self-signed certificate for Contour to use
+This is done automatically if you are using the quickstart commands via the Makefile. These steps can be simplified to the following
+```
+make pki NAMESPACE=default
+```
+
+##### If you would like to run the steps manually do the following.
+
+- Set your namespace
+```
+export NAMESPACE=default
+```
+- Create self signed cert using openssl (this will be saved to your /tmp folder)
+```
+openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=*.brcmlabs.com" \
+	  -addext "subjectAltName=DNS:*.brcmlabs.com,DNS:brcmlabs.com" \
+	  -keyout /tmp/tls.key -out /tmp/tls.crt
+```
+- Create a Kubernetes TLS secret
+```
+kubectl create secret tls brcmlabs \
+	  --cert=/tmp/tls.crt --key=/tmp/tls.key \
+	  -n $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ### Install the Elastic Stack
@@ -504,8 +537,8 @@ These steps are based the [official documentation](https://www.elastic.co/guide/
 
 #### Install Elastic Operator and Custom Resource Definitions
 ```
-kubectl create -f https://download.elastic.co/downloads/eck/2.8.0/crds.yaml
-kubectl apply -f https://download.elastic.co/downloads/eck/2.8.0/operator.yaml
+kubectl create -f https://download.elastic.co/downloads/eck/3.3.1/crds.yaml
+kubectl apply -f https://download.elastic.co/downloads/eck/3.3.1/operator.yaml
 
 kubectl wait --for=condition=ready --timeout=60s pod -l control-plane=elastic-operator -n elastic-system
 ```
@@ -547,32 +580,15 @@ kubectl apply -f ./example/otel-elastic/instrumentation.yaml
 ```
 
 #### Elastic Post Installation Tasks
-The Layer7 Dashboard can be installed via the Kibana API, Elastic APM Components need to be manually installed via Kibana in a web browser.
+The Layer7 Dashboard can be installed via the Kibana API.
 
 #### Create the Layer7 Dashboard
 Get the Elastic user password, you will use this password when logging into Kibana.
 ```
 export elasticPass=$(kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')
 
-curl -XPOST https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false -H "kbn-xsrf: true" -k -uelastic:$elasticPass -F "file=@./example/otel-elastic/dashboard/apim-dashboard.ndjson"
+curl -XPOST "https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopies=false" -H "kbn-xsrf: true" -k -uelastic:$elasticPass -F "file=@./example/otel-elastic/dashboard/apim-dashboard.ndjson"
 ```
-
-#### Install APM Components
-There are additional APM Components that need to be installed via Kibana in a browser to see Gateway traces.
-
-- Navigate to the following [link](https://kibana.brcmlabs.com/app/integrations/detail/apm/overview) in a browser, you will need to accept the certificate warning and continue.
-- Sign in
-  - username: elastic
-  - password: elastic-user-password
-  ```
-    echo $elasticPass
-  ```
-- Click on the settings tab
-  - Install Elastic APM Assets
-    - Install Elastic APM
-
-![elastic-assets](../images/elastic-assets.gif)
-
 
 ### Deploy the Layer7 Operator
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
@@ -766,7 +782,7 @@ status:
 kubectl get ingress
 
 NAME   CLASS   HOSTS                  ADDRESS        PORTS     AGE
-ssg    nginx   gateway.brcmlabs.com   34.89.126.80   80, 443   54m
+ssg    contour   gateway.brcmlabs.com   34.89.126.80   80, 443   54m
 ```
 
 Add the following to your hosts file for DNS resolution
@@ -855,8 +871,8 @@ make uninstall-kind
 kubectl delete -f ./example/otel-elastic/components
 kubectl delete -f ./example/otel-elastic/collector.yaml
 kubectl delete -f ./example/otel-elastic/instrumentation.yaml
-kubectl delete -f https://download.elastic.co/downloads/eck/2.8.0/crds.yaml
-kubectl delete -f https://download.elastic.co/downloads/eck/2.8.0/operator.yaml
+kubectl delete -f https://download.elastic.co/downloads/eck/3.3.1/crds.yaml
+kubectl delete -f https://download.elastic.co/downloads/eck/3.3.1/operator.yaml
 kubectl delete -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.146.0/opentelemetry-operator.yaml
 kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 
@@ -865,9 +881,9 @@ kubectl delete -f ./example/gateway/otel-elastic-gateway.yaml
 
 ```
 
-If you deployed Nginx manually
+If you deployed Contour manually
 ```
-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+helm uninstall contour -n projectcontour
 ```
 
 ### Uninstall the Operator

@@ -32,7 +32,7 @@ basic:
 	@$(MAKE) --silent t=10 wait 
 	kubectl apply -f ./gateway/basic-gateway.yaml
 
-advanced: default-redis
+advanced:
 	kubectl apply -k ./repositories
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
@@ -61,9 +61,8 @@ portal-example: redis
 	@echo "####################################################################################################################################"
 	./portal-integration/create-tenant.sh -d ./portal-integration/enroll-payload.json -n ${NAMESPACE}
 
-# add nginx ip for portal domains so the agent can resolve them
 g2c-agent:
-	sed -e 's/ip:.*/ip: "$(shell kubectl get svc ingress-nginx-controller -n ingress-nginx -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
+#sed -e 's/ip:.*/ip: "$(shell kubectl get svc ingress-nginx-controller -n ingress-nginx -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
 	kubectl apply -k ./portal-integration/g2c-agent
 	echo "deploy g2cagent"
 
@@ -77,18 +76,15 @@ default-redis:
 	helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis
 	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis
-	
-configure-nginx-ssl-passthrough:
-	kubectl -n ingress-nginx  get deployment ingress-nginx-controller -oyaml | sed -e "s/env:/\- \-\-enable\-ssl\-passthrough\n        env\:/g" | kubectl -n ingress-nginx apply -f -
 
 grafana-stack:
-	helm repo add grafana https://grafana.github.io/helm-charts
+	helm repo add grafana https://grafana-community.github.io/helm-charts
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/loki-overrides.yaml loki grafana/loki -n grafana-loki --create-namespace
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/promtail-overrides.yaml promtail grafana/promtail -n grafana-loki
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/tempo-overrides.yaml tempo grafana/tempo -n grafana-loki
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/mimir-distributed-overrides.yaml mimir grafana/mimir-distributed -n grafana-loki
 
-otel-lgtm-example-kind: install cert-manager prometheus-lgtm open-telemetry grafana-stack nginx-kind
+otel-lgtm-example-kind: install cert-manager prometheus-lgtm open-telemetry grafana-stack contour-kind
 	kubectl apply -f ./otel-lgtm/collector.yaml
 	kubectl apply -f ./otel-lgtm/instrumentation.yaml
 	kubectl apply -k ./repositories
@@ -103,27 +99,27 @@ otel-lgtm-example: install cert-manager prometheus-lgtm open-telemetry grafana-s
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/otel-lgtm-gateway.yaml
 
-otel-prometheus-example-kind: install cert-manager prometheus open-telemetry jaeger nginx-kind
-	kubectl apply -f ./otel-prometheus/servicemonitor.yaml
-	kubectl apply -f ./otel-prometheus/collector.yaml
-	kubectl apply -f ./otel-prometheus/instrumentation.yaml
-	kubectl apply -f ./otel-prometheus/observability/jaeger/jaeger.yaml
-	kubectl apply -f ./otel-prometheus/observability/jaeger/ingress.yaml
-	kubectl apply -k ./repositories
-	@$(MAKE) --silent t=10 wait
-	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
+# otel-prometheus-example-kind: install cert-manager prometheus open-telemetry jaeger contour-kind
+# 	kubectl apply -f ./otel-prometheus/servicemonitor.yaml
+# 	kubectl apply -f ./otel-prometheus/collector.yaml
+# 	kubectl apply -f ./otel-prometheus/instrumentation.yaml
+# 	kubectl apply -f ./otel-prometheus/observability/jaeger/jaeger.yaml
+# 	kubectl apply -f ./otel-prometheus/observability/jaeger/ingress.yaml
+# 	kubectl apply -k ./repositories
+# 	@$(MAKE) --silent t=10 wait
+# 	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 
-otel-prometheus-example: install cert-manager prometheus open-telemetry jaeger
-	kubectl apply -f ./otel-prometheus/servicemonitor.yaml
-	kubectl apply -f ./otel-prometheus/collector.yaml
-	kubectl apply -f ./otel-prometheus/instrumentation.yaml
-	kubectl apply -f ./otel-prometheus/observability/jaeger/jaeger.yaml
-	kubectl apply -f ./otel-prometheus/observability/jaeger/ingress.yaml
-	kubectl apply -k ./repositories
-	@$(MAKE) --silent t=10 wait
-	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
+# otel-prometheus-example: install cert-manager prometheus open-telemetry jaeger
+# 	kubectl apply -f ./otel-prometheus/servicemonitor.yaml
+# 	kubectl apply -f ./otel-prometheus/collector.yaml
+# 	kubectl apply -f ./otel-prometheus/instrumentation.yaml
+# 	kubectl apply -f ./otel-prometheus/observability/jaeger/jaeger.yaml
+# 	kubectl apply -f ./otel-prometheus/observability/jaeger/ingress.yaml
+# 	kubectl apply -k ./repositories
+# 	@$(MAKE) --silent t=10 wait
+# 	kubectl apply -f ./gateway/otel-prometheus-gateway.yaml
 
-otel-elastic-example-kind: install cert-manager open-telemetry elastic nginx-kind
+otel-elastic-example-kind: install cert-manager open-telemetry elastic contour-kind
 	@$(MAKE) --silent t=$(shell kubectl get secret/apm-server-quickstart-apm-token -o go-template='{{index .data "secret-token" | base64decode}}') create-collector
 	kubectl apply -f ./otel-elastic/instrumentation.yaml
 	@$(MAKE) --silent t=10 wait
@@ -178,20 +174,20 @@ open-telemetry:
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=opentelemetry-operator -n opentelemetry-operator-system
 
-prometheus:
-	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-	helm repo update
-	-kubectl create ns monitoring
-	kubectl apply -k ./otel-prometheus/monitoring/grafana/
-	helm upgrade -i prometheus -f ./otel-prometheus/monitoring/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
+# prometheus:
+# 	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# 	helm repo update
+# 	-kubectl create ns monitoring
+# 	kubectl apply -k ./otel-prometheus/monitoring/grafana/
+# 	helm upgrade -i prometheus -f ./otel-prometheus/monitoring/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
 
 prometheus-lgtm:
 	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 	helm repo update
 	-kubectl create ns monitoring
 	kubectl apply -k ./otel-lgtm/prometheus/grafana-dashboard/
+	@$(MAKE) NAMESPACE=monitoring pki
 	helm upgrade -i prometheus -f ./otel-lgtm/prometheus/prometheus-values.yaml prometheus-community/kube-prometheus-stack -n monitoring
-
 
 jaeger:
 	-kubectl create namespace observability
@@ -199,15 +195,30 @@ jaeger:
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l name=jaeger-operator -n observability
 
-nginx-kind:
-	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+contour: pki
+	helm repo add contour https://projectcontour.github.io/helm-charts/
+	helm upgrade --install contour contour/contour --namespace projectcontour --create-namespace
 	@$(MAKE) --silent t=10 wait
-	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=contour,app.kubernetes.io/component=contour -n projectcontour
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=contour,app.kubernetes.io/component=envoy -n projectcontour
 
-nginx:
-	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+contour-kind: pki
+	helm repo add contour https://projectcontour.github.io/helm-charts/
+	helm upgrade --install contour contour/contour --namespace projectcontour --set envoy.useHostPort.http=true --set envoy.useHostPort.https=true  --create-namespace
 	@$(MAKE) --silent t=10 wait
-	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -n ingress-nginx
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=contour,app.kubernetes.io/component=contour -n projectcontour
+	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=contour,app.kubernetes.io/component=envoy -n projectcontour
+
+uninstall-contour:
+	helm uninstall contour -n projectcontour
+
+pki:
+	-openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=*.brcmlabs.com" \
+	  -addext "subjectAltName=DNS:*.brcmlabs.com,DNS:brcmlabs.com" \
+	  -keyout /tmp/tls.key -out /tmp/tls.crt
+	-kubectl create secret tls brcmlabs \
+	  --cert=/tmp/tls.crt --key=/tmp/tls.key \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 cassandra:
 	helm upgrade --install cassandra -f ./otk/database/cassandra/cassandra-values.yaml oci://registry-1.docker.io/bitnamicharts/cassandra
@@ -233,13 +244,12 @@ uninstall:
 	-kubectl delete -k ./otel-prometheus/monitoring/grafana/
 	-kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 	-kubectl delete -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.65.0/jaeger-operator.yaml -n observability
-	-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-	-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 	-kubectl delete ns observability
 	-kubectl delete ns monitoring
 	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml
 	-helm uninstall mysql
 	-helm uninstall cassandra
+	-helm uninstall contour -n projectcontour
 
 uninstall-kind:
 	kind delete cluster --name layer7

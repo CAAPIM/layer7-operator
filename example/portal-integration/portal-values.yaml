@@ -17,16 +17,15 @@ portal:
 
 ingress:
   class:
-    name: nginx
+    name: contour
     enabled: true
   type:
-    kubernetes: true
+    kubernetes: false
     openshift: false
+    contour: true
   secretName: dispatcher-tls
   create: true
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+  annotations: {}
   tenantIds:
     - portal
 

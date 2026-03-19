@@ -9,5 +9,8 @@ spec:
     name: quickstart
   http:
     service:
+      metadata:
+        annotations:
+          projectcontour.io/upstream-protocol.tls: "5601" 
       spec:
         type: ClusterIP # default is ClusterIP

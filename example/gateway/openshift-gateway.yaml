@@ -142,13 +142,11 @@ spec:
         protocol: TCP
     ingress:
       enabled: false
-      ingressClassName: nginx
+      ingressClassName: contour
       type: route
       route:
         host: gateway.brcmlabs.com
-      annotations:
-       # nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      annotations: {}
       tls:
       - hosts: 
         - gateway.brcmlabs.coms

@@ -32,19 +32,6 @@ By the end of this example you should have a better understanding of the Layer7 
      ```
      ***NOTE*** If you are using an existing Kubernetes Cluster you can retrieve the correct address after the Prometheus Stack has been deployed
 
-     ```
-     kubectl get ingress
-     ```
-     output
-     ```
-     NAME                 CLASS   HOSTS                                                                                                    ADDRESS        PORTS     AGE
-     portal-ingress       nginx   apim-dev-portal.brcmlabs.com,dev-portal-ssg.brcmlabs.com,dev-portal-analytics.brcmlabs.com + 5 more...   <ip-address>   80, 443   57m
-     ```
-     In your hosts file - the ingress address will be the same for the Gateway Ingress record
-     ```
-     <ip-address> gateway.brcmlabs.com portal.brcmlabs.com apim-dev-portal.brcmlabs.com dev-portal-ssg.brcmlabs.com dev-portal-enroll.brcmlabs.com dev-portal-sync.brcmlabs.com dev-portal-sso.brcmlabs.com dev-portal-analytics.brcmlabs.com dev-portal-broker.brcmlabs.com
-     ```
-
      - We recommend sticking with the defaults to try out this experimental example as they are used to provision a Portal Tenant
        - If you wish to change the default you can do so in [portal-values.yaml](../portal-integration/portal-values.yaml)
          - set portal.domain
@@ -56,20 +43,16 @@ By the end of this example you should have a better understanding of the Layer7 
          ```
          - Your hosts file will need to use yourportaldomain.com in place of brcmlabs.com
          - The [enroll-payload](./enroll-payload.json) will also need to be updated
-6. You will need an ingress controller like nginx
+6. You will need an ingress controller like contour
     - if you do not have one installed already you can use the makefile in the example directory to deploy one
         - ```cd example```
         - Generic Kubernetes
-            - ```make nginx```
+            - ```make contour```
         - Kind (Kubernetes in Docker)
             - follow the steps in [Quickstart](#quickstart)
             or
-            - ```make nginx-kind```
+            - ```make contour-kind```
     - **NOTE:** the Portal requires an ingress controller that supports ssl/tls passthrough for mutual ssl/tls.
-        - This will add the following [command line argument](https://kubernetes.github.io/ingress-nginx/user-guide/cli-arguments/) to nginx, in the ingress-nginx namespace. **It has only been tested** deployed with the above commands
-        - ```--enable-ssl-passthrough```
-        - The following command will edit your nginx deployment
-            - ```make configure-nginx-ssl-passthrough```
 
 
 ### Guide
@@ -82,7 +65,7 @@ export NAMESPACE=yournamespace
 kubectl config set-context --current --namespace=yournamespace
 ```
 
-If you deploy the nginx ingress controller as part of this example, it will use a namespace called ingress-nginx
+If you deploy the contour ingress controller as part of this example, it will use a namespace called projectcontour
 
 * [Quickstart](#quickstart)
     * [Using an existing Kubernetes Cluster](#existing-kubernetes-cluster)
@@ -146,17 +129,17 @@ cd example
 
 ### Kind
 ```
-make kind-cluster nginx-kind configure-nginx-ssl-passthrough portal-example
+make kind-cluster contour-kind portal-example
 ```
 
 ### Existing Kubernetes Cluster
-An ingress controller is required for this example, if you don't have an ingress controller you can deploy nginx with the following
+An ingress controller is required for this example, if you don't have an ingress controller you can deploy contour with the following
 ```
-make nginx configure-nginx-ssl-passthrough
+make contour
 ```
 if you are using kind
 ```
-make nginx-kind configure-nginx-ssl-passthrough
+make contour-kind
 ```
 Deploy the example components
 ```
@@ -215,19 +198,7 @@ Enrollment key retrieved
         3. Open your tenant gateway and enroll this gateway with the portal using the URL from step 2.
 ```
 **Note** if this step fails, there are two likely scenarios
-1. You have not configured nginx for ssl/tls passthrough. Please see step 4 in [getting-started](#getting-started)
-2. You have not configured your local hosts file. Please see step 6 in [getting-started](#getting-started)
-
-
-<!-- #### Configure the Portal to use Redis
-The following script connects to the Portal MySQL Database and adds two entries (REDIS_GROUP_NAME, REDIS_KEY_STORE) to the SETTING table, this faciliates the Portal using Redis for application keys.
-```
-./portal-integration/configure-portal.sh
-```
-output
-```
-Portal Configured to use Redis
-``` -->
+1. You have not configured your local hosts file. Please see step 6 in [getting-started](#getting-started)
 
 ### Deploy the Layer7 Operator
 This integration example uses v1.2.2 of the Layer7 Operator

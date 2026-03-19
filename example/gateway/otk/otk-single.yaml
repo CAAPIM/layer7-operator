@@ -77,33 +77,6 @@ spec:
           databaseWaitTimeout: 60
     singletonExtraction: true
 
-    # livenessProbe:
-    #   httpGet:
-    #     port: https
-    #     scheme: HTTPS
-    #     path: /auth/oauth/health
-    #     httpHeaders:
-    #       - name: Host
-    #         value: 127.0.0.1
-    #   failureThreshold: 25
-    #   initialDelaySeconds: 15
-    #   periodSeconds: 10
-    #   successThreshold: 1
-    #   timeoutSeconds: 1
-    # readinessProbe:
-    #   httpGet:
-    #     port: https
-    #     scheme: HTTPS
-    #     path: /auth/oauth/health
-    #     httpHeaders:
-    #       - name: Host
-    #         value: 127.0.0.1
-    #   failureThreshold: 25
-    #   initialDelaySeconds: 15
-    #   periodSeconds: 10
-    #   successThreshold: 1
-    #   timeoutSeconds: 1
-
     bundle:
       - type: restman
         source: secret
@@ -155,6 +128,8 @@ spec:
       secretName: gateway-secret
       service:
         enabled: true
+        annotations:
+          projectcontour.io/upstream-protocol.tls: "9443"
         type: ClusterIP
         ports:
         - name: management
@@ -172,7 +147,8 @@ spec:
       database:
         enabled: false
     service:
-      # annotations:
+      annotations:
+        projectcontour.io/upstream-protocol.tls: "8443"
       type: LoadBalancer
       ports:
       - name: https
@@ -191,9 +167,8 @@ spec:
       # - host: gateway-otk-management.brcmlabs.com
       #   port:
       #     targetPort: management
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      ingressClassName: contour
+      annotations: {}
       tls:
       - hosts: 
         - gateway.brcmlabs.com

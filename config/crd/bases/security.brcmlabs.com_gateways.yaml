@@ -1589,10 +1589,6 @@ spec:
                           description: Name of the kubernetes.io/tls Secret which
                             already exists in Kubernetes
                           type: string
-                        otk:
-                          description: Otk indicates that this key usage was specific
-                            for OTK
-                          type: boolean
                       type: object
                     type: array
                   externalSecrets:
@@ -4007,21 +4003,27 @@ spec:
                             description: Type of OTK Database
                             type: string
                         type: object
-                      dmzAuthSecret:
-                        description: DmzAuthSecret is a reference to a Secret containing
-                          username and password...
-                        type: string
-                      dmzGatewayPort:
-                        description: |-
-                          DmzGatewayPort defaults to 9443 or graphmanDynamicSync port
-                          This port is...
-                        type: integer
-                      dmzGatewayReference:
-                        description: OTKPort is used in Single mode - sets the otk.
-                        type: string
-                      dmzKeySecret:
-                        description: DmzKeySecret is a reference to a kubernetes.
-                        type: string
+                      dmzGateway:
+                        description: DmzOTKGateway reference if type is internal
+                        properties:
+                          Url:
+                            description: |-
+                              Url of the target gateway
+                              used for post-installation gateway policy...
+                            type: string
+                          name:
+                            description: |-
+                              Name of the gateway
+                              if managing otk gateways across namespaces this must...
+                            type: string
+                          namespace:
+                            description: Namespace of the referenced gateway if managing
+                              gateways cross namespace...
+                            type: string
+                          port:
+                            description: Port of the target gateway
+                            type: integer
+                        type: object
                       enabled:
                         description: Enable or disable the OTK initContainer
                         type: boolean
@@ -4158,22 +4160,27 @@ spec:
                                 type: string
                             type: object
                         type: object
-                      internalAuthSecret:
-                        description: InternalAuthSecret is a reference to a Secret
-                          containing username and...
-                        type: string
-                      internalGatewayPort:
-                        description: |-
-                          InternalGatewayPort defaults to 9443 or graphmanDynamicSync port
-                          This port...
-                        type: integer
-                      internalGatewayReference:
-                        description: InternalOtkGatewayReference to an Operator managed
-                          Gateway deployment that...
-                        type: string
-                      internalKeySecret:
-                        description: InternalKeySecret is a reference to a kubernetes.
-                        type: string
+                      internalGateway:
+                        description: InternalOTKGateway reference if type is dmz
+                        properties:
+                          Url:
+                            description: |-
+                              Url of the target gateway
+                              used for post-installation gateway policy...
+                            type: string
+                          name:
+                            description: |-
+                              Name of the gateway
+                              if managing otk gateways across namespaces this must...
+                            type: string
+                          namespace:
+                            description: Namespace of the referenced gateway if managing
+                              gateways cross namespace...
+                            type: string
+                          port:
+                            description: Port of the target gateway
+                            type: integer
+                        type: object
                       maintenanceTasks:
                         description: MaintenanceTasks for the OTK database are disabled
                           by default
@@ -4182,6 +4189,10 @@ spec:
                             description: Enable or disable database maintenance tasks
                             type: boolean
                         type: object
+                      manageCrossNamespace:
+                        description: ManageCrossNamespace allows a cluster-wide layer7
+                          operator to manage...
+                        type: boolean
                       overrides:
                         description: Overrides default OTK install functionality
                         properties:
@@ -4216,20 +4227,12 @@ spec:
                       port:
                         description: OTKPort defaults to 8443
                         type: integer
-                      runtimeSyncIntervalSeconds:
-                        description: RuntimeSyncIntervalSeconds how often OTK Gateways
-                          should be updated in...
-                        type: integer
                       subSolutionKitNames:
                         description: A list of subSolutionKitNames - all,internal
                           or dmz cover the primary use...
                         items:
                           type: string
                         type: array
-                      syncIntervalSeconds:
-                        description: SyncIntervalSeconds determines how often DMZ
-                          and Internal gateways should...
-                        type: integer
                       type:
                         description: Type of OTK installation single, internal or
                           dmz

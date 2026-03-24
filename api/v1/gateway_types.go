@@ -342,6 +342,9 @@ type PortalReference struct {
 type Otk struct {
 	// Enable or disable the OTK initContainer
 	Enabled bool `json:"enabled,omitempty"`
+	// ManageCrossNamespace allows a cluster-wide layer7 operator to manage internal/dmz gateways across namespaces
+	// this is limited to a single kubernetes cluster.
+	ManageCrossNamespace bool `json:"manageCrossNamespace,omitempty"`
 	// InitContainerImage for the initContainer
 	InitContainerImage string `json:"initContainerImage,omitempty"`
 	// InitContainerImagePullPolicy
@@ -356,36 +359,14 @@ type Otk struct {
 	Overrides OtkOverrides `json:"overrides,omitempty"`
 	// A list of subSolutionKitNames - all,internal or dmz cover the primary use cases for the OTK. Only use if directed by support
 	SubSolutionKitNames []string `json:"subSolutionKitNames,omitempty"`
-	// InternalOtkGatewayReference to an Operator managed Gateway deployment that is configured with otk.type: internal
-	// This configures a relationship between DMZ and Internal Gateways.
-	InternalOtkGatewayReference string `json:"internalGatewayReference,omitempty"`
-	// InternalGatewayPort defaults to 9443 or graphmanDynamicSync port
-	// This port is used when the Internal gateway is external (not managed by operator)
-	InternalGatewayPort int `json:"internalGatewayPort,omitempty"`
-	// OTKPort is used in Single mode - sets the otk.port cluster-wide property and in Dual-Mode
-	// sets host_oauth2_auth_server port in #OTK Client Context Variables
-	// TODO: Make this an array for many dmz deployments to one internal
-	DmzOtkGatewayReference string `json:"dmzGatewayReference,omitempty"`
-	// DmzGatewayPort defaults to 9443 or graphmanDynamicSync port
-	// This port is used when the DMZ gateway is external (not managed by operator)
-	DmzGatewayPort int `json:"dmzGatewayPort,omitempty"`
 	// OTKPort defaults to 8443
 	OTKPort int `json:"port,omitempty"`
 	// MaintenanceTasks for the OTK database are disabled by default
 	MaintenanceTasks OtkMaintenanceTasks `json:"maintenanceTasks,omitempty"`
-	// RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode
-	RuntimeSyncIntervalSeconds int `json:"runtimeSyncIntervalSeconds,omitempty"`
-	// SyncIntervalSeconds determines how often DMZ and Internal gateways should update certificates
-	// Defaults to RuntimeSyncIntervalSeconds if not specified, or 10 seconds if neither is set
-	SyncIntervalSeconds int `json:"syncIntervalSeconds,omitempty"`
-	// DmzKeySecret is a reference to a kubernetes.io/tls Secret containing the DMZ private key and certificate
-	DmzKeySecret string `json:"dmzKeySecret,omitempty"`
-	// InternalKeySecret is a reference to a kubernetes.io/tls Secret containing the Internal private key and certificate
-	InternalKeySecret string `json:"internalKeySecret,omitempty"`
-	// DmzAuthSecret is a reference to a Secret containing username and password for DMZ authentication
-	DmzAuthSecret string `json:"dmzAuthSecret,omitempty"`
-	// InternalAuthSecret is a reference to a Secret containing username and password for Internal authentication
-	InternalAuthSecret string `json:"internalAuthSecret,omitempty"`
+	//InternalOTKGateway reference if type is dmz
+	InternalOTKGateway GatewayReference `json:"internalGateway,omitempty"`
+	//DmzOTKGateway reference if type is internal
+	DmzOTKGateway GatewayReference `json:"dmzGateway,omitempty"`
 }
 
 // OtkMaintenanceTasks are included in the install bundle as disabled scheduled tasks
@@ -393,6 +374,19 @@ type Otk struct {
 type OtkMaintenanceTasks struct {
 	// Enable or disable database maintenance tasks
 	Enabled bool `json:"enabled,omitempty"`
+}
+
+type GatewayReference struct {
+	// Name of the gateway
+	// if managing otk gateways across namespaces this must match the referenced gateway CR
+	Name string `json:"name,omitempty"`
+	// Namespace of the referenced gateway if managing gateways cross namespace (optional)
+	Namespace string `json:"namespace,omitempty"`
+	// Url of the target gateway
+	// used for post-installation gateway policy configuration
+	Url string `json:"Url,omitempty"`
+	// Port of the target gateway
+	Port int `json:"port,omitempty"`
 }
 
 type OtkOverrides struct {
@@ -909,7 +903,7 @@ type ExternalKey struct {
 	// SSL | CA | AUDIT_SIGNING | AUDIT_VIEWER
 	KeyUsageType KeyUsageType `json:"keyUsageType,omitempty"`
 	// Otk indicates that this key usage was specific for OTK
-	Otk bool `json:"otk,omitempty"`
+	//Otk bool `json:"otk,omitempty"`
 }
 
 type KeyUsageType string

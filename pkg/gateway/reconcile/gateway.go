@@ -96,6 +96,7 @@ const (
 	BundleTypeClusterProp            BundleType = "cluster properties"
 	BundleTypeListenPort             BundleType = "listen ports"
 	BundleTypeOTKDatabaseMaintenance BundleType = "otk db maintenance"
+	BundleTypeOTKFips                BundleType = "otk fips"
 )
 
 type GatewayUpdateRequestOpt func(*GatewayUpdateRequest)
@@ -106,6 +107,8 @@ type MappingSource struct {
 	KeystoreId     string `json:"keystoreId,omitempty"`
 	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
 }
+
+var syncCache = util.NewSyncCache(3 * time.Second)
 
 func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params Params, opts ...GatewayUpdateRequestOpt) (*GatewayUpdateRequest, error) {
 	graphmanPort := 9443
@@ -499,7 +502,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		for _, k := range gateway.Status.LastAppliedExternalKeys {
 			found := false
 			for _, ek := range gateway.Spec.App.ExternalKeys {
-				if k == ek.Alias && ek.Enabled && !ek.Otk {
+				if k == ek.Alias && ek.Enabled {
 					// Only process non-OTK keys in regular external keys flow
 					found = true
 				}
@@ -512,7 +515,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		var sha1Sum string
 		for _, externalKey := range gateway.Spec.App.ExternalKeys {
 
-			if externalKey.Enabled && !externalKey.Otk {
+			if externalKey.Enabled {
 				// Skip keys with otk: true - they are handled separately by OTK reconciliation
 				secret, err := getGatewaySecret(ctx, params, externalKey.Name)
 				if err != nil {

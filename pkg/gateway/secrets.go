@@ -1,3 +1,29 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
+ */
 package gateway
 
 import (
@@ -5,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/util"
@@ -241,6 +268,85 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 			Namespace:   gw.Namespace,
 			Labels:      util.DefaultLabels(gw.Name, gw.Spec.App.Labels),
 			Annotations: map[string]string{"checksum/data": dataCheckSum}, // TODO: add default annotations
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: data,
+	}
+
+	return secret, nil
+}
+
+func OtkOverrideBundleRequired(gw *securityv1.Gateway) bool {
+	if !gw.Spec.App.Otk.Enabled {
+		return false
+	}
+	if gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal || gw.Spec.App.Otk.Type == securityv1.OtkTypeDMZ {
+		return true
+	}
+	if gw.Spec.App.ClusterProperties.Enabled {
+		for _, p := range gw.Spec.App.ClusterProperties.Properties {
+			if p.Name == "otk.port" {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func NewOtkOverrideBundleSecret(gw *securityv1.Gateway) (*corev1.Secret, error) {
+	if !OtkOverrideBundleRequired(gw) {
+		return nil, nil
+	}
+
+	otkPort := 8443
+	if gw.Spec.App.Otk.OTKPort != 0 {
+		otkPort = gw.Spec.App.Otk.OTKPort
+	}
+
+	includeOtkPort := true
+	if gw.Spec.App.ClusterProperties.Enabled {
+		for _, p := range gw.Spec.App.ClusterProperties.Properties {
+			if p.Name == "otk.port" {
+				includeOtkPort = false
+				break
+			}
+		}
+	}
+
+	mode := strings.ToUpper(string(gw.Spec.App.Otk.Type))
+	gatewayHost := ""
+	switch gw.Spec.App.Otk.Type {
+	case securityv1.OtkTypeInternal:
+		gatewayHost = gw.Spec.App.Otk.DmzOTKGateway.Url
+		if gw.Spec.App.Otk.DmzOTKGateway.Port != 0 {
+			otkPort = gw.Spec.App.Otk.DmzOTKGateway.Port
+		}
+	case securityv1.OtkTypeDMZ:
+		gatewayHost = gw.Spec.App.Otk.InternalOTKGateway.Url
+		if gw.Spec.App.Otk.InternalOTKGateway.Port != 0 {
+			otkPort = gw.Spec.App.Otk.InternalOTKGateway.Port
+		}
+	}
+
+	bundleBytes, checksum, err := util.BuildOtkOverrideBundle(mode, gatewayHost, otkPort, includeOtkPort)
+	if err != nil {
+		return nil, err
+	}
+
+	data := map[string][]byte{
+		"otk-override-bundle.json": bundleBytes,
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        gw.Name + "-otk-override-bundle",
+			Namespace:   gw.Namespace,
+			Labels:      util.DefaultLabels(gw.Name, gw.Spec.App.Labels),
+			Annotations: map[string]string{"checksum/data": checksum},
 		},
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",

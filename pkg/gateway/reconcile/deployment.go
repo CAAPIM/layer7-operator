@@ -357,6 +357,18 @@ func setLabels(ctx context.Context, params Params, dep *appsv1.Deployment) (*app
 			}
 		}
 	}
+
+	if gateway.OtkOverrideBundleRequired(params.Instance) {
+		otkOverrideSecretName := params.Instance.Name + "-otk-override-bundle"
+		secret := corev1.Secret{}
+		err := params.Client.Get(ctx, types.NamespacedName{Name: otkOverrideSecretName, Namespace: params.Instance.Namespace}, &secret)
+		if err == nil {
+			if checksum, ok := secret.ObjectMeta.Annotations["checksum/data"]; ok {
+				dep.ObjectMeta.Labels[otkOverrideSecretName+"-checksum"] = checksum
+			}
+		}
+	}
+
 	commits := ""
 	for _, repoRef := range params.Instance.Spec.App.RepositoryReferences {
 		for _, repoStatus := range params.Instance.Status.RepositoryStatus {

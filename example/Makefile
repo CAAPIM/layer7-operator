@@ -220,6 +220,48 @@ pki:
 	  --cert=/tmp/tls.crt --key=/tmp/tls.key \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
+pki-otk:
+	@test -f /tmp/otk-internal-tls.crt || \
+	  openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+	  -subj "/CN=gateway-internal-otk.brcmlabs.com" \
+	  -addext "subjectAltName=DNS:gateway-internal-otk.brcmlabs.com,DNS:gateway-internal-otk-pm.brcmlabs.com" \
+	  -keyout /tmp/otk-internal-tls.key -out /tmp/otk-internal-tls.crt
+	@test -f /tmp/otk-dmz-tls.crt || \
+	  openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+	  -subj "/CN=gateway-dmz-otk.brcmlabs.com" \
+	  -addext "subjectAltName=DNS:gateway-dmz-otk.brcmlabs.com,DNS:gateway-dmz-otk-pm.brcmlabs.com" \
+	  -keyout /tmp/otk-dmz-tls.key -out /tmp/otk-dmz-tls.crt
+	@test -f /tmp/otk-dmz-mtls.crt || { \
+	  openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+	  -subj "/CN=otk-dmz-mtls-ca" \
+	  -keyout /tmp/otk-dmz-mtls-ca.key -out /tmp/otk-dmz-mtls-ca.crt && \
+	  openssl req -newkey rsa:2048 -nodes \
+	  -subj "/CN=dmz-gateway" \
+	  -keyout /tmp/otk-dmz-mtls.key -out /tmp/otk-dmz-mtls.csr && \
+	  openssl x509 -req -in /tmp/otk-dmz-mtls.csr \
+	  -CA /tmp/otk-dmz-mtls-ca.crt -CAkey /tmp/otk-dmz-mtls-ca.key \
+	  -CAcreateserial -days 365 -out /tmp/otk-dmz-mtls.crt; \
+	}
+
+pki-otk-dmz: pki-otk
+	-kubectl create secret tls otk-dmz-secret \
+	  --cert=/tmp/otk-dmz-tls.crt --key=/tmp/otk-dmz-tls.key \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	-kubectl create secret tls otk-dmz-mtls-secret \
+	  --cert=/tmp/otk-dmz-mtls.crt --key=/tmp/otk-dmz-mtls.key \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	-kubectl create secret generic otk-internal-ca-cert \
+	  --from-file=ca.crt=/tmp/otk-internal-tls.crt \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+
+pki-otk-internal: pki-otk
+	-kubectl create secret tls otk-internal-secret \
+	  --cert=/tmp/otk-internal-tls.crt --key=/tmp/otk-internal-tls.key \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	-kubectl create secret generic otk-dmz-mtls-public-cert \
+	  --from-file=dmz-gateway.crt=/tmp/otk-dmz-mtls.crt \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+
 cassandra:
 	helm upgrade --install cassandra -f ./otk/database/cassandra/cassandra-values.yaml oci://registry-1.docker.io/bitnamicharts/cassandra
 

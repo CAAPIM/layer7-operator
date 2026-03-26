@@ -117,6 +117,8 @@ type GatewayStatus struct {
 	LastAppliedExternalSecrets map[string][]string `json:"lastAppliedExternalSecrets,omitempty"`
 	// LastAppliedExternalCerts
 	LastAppliedExternalCerts map[string][]string `json:"lastAppliedExternalCerts,omitempty"`
+	// LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates have been applied
+	LastAppliedOtkFipsCerts map[string][]string `json:"lastAppliedOtkFipsCerts,omitempty"`
 }
 
 // GatewayState tracks the status of Gateway Resources
@@ -367,6 +369,19 @@ type Otk struct {
 	InternalOTKGateway GatewayReference `json:"internalGateway,omitempty"`
 	//DmzOTKGateway reference if type is internal
 	DmzOTKGateway GatewayReference `json:"dmzGateway,omitempty"`
+	// FipsCertificates is a list of certificate references for FIPS user management
+	// on Internal gateways. Each entry references a Secret or ConfigMap containing
+	// leaf certificates for DMZ gateway mTLS client authentication.
+	FipsCertificates []OtkFipsCertificate `json:"fipsCertificates,omitempty"`
+}
+
+type OtkFipsCertificate struct {
+	// Enabled or disabled
+	Enabled bool `json:"enabled,omitempty"`
+	// Name of the Secret or ConfigMap
+	Name string `json:"name,omitempty"`
+	// Type of the referenced resource: "secret" or "configmap"
+	Type string `json:"type,omitempty"`
 }
 
 // OtkMaintenanceTasks are included in the install bundle as disabled scheduled tasks
@@ -384,7 +399,7 @@ type GatewayReference struct {
 	Namespace string `json:"namespace,omitempty"`
 	// Url of the target gateway
 	// used for post-installation gateway policy configuration
-	Url string `json:"Url,omitempty"`
+	Url string `json:"url,omitempty"`
 	// Port of the target gateway
 	Port int `json:"port,omitempty"`
 }

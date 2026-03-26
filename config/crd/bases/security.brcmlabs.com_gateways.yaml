@@ -4006,11 +4006,6 @@ spec:
                       dmzGateway:
                         description: DmzOTKGateway reference if type is internal
                         properties:
-                          Url:
-                            description: |-
-                              Url of the target gateway
-                              used for post-installation gateway policy...
-                            type: string
                           name:
                             description: |-
                               Name of the gateway
@@ -4023,10 +4018,32 @@ spec:
                           port:
                             description: Port of the target gateway
                             type: integer
+                          url:
+                            description: |-
+                              Url of the target gateway
+                              used for post-installation gateway policy...
+                            type: string
                         type: object
                       enabled:
                         description: Enable or disable the OTK initContainer
                         type: boolean
+                      fipsCertificates:
+                        description: FipsCertificates is a list of certificate references
+                          for FIPS user...
+                        items:
+                          properties:
+                            enabled:
+                              description: Enabled or disabled
+                              type: boolean
+                            name:
+                              description: Name of the Secret or ConfigMap
+                              type: string
+                            type:
+                              description: 'Type of the referenced resource: "secret"
+                                or "configmap"'
+                              type: string
+                          type: object
+                        type: array
                       initContainerImage:
                         description: InitContainerImage for the initContainer
                         type: string
@@ -4163,11 +4180,6 @@ spec:
                       internalGateway:
                         description: InternalOTKGateway reference if type is dmz
                         properties:
-                          Url:
-                            description: |-
-                              Url of the target gateway
-                              used for post-installation gateway policy...
-                            type: string
                           name:
                             description: |-
                               Name of the gateway
@@ -4180,6 +4192,11 @@ spec:
                           port:
                             description: Port of the target gateway
                             type: integer
+                          url:
+                            description: |-
+                              Url of the target gateway
+                              used for post-installation gateway policy...
+                            type: string
                         type: object
                       maintenanceTasks:
                         description: MaintenanceTasks for the OTK database are disabled
@@ -6510,6 +6527,14 @@ spec:
                 items:
                   type: string
                 type: array
+              lastAppliedOtkFipsCerts:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates
+                  have been...
+                type: object
               managementPod:
                 description: Management Pod is a Gateway with a special annotation
                   is used as a...

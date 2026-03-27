@@ -49,6 +49,7 @@ import (
 	"time"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const fipsProviderGuid = "41e5cacd15f86758f03ff2952616d4f3"
@@ -567,9 +568,20 @@ func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes [
 	return bundleBytes, nil
 }
 
-func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byte, string, error) {
+func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int, includeOtkPort bool) ([]byte, string, error) {
 	var bundle graphman.Bundle
 	var policyXml []byte
+
+	appendOtkPort := func() {
+		if includeOtkPort {
+			bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
+				Name:        "otk.port",
+				Value:       strconv.Itoa(otkPort),
+				Description: "OTK Port",
+			})
+		}
+	}
+
 	switch mode {
 	case "INTERNAL":
 		for _, internalPolicy := range internalPolicies {
@@ -596,6 +608,7 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 				})
 			}
 		}
+		appendOtkPort()
 
 		bundle.FederatedIdps = append(bundle.FederatedIdps, &graphman.FederatedIdpInput{
 			Name:           "otk-fips-provider",
@@ -630,12 +643,9 @@ func BuildOtkOverrideBundle(mode string, gatewayHost string, otkPort int) ([]byt
 				})
 			}
 		}
+		appendOtkPort()
 	case "SINGLE":
-		bundle.ClusterProperties = append(bundle.ClusterProperties, &graphman.ClusterPropertyInput{
-			Name:        "otk.port",
-			Value:       strconv.Itoa(otkPort),
-			Description: "OTK Port",
-		})
+		appendOtkPort()
 	default:
 		return nil, "", fmt.Errorf("invalid otk installation type %s. Valid types are single, dmz and internal", mode)
 	}
@@ -809,3 +819,160 @@ func getSha1Thumbprint(rawCert []byte) (string, error) {
 // 		bundle.Keys = append(bundle.Keys, &gmanKey)
 
 // 	}
+
+type FipUserCert struct {
+	SubjectDn  string
+	CertBase64 string
+	Name       string
+}
+
+func ExtractLeafCertsFromSecret(secret *corev1.Secret) []FipUserCert {
+	var certs []FipUserCert
+
+	if secret.Type == corev1.SecretTypeTLS {
+		if tlsCrt, ok := secret.Data["tls.crt"]; ok {
+			if cert := extractFirstLeafCert(tlsCrt); cert != nil {
+				certs = append(certs, *cert)
+			}
+		}
+		return certs
+	}
+
+	for _, v := range secret.Data {
+		if !strings.Contains(string(v), "-----BEGIN CERTIFICATE-----") {
+			continue
+		}
+		if cert := extractFirstLeafCert(v); cert != nil {
+			certs = append(certs, *cert)
+		}
+	}
+	return certs
+}
+
+func ExtractLeafCertsFromConfigMap(cm *corev1.ConfigMap) []FipUserCert {
+	var certs []FipUserCert
+	for k, v := range cm.Data {
+		if !strings.HasSuffix(k, ".crt") {
+			continue
+		}
+		if !strings.Contains(v, "-----BEGIN CERTIFICATE-----") {
+			continue
+		}
+		certs = append(certs, extractAllCerts([]byte(v))...)
+	}
+	return certs
+}
+
+func extractFirstLeafCert(pemData []byte) *FipUserCert {
+	block, _ := pem.Decode(pemData)
+	if block == nil {
+		return nil
+	}
+	crtX509, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil
+	}
+	return &FipUserCert{
+		SubjectDn:  strings.ToLower(crtX509.Subject.String()),
+		CertBase64: base64.StdEncoding.EncodeToString(block.Bytes),
+		Name:       crtX509.Subject.CommonName,
+	}
+}
+
+func extractAllCerts(pemData []byte) []FipUserCert {
+	var certs []FipUserCert
+	rest := pemData
+	for {
+		var block *pem.Block
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		crtX509, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			continue
+		}
+		certs = append(certs, FipUserCert{
+			SubjectDn:  strings.ToLower(crtX509.Subject.String()),
+			CertBase64: base64.StdEncoding.EncodeToString(block.Bytes),
+			Name:       crtX509.Subject.CommonName,
+		})
+	}
+	return certs
+}
+
+func cnFromSubjectDn(dn string) string {
+	upper := strings.ToUpper(dn)
+	if strings.HasPrefix(upper, "CN=") {
+		return dn[3:]
+	}
+	for _, part := range strings.Split(dn, ",") {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(strings.ToUpper(part), "CN=") {
+			return part[3:]
+		}
+	}
+	return dn
+}
+
+func BuildFipUserBundle(certs []FipUserCert, notFound []string) ([]byte, error) {
+	bundle := graphman.Bundle{}
+
+	for _, cert := range certs {
+		bundle.FipUsers = append(bundle.FipUsers, &graphman.FipUserInput{
+			Name:         cert.Name,
+			ProviderName: "otk-fips-provider",
+			SubjectDn:    cert.SubjectDn,
+			CertBase64:   cert.CertBase64,
+			Login:        cert.Name,
+		})
+	}
+
+	if len(notFound) > 0 {
+		bundle.Properties = &graphman.BundleProperties{}
+		for _, subjectDn := range notFound {
+			login := cnFromSubjectDn(subjectDn)
+			bundle.FipUsers = append(bundle.FipUsers, &graphman.FipUserInput{
+				Name:         login,
+				ProviderName: "otk-fips-provider",
+				SubjectDn:    subjectDn,
+				Login:        login,
+			})
+			bundle.Properties.Mappings.FipUsers = append(bundle.Properties.Mappings.FipUsers, &graphman.MappingInstructionInput{
+				Action: graphman.MappingActionDelete,
+				Source: graphman.MappingSource{Name: login},
+			})
+		}
+	}
+
+	bundleBytes, err := json.Marshal(bundle)
+	if err != nil {
+		return nil, err
+	}
+	return bundleBytes, nil
+}
+
+func BuildFipUserDeleteBundle(subjectDns []string) ([]byte, error) {
+	bundle := graphman.Bundle{}
+	bundle.Properties = &graphman.BundleProperties{}
+
+	for _, subjectDn := range subjectDns {
+		login := cnFromSubjectDn(subjectDn)
+		bundle.FipUsers = append(bundle.FipUsers, &graphman.FipUserInput{
+			Name:         login,
+			ProviderName: "otk-fips-provider",
+			SubjectDn:    subjectDn,
+			Login:        login,
+		})
+		bundle.Properties.Mappings.FipUsers = append(bundle.Properties.Mappings.FipUsers, &graphman.MappingInstructionInput{
+			Action: graphman.MappingActionDelete,
+			Source: graphman.MappingSource{Name: login},
+		})
+	}
+
+	bundleBytes, err := json.Marshal(bundle)
+	if err != nil {
+		return nil, err
+	}
+	return bundleBytes, nil
+}

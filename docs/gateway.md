@@ -10634,11 +10634,10 @@ This can be further extended with custom attributes using the additionalResource
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>dmzGatewayReference</b></td>
-        <td>string</td>
+        <td><b><a href="#gatewayspecappotkdmzgateway">dmzGateway</a></b></td>
+        <td>object</td>
         <td>
-          OTKPort is used in Single mode - sets the otk.port cluster-wide property and in Dual-Mode
-sets host_oauth2_auth_server port in #OTK Client Context Variables<br/>
+          DmzOTKGateway reference if type is internal<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10646,6 +10645,15 @@ sets host_oauth2_auth_server port in #OTK Client Context Variables<br/>
         <td>boolean</td>
         <td>
           Enable or disable the OTK initContainer<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappotkfipscertificatesindex">fipsCertificates</a></b></td>
+        <td>[]object</td>
+        <td>
+          FipsCertificates is a list of certificate references for FIPS user management
+on Internal gateways. Each entry references a Secret or ConfigMap containing
+leaf certificates for DMZ gateway mTLS client authentication.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10670,18 +10678,10 @@ sets host_oauth2_auth_server port in #OTK Client Context Variables<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>internalGatewayPort</b></td>
-        <td>integer</td>
+        <td><b><a href="#gatewayspecappotkinternalgateway">internalGateway</a></b></td>
+        <td>object</td>
         <td>
-          InternalGatewayPort defaults to 9443 or graphmanDynamicSync port<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>internalGatewayReference</b></td>
-        <td>string</td>
-        <td>
-          InternalOtkGatewayReference to an Operator managed Gateway deployment that is configured with otk.type: internal
-This configures a relationship between DMZ and Internal Gateways.<br/>
+          InternalOTKGateway reference if type is dmz<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10689,6 +10689,14 @@ This configures a relationship between DMZ and Internal Gateways.<br/>
         <td>object</td>
         <td>
           MaintenanceTasks for the OTK database are disabled by default<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>manageCrossNamespace</b></td>
+        <td>boolean</td>
+        <td>
+          ManageCrossNamespace allows a cluster-wide layer7 operator to manage internal/dmz gateways across namespaces
+this is limited to a single kubernetes cluster.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10703,13 +10711,6 @@ This configures a relationship between DMZ and Internal Gateways.<br/>
         <td>integer</td>
         <td>
           OTKPort defaults to 8443<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>runtimeSyncIntervalSeconds</b></td>
-        <td>integer</td>
-        <td>
-          RuntimeSyncIntervalSeconds how often OTK Gateways should be updated in internal/dmz mode<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11313,6 +11314,97 @@ only supports MySQL and Oracle<br/>
 </table>
 
 
+### Gateway.spec.app.otk.dmzGateway
+<sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
+
+
+
+DmzOTKGateway reference if type is internal
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the gateway
+if managing otk gateways across namespaces this must match the referenced gateway CR<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>namespace</b></td>
+        <td>string</td>
+        <td>
+          Namespace of the referenced gateway if managing gateways cross namespace (optional)<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          Port of the target gateway<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>url</b></td>
+        <td>string</td>
+        <td>
+          Url of the target gateway
+used for post-installation gateway policy configuration<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.fipsCertificates[index]
+<sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the Secret or ConfigMap<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type of the referenced resource: "secret" or "configmap"<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.otk.initContainerSecurityContext
 <sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
 
@@ -11692,6 +11784,56 @@ In addition, if HostProcess is true then HostNetwork must also be set to true.<b
 Defaults to the user specified in image metadata if unspecified.
 May also be set in PodSecurityContext. If set in both SecurityContext and
 PodSecurityContext, the value specified in SecurityContext takes precedence.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.otk.internalGateway
+<sup><sup>[↩ Parent](#gatewayspecappotk)</sup></sup>
+
+
+
+InternalOTKGateway reference if type is dmz
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the gateway
+if managing otk gateways across namespaces this must match the referenced gateway CR<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>namespace</b></td>
+        <td>string</td>
+        <td>
+          Namespace of the referenced gateway if managing gateways cross namespace (optional)<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          Port of the target gateway<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>url</b></td>
+        <td>string</td>
+        <td>
+          Url of the target gateway
+used for post-installation gateway policy configuration<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -17949,6 +18091,13 @@ GatewayStatus defines the observed state of Gateways
         <td>[]string</td>
         <td>
           LastAppliedClusterProperties<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastAppliedOtkFipsCerts</b></td>
+        <td>map[string][]string</td>
+        <td>
+          LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates have been applied<br/>
         </td>
         <td>false</td>
       </tr><tr>

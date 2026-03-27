@@ -1,11 +1,11 @@
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: ssg-lgtm
 spec:
   mode: sidecar
-  image: otel/opentelemetry-collector-contrib:0.97.0
-  config: |
+  image: otel/opentelemetry-collector-contrib:0.147.0
+  config:
     receivers:
       otlp:
         protocols:
@@ -15,6 +15,8 @@ spec:
             endpoint: 0.0.0.0:4318
     processors:
       batch:
+        send_batch_max_size: 10000
+        timeout: 10s
       transform:
         metric_statements:
           - context: datapoint
@@ -25,11 +27,9 @@ spec:
     exporters:
       debug:
         verbosity: basic
-      loki:
-        endpoint: http://loki-loki-distributed-gateway.grafana-loki.svc.cluster.local/loki/api/v1/push
       prometheusremotewrite:
-        endpoint: http://mimir-nginx.grafana-loki.svc.cluster.local/api/v1/push
-      otlp:
+        endpoint: http://mimir-gateway.grafana-loki.svc.cluster.local/api/v1/push
+      otlp/2:
         endpoint: tempo.grafana-loki.svc.cluster.local:4317
         tls:
           insecure: true
@@ -37,20 +37,18 @@ spec:
       telemetry:
         logs:
           level: "debug"
-        metrics:
-          address: "0.0.0.0:8888"
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlp]
+          exporters: [otlp/2]
         metrics:
           receivers: [otlp]
           processors: [transform,batch]
           exporters: [prometheusremotewrite, debug]
         logs: 
           receivers: [otlp]
-          exporters: [debug,loki]
+          exporters: [debug]
     extensions:
       health_check:
       pprof:

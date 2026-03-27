@@ -111,11 +111,11 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if gw.Spec.App.Otk.Enabled {
-		if gw.Spec.App.Otk.Type == securityv1.OtkTypeDMZ || gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal {
-			ops = append(ops, ReconcileOperations{reconcile.ScheduledJobs, "scheduled jobs"})
-		}
 		if gw.Spec.App.Otk.Type == securityv1.OtkTypeSingle && !gw.Spec.App.Management.Database.Enabled {
 			ops = append(ops, ReconcileOperations{reconcile.OTKDatabaseMaintenanceTasks, "otk-db-maintenance-tasks"})
+		}
+		if gw.Spec.App.Otk.Type == securityv1.OtkTypeInternal && len(gw.Spec.App.Otk.FipsCertificates) > 0 {
+			ops = append(ops, ReconcileOperations{reconcile.OtkFipsCerts, "otk-fips-certs"})
 		}
 	}
 
@@ -236,6 +236,11 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 						req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
 					}
 				}
+				// if gateway.Spec.App.Otk.Enabled {
+				// 	if gateway.Spec.App.Otk.DmzKeySecret == a.GetName() || gateway.Spec.App.Otk.InternalKeySecret == a.GetName() {
+				// 		req = append(req, creconcile.Request{NamespacedName: types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name}})
+				// 	}
+				// }
 			}
 			return req
 		}),

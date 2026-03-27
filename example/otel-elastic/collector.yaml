@@ -1,11 +1,11 @@
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: ssg-eck
 spec:
-  image: otel/opentelemetry-collector-contrib:0.97.0
+  image: otel/opentelemetry-collector-contrib:0.147.0
   mode: sidecar
-  config: |
+  config:
     receivers:
       otlp:
         protocols:
@@ -14,7 +14,6 @@ spec:
           http:
             endpoint: 0.0.0.0:4318
     processors:
-      batch:
       resource:
         attributes:
         - key: layer7gw.name
@@ -30,20 +29,15 @@ spec:
         headers:
           Authorization: "Bearer APM_AUTH_TOKEN"
     service:
-      telemetry:
-        logs:
-          level: "debug"
-        metrics:
-          address: "0.0.0.0:8888"
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [resource,batch]
+          processors: [resource]
           exporters: [otlp/elastic]
         metrics:
           receivers: [otlp]
-          processors: [resource,batch]
-          exporters: [otlp/elastic,debug]
+          processors: [resource]
+          exporters: [otlp/elastic]
         logs: 
           receivers: [otlp]
-          exporters: [otlp/elastic, debug]
+          exporters: [otlp/elastic]

@@ -22,26 +22,27 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
-
 package reconcile
 
 import (
 	"context"
 )
 
-func ExternalKeys(ctx context.Context, params Params) error {
+func OtkFipsCerts(ctx context.Context, params Params) error {
 	gateway := params.Instance
-
-	if len(gateway.Spec.App.ExternalKeys) == 0 && len(gateway.Status.LastAppliedExternalKeys) == 0 {
-		return nil
+	if len(gateway.Spec.App.Otk.FipsCertificates) == 0 {
+		if len(gateway.Status.LastAppliedOtkFipsCerts) == 0 {
+			return nil
+		}
 	}
 
 	gwUpdReq, err := NewGwUpdateRequest(
 		ctx,
 		gateway,
 		params,
-		WithBundleType(BundleTypeExternalKey),
+		WithBundleType(BundleTypeOTKFips),
 	)
 
 	if err != nil {
@@ -52,18 +53,17 @@ func ExternalKeys(ctx context.Context, params Params) error {
 		return nil
 	}
 
-	for _, extKey := range gwUpdReq.externalEntities {
-		extKeyUpdReq := gwUpdReq
-		extKeyUpdReq.bundle = extKey.Bundle
-		extKeyUpdReq.bundleName = extKey.Name
-		extKeyUpdReq.checksum = extKey.Checksum
-		extKeyUpdReq.cacheEntry = extKey.CacheEntry
-		extKeyUpdReq.patchAnnotation = extKey.Annotation
-		err = SyncGateway(ctx, params, *extKeyUpdReq)
+	for _, fipsCert := range gwUpdReq.externalEntities {
+		fipsCertUpdReq := gwUpdReq
+		fipsCertUpdReq.bundle = fipsCert.Bundle
+		fipsCertUpdReq.bundleName = fipsCert.Name
+		fipsCertUpdReq.checksum = fipsCert.Checksum
+		fipsCertUpdReq.cacheEntry = fipsCert.CacheEntry
+		fipsCertUpdReq.patchAnnotation = fipsCert.Annotation
+		err = SyncGateway(ctx, params, *fipsCertUpdReq)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }

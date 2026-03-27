@@ -1,11 +1,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
   name: kibana
 spec:
-  ingressClassName: nginx
+  ingressClassName: contour
   rules:
   - host: kibana.brcmlabs.com
     http:
@@ -20,4 +18,4 @@ spec:
   tls:
   - hosts:
     - kibana.brcmlabs.com
-    secretName: default
+    secretName: brcmlabs

@@ -826,6 +826,25 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		})
+
+		if OtkOverrideBundleRequired(gw) {
+			otkOverrideBundleName := gw.Name + "-otk-override-bundle"
+			volumeMounts = append(volumeMounts, corev1.VolumeMount{
+				Name:      otkOverrideBundleName,
+				MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/001OTK",
+			})
+			volumes = append(volumes, corev1.Volume{
+				Name: otkOverrideBundleName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName:  otkOverrideBundleName,
+						DefaultMode: &defaultMode,
+						Optional:    &optional,
+					},
+				},
+			})
+		}
+
 		if gw.Spec.App.Otk.Database.Type == securityv1.OtkDatabaseTypeMySQL || gw.Spec.App.Otk.Database.Type == securityv1.OtkDatabaseTypeOracle {
 			if gw.Spec.App.Otk.Database.Create {
 				otkDbInitContainer = true
@@ -834,37 +853,40 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	if otkInstallInitContainer {
+		otkInstallEnvFrom := []corev1.EnvFromSource{
+			{
+				ConfigMapRef: &corev1.ConfigMapEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: gw.Name + "-otk-shared-init-config",
+					},
+				},
+			},
+			{
+				ConfigMapRef: &corev1.ConfigMapEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: gw.Name + "-otk-install-init-config",
+					},
+					Optional: &optional,
+				},
+			},
+		}
+		if gw.Spec.App.Otk.Type != securityv1.OtkTypeDMZ {
+			otkInstallEnvFrom = append(otkInstallEnvFrom, corev1.EnvFromSource{
+				SecretRef: &corev1.SecretEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: otkInitContainerSecret,
+					},
+					Optional: &optional,
+				},
+			})
+		}
 		initContainers = append(initContainers, corev1.Container{
 			Name:            "otk-install-init",
 			Image:           otkInitContainerImage,
 			ImagePullPolicy: otkInitContainerImagePullPolicy,
 			SecurityContext: &otkInitContainerSecurityContext,
 			VolumeMounts:    otkInitContainerVolumeMounts,
-			EnvFrom: []corev1.EnvFromSource{
-				{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: gw.Name + "-otk-shared-init-config",
-						},
-					},
-				},
-				{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: gw.Name + "-otk-install-init-config",
-						},
-						Optional: &optional,
-					},
-				},
-				{
-					SecretRef: &corev1.SecretEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: otkInitContainerSecret,
-						},
-						Optional: &optional,
-					},
-				},
-			},
+			EnvFrom:         otkInstallEnvFrom,
 			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		})

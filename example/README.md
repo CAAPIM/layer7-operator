@@ -35,7 +35,6 @@ Portal Integration Example
 
 Other examples
 - [Elastic Stack](./otel-elastic)
-- [Prometheus](./otel-prometheus)
 
 Repositories (used in most of the examples)
 - [Repositories](./repositories/)

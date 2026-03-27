@@ -140,8 +140,7 @@ spec:
       # Management port requires a separate service.
       service:
         enabled: false
-        #annotations:
-          # cloud.google.com/load-balancer-type: "Internal"
+        annotations: {}
         type: ClusterIP
         ports:
         - name: management
@@ -159,7 +158,8 @@ spec:
         enabled: false # this runs the gateway in dbbacked/ephemeral mode
       #  jdbcUrl: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
     service:
-      # annotations:
+      annotations:
+        projectcontour.io/upstream-protocol.tls: "8443,9443"
       type: LoadBalancer
       ports:
       - name: https
@@ -172,10 +172,8 @@ spec:
         protocol: TCP
     ingress:
       enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      ingressClassName: contour
+      annotations: {}
       tls:
       - hosts: 
         - gateway.brcmlabs.com

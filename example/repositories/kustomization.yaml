@@ -6,4 +6,6 @@ resources:
   - ./apis-repository.yaml
   - ./local-reference-repository.yaml
   - ./otk-customizations-single.yaml
+#  - ./otk-customizations-dmz.yaml
+#  - ./otk-customizations-internal.yaml
   - ../base

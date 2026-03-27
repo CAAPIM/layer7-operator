@@ -1,11 +1,11 @@
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta
 kind: OpenTelemetryCollector
 metadata:
   name: layer7-operator
 spec:
   mode: deployment
   image: otel/opentelemetry-collector-contrib:0.97.0
-  config: |
+  config:
     receivers:
       otlp:
         protocols:
@@ -19,7 +19,7 @@ spec:
       debug:
         verbosity: basic
       prometheusremotewrite:
-        endpoint: http://mimir-nginx.grafana-loki.svc.cluster.local/api/v1/push
+        endpoint: http://mimir-gateway.grafana-loki.svc.cluster.local/api/v1/push
     service:
       telemetry:
         logs:

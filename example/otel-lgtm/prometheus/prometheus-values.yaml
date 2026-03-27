@@ -78,7 +78,7 @@ grafana:
       editable: true
       orgId: 1
       type: prometheus
-      url: http://mimir-nginx.grafana-loki.svc.cluster.local/prometheus
+      url: http://mimir-gateway.grafana-loki.svc.cluster.local/prometheus
     - name: tempo-minimal
       id: 6
       editable: true
@@ -106,13 +106,11 @@ grafana:
     ## IngressClassName for Grafana Ingress.
     ## Should be provided if Ingress is enable.
     ##
-    ingressClassName: nginx
+    ingressClassName: contour
 
     ## Annotations for Grafana Ingress
     ##
     annotations: {}
-      # kubernetes.io/ingress.class: nginx
-      # kubernetes.io/tls-acme: "true"
 
     ## Labels to be added to the Ingress
     ##

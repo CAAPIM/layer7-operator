@@ -1,17 +1,13 @@
 apiVersion: security.brcmlabs.com/v1
 kind: Gateway
 metadata:
-  name: ssg
+  name: otk-ssg-dmz
 spec:
   version: "11.1.3"
   license:
-    accept: false
+    accept: true
     secretName: gateway-license
   app:
-    podAnnotations:
-      sidecar.opentelemetry.io/inject: "ssg-prom"
-      instrumentation.opentelemetry.io/inject-java: "true"
-      instrumentation.opentelemetry.io/container-names: "gateway"
     replicas: 1
     image: docker.io/caapim/gateway:11.1.3
     imagePullPolicy: IfNotPresent
@@ -21,14 +17,80 @@ spec:
         maxUnavailable: 0
         maxSurge: 2
     resources:
-      requests: {}
-      limits: {}
+      requests:
+        memory: 8Gi
+        cpu: 3
+      limits:
+        memory: 8Gi
+        cpu: 3
+    externalSecrets:
+    - name: gateway-secret
+      enabled: true
+      variableReferencable: true
+      description: Gateway Secret
+    # ExternalKeys with otk flag set to true for OTK-specific key usage
+    externalKeys:
+    - name: otk-dmz-tls-secret
+      enabled: true
+      alias: otk-dmz-key
+      keyUsageType: SSL
+      otk: true
+    otk:
+      enabled: true
+      initContainerImage: docker.io/caapim/otk-install:4.6.4
+      type: dmz
+      internalAuthSecret: otk-internal-auth-secret
+      internalGatewayReference: as673366-gw-upgrade-0.apim.labs.broadcom.net
+      # InternalGatewayPort is used when the Internal gateway is external (not managed by operator)
+      # If not specified, defaults to 9443 or the gateway's graphmanDynamicSync port
+      internalGatewayPort: 8443
+      # SyncIntervalSeconds determines how often DMZ and Internal gateways should update certificates
+      # Defaults to RuntimeSyncIntervalSeconds if not specified, or 10 seconds if neither is set
+      syncIntervalSeconds: 30
+      # Reference to the TLS secret for DMZ key (used by OTK reconciliation)
+      dmzKeySecret: otk-dmz-tls-secret
+      database:
+        type: mysql
+        create: true
+        connectionName: OAuth
+        auth:
+          # A single secret containing all of the values defined here will be created
+          # if existingSecret is set the corresponding gateway, readOnly or admin will be omitted from the secret
+          # if no values are set, a secret will not be created or referenced and the deployment will be invalidated.
+          # existingSecret: otk-db-secret
+          gateway:
+            username: otk_user
+            password: otkUserPass
+          readOnly:
+           # username: readonly_user
+            username: readonly_user
+            password: readonly_userPass
+          admin:
+           # username: admin
+            username: admin
+            password: adminPass
+        properties:
+          minimumPoolSize: 3
+          maximumPoolSize: 15
+        sql:
+          databaseName: otk_db
+          #jdbcUrl: jdbc:mysql://<host>:<port>/<database>
+          jdbcUrl: jdbc:mysql://mysql.brcmlabs.com:3306/otk_db_init
+          jdbcDriverClass: com.mysql.cj.jdbc.Driver
+          connectionProperties:
+            c3p0.maxConnectionAge: "100"
+            c3p0.maxIdleTime: "1000"
+          manageSchema: true
+          databaseWaitTimeout: 60
     autoscaling:
       enabled: false
     bundle:
+      - type: restman
+        source: secret
+        name: restman-bootstrap-bundle
       - type: graphman
         source: secret
-        name: global-bundle
+        name: graphman-bootstrap-bundle
     repositoryReferences:
       - name: l7-gw-myframework
         enabled: true
@@ -48,9 +110,17 @@ spec:
         encryption:
           existingSecret: graphman-encryption-secret
           key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+      - name: local-reference-repository
+        enabled: true
+        type: dynamic
+        encryption: { }
+      - name: otk-customizations-dmz
+        enabled: true
+        type: dynamic
+        encryption: { }
     bootstrap:
       script:
-        enabled: false
+        enabled: true
     initContainers: []
     hazelcast:
       external: false
@@ -61,10 +131,10 @@ spec:
       #password: 7layer
       # Management port requires a separate service...
       service:
-        enabled: false
-        #annotations:
-          # cloud.google.com/load-balancer-type: "Internal"
-        type: ClusterIP
+        enabled: true
+        annotations:
+          projectcontour.io/upstream-protocol.tls: "8443"
+        type: LoadBalancer
         ports:
         - name: management
           port: 9443
@@ -75,6 +145,7 @@ spec:
       graphman:
         enabled: true
         initContainerImage: docker.io/caapim/graphman-static-init:1.0.4
+        dynamicSyncPort: 9443
       cluster:
         #password: 7layer
         hostname: gateway.brcmlabs.com
@@ -87,29 +158,21 @@ spec:
       jvmHeap:
         calculate: true
         percentage: 50
-        default: 2g
+        default: 4g
       extraArgs:
-      - -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
       - -Dcom.l7tech.server.audit.message.saveToInternal=false
       - -Dcom.l7tech.server.audit.admin.saveToInternal=false
       - -Dcom.l7tech.server.audit.system.saveToInternal=false
       - -Dcom.l7tech.server.audit.log.format=json
       - -Djava.util.logging.config.file=/opt/SecureSpan/Gateway/node/default/etc/conf/log-override.properties
-      - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true 
       - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
+      - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true
+      #- -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
     listenPorts:
       harden: true
       custom:
         enabled: false
       ports: []
-    log:
-      override: true
-      properties: |-
-        handlers = com.l7tech.server.log.GatewayRootLoggingHandler, com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler
-        com.l7tech.server.log.GatewayRootLoggingHandler.formatter = com.l7tech.util.JsonLogFormatter
-        java.util.logging.SimpleFormatter.format=
-        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.formatter = com.l7tech.util.JsonLogFormatter
-        com.l7tech.server.log.ConsoleMessageSink$L7ConsoleHandler.level = CONFIG
     cwp:
       enabled: true
       properties:
@@ -124,21 +187,6 @@ spec:
             com.l7tech.external.assertions.comparison.server.ServerComparisonAssertion.level = SEVERE
         - name: audit.setDetailLevel.FINE
           value: 152 7101 7103 9648 9645 7026 7027 4155 150 4716 4114 6306 4100 9655 150 151 11000 4104
-        - name: otel.enabled
-          value: "true"
-        - name: otel.serviceMetricEnabled
-          value: "true"
-        - name: otel.traceEnabled
-          value: "true"
-        - name: otel.metricPrefix
-          value: l7_
-        - name: otel.traceConfig
-          value: |
-            {
-              "services": [
-                {"resolutionPath": ".*"}
-              ]
-            }
     system:
       properties: |-
         # Default Gateway system properties
@@ -153,42 +201,26 @@ spec:
         # Must be set correctly when Gateway is running in FIPS mode. If not specified it will default to PKCS12.
         javax.net.ssl.trustStoreType=jks
         com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
-        # OpenTelemetry Agent Configuration
-        otel.instrumentation.common.default-enabled=true
-        otel.instrumentation.opentelemetry-api.enabled=true
-        otel.instrumentation.runtime-metrics.enabled=true
-        otel.instrumentation.runtime-telemetry.enabled=true
-        otel.instrumentation.opentelemetry-instrumentation-annotations.enabled=true
-        otel.java.global-autoconfigure.enabled=true
         # Additional properties go here
     service:
-      # annotations:
-      type: LoadBalancer
+      annotations:
+        projectcontour.io/upstream-protocol.tls: "8443"
+      type: ClusterIP
       ports:
       - name: https
         port: 8443
         targetPort: 8443
         protocol: TCP
-      - name: management
-        port: 9443
-        targetPort: 9443
-        protocol: TCP
-      - name: monitoring
-        port: 8889
-        targetPort: 8889
-        protocol: TCP
     ingress:
       enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      ingressClassName: contour
+      annotations: {}
       tls:
       - hosts: 
-        - gateway.brcmlabs.com
-        secretName: default
+        - otk-ssg-dmz.brcmlabs.com
+        secretName: brcmlabs
       rules:
-      - host: gateway.brcmlabs.com
+      - host: otk-ssg-dmz.brcmlabs.com
     # containerSecurityContext:
     #   runAsNonRoot: true
     #   runAsUser: 1000669998
@@ -199,3 +231,5 @@ spec:
     # podSecurityContext:
     #   runAsUser: 1000669998
     #   runAsGroup: 1000669998
+
+

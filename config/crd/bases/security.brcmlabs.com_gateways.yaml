@@ -4003,12 +4003,47 @@ spec:
                             description: Type of OTK Database
                             type: string
                         type: object
-                      dmzGatewayReference:
-                        description: OTKPort is used in Single mode - sets the otk.
-                        type: string
+                      dmzGateway:
+                        description: DmzOTKGateway reference if type is internal
+                        properties:
+                          name:
+                            description: |-
+                              Name of the gateway
+                              if managing otk gateways across namespaces this must...
+                            type: string
+                          namespace:
+                            description: Namespace of the referenced gateway if managing
+                              gateways cross namespace...
+                            type: string
+                          port:
+                            description: Port of the target gateway
+                            type: integer
+                          url:
+                            description: |-
+                              Url of the target gateway
+                              used for post-installation gateway policy...
+                            type: string
+                        type: object
                       enabled:
                         description: Enable or disable the OTK initContainer
                         type: boolean
+                      fipsCertificates:
+                        description: FipsCertificates is a list of certificate references
+                          for FIPS user...
+                        items:
+                          properties:
+                            enabled:
+                              description: Enabled or disabled
+                              type: boolean
+                            name:
+                              description: Name of the Secret or ConfigMap
+                              type: string
+                            type:
+                              description: 'Type of the referenced resource: "secret"
+                                or "configmap"'
+                              type: string
+                          type: object
+                        type: array
                       initContainerImage:
                         description: InitContainerImage for the initContainer
                         type: string
@@ -4142,14 +4177,27 @@ spec:
                                 type: string
                             type: object
                         type: object
-                      internalGatewayPort:
-                        description: InternalGatewayPort defaults to 9443 or graphmanDynamicSync
-                          port
-                        type: integer
-                      internalGatewayReference:
-                        description: InternalOtkGatewayReference to an Operator managed
-                          Gateway deployment that...
-                        type: string
+                      internalGateway:
+                        description: InternalOTKGateway reference if type is dmz
+                        properties:
+                          name:
+                            description: |-
+                              Name of the gateway
+                              if managing otk gateways across namespaces this must...
+                            type: string
+                          namespace:
+                            description: Namespace of the referenced gateway if managing
+                              gateways cross namespace...
+                            type: string
+                          port:
+                            description: Port of the target gateway
+                            type: integer
+                          url:
+                            description: |-
+                              Url of the target gateway
+                              used for post-installation gateway policy...
+                            type: string
+                        type: object
                       maintenanceTasks:
                         description: MaintenanceTasks for the OTK database are disabled
                           by default
@@ -4158,6 +4206,10 @@ spec:
                             description: Enable or disable database maintenance tasks
                             type: boolean
                         type: object
+                      manageCrossNamespace:
+                        description: ManageCrossNamespace allows a cluster-wide layer7
+                          operator to manage...
+                        type: boolean
                       overrides:
                         description: Overrides default OTK install functionality
                         properties:
@@ -4191,10 +4243,6 @@ spec:
                         type: object
                       port:
                         description: OTKPort defaults to 8443
-                        type: integer
-                      runtimeSyncIntervalSeconds:
-                        description: RuntimeSyncIntervalSeconds how often OTK Gateways
-                          should be updated in...
                         type: integer
                       subSolutionKitNames:
                         description: A list of subSolutionKitNames - all,internal
@@ -6479,6 +6527,14 @@ spec:
                 items:
                   type: string
                 type: array
+              lastAppliedOtkFipsCerts:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates
+                  have been...
+                type: object
               managementPod:
                 description: Management Pod is a Gateway with a special annotation
                   is used as a...

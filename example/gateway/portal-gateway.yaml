@@ -241,7 +241,8 @@ spec:
         com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
         com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
     service:
-      # annotations:
+      annotations:
+        projectcontour.io/upstream-protocol.tls: "8443,9443"
       type: ClusterIP
       ports:
       - name: https
@@ -254,9 +255,8 @@ spec:
         protocol: TCP
     ingress:
       enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      ingressClassName: contour
+      annotations: {}
       tls:
       - hosts: 
         - gateway.brcmlabs.com

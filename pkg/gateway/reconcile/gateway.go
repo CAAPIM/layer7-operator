@@ -96,6 +96,7 @@ const (
 	BundleTypeClusterProp            BundleType = "cluster properties"
 	BundleTypeListenPort             BundleType = "listen ports"
 	BundleTypeOTKDatabaseMaintenance BundleType = "otk db maintenance"
+	BundleTypeOTKFips                BundleType = "otk fips"
 )
 
 type GatewayUpdateRequestOpt func(*GatewayUpdateRequest)
@@ -106,6 +107,8 @@ type MappingSource struct {
 	KeystoreId     string `json:"keystoreId,omitempty"`
 	ThumbprintSha1 string `json:"thumbprintSha1,omitempty"`
 }
+
+var syncCache = util.NewSyncCache(3 * time.Second)
 
 func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params Params, opts ...GatewayUpdateRequestOpt) (*GatewayUpdateRequest, error) {
 	graphmanPort := 9443
@@ -500,6 +503,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			found := false
 			for _, ek := range gateway.Spec.App.ExternalKeys {
 				if k == ek.Alias && ek.Enabled {
+					// Only process non-OTK keys in regular external keys flow
 					found = true
 				}
 			}
@@ -512,6 +516,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		for _, externalKey := range gateway.Spec.App.ExternalKeys {
 
 			if externalKey.Enabled {
+				// Skip keys with otk: true - they are handled separately by OTK reconciliation
 				secret, err := getGatewaySecret(ctx, params, externalKey.Name)
 				if err != nil {
 					return nil, err
@@ -693,6 +698,107 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		gwUpdReq.graphmanEncryptionPassphrase = ""
 		gwUpdReq.bundleName = string(gwUpdReq.bundleType)
 		gwUpdReq.externalEntities = externalSecrets
+	case BundleTypeOTKFips:
+		otkFipsCerts := []ExternalEntity{}
+
+		for k, v := range gateway.Status.LastAppliedOtkFipsCerts {
+			found := false
+			for _, fc := range gateway.Spec.App.Otk.FipsCertificates {
+				if k == fc.Name {
+					found = true
+				}
+			}
+			if !found {
+				bundleBytes, err := util.BuildFipUserDeleteBundle(v)
+				if err != nil {
+					return nil, err
+				}
+				annotation := "security.brcmlabs.com/otk-fips-certs-" + k
+				otkFipsCerts = append(otkFipsCerts, ExternalEntity{
+					Name:       k,
+					Annotation: annotation,
+					Bundle:     bundleBytes,
+					Checksum:   "deleted",
+					CacheEntry: gateway.Name + "-" + string(gwUpdReq.bundleType) + "-" + k + "-deleted",
+				})
+			}
+		}
+
+		for _, fipsCert := range gateway.Spec.App.Otk.FipsCertificates {
+			if !fipsCert.Enabled {
+				continue
+			}
+
+			var sha1Sum string
+			var leafCerts []util.FipUserCert
+
+			switch strings.ToLower(fipsCert.Type) {
+			case "secret":
+				secret, err := getGatewaySecret(ctx, params, fipsCert.Name)
+				if err != nil {
+					return nil, err
+				}
+				leafCerts = util.ExtractLeafCertsFromSecret(secret)
+				dataBytes, _ := json.Marshal(&secret.Data)
+				h := sha1.New()
+				h.Write(dataBytes)
+				sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
+			case "configmap":
+				cm, err := getGatewayConfigMap(ctx, params, fipsCert.Name)
+				if err != nil {
+					return nil, err
+				}
+				leafCerts = util.ExtractLeafCertsFromConfigMap(cm)
+				dataBytes, _ := json.Marshal(&cm.Data)
+				h := sha1.New()
+				h.Write(dataBytes)
+				sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
+			default:
+				params.Log.V(2).Info("unsupported fips certificate source type", "type", fipsCert.Type, "name", fipsCert.Name)
+				continue
+			}
+
+			notFound := []string{}
+			if gateway.Status.LastAppliedOtkFipsCerts != nil && gateway.Status.LastAppliedOtkFipsCerts[fipsCert.Name] != nil {
+				for _, appliedCert := range gateway.Status.LastAppliedOtkFipsCerts[fipsCert.Name] {
+					found := false
+					for _, desired := range leafCerts {
+						if appliedCert == desired.SubjectDn {
+							found = true
+						}
+					}
+					if !found {
+						notFound = append(notFound, appliedCert)
+					}
+				}
+			}
+
+			if len(leafCerts) < 1 && len(notFound) < 1 {
+				continue
+			}
+
+			bundleBytes, err := util.BuildFipUserBundle(leafCerts, notFound)
+			if err != nil {
+				return nil, err
+			}
+
+			if sha1Sum == "" {
+				sha1Sum = "deleted"
+			}
+
+			annotation := "security.brcmlabs.com/otk-fips-certs-" + fipsCert.Name
+			otkFipsCerts = append(otkFipsCerts, ExternalEntity{
+				Name:       fipsCert.Name,
+				Annotation: annotation,
+				Bundle:     bundleBytes,
+				Checksum:   sha1Sum,
+				CacheEntry: gateway.Name + "-" + string(gwUpdReq.bundleType) + "-" + fipsCert.Name + "-" + sha1Sum,
+			})
+		}
+
+		gwUpdReq.graphmanEncryptionPassphrase = ""
+		gwUpdReq.bundleName = string(gwUpdReq.bundleType)
+		gwUpdReq.externalEntities = otkFipsCerts
 	}
 
 	return gwUpdReq, nil
@@ -2606,6 +2712,48 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 		params.Instance.Status.LastAppliedExternalCerts[name] = certs
 		if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
 			return fmt.Errorf("failed to update external cert status: %w", err)
+		}
+	case "otk fips":
+		bundle := graphman.Bundle{}
+		err := json.Unmarshal(bundleBytes, &bundle)
+		if err != nil {
+			return err
+		}
+		fipUsers := []string{}
+		if params.Instance.Status.LastAppliedOtkFipsCerts == nil {
+			for _, fipUser := range bundle.FipUsers {
+				fipUsers = append(fipUsers, fipUser.SubjectDn)
+			}
+		} else {
+			for _, appliedFipUser := range bundle.FipUsers {
+				found := false
+				if bundle.Properties != nil {
+					for _, mapping := range bundle.Properties.Mappings.FipUsers {
+						mappingSource := MappingSource{}
+						sourceBytes, err := json.Marshal(mapping.Source)
+						if err != nil {
+							return err
+						}
+						err = json.Unmarshal(sourceBytes, &mappingSource)
+						if err != nil {
+							return err
+						}
+						if appliedFipUser.SubjectDn == mappingSource.Name && mapping.Action == graphman.MappingActionDelete {
+							found = true
+						}
+					}
+				}
+				if !found {
+					fipUsers = append(fipUsers, appliedFipUser.SubjectDn)
+				}
+			}
+		}
+		if params.Instance.Status.LastAppliedOtkFipsCerts == nil {
+			params.Instance.Status.LastAppliedOtkFipsCerts = map[string][]string{}
+		}
+		params.Instance.Status.LastAppliedOtkFipsCerts[name] = fipUsers
+		if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
+			return fmt.Errorf("failed to update otk fips cert status: %w", err)
 		}
 	}
 

@@ -170,8 +170,8 @@ You will see an init container starting with graphman-static-init.
 Init Containers:
   graphman-static-init-c1b58adb6d:
     Container ID:   containerd://21924ae85d25437d3634ea5da1415c9bb58d678600f9fd67d4f0b0360857d7c5
-    Image:          docker.io/layer7api/graphman-static-init:1.0.0
-    Image ID:       docker.io/layer7api/graphman-static-init@sha256:24189a432c0283845664c6fd54c3e8d9f86ad9d35ef12714bb3a18b7aba85aa4
+    Image:          docker.io/caapim/graphman-static-init:1.0.4
+    Image ID:       docker.io/caapim/graphman-static-init@sha256:8cb1035035b18fa9dc2c95e2b584c758e78909b3f615ee5f49dce166e8aae213
     Port:           <none>
     Host Port:      <none>
     State:          Terminated

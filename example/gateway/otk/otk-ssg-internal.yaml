@@ -5,10 +5,10 @@ metadata:
 spec:
   version: "11.1.3"
   license:
-    accept: false
+    accept: true
     secretName: gateway-license
   app:
-    replicas: 2
+    replicas: 1
     image: docker.io/caapim/gateway:11.1.3
     imagePullPolicy: IfNotPresent
     updateStrategy:
@@ -23,11 +23,26 @@ spec:
       limits:
         memory: 8Gi
         cpu: 3
+    # ExternalKeys with otk flag set to true for OTK-specific key usage
+    externalKeys:
+    - name: otk-internal-tls-secret
+      enabled: true
+      alias: otk-internal-key
+      keyUsageType: SSL
+      otk: true
     otk:
       enabled: true
-      initContainerImage: docker.io/caapim/otk-install:4.6.2_202402
+      initContainerImage: docker.io/caapim/otk-install:4.6.4
       type: internal
       dmzGatewayReference: otk-ssg-dmz
+      # DmzGatewayPort is used when the DMZ gateway is external (not managed by operator)
+      # If not specified, defaults to 9443 or the gateway's graphmanDynamicSync port
+      dmzGatewayPort: 9443
+      # SyncIntervalSeconds determines how often DMZ and Internal gateways should update certificates
+      # Defaults to RuntimeSyncIntervalSeconds if not specified, or 10 seconds if neither is set
+      syncIntervalSeconds: 30
+      # Reference to the TLS secret for Internal key (used by OTK reconciliation)
+      internalKeySecret: otk-internal-tls-secret
       database:
         type: mysql
         create: true
@@ -63,8 +78,40 @@ spec:
           databaseWaitTimeout: 60
     autoscaling:
       enabled: false
-    bundle: []
-    repositoryReferences: []
+    bundle:
+      - type: restman
+        source: secret
+        name: restman-bootstrap-bundle
+      - type: graphman
+        source: secret
+        name: graphman-bootstrap-bundle
+    repositoryReferences:
+      - name: l7-gw-myframework
+        enabled: true
+        type: static
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: FRAMEWORK_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-myapis
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: APIS_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-mysubscriptions
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+      - name: local-reference-repository
+        enabled: true
+        type: dynamic
+        encryption: { }
+      - name: otk-customizations-internal
+        enabled: true
+        type: dynamic
+        encryption: { }
     bootstrap:
       script:
         enabled: true
@@ -167,10 +214,10 @@ spec:
       annotations: {}
       tls:
       - hosts: 
-        - gateway.brcmlabs.com
+        - otk-ssg-internal.brcmlabs.com
         secretName: brcmlabs
       rules:
-      - host: gateway.brcmlabs.com
+      - host: otk-ssg-internal.brcmlabs.com
     # containerSecurityContext:
     #   runAsNonRoot: true
     #   runAsUser: 1000669998
@@ -181,3 +228,5 @@ spec:
     # podSecurityContext:
     #   runAsUser: 1000669998
     #   runAsGroup: 1000669998
+
+

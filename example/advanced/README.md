@@ -13,15 +13,15 @@ By the end of this example you should have a better understanding of the Layer7 
   ```
 3. If you would like to create a TLS secret for your ingress controller then add tls.crt and tls.key to [base/resources/secrets/tls](../base/resources/secrets/tls)
     - these will be referenced later on.
-4. You will need an ingress controller like nginx
+4. You will need an ingress controller like [contour](https://projectcontour.io/)
     - if you do not have one installed already you can use the makefile in the example directory to deploy one
         - ```cd example```
         - Generic Kubernetes
-            - ```make nginx```
+            - ```make contour```
         - Kind (Kubernetes in Docker)
             - follow the steps in Quickstart
             or
-            - ```make nginx-kind```
+            - ```make contour-kind```
     - return to the previous folder
         - ```cd ..```
 
@@ -38,11 +38,11 @@ cd example
 ```
 make kind-cluster
 ```
-3. Deploy Nginx (based on your environment)
+3. Deploy Contour (based on your environment)
 ```
-make nginx
+make contour
 or
-make nginx-kind
+make contour-kind
 ```
 4. Deploy the example
 ```
@@ -353,8 +353,8 @@ version: 11.1.3
 ```
 kubectl get ingress
 
-NAME   CLASS   HOSTS                  ADDRESS              PORTS     AGE
-ssg    nginx   gateway.brcmlabs.com   <YOUR-EXTERNAL-IP> or localhost   80, 443   54m
+NAME   CLASS     HOSTS                  ADDRESS                           PORTS     AGE
+ssg    contour   gateway.brcmlabs.com   <YOUR-EXTERNAL-IP> or localhost   80, 443   54m
 ```
 
 Add the following to your hosts file for DNS resolution

@@ -38,12 +38,6 @@ spec:
           - -c
           - sysctl -w vm.max_map_count=262144
           name: sysctl
-        # - name: install-plugins
-        #   command:
-        #   - sh
-        #   - -c
-        #   - |
-        #     bin/elasticsearch-plugin install --batch elastic-apm
           resources: {}
           securityContext:
             privileged: true
@@ -57,4 +51,4 @@ spec:
       certificate: {}
   updateStrategy:
     changeBudget: {}
-  version: 8.8.2
+  version: 9.3.1

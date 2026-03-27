@@ -94,9 +94,8 @@ spec:
       secretName: gateway-secret
       service:
         enabled: true
-        #annotations:
-          # cloud.google.com/load-balancer-type: "Internal"
-        type: LoadBalancer
+        annotations: {}
+        type: ClusterIP
         ports:
         - name: management
           port: 9443
@@ -127,7 +126,7 @@ spec:
       - -Dcom.l7tech.server.pkix.useDefaultTrustAnchors=true 
       - -Dcom.l7tech.security.ssl.hostAllowWildcard=true
     listenPorts:
-      harden: true
+      harden: false
       custom:
         enabled: true
       ports:
@@ -253,9 +252,9 @@ spec:
         - name: otel.traceEnabled
           value: "true"
         - name: otel.attributePrefix
-          value: l7_
+          value: layer7_
         - name: otel.metricPrefix
-          value: l7_
+          value: layer7_
         - name: otel.traceConfig
           value: |
             {
@@ -286,23 +285,18 @@ spec:
         otel.java.global-autoconfigure.enabled=true
         # Additional properties go here
     service:
-      # annotations:
-      type: LoadBalancer
+      annotations:
+        projectcontour.io/upstream-protocol.tls: "8443"
+      type: ClusterIP
       ports:
       - name: https
         port: 8443
         targetPort: 8443
         protocol: TCP
-      - name: monitoring
-        port: 8889
-        targetPort: 8889
-        protocol: TCP
     ingress:
       enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      ingressClassName: contour
+      annotations: {}
       tls:
       - hosts: 
         - gateway.brcmlabs.com

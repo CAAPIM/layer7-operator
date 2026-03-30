@@ -168,9 +168,8 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 			KeystoreId: "00000000000000000000000000000002",
 			Pem:        key.Key,
 			Alias:      key.Name,
-			//KeyType:    "RSA",
-			SubjectDn: "CN=" + certDN,
-			CertChain: certsChain,
+			SubjectDn:  "CN=" + certDN,
+			CertChain:  certsChain,
 		}
 
 		if key.Alias != "" {
@@ -191,10 +190,9 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 			return nil, err
 		}
 		bundle.Keys = append(bundle.Keys, &graphman.KeyInput{
-			Alias:     nf,
-			Pem:       key,
-			CertChain: cert,
-			//UsageTypes: []graphman.KeyUsageType{graphman.KeyUsageTypeSsl},
+			Alias:      nf,
+			Pem:        key,
+			CertChain:  cert,
 			KeystoreId: "00000000000000000000000000000002",
 		})
 		mappingSource := graphman.MappingSource{Alias: nf, KeystoreId: "00000000000000000000000000000002"}
@@ -223,7 +221,7 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 			tf = append(tf, graphman.TrustedForType(v))
 		}
 		revocationCheckPolicyType := graphman.PolicyUsageTypeUseDefault
-		if cert.RevocationCheckPolicyType == "" {
+		if cert.RevocationCheckPolicyType != "" {
 			revocationCheckPolicyType = graphman.PolicyUsageType(cert.RevocationCheckPolicyType)
 		}
 

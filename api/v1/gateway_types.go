@@ -885,15 +885,17 @@ const (
 	RevocationCheckPolicyTypeSpecified RevocationCheckPolicyType = "SPECIFIED"
 )
 
-// ExternalCert is a reference to an existing TLS or Opaque Secret in Kubernetes
-// The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+// ExternalCert is a reference to an existing TLS or Opaque Secret or ConfigMap in Kubernetes
+// The Layer7 Operator will attempt to convert this to a Graphman bundle that can be applied
 // dynamically keeping any referenced trusted certs up-to-date.
-// You can bring in external secrets using tools like cert-manager
+// You can bring in external certs using tools like cert-manager
 type ExternalCert struct {
 	// Enabled or disabled
 	Enabled bool `json:"enabled,omitempty"`
-	// Name of the Secret which already exists in Kubernetes
-	Name                      string                    `json:"name,omitempty"`
+	// Name of the Secret or ConfigMap which already exists in Kubernetes
+	Name string `json:"name,omitempty"`
+	// Type of the referenced resource: "secret" (default) or "configmap"
+	Type                      string                    `json:"type,omitempty"`
 	VerifyHostname            bool                      `json:"verifyHostname,omitempty"`
 	TrustedFor                []TrustedFor              `json:"trustedFor,omitempty"`
 	TrustAnchor               bool                      `json:"trustAnchor,omitempty"`

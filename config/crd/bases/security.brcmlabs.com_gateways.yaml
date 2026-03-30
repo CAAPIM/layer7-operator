@@ -1543,14 +1543,14 @@ spec:
                   externalCerts:
                     items:
                       description: ExternalCert is a reference to an existing TLS
-                        or Opaque Secret in...
+                        or Opaque Secret or...
                       properties:
                         enabled:
                           description: Enabled or disabled
                           type: boolean
                         name:
-                          description: Name of the Secret which already exists in
-                            Kubernetes
+                          description: Name of the Secret or ConfigMap which already
+                            exists in Kubernetes
                           type: string
                         revocationCheckPolicyName:
                           type: string
@@ -1562,6 +1562,10 @@ spec:
                           items:
                             type: string
                           type: array
+                        type:
+                          description: 'Type of the referenced resource: "secret"
+                            (default) or "configmap"'
+                          type: string
                         verifyHostname:
                           type: boolean
                       type: object

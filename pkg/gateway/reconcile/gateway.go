@@ -408,30 +408,55 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 
 			certSecretMap := []util.GraphmanCert{}
 			if externalCert.Enabled {
-				secret, err := getGatewaySecret(ctx, params, externalCert.Name)
-				if err != nil {
-					return nil, err
+				var certPEMData []string
+
+				switch strings.ToLower(externalCert.Type) {
+				case "configmap":
+					cm, err := getGatewayConfigMap(ctx, params, externalCert.Name)
+					if err != nil {
+						return nil, err
+					}
+					for _, v := range cm.Data {
+						if strings.Contains(v, "-----BEGIN CERTIFICATE-----") {
+							certPEMData = append(certPEMData, v)
+						}
+					}
+					dataBytes, _ := json.Marshal(&cm.Data)
+					h := sha1.New()
+					h.Write(dataBytes)
+					sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
+				default:
+					secret, err := getGatewaySecret(ctx, params, externalCert.Name)
+					if err != nil {
+						return nil, err
+					}
+					for _, v := range secret.Data {
+						if strings.Contains(string(v), "-----BEGIN CERTIFICATE-----") {
+							certPEMData = append(certPEMData, string(v))
+						}
+					}
+					dataBytes, _ := json.Marshal(&secret.Data)
+					h := sha1.New()
+					h.Write(dataBytes)
+					sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
 				}
-				for _, v := range secret.Data {
-					if !strings.Contains(string(v), "-----BEGIN CERTIFICATE-----") {
-						continue
-					}
 
-					trustedFor := []string{}
-					for i := range externalCert.TrustedFor {
-						trustedFor = append(trustedFor, string(externalCert.TrustedFor[i]))
-					}
+				trustedFor := []string{}
+				for i := range externalCert.TrustedFor {
+					trustedFor = append(trustedFor, string(externalCert.TrustedFor[i]))
+				}
 
-					crtStrings := strings.SplitAfter(string(v), "-----END CERTIFICATE-----")
+				revocationCheckPolicyType := string(graphman.PolicyUsageTypeUseDefault)
+				if externalCert.RevocationCheckPolicyType != "" {
+					revocationCheckPolicyType = string(graphman.PolicyUsageType(externalCert.RevocationCheckPolicyType))
+				}
+
+				for _, pemStr := range certPEMData {
+					crtStrings := strings.SplitAfter(pemStr, "-----END CERTIFICATE-----")
 					crtStrings = crtStrings[:len(crtStrings)-1]
 					for crt := range crtStrings {
 						b, _ := pem.Decode([]byte(crtStrings[crt]))
 						crtX509, _ := x509.ParseCertificate(b.Bytes)
-
-						revocationCheckPolicyType := string(graphman.PolicyUsageTypeUseDefault)
-						if externalCert.RevocationCheckPolicyType == "" {
-							revocationCheckPolicyType = string(graphman.PolicyUsageType(externalCert.RevocationCheckPolicyType))
-						}
 
 						gmanCert := util.GraphmanCert{
 							Name:                      crtX509.Subject.CommonName,
@@ -445,11 +470,6 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 						certSecretMap = append(certSecretMap, gmanCert)
 					}
 				}
-
-				dataBytes, _ := json.Marshal(&secret.Data)
-				h := sha1.New()
-				h.Write(dataBytes)
-				sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
 			}
 
 			notFound := []string{}

@@ -236,3 +236,23 @@ func TestConcatBundle_DuplicatesAcrossFolders(t *testing.T) {
 		t.Errorf("Expected folder path '/folder2' (latest), got '%s'", finalResult.Services[0].FolderPath)
 	}
 }
+
+func TestBundleJSONFromPolicyOrServiceAlias(t *testing.T) {
+	policyAlias := []byte(`{"goid":"1","folderPath":"/a","name":"n","aliasedPolicyName":"target","checksum":""}`)
+	b, ok, err := BundleJSONFromPolicyOrServiceAlias(policyAlias)
+	if err != nil || !ok {
+		t.Fatalf("policy alias: ok=%v err=%v", ok, err)
+	}
+	var u Bundle
+	if err := json.Unmarshal(b, &u); err != nil {
+		t.Fatal(err)
+	}
+	if len(u.PolicyAliases) != 1 || u.PolicyAliases[0].AliasedPolicyName != "target" {
+		t.Fatalf("unexpected bundle: %+v", u.PolicyAliases)
+	}
+
+	_, ok, _ = BundleJSONFromPolicyOrServiceAlias([]byte(`{"goid":"x"}`))
+	if ok {
+		t.Fatal("expected not alias")
+	}
+}

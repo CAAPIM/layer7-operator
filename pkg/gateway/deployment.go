@@ -881,12 +881,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			})
 		}
 		initContainers = append(initContainers, corev1.Container{
-			Name:            "otk-install-init",
-			Image:           otkInitContainerImage,
-			ImagePullPolicy: otkInitContainerImagePullPolicy,
-			SecurityContext: &otkInitContainerSecurityContext,
-			VolumeMounts:    otkInitContainerVolumeMounts,
-			EnvFrom:         otkInstallEnvFrom,
+			Name:                     "otk-install-init",
+			Image:                    otkInitContainerImage,
+			ImagePullPolicy:          otkInitContainerImagePullPolicy,
+			SecurityContext:          &otkInitContainerSecurityContext,
+			VolumeMounts:             otkInitContainerVolumeMounts,
+			EnvFrom:                  otkInstallEnvFrom,
 			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		})

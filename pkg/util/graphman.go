@@ -517,6 +517,11 @@ func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes [
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") && !strings.Contains(strings.ToLower(d.Name()), "bundle-properties.json") {
+				// Already merged by graphman.Implode (same parseEntity rules); do not read again.
+				if _, matched := graphman.ParseEntityPath(path); matched {
+					return nil
+				}
+
 				srcBundleBytes, err := os.ReadFile(path)
 				if err != nil {
 					return err
@@ -524,11 +529,22 @@ func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes [
 
 				tb := graphman.Bundle{}
 				r := bytes.NewReader(srcBundleBytes)
-				d := json.NewDecoder(r)
-				d.DisallowUnknownFields()
+				dec := json.NewDecoder(r)
+				dec.DisallowUnknownFields()
 				_ = json.Unmarshal(srcBundleBytes, &tb)
-				err = d.Decode(&tb)
+				err = dec.Decode(&tb)
 				if err != nil {
+					aliasJSON, ok, err2 := graphman.BundleJSONFromPolicyOrServiceAlias(srcBundleBytes)
+					if err2 != nil {
+						return err2
+					}
+					if ok && len(aliasJSON) > 40 {
+						sbb, err := graphman.ConcatBundle(aliasJSON, bundleBytes)
+						if err != nil {
+							return nil
+						}
+						bundleBytes = sbb
+					}
 					return nil
 				}
 				tbb, err := json.Marshal(tb)

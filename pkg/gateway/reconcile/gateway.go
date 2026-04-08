@@ -1227,6 +1227,10 @@ func handleDirectoryChange(ctx context.Context, params Params, repository *secur
 		combinedBundle.Properties.Mappings.Roles = append(combinedBundle.Properties.Mappings.Roles, repoDeleteMappings.Roles...)
 		combinedBundle.Properties.Mappings.GenericEntities = append(combinedBundle.Properties.Mappings.GenericEntities, repoDeleteMappings.GenericEntities...)
 		combinedBundle.Properties.Mappings.AuditConfigurations = append(combinedBundle.Properties.Mappings.AuditConfigurations, repoDeleteMappings.AuditConfigurations...)
+		combinedBundle.Properties.Mappings.PolicyBackedServices = append(combinedBundle.Properties.Mappings.PolicyBackedServices, repoDeleteMappings.PolicyBackedServices...)
+		combinedBundle.Properties.Mappings.PolicyAliases = append(combinedBundle.Properties.Mappings.PolicyAliases, repoDeleteMappings.PolicyAliases...)
+		combinedBundle.Properties.Mappings.ServiceAliases = append(combinedBundle.Properties.Mappings.ServiceAliases, repoDeleteMappings.ServiceAliases...)
+		combinedBundle.Properties.Mappings.SampleMessages = append(combinedBundle.Properties.Mappings.SampleMessages, repoDeleteMappings.SampleMessages...)
 
 		params.Log.V(2).Info("merged repository DELETE mappings with directory delta",
 			"repository", repoRef.Name,
@@ -2054,24 +2058,24 @@ func readLocalReference(ctx context.Context, repository *securityv1.Repository, 
 	return bundleBytes, nil
 }
 
-func readStorageSecret(ctx context.Context, repository *securityv1.Repository, params Params) ([]byte, error) {
-	if repository.Status.StorageSecretName == "_" {
-		return nil, fmt.Errorf("%s storage secret does not exist", repository.Name)
-	}
-
-	storageSecret := &corev1.Secret{}
-	err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Status.StorageSecretName, Namespace: repository.Namespace}, storageSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	bundleBytes, err := util.ConcatBundles(storageSecret.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	return bundleBytes, nil
-}
+//func readStorageSecret(ctx context.Context, repository *securityv1.Repository, params Params) ([]byte, error) {
+//	if repository.Status.StorageSecretName == "_" {
+//		return nil, fmt.Errorf("%s storage secret does not exist", repository.Name)
+//	}
+//
+//	storageSecret := &corev1.Secret{}
+//	err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Status.StorageSecretName, Namespace: repository.Namespace}, storageSecret)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	bundleBytes, err := util.ConcatBundles(storageSecret.Data)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return bundleBytes, nil
+//}
 
 // GetGatewayPods returns the pods in a Gateway Deployment
 func getGatewayPods(ctx context.Context, params Params) (*corev1.PodList, error) {
@@ -2139,15 +2143,15 @@ func parseGatewaySecret(gwSecret *corev1.Secret) (string, string) {
 	return username, password
 }
 
-func getStateStoreSecret(ctx context.Context, name string, statestore securityv1alpha1.L7StateStore, params Params) (*corev1.Secret, error) {
-	statestoreSecret := &corev1.Secret{}
-
-	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: statestore.Namespace}, statestoreSecret)
-	if err != nil {
-		return statestoreSecret, err
-	}
-	return statestoreSecret, nil
-}
+//func getStateStoreSecret(ctx context.Context, name string, statestore securityv1alpha1.L7StateStore, params Params) (*corev1.Secret, error) {
+//	statestoreSecret := &corev1.Secret{}
+//
+//	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: statestore.Namespace}, statestoreSecret)
+//	if err != nil {
+//		return statestoreSecret, err
+//	}
+//	return statestoreSecret, nil
+//}
 
 // HardenGraphmanService adds required mutual TLS to the Gateway's GraphQL Management API (Graphman)
 // This process also creates a user (PKI) and restricts Graphman to that user effectively locking remote Gateway management to
@@ -2202,171 +2206,171 @@ func ManagementPod(ctx context.Context, params Params) error {
 	return nil
 }
 
-func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, podList corev1.PodList, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
-	graphmanPort := 9443
+// func ReconcileEphemeralGateway(ctx context.Context, params Params, kind string, podList corev1.PodList, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
+// 	graphmanPort := 9443
 
-	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
-		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
-	}
+// 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
+// 		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
+// 	}
 
-	username, password := parseGatewaySecret(gwSecret)
+// 	username, password := parseGatewaySecret(gwSecret)
 
-	if username == "" || password == "" {
-		return fmt.Errorf("could not retrieve gateway credentials for %s", name)
-	}
+// 	if username == "" || password == "" {
+// 		return fmt.Errorf("could not retrieve gateway credentials for %s", name)
+// 	}
 
-	updateStatus := false
+// 	updateStatus := false
 
-	for i, pod := range podList.Items {
-		currentSha1Sum := pod.ObjectMeta.Annotations[annotation]
+// 	for i, pod := range podList.Items {
+// 		currentSha1Sum := pod.ObjectMeta.Annotations[annotation]
 
-		update := false
-		ready := false
+// 		update := false
+// 		ready := false
 
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.Name == "gateway" {
-				ready = containerStatus.Ready
-			}
-		}
+// 		for _, containerStatus := range pod.Status.ContainerStatuses {
+// 			if containerStatus.Name == "gateway" {
+// 				ready = containerStatus.Ready
+// 			}
+// 		}
 
-		if otkCerts {
-			if pod.ObjectMeta.Annotations["security.brcmlabs.com/"+gateway.Name+"-"+string(gateway.Spec.App.Otk.Type)+"-policies"] == "" {
-				ready = false
-			}
-		}
+// 		if otkCerts {
+// 			if pod.ObjectMeta.Annotations["security.brcmlabs.com/"+gateway.Name+"-"+string(gateway.Spec.App.Otk.Type)+"-policies"] == "" {
+// 				ready = false
+// 			}
+// 		}
 
-		patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", annotation, sha1Sum)
+// 		patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", annotation, sha1Sum)
 
-		if currentSha1Sum != sha1Sum || currentSha1Sum == "" {
-			update = true
-		}
+// 		if currentSha1Sum != sha1Sum || currentSha1Sum == "" {
+// 			update = true
+// 		}
 
-		if update && ready {
-			updateStatus = true
-			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(graphmanPort) + "/graphman"
+// 		if update && ready {
+// 			updateStatus = true
+// 			endpoint := podIP(pod.Status.PodIP) + ":" + strconv.Itoa(graphmanPort) + "/graphman"
 
-			requestCacheEntry := pod.Name + "-" + gateway.Name + "-" + name + "-" + sha1Sum
-			syncRequest, err := syncCache.Read(requestCacheEntry)
-			tryRequest := true
-			if err != nil {
-				params.Log.V(2).Info("request has not been attempted or cache was flushed", "action", "sync "+kind, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-			}
+// 			requestCacheEntry := pod.Name + "-" + gateway.Name + "-" + name + "-" + sha1Sum
+// 			syncRequest, err := syncCache.Read(requestCacheEntry)
+// 			tryRequest := true
+// 			if err != nil {
+// 				params.Log.V(2).Info("request has not been attempted or cache was flushed", "action", "sync "+kind, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+// 			}
 
-			if syncRequest.Attempts > 0 {
-				params.Log.V(2).Info("request has been attempted in the last 3 seconds, backing off", "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-				tryRequest = false
-			}
+// 			if syncRequest.Attempts > 0 {
+// 				params.Log.V(2).Info("request has been attempted in the last 3 seconds, backing off", "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+// 				tryRequest = false
+// 			}
 
-			if tryRequest {
-				syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
-				start := time.Now()
-				params.Log.V(2).Info("applying latest "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-				err = util.ApplyGraphmanBundle(username, password, endpoint, graphmanEncryptionPassphrase, bundle)
-				if err != nil {
-					params.Log.Info("failed to apply "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
-					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, kind, name, sha1Sum, true)
-					return err
-				}
-				_ = captureGraphmanMetrics(ctx, params, start, pod.Name, kind, name, sha1Sum, false)
-				params.Log.Info("applied latest "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+// 			if tryRequest {
+// 				syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
+// 				start := time.Now()
+// 				params.Log.V(2).Info("applying latest "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+// 				err = util.ApplyGraphmanBundle(username, password, endpoint, graphmanEncryptionPassphrase, bundle)
+// 				if err != nil {
+// 					params.Log.Info("failed to apply "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+// 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, kind, name, sha1Sum, true)
+// 					return err
+// 				}
+// 				_ = captureGraphmanMetrics(ctx, params, start, pod.Name, kind, name, sha1Sum, false)
+// 				params.Log.Info("applied latest "+kind, "hash", sha1Sum, "pod", pod.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 
-				if err := params.Client.Patch(ctx, &podList.Items[i],
-					client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-					params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
-					return err
-				}
+// 				if err := params.Client.Patch(ctx, &podList.Items[i],
+// 					client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
+// 					params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
+// 					return err
+// 				}
 
-			}
-		}
+// 			}
+// 		}
 
-		// if the Gateway is not ready then cluster properties and listenPorts have already been applied via bootsrap
-		if (!ready && kind == "cluster properties") || (!ready && kind == "listen ports") {
-			if err := params.Client.Patch(ctx, &podList.Items[i],
-				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-				params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
-				return err
-			}
-		}
-	}
+// 		// if the Gateway is not ready then cluster properties and listenPorts have already been applied via bootsrap
+// 		if (!ready && kind == "cluster properties") || (!ready && kind == "listen ports") {
+// 			if err := params.Client.Patch(ctx, &podList.Items[i],
+// 				client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
+// 				params.Log.Error(err, "failed to update pod label", "Name", gateway.Name, "namespace", gateway.Namespace)
+// 				return err
+// 			}
+// 		}
+// 	}
 
-	if updateStatus || (!updateStatus && kind == "cluster properties") || (!updateStatus && kind == "listen ports") {
-		err := updateEntityStatus(ctx, kind, name, bundle, params)
-		if err != nil {
-			return err
-		}
-	}
+// 	if updateStatus || (!updateStatus && kind == "cluster properties") || (!updateStatus && kind == "listen ports") {
+// 		err := updateEntityStatus(ctx, kind, name, bundle, params)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func ReconcileDBGateway(ctx context.Context, params Params, kind string, gatewayDeployment appsv1.Deployment, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
-	graphmanPort := 9443
+// func ReconcileDBGateway(ctx context.Context, params Params, kind string, gatewayDeployment appsv1.Deployment, gateway *securityv1.Gateway, gwSecret *corev1.Secret, graphmanEncryptionPassphrase string, annotation string, sha1Sum string, otkCerts bool, name string, bundle []byte) error {
+// 	graphmanPort := 9443
 
-	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
-		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
-	}
+// 	if gateway.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
+// 		graphmanPort = gateway.Spec.App.Management.Graphman.DynamicSyncPort
+// 	}
 
-	username, password := parseGatewaySecret(gwSecret)
-	if username == "" || password == "" {
-		return fmt.Errorf("could not retrieve gateway credentials for %s", name)
-	}
+// 	username, password := parseGatewaySecret(gwSecret)
+// 	if username == "" || password == "" {
+// 		return fmt.Errorf("could not retrieve gateway credentials for %s", name)
+// 	}
 
-	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", annotation, sha1Sum)
+// 	patch := fmt.Sprintf("{\"metadata\": {\"annotations\": {\"%s\": \"%s\"}}}", annotation, sha1Sum)
 
-	ready := false
+// 	ready := false
 
-	if gatewayDeployment.ObjectMeta.Annotations[annotation] == sha1Sum {
-		return nil
-	}
+// 	if gatewayDeployment.ObjectMeta.Annotations[annotation] == sha1Sum {
+// 		return nil
+// 	}
 
-	if gatewayDeployment.Status.ReadyReplicas == gatewayDeployment.Status.Replicas {
-		ready = true
-	}
+// 	if gatewayDeployment.Status.ReadyReplicas == gatewayDeployment.Status.Replicas {
+// 		ready = true
+// 	}
 
-	if ready {
-		requestCacheEntry := gatewayDeployment.Name + "-" + name + "-" + sha1Sum
-		syncRequest, err := syncCache.Read(requestCacheEntry)
-		if err != nil {
-			params.Log.V(2).Info("request has not been attempted or cache was flushed", "action", "sync "+kind, "Name", gateway.Name, "Namespace", gateway.Namespace)
-		}
+// 	if ready {
+// 		requestCacheEntry := gatewayDeployment.Name + "-" + name + "-" + sha1Sum
+// 		syncRequest, err := syncCache.Read(requestCacheEntry)
+// 		if err != nil {
+// 			params.Log.V(2).Info("request has not been attempted or cache was flushed", "action", "sync "+kind, "Name", gateway.Name, "Namespace", gateway.Namespace)
+// 		}
 
-		if syncRequest.Attempts > 0 {
-			params.Log.V(2).Info("request has been attempted in the last 3 seconds, backing off", "hash", sha1Sum, "Name", gateway.Name, "Namespace", gateway.Namespace)
-			return errors.New("request has been attempted in the last 3 seconds, backing off")
+// 		if syncRequest.Attempts > 0 {
+// 			params.Log.V(2).Info("request has been attempted in the last 3 seconds, backing off", "hash", sha1Sum, "Name", gateway.Name, "Namespace", gateway.Namespace)
+// 			return errors.New("request has been attempted in the last 3 seconds, backing off")
 
-		}
-		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
+// 		}
+// 		syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: 1}, time.Now().Add(3*time.Second).Unix())
 
-		endpoint := gateway.Name + "." + gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(graphmanPort) + "/graphman"
-		if gateway.Spec.App.Management.Service.Enabled {
-			endpoint = gateway.Name + "-management-service." + gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(graphmanPort) + "/graphman"
-		}
-		start := time.Now()
-		params.Log.V(2).Info("applying latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
+// 		endpoint := gateway.Name + "." + gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(graphmanPort) + "/graphman"
+// 		if gateway.Spec.App.Management.Service.Enabled {
+// 			endpoint = gateway.Name + "-management-service." + gateway.Namespace + ".svc.cluster.local:" + strconv.Itoa(graphmanPort) + "/graphman"
+// 		}
+// 		start := time.Now()
+// 		params.Log.V(2).Info("applying latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
 
-		err = util.ApplyGraphmanBundle(username, password, endpoint, graphmanEncryptionPassphrase, bundle)
-		if err != nil {
-			params.Log.Info("failed to apply "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
-			_ = captureGraphmanMetrics(ctx, params, start, gateway.Name, kind, name, sha1Sum, true)
-			return err
-		}
+// 		err = util.ApplyGraphmanBundle(username, password, endpoint, graphmanEncryptionPassphrase, bundle)
+// 		if err != nil {
+// 			params.Log.Info("failed to apply "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
+// 			_ = captureGraphmanMetrics(ctx, params, start, gateway.Name, kind, name, sha1Sum, true)
+// 			return err
+// 		}
 
-		params.Log.Info("applied latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
-		_ = captureGraphmanMetrics(ctx, params, start, gateway.Name, kind, name, sha1Sum, false)
+// 		params.Log.Info("applied latest "+kind, "sha1Sum", sha1Sum, "name", gateway.Name, "namespace", gateway.Namespace)
+// 		_ = captureGraphmanMetrics(ctx, params, start, gateway.Name, kind, name, sha1Sum, false)
 
-		err = updateEntityStatus(ctx, kind, name, bundle, params)
-		if err != nil {
-			return err
-		}
+// 		err = updateEntityStatus(ctx, kind, name, bundle, params)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if err := params.Client.Patch(ctx, &gatewayDeployment,
-			client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
-			params.Log.Error(err, "Failed to update deployment annotations", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
-			return err
-		}
-	}
-	return nil
-}
+// 		if err := params.Client.Patch(ctx, &gatewayDeployment,
+// 			client.RawPatch(types.StrategicMergePatchType, []byte(patch))); err != nil {
+// 			params.Log.Error(err, "Failed to update deployment annotations", "Namespace", params.Instance.Namespace, "Name", params.Instance.Name)
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
 func updateRepoRefStatus(ctx context.Context, params Params, repository securityv1.Repository, repoRef securityv1.RepositoryReference, commit string, applyError error, delete bool) (err error) {
 	gatewayStatus := params.Instance.Status
@@ -2780,14 +2784,14 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 	return nil
 }
 
-func getStateStore(ctx context.Context, params Params, stateStoreName string) (securityv1alpha1.L7StateStore, error) {
-	statestore := securityv1alpha1.L7StateStore{}
-	err := params.Client.Get(ctx, types.NamespacedName{Name: stateStoreName, Namespace: params.Instance.Namespace}, &statestore)
-	if err != nil {
-		return statestore, err
-	}
-	return statestore, nil
-}
+//func getStateStore(ctx context.Context, params Params, stateStoreName string) (securityv1alpha1.L7StateStore, error) {
+//	statestore := securityv1alpha1.L7StateStore{}
+//	err := params.Client.Get(ctx, types.NamespacedName{Name: stateStoreName, Namespace: params.Instance.Namespace}, &statestore)
+//	if err != nil {
+//		return statestore, err
+//	}
+//	return statestore, nil
+//}
 
 func isIPv6(str string) bool {
 	ip := net.ParseIP(str)

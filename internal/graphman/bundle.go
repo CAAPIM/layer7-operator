@@ -85,6 +85,7 @@ type Bundle struct {
 	Keys                                []*KeyInput                               `json:"keys,omitempty"`
 	CassandraConnections                []*CassandraConnectionInput               `json:"cassandraConnections,omitempty"`
 	JmsDestinations                     []*JmsDestinationInput                    `json:"jmsDestinations,omitempty"`
+	KerberosConfigs                     []*KerberosConfigInput                    `json:"kerberosConfigs,omitempty"`
 	GlobalPolicies                      []*GlobalPolicyInput                      `json:"globalPolicies,omitempty"`
 	BackgroundTasks                     []*BackgroundTaskPolicyInput              `json:"backgroundTaskPolicies,omitempty"`
 	ScheduledTasks                      []*ScheduledTaskInput                     `json:"scheduledTasks,omitempty"`
@@ -113,7 +114,10 @@ type Bundle struct {
 	Roles                               []*RoleInput                              `json:"roles,omitempty"`
 	GenericEntities                     []*GenericEntityInput                     `json:"genericEntities,omitempty"`
 	AuditConfigurations                 []*AuditConfigurationInput                `json:"auditConfigurations,omitempty"`
-	KerberosConfigs                     []*KerberosConfigInput                    `json:"kerberosConfigs,omitempty"`
+	PolicyBackedServices                []*PolicyBackedServiceInput               `json:"policyBackedServices,omitempty"`
+	PolicyAliases                       []*L7PolicyAliasInput                     `json:"policyAliases,omitempty"`
+	ServiceAliases                      []*L7ServiceAliasInput                    `json:"serviceAliases,omitempty"`
+	SampleMessages                      []*SampleMessageInput                     `json:"sampleMessages,omitempty"`
 	Properties                          *BundleProperties                         `json:"properties,omitempty"`
 }
 
@@ -162,6 +166,7 @@ type BundleMappings struct {
 	Keys                                []*MappingInstructionInput `json:"keys,omitempty"`
 	CassandraConnections                []*MappingInstructionInput `json:"cassandraConnections,omitempty"`
 	JmsDestinations                     []*MappingInstructionInput `json:"jmsDestinations,omitempty"`
+	KerberosConfigs                     []*MappingInstructionInput `json:"kerberosConfigs,omitempty"`
 	GlobalPolicies                      []*MappingInstructionInput `json:"globalPolicies,omitempty"`
 	BackgroundTasks                     []*MappingInstructionInput `json:"backgroundTaskPolicies,omitempty"`
 	ScheduledTasks                      []*MappingInstructionInput `json:"scheduledTasks,omitempty"`
@@ -190,6 +195,10 @@ type BundleMappings struct {
 	Roles                               []*MappingInstructionInput `json:"roles,omitempty"`
 	GenericEntities                     []*MappingInstructionInput `json:"genericEntities,omitempty"`
 	AuditConfigurations                 []*MappingInstructionInput `json:"auditConfigurations,omitempty"`
+	PolicyBackedServices                []*MappingInstructionInput `json:"policyBackedServices,omitempty"`
+	PolicyAliases                       []*MappingInstructionInput `json:"policyAliases,omitempty"`
+	ServiceAliases                      []*MappingInstructionInput `json:"serviceAliases,omitempty"`
+	SampleMessages                      []*MappingInstructionInput `json:"sampleMessages,omitempty"`
 }
 
 type MutationDetailedStatus struct {
@@ -226,6 +235,7 @@ type BundleResponseDetailedStatus struct {
 	Keys                                *MutationDetailedStatus `json:"setKeys,omitempty"`
 	CassandraConnections                *MutationDetailedStatus `json:"setCassandraConnections,omitempty"`
 	JmsDestinations                     *MutationDetailedStatus `json:"setJmsDestinations,omitempty"`
+	KerberosConfigs                     *MutationDetailedStatus `json:"setKerberosConfigs,omitempty"`
 	GlobalPolicies                      *MutationDetailedStatus `json:"setGlobalPolicies,omitempty"`
 	BackgroundTasks                     *MutationDetailedStatus `json:"setBackgroundTaskPolicies,omitempty"`
 	ScheduledTasks                      *MutationDetailedStatus `json:"setScheduledTasks,omitempty"`
@@ -254,7 +264,10 @@ type BundleResponseDetailedStatus struct {
 	Roles                               *MutationDetailedStatus `json:"setRoles,omitempty"`
 	GenericEntities                     *MutationDetailedStatus `json:"setGenericEntities,omitempty"`
 	AuditConfigurations                 *MutationDetailedStatus `json:"setAuditConfigurations,omitempty"`
-	KerberosConfigs                     *MutationDetailedStatus `json:"setKerberosConfigs,omitempty"`
+	PolicyBackedServices                *MutationDetailedStatus `json:"setPolicyBackedServices,omitempty"`
+	PolicyAliases                       *MutationDetailedStatus `json:"setPolicyAliases,omitempty"`
+	ServiceAliases                      *MutationDetailedStatus `json:"setServiceAliases,omitempty"`
+	SampleMessages                      *MutationDetailedStatus `json:"setSampleMessages,omitempty"`
 }
 
 type MutationError struct {
@@ -302,6 +315,7 @@ var entities = []string{
 	"fipUsers",
 	"scheduledTasks",
 	"jmsDestinations",
+	"kerberosConfigs",
 	"secrets",
 	"keys",
 	"listenPorts",
@@ -336,7 +350,10 @@ var entities = []string{
 	"roles",
 	"genericEntities",
 	"auditConfigurations",
-	"kerberosConfigs",
+	"policyAliases",
+	"serviceAliases",
+	"policyBackedServices",
+	"sampleMessages",
 }
 
 var entityFolderList = []string{
@@ -355,6 +372,7 @@ var entityFolderList = []string{
 	"fipUsers",
 	"scheduledTasks",
 	"jmsDestinations",
+	"kerberosConfigs",
 	"secrets",
 	"keys",
 	"listenPorts",
@@ -380,7 +398,8 @@ var entityFolderList = []string{
 	"roles",
 	"genericEntities",
 	"auditConfigurations",
-	"kerberosConfigs",
+	"policyBackedServices",
+	"sampleMessages",
 	"tree",
 }
 
@@ -543,6 +562,30 @@ func parseEntity(path string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// ParseEntityPath returns the entity type if path matches the same rules as implodeBundle (parseEntity).
+// Callers use this to skip files in a second pass that were already merged by Implode.
+func ParseEntityPath(path string) (entityType string, matched bool) {
+	return parseEntity(path)
+}
+
+// BundleJSONFromPolicyOrServiceAlias returns a minimal bundle JSON if data is a single policy or
+// service alias document (aliasedPolicyName / aliasedServiceName); otherwise ok is false.
+func BundleJSONFromPolicyOrServiceAlias(data []byte) (bundleJSON []byte, ok bool, err error) {
+	var pa L7PolicyAliasInput
+	if err := json.Unmarshal(data, &pa); err == nil && strings.TrimSpace(pa.AliasedPolicyName) != "" {
+		b := Bundle{PolicyAliases: []*L7PolicyAliasInput{&pa}}
+		out, err := json.Marshal(b)
+		return out, true, err
+	}
+	var sa L7ServiceAliasInput
+	if err := json.Unmarshal(data, &sa); err == nil && strings.TrimSpace(sa.AliasedServiceName) != "" {
+		b := Bundle{ServiceAliases: []*L7ServiceAliasInput{&sa}}
+		out, err := json.Marshal(b)
+		return out, true, err
+	}
+	return nil, false, nil
 }
 
 // readBundle unmarshals a JSON file in the specified Graphman directory into the working Bundle object.
@@ -947,6 +990,20 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 			return *bundle, nil
 		}
 		bundle.AuditConfigurations = append(bundle.AuditConfigurations, &auditConfiguration)
+	case "policyAliases":
+		policyAlias := L7PolicyAliasInput{}
+		err := json.Unmarshal(f, &policyAlias)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.PolicyAliases = append(bundle.PolicyAliases, &policyAlias)
+	case "serviceAliases":
+		serviceAlias := L7ServiceAliasInput{}
+		err := json.Unmarshal(f, &serviceAlias)
+		if err != nil {
+			return *bundle, nil
+		}
+		bundle.ServiceAliases = append(bundle.ServiceAliases, &serviceAlias)
 	}
 	return *bundle, nil
 }
@@ -1056,6 +1113,15 @@ func ResetDelta(src []byte) (dst []byte, err error) {
 	return nil, nil
 }
 
+// The query or mutation executed by installBundleGeneric.
+const installBundleGeneric_Operation = `
+mutation installBundleGeneric {
+	installBundleEntities {
+		summary
+	}
+}
+`
+
 func installGenericBundle(
 	ctx_ context.Context,
 	client_ graphql.Client,
@@ -1078,6 +1144,15 @@ func installGenericBundle(
 	)
 	return &data_, err_
 }
+
+// The query or mutation executed by deleteBundleGeneric.
+const deleteBundleGeneric_Operation = `
+mutation deleteBundleGeneric {
+	deleteBundleEntities {
+		summary
+	}
+}
+`
 
 func deleteGenericBundle(
 	ctx_ context.Context,

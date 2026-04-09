@@ -37,6 +37,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -46,6 +47,7 @@ import (
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	"github.com/caapim/layer7-operator/internal/graphman"
+	"github.com/caapim/layer7-operator/pkg/gateway/reconcile/retrymarker"
 	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -940,8 +942,16 @@ func buildDeleteBundle(repository *securityv1.Repository, repoRef *securityv1.Re
 	return bundleBytes, nil
 }
 
-// checkRetryScenario checks if we should retry the last applied bundle due to previous failure
+// checkRetryScenario checks if we should retry the last applied bundle due to previous failure.
+// Retrying requires a commit marker file (<commit>.txt): it is written only after a bundle for that
+// SHA has been built and persisted under tmpPath (see writeBundlesToDisk). Without it—e.g. a new
+// git commit whose bundle was never completed—do not short-circuit with last_applied JSON from an
+// older build even if gateway status still shows failure and repoStatus.Commit matches the new SHA.
 func checkRetryScenario(gateway *securityv1.Gateway, repoRefName string, currentCommit string, tmpPath string, params Params) (shouldRetry bool, bundle []byte) {
+	if !retrymarker.CommitMarkerPresent(tmpPath, currentCommit) {
+		return false, nil
+	}
+
 	// Check gateway status for apply failures for this repository
 	for _, repoStatus := range gateway.Status.RepositoryStatus {
 		if repoStatus.Name == repoRefName {
@@ -950,10 +960,9 @@ func checkRetryScenario(gateway *securityv1.Gateway, repoRefName string, current
 				// Look for failures in the reason field
 				reasonLower := strings.ToLower(condition.Reason)
 				if (strings.Contains(reasonLower, "failed") || strings.Contains(reasonLower, "error")) && condition.Status != "success" {
-					// Found a failure - check if commit has changed
+					// Same commit as current repository SHA and marker exists: may retry last_applied
 					if repoStatus.Commit == currentCommit {
-						// Commit unchanged, this is a retry scenario
-						lastAppliedFile := tmpPath + "/last_applied_" + repoRefName + ".json"
+						lastAppliedFile := filepath.Join(tmpPath, "last_applied_"+repoRefName+".json")
 						if bundleBytes, err := os.ReadFile(lastAppliedFile); err == nil {
 							params.Log.V(2).Info("retry scenario detected - using last applied bundle",
 								"repository", repoRefName,

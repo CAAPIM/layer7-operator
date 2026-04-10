@@ -40,6 +40,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -298,8 +299,8 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		gwUpdReq.bundleName = string(gwUpdReq.bundleType)
 	case BundleTypeListenPort:
 		refreshOnKeyChanges := false
-		checksum := ""
 		var bundleBytes []byte
+		var checksum string
 		if gateway.Spec.App.ListenPorts.Custom.Enabled {
 
 			if gateway.Spec.App.ListenPorts.RefreshOnKeyChanges {
@@ -323,17 +324,33 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				return nil, err
 			}
 
+			excludedFromDynamicSync := util.ListenPortNamesExcludedFromGraphmanSync(gateway, gwUpdReq.graphmanPort)
+			util.FilterListenPortBundleForGraphmanSync(&bundle, gwUpdReq.graphmanPort)
+			if len(excludedFromDynamicSync) > 0 {
+				omitted := make([]string, 0, len(excludedFromDynamicSync))
+				for n := range excludedFromDynamicSync {
+					omitted = append(omitted, n)
+				}
+				slices.Sort(omitted)
+				params.Log.V(2).Info("stripped listen ports matching graphman dynamic sync port from dynamic listen-port bundle",
+					"gateway", gateway.Name,
+					"namespace", gateway.Namespace,
+					"graphmanPort", gwUpdReq.graphmanPort,
+					"omittedListenPorts", omitted,
+				)
+			}
+
 			notFound := []string{}
 			if !gwUpdReq.delete {
 				for _, slistenPort := range params.Instance.Status.LastAppliedListenPorts {
 					found := false
+					if _, excluded := excludedFromDynamicSync[slistenPort]; excluded {
+						found = true
+					}
 					for _, listenPort := range bundle.ListenPorts {
 						if listenPort.Name == slistenPort {
 							found = true
-						}
-						// anti-lockout
-						if listenPort.Name == slistenPort && listenPort.Port == gwUpdReq.graphmanPort {
-							found = true
+							break
 						}
 					}
 					if !found {
@@ -370,6 +387,8 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 
 			gwUpdReq.graphmanEncryptionPassphrase = ""
 			gwUpdReq.patchAnnotation = "security.brcmlabs.com/" + params.Instance.Name + "-listen-port-bundle"
+			// Checksum must match bootstrap/configmap (full bundle including Graphman port). The apply
+			// payload may omit that port dynamically; checksum still reflects the bootstrapped spec.
 			gwUpdReq.checksum = checksum
 			gwUpdReq.cacheEntry = gateway.Name + "-" + string(gwUpdReq.bundleType) + "-" + gwUpdReq.checksum
 			gwUpdReq.bundleName = string(gwUpdReq.bundleType)
@@ -2408,6 +2427,10 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 		if err != nil {
 			return err
 		}
+		graphmanPort := 9443
+		if params.Instance.Spec.App.Management.Graphman.DynamicSyncPort != 0 {
+			graphmanPort = params.Instance.Spec.App.Management.Graphman.DynamicSyncPort
+		}
 		listenPorts := []string{}
 		if params.Instance.Status.LastAppliedListenPorts == nil {
 			for _, listenPort := range params.Instance.Spec.App.ListenPorts.Ports {
@@ -2437,6 +2460,13 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 				if !found {
 					listenPorts = append(listenPorts, appliedListenPort.Name)
 				}
+			}
+		}
+		// Ports that match the Graphman sync port are omitted from the dynamic bundle but remain
+		// applied (bootstrap); keep them in status so reconcile does not treat them as removed.
+		for _, lp := range params.Instance.Spec.App.ListenPorts.Ports {
+			if lp.Port == graphmanPort && !slices.Contains(listenPorts, lp.Name) {
+				listenPorts = append(listenPorts, lp.Name)
 			}
 		}
 		params.Instance.Status.LastAppliedListenPorts = listenPorts

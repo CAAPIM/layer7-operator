@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	"github.com/caapim/layer7-operator/internal/graphman"
 )
 
 func TestBuildCWPBundle(t *testing.T) {
@@ -58,5 +59,33 @@ func TestBuildCustomListenPortBundle(t *testing.T) {
 	bundle := string(bundleBytes)
 	if !strings.Contains(bundle, "9090") {
 		t.Errorf("bundle %s, sha1 %s, expected key %s", bundle, sha1, "9090")
+	}
+}
+
+func TestListenPortNamesExcludedFromGraphmanSync(t *testing.T) {
+	gw := securityv1.Gateway{}
+	gw.Spec.App.ListenPorts.Ports = []securityv1.ListenPort{
+		{Name: "a", Port: 8443},
+		{Name: "graphman-lp", Port: 9443},
+	}
+	ex := ListenPortNamesExcludedFromGraphmanSync(&gw, 9443)
+	if _, ok := ex["graphman-lp"]; !ok {
+		t.Fatalf("expected graphman-lp excluded for port 9443, got %v", ex)
+	}
+	if _, ok := ex["a"]; ok {
+		t.Fatalf("did not expect port 8443 in excluded set")
+	}
+}
+
+func TestFilterListenPortBundleForGraphmanSync(t *testing.T) {
+	b := graphman.Bundle{
+		ListenPorts: []*graphman.ListenPortInput{
+			{Name: "keep", Port: 8443},
+			{Name: "drop", Port: 9443},
+		},
+	}
+	FilterListenPortBundleForGraphmanSync(&b, 9443)
+	if len(b.ListenPorts) != 1 || b.ListenPorts[0].Name != "keep" {
+		t.Fatalf("expected single listen port keep, got %+v", b.ListenPorts)
 	}
 }

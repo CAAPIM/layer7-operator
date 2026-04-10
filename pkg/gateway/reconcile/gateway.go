@@ -239,6 +239,18 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			}
 		}
 
+		// Only skip when Ready: before sync completes, an empty bundle may mean "not materialized yet", not "empty repo".
+		if !gwUpdReq.delete && gwUpdReq.repository.Status.Ready && util.GraphmanBundleBytesHaveNoEntities(gwUpdReq.bundle) {
+			params.Log.Info("repository is ready but bundle has no graphman entities. skipping apply to gateway",
+				"gateway", gwUpdReq.gateway.Name,
+				"gatewayNamespace", gwUpdReq.gateway.Namespace,
+				"repository", gwUpdReq.repository.Name,
+				"repositoryNamespace", gwUpdReq.repository.Namespace,
+				"repositoryReference", gwUpdReq.repositoryReference.Name,
+				"commit", gwUpdReq.repository.Status.Commit)
+			return nil, nil
+		}
+
 		gwUpdReq.graphmanEncryptionPassphrase = graphmanEncryptionPassphrase
 
 		gwUpdReq.cacheEntry = gwUpdReq.repositoryReference.Name + "-" + gwUpdReq.checksum
@@ -1615,24 +1627,6 @@ func buildBundleFromDirectories(directories []string, bundleMap map[string][]byt
 	return bundleBytes, nil
 }
 
-// buildBundleFromStorageSecret reads bundles from storage secret when cache is not available
-func buildBundleFromStorageSecret(ctx context.Context, repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, params Params) ([]byte, error) {
-	storageSecret, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read storage secret: %w", err)
-	}
-
-	// Storage secret Data contains the same bundleMap structure as the cache
-	// If requesting all directories, concatenate everything
-	if len(repoRef.Directories) == 1 && repoRef.Directories[0] == "/" {
-		return util.ConcatBundles(storageSecret.Data)
-	}
-
-	// Otherwise, filter by specific directories
-	// For storage secret, we preserve user-defined mappings (not repository-controlled)
-	return buildBundleFromDirectories(repoRef.Directories, storageSecret.Data, false)
-}
-
 // cleanupOldBundles removes bundles older than 10 days
 func cleanupOldBundles(tmpPath string) {
 	existingBundles, err := os.ReadDir(tmpPath)
@@ -2086,25 +2080,6 @@ func readLocalReference(ctx context.Context, repository *securityv1.Repository, 
 	return bundleBytes, nil
 }
 
-//func readStorageSecret(ctx context.Context, repository *securityv1.Repository, params Params) ([]byte, error) {
-//	if repository.Status.StorageSecretName == "_" {
-//		return nil, fmt.Errorf("%s storage secret does not exist", repository.Name)
-//	}
-//
-//	storageSecret := &corev1.Secret{}
-//	err := params.Client.Get(ctx, types.NamespacedName{Name: repository.Status.StorageSecretName, Namespace: repository.Namespace}, storageSecret)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	bundleBytes, err := util.ConcatBundles(storageSecret.Data)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return bundleBytes, nil
-//}
-
 // GetGatewayPods returns the pods in a Gateway Deployment
 func getGatewayPods(ctx context.Context, params Params) (*corev1.PodList, error) {
 	podList := &corev1.PodList{}
@@ -2170,16 +2145,6 @@ func parseGatewaySecret(gwSecret *corev1.Secret) (string, string) {
 	}
 	return username, password
 }
-
-//func getStateStoreSecret(ctx context.Context, name string, statestore securityv1alpha1.L7StateStore, params Params) (*corev1.Secret, error) {
-//	statestoreSecret := &corev1.Secret{}
-//
-//	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: statestore.Namespace}, statestoreSecret)
-//	if err != nil {
-//		return statestoreSecret, err
-//	}
-//	return statestoreSecret, nil
-//}
 
 // HardenGraphmanService adds required mutual TLS to the Gateway's GraphQL Management API (Graphman)
 // This process also creates a user (PKI) and restricts Graphman to that user effectively locking remote Gateway management to
@@ -2656,15 +2621,6 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 
 	return nil
 }
-
-//func getStateStore(ctx context.Context, params Params, stateStoreName string) (securityv1alpha1.L7StateStore, error) {
-//	statestore := securityv1alpha1.L7StateStore{}
-//	err := params.Client.Get(ctx, types.NamespacedName{Name: stateStoreName, Namespace: params.Instance.Namespace}, &statestore)
-//	if err != nil {
-//		return statestore, err
-//	}
-//	return statestore, nil
-//}
 
 func isIPv6(str string) bool {
 	ip := net.ParseIP(str)

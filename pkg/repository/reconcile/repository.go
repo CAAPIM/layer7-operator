@@ -401,6 +401,13 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 		return nil, err
 	}
 
+	if len(projects) == 0 {
+		params.Log.Info("no graphman repository layout detected under clone path. repository cache will contain no directory bundles",
+			"name", repository.Name,
+			"namespace", repository.Namespace,
+			"commit", commit)
+	}
+
 	bundleMap := map[string][]byte{}
 	currentBundles := map[string][]byte{}
 

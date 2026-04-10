@@ -128,6 +128,12 @@ func StorageSecret(ctx context.Context, params Params) error {
 		return err
 	}
 
+	if len(projects) == 0 {
+		params.Log.Info("no graphman bundle folders found under repository checkout. storage secret will have no compressed bundle keys",
+			"name", params.Instance.Name,
+			"namespace", params.Instance.Namespace)
+	}
+
 	data := map[string][]byte{}
 
 	secretSize := 0
@@ -187,7 +193,9 @@ func StorageSecretFromBundleMap(ctx context.Context, params Params, bundleMap ma
 	}
 
 	if len(bundleMap) == 0 {
-		params.Log.V(2).Info("bundleMap is empty, skipping storage secret creation")
+		params.Log.Info("repository produced no bundle artifacts. skipping storage secret update from bundle map",
+			"name", params.Instance.Name,
+			"namespace", params.Instance.Namespace)
 		return nil
 	}
 

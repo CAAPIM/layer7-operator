@@ -44,6 +44,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -490,6 +491,58 @@ func ConcatBundlesPreservingMappings(bundleMap map[string][]byte) (combinedBundl
 
 	return combinedBundleBytes, nil
 
+}
+
+// GraphmanBundleBytesHaveNoEntities reports whether bundle JSON has no Graphman entity collections
+// and no mapping instructions. Trivially small payloads (len <= 40) match BuildAndValidateBundle's
+// "no valid graphman bundles" threshold. Invalid JSON returns false so callers do not treat parse
+// failures as an empty repository bundle.
+func GraphmanBundleBytesHaveNoEntities(b []byte) bool {
+	if len(b) <= 40 {
+		return true
+	}
+	var bundle graphman.Bundle
+	if err := json.Unmarshal(b, &bundle); err != nil {
+		return false
+	}
+	if graphmanBundleHasEntitySlices(bundle) {
+		return false
+	}
+	if bundle.Properties != nil {
+		if bundle.Properties.DefaultAction != "" {
+			return false
+		}
+		if graphmanBundleMappingsHaveInstructions(bundle.Properties.Mappings) {
+			return false
+		}
+	}
+	return true
+}
+
+func graphmanBundleHasEntitySlices(b graphman.Bundle) bool {
+	v := reflect.ValueOf(b)
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		if t.Field(i).Name == "Properties" {
+			continue
+		}
+		f := v.Field(i)
+		if f.Kind() == reflect.Slice && f.Len() > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func graphmanBundleMappingsHaveInstructions(m graphman.BundleMappings) bool {
+	mv := reflect.ValueOf(m)
+	for i := 0; i < mv.NumField(); i++ {
+		f := mv.Field(i)
+		if f.Kind() == reflect.Slice && f.Len() > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes []byte, err error) {

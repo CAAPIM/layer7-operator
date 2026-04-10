@@ -1,9 +1,44 @@
 package util
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/caapim/layer7-operator/internal/graphman"
 )
+
+func TestGraphmanBundleBytesHaveNoEntities(t *testing.T) {
+	if !GraphmanBundleBytesHaveNoEntities([]byte(`{}`)) {
+		t.Fatal("expected empty object to have no entities")
+	}
+	empty := graphman.Bundle{}
+	b, err := json.Marshal(empty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !GraphmanBundleBytesHaveNoEntities(b) {
+		t.Fatal("expected marshaled empty Bundle to have no entities")
+	}
+	if !GraphmanBundleBytesHaveNoEntities([]byte(`{"goid":""}`)) {
+		t.Fatal("expected tiny payload to be treated as empty")
+	}
+	withService := graphman.Bundle{
+		Services: []*graphman.L7ServiceInput{{Name: "s"}},
+	}
+	b2, err := json.Marshal(withService)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if GraphmanBundleBytesHaveNoEntities(b2) {
+		t.Fatal("expected bundle with service to not be empty")
+	}
+	longInvalidJSON := make([]byte, 50)
+	copy(longInvalidJSON, []byte(`not json`))
+	if GraphmanBundleBytesHaveNoEntities(longInvalidJSON) {
+		t.Fatal("invalid JSON should not be treated as empty")
+	}
+}
 
 func TestConvertOpaqueMapToGraphmanBundle(t *testing.T) {
 	secrets := []GraphmanSecret{{Name: "test1", Secret: "secret1"}, {Name: "test2", Secret: "secret2"}}

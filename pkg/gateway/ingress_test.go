@@ -31,3 +31,23 @@ func TestNewIngress(t *testing.T) {
 	}
 
 }
+
+func TestNewIngress_emptyIngressClassNameIsNil(t *testing.T) {
+	gw := securityv1.Gateway{}
+	gw.Name = "test"
+	gw.Namespace = "default"
+	gw.Spec.App.Ingress = securityv1.Ingress{
+		Enabled:          true,
+		IngressClassName: "",
+		Rules:            []networkingv1.IngressRule{{Host: "example.com"}},
+	}
+	gw.Spec.App.Service = securityv1.Service{
+		Enabled: true,
+		Type:    "ClusterIP",
+		Ports:   []securityv1.Ports{{Port: 8443, TargetPort: 8443, Protocol: "TCP", Name: "https"}},
+	}
+	ing := NewIngress(&gw)
+	if ing.Spec.IngressClassName != nil {
+		t.Fatalf("expected nil IngressClassName when empty, got %#v", ing.Spec.IngressClassName)
+	}
+}

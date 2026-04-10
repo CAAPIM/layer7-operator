@@ -3,11 +3,11 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/caapim/layer7-operator/pkg/gateway"
 	networkingv1 "k8s.io/api/networking/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,7 +52,11 @@ func Ingress(ctx context.Context, params Params) error {
 		return err
 	}
 
-	if reflect.DeepEqual(currentIngress.Spec, desiredIngress.Spec) && reflect.DeepEqual(currentIngress.ObjectMeta.Annotations, desiredIngress.ObjectMeta.Annotations) {
+	// Ingress controllers often add annotations (e.g. Contour); require full spec match but only
+	// that Gateway-owned label/annotation keys match—do not replace all metadata or we thrash.
+	if apiequality.Semantic.DeepEqual(currentIngress.Spec, desiredIngress.Spec) &&
+		apiequality.Semantic.DeepEqual(currentIngress.ObjectMeta.OwnerReferences, desiredIngress.ObjectMeta.OwnerReferences) &&
+		metadataKeysMatch(currentIngress.ObjectMeta, desiredIngress.ObjectMeta) {
 		params.Log.V(2).Info("no ingress updates needed", "name", desiredIngress.Name, "namespace", desiredIngress.Namespace)
 		return nil
 	}
@@ -64,8 +68,19 @@ func Ingress(ctx context.Context, params Params) error {
 	updatedIngress.Spec.TLS = desiredIngress.Spec.TLS
 	updatedIngress.Spec.DefaultBackend = desiredIngress.Spec.DefaultBackend
 	updatedIngress.Spec.IngressClassName = desiredIngress.Spec.IngressClassName
-	updatedIngress.ObjectMeta.Annotations = desiredIngress.ObjectMeta.Annotations
-	updatedIngress.ObjectMeta.Labels = desiredIngress.ObjectMeta.Labels
+
+	if updatedIngress.Labels == nil {
+		updatedIngress.Labels = make(map[string]string)
+	}
+	for k, v := range desiredIngress.Labels {
+		updatedIngress.Labels[k] = v
+	}
+	if updatedIngress.Annotations == nil {
+		updatedIngress.Annotations = make(map[string]string)
+	}
+	for k, v := range desiredIngress.Annotations {
+		updatedIngress.Annotations[k] = v
+	}
 
 	patch := client.MergeFrom(currentIngress)
 	if err := params.Client.Patch(ctx, updatedIngress, patch); err != nil {

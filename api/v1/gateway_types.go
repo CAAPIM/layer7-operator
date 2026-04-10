@@ -720,7 +720,7 @@ type Graphman struct {
 // Service
 type Service struct {
 	// Enabled or disabled
-	Enabled bool ` json:"enabled,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
 	// Annotations for the service
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Type ClusterIP, NodePort, LoadBalancer

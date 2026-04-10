@@ -37,7 +37,7 @@ import (
 
 func TestCommitMarkerPresent(t *testing.T) {
 	tmp := t.TempDir()
-	commit := "deadbeef"
+	commit := "commit"
 
 	if retrymarker.CommitMarkerPresent(tmp, commit) {
 		t.Fatal("missing marker should be false")

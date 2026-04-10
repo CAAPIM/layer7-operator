@@ -84,6 +84,14 @@ func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
 	}
 
 	ls := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
+	spec := networkingv1.IngressSpec{
+		TLS:   tls,
+		Rules: rules,
+	}
+	if ingressClassName != "" {
+		name := ingressClassName
+		spec.IngressClassName = &name
+	}
 	ingress := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        gw.Name,
@@ -95,11 +103,7 @@ func NewIngress(gw *securityv1.Gateway) *networkingv1.Ingress {
 			APIVersion: "networking.k8s.io/v1",
 			Kind:       "Ingress",
 		},
-		Spec: networkingv1.IngressSpec{
-			IngressClassName: &ingressClassName,
-			TLS:              tls,
-			Rules:            rules,
-		},
+		Spec: spec,
 	}
 	return ingress
 }

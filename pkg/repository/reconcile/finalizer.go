@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	v1 "github.com/caapim/layer7-operator/api/v1"
+	"github.com/caapim/layer7-operator/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -104,13 +105,13 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 		}
 
 		// Clean up cache directory
-		cachePath := "/tmp/repo-cache/" + params.Instance.Name
+		cachePath := util.RepoCacheDir(params.Instance.Name, params.Instance.Namespace)
 		if err := os.RemoveAll(cachePath); err != nil {
 			params.Log.V(2).Info("failed to remove cache directory", "path", cachePath, "error", err.Error())
 		}
 
 		// Clean up statestore cache if it exists
-		stateStorePath := "/tmp/statestore/" + params.Instance.Name
+		stateStorePath := util.StateStoreCacheDir(params.Instance.Name, params.Instance.Namespace)
 		if err := os.RemoveAll(stateStorePath); err != nil {
 			params.Log.V(2).Info("failed to remove statestore cache directory", "path", stateStorePath, "error", err.Error())
 		}

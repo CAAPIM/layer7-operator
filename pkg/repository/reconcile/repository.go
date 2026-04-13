@@ -359,7 +359,7 @@ func setRepoReady(ctx context.Context, params Params, patch []byte) error {
 // Returns the bundleMap for reuse (e.g., in StorageSecret)
 func BuildRepositoryCache(ctx context.Context, params Params, commit string, storageSecretName string) (map[string][]byte, error) {
 	repository := params.Instance
-	cachePath := "/tmp/repo-cache/" + repository.Name
+	cachePath := util.RepoCacheDir(repository.Name, repository.Namespace)
 	// fileName := commit + ".json"
 
 	// there is a flag that facilitates delete being managed using mappings outside of the operator which is the default

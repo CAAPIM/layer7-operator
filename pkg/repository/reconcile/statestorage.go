@@ -52,7 +52,7 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		return err
 	}
 
-	tmpPath := "/tmp/statestore/" + params.Instance.Name
+	tmpPath := util.StateStoreCacheDir(params.Instance.Name, params.Instance.Namespace)
 	commitTracker := commit + ".txt"
 	fileName := "latest.json"
 	_, dErr := os.Stat(tmpPath)

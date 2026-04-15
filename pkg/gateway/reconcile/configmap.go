@@ -14,10 +14,20 @@ import (
 )
 
 func ConfigMaps(ctx context.Context, params Params) error {
+	repositoryInitOpts := gateway.ConfigMapOpts{
+		StorageSecretExists: func(name string) bool {
+			ok, err := storageSecretAvailable(ctx, params, name)
+			if err != nil {
+				params.Log.V(2).Info("storage secret check failed for repository init config", "secret", name, "error", err.Error())
+				return false
+			}
+			return ok
+		},
+	}
 	desiredConfigMaps := []*corev1.ConfigMap{
 		gateway.NewConfigMap(params.Instance, params.Instance.Name),
 		gateway.NewConfigMap(params.Instance, params.Instance.Name+"-system"),
-		gateway.NewConfigMap(params.Instance, params.Instance.Name+"-repository-init-config"),
+		gateway.NewConfigMap(params.Instance, params.Instance.Name+"-repository-init-config", repositoryInitOpts),
 		gateway.NewConfigMap(params.Instance, params.Instance.Name+"-gateway-files"),
 	}
 

@@ -171,6 +171,11 @@ func syncRepository(ctx context.Context, params Params) error {
 		storageSecretName = repository.Name + "-repository-" + folderName
 		if params.Instance.Status.Commit == commit {
 			params.Log.V(5).Info("already up-to-date", "name", repository.Name, "namespace", repository.Namespace)
+			idleStateStoreSynced := true
+			if repository.Spec.StateStoreReference != "" {
+				idleStateStoreSynced = repository.Status.StateStoreSynced
+			}
+			ensureReadyOnIdleSync(ctx, params, start, commit, storageSecretName, idleStateStoreSynced)
 			return nil
 		}
 	case "git":
@@ -181,6 +186,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			// Check if we need to build cache/storage secret (only if status doesn't match)
 			if params.Instance.Status.Commit == commit && (params.Instance.Status.StorageSecretName != "" && params.Instance.Status.StorageSecretName != "_") {
 				params.Log.V(5).Info("already up-to-date with cache built", "name", repository.Name, "namespace", repository.Namespace)
+				ensureReadyOnIdleSync(ctx, params, start, commit, params.Instance.Status.StorageSecretName, true)
 				return nil
 			}
 
@@ -216,6 +222,7 @@ func syncRepository(ctx context.Context, params Params) error {
 
 		if params.Instance.Status.Commit == commit {
 			params.Log.V(5).Info("already up-to-date", "name", repository.Name, "namespace", repository.Namespace)
+			ensureReadyOnIdleSync(ctx, params, start, commit, "_", true)
 			return nil
 		}
 	case "local":
@@ -240,9 +247,9 @@ func syncRepository(ctx context.Context, params Params) error {
 		// Filter out delta bundles - we don't use them in Gateway yet and they take up space
 		if storageSecretName != "_" && storageSecretName != "" {
 			// Build directory-based bundle cache for all repos (state store and non-state store)
-			bundleMap, err := BuildRepositoryCache(ctx, params, commit, storageSecretName)
-			if err != nil {
-				params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+			bundleMap, buildCacheErr := BuildRepositoryCache(ctx, params, commit, storageSecretName)
+			if buildCacheErr != nil {
+				params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", buildCacheErr.Error())
 			}
 
 			storageSecretBundleMap := make(map[string][]byte)
@@ -258,6 +265,14 @@ func syncRepository(ctx context.Context, params Params) error {
 				storageSecretName = ""
 				if err.Error() == "exceededMaxSize" {
 					storageSecretName = "_"
+				}
+			} else if buildCacheErr == nil && len(storageSecretBundleMap) == 0 && repository.Spec.StateStoreReference == "" {
+				// Empty git/http clone: no bundle artifacts and no storage secret created — omit from gateway bootstrap (not "_" large/statestore paths).
+				switch strings.ToLower(string(repository.Spec.Type)) {
+				case "git", "http":
+					if storageSecretName != "_" {
+						storageSecretName = ""
+					}
 				}
 			}
 		}
@@ -339,6 +354,22 @@ func updateStatus(ctx context.Context, params Params, commit string, storageSecr
 		}
 	}
 	return nil
+}
+
+// ensureReadyOnIdleSync calls updateStatus when sync exits early with an up-to-date commit but
+// status.Ready is still false from an earlier failure. Uses the same metrics and reconciled log as the main success path.
+func ensureReadyOnIdleSync(ctx context.Context, params Params, start time.Time, commit, storageSecretName string, stateStoreSynced bool) {
+	if params.Instance.Status.Ready {
+		return
+	}
+	err := updateStatus(ctx, params, commit, storageSecretName, stateStoreSynced)
+	if err != nil {
+		_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
+		params.Log.Info("failed to update repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name, "error", err.Error())
+		return
+	}
+	_ = captureRepositorySyncMetrics(ctx, params, start, commit, false)
+	params.Log.Info("reconciled", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "commit", commit)
 }
 
 func setRepoReady(ctx context.Context, params Params, patch []byte) error {

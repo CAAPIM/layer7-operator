@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package gateway
 
@@ -65,8 +66,20 @@ type RepositoryConfig struct {
 	Directories         []string `json:"directories,omitempty"`
 }
 
+// ConfigMapOpts configures optional behavior for NewConfigMap.
+type ConfigMapOpts struct {
+	// StorageSecretExists reports whether the named bundle-cache Secret exists in the cluster.
+	// When nil, a non-empty StorageSecretName (other than "_") is treated as present for localReference.
+	// When non-nil and returns false, the repository entry is omitted (aligns with omitted volume mounts).
+	StorageSecretExists func(secretName string) bool
+}
+
 // NewConfigMap
-func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
+func NewConfigMap(gw *securityv1.Gateway, name string, opts ...ConfigMapOpts) *corev1.ConfigMap {
+	var opt ConfigMapOpts
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
 	javaArgs := strings.Join(gw.Spec.App.Java.ExtraArgs, " ")
 	data := make(map[string]string)
 	jvmHeap := setJVMHeapSize(gw, "", gw.Spec.App.Java.JVMHeap.Percentage)
@@ -147,37 +160,45 @@ func NewConfigMap(gw *securityv1.Gateway, name string) *corev1.ConfigMap {
 		initContainerStaticConfig.Version = "2.0"
 		initContainerStaticConfig.PreferGit = gw.Spec.App.RepositoryReferenceBootstrap.PreferGit
 		for i := range gw.Status.RepositoryStatus {
-			var localRef string
 			if gw.Status.RepositoryStatus[i].Enabled && (gw.Status.RepositoryStatus[i].Type == "static" || gw.Spec.App.RepositoryReferenceBootstrap.Enabled) {
 				/// always default to storage secret if it exists
 				if !gw.Spec.App.Management.Database.Enabled || gw.Status.RepositoryStatus[i].Type == "static" {
-					if gw.Status.RepositoryStatus[i].StorageSecretName != "_" {
-						localRef = "/graphman/localref/" + gw.Status.RepositoryStatus[i].StorageSecretName
-						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
-							Name:                gw.Status.RepositoryStatus[i].Name,
-							LocalReference:      localRef,
-							SingletonExtraction: gw.Spec.App.SingletonExtraction,
-							Directories:         gw.Status.RepositoryStatus[i].Directories,
-						})
-					} else {
+					rs := gw.Status.RepositoryStatus[i]
+					storageName := rs.StorageSecretName
+					if storageName == "" {
+						// Empty git/http repository (no artifacts): omit from graphman-static-init config.
+						continue
+					}
+					if storageName == "_" {
 						// only bootstrap if the Gateway is running in ephemeral mode
 						// bootstrapping large policy sets to database backed gateways causes start up delay
 						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
-							Name:                gw.Status.RepositoryStatus[i].Name,
-							Endpoint:            gw.Status.RepositoryStatus[i].Endpoint,
-							Branch:              gw.Status.RepositoryStatus[i].Branch,
-							RemoteName:          gw.Status.RepositoryStatus[i].RemoteName,
-							Type:                gw.Status.RepositoryStatus[i].RepoType,
-							Vendor:              gw.Status.RepositoryStatus[i].Vendor,
-							AuthType:            gw.Status.RepositoryStatus[i].AuthType,
-							Tag:                 gw.Status.RepositoryStatus[i].Tag,
-							Auth:                "/graphman/secrets/" + gw.Status.RepositoryStatus[i].Name,
+							Name:                rs.Name,
+							Endpoint:            rs.Endpoint,
+							Branch:              rs.Branch,
+							RemoteName:          rs.RemoteName,
+							Type:                rs.RepoType,
+							Vendor:              rs.Vendor,
+							AuthType:            rs.AuthType,
+							Tag:                 rs.Tag,
+							Auth:                "/graphman/secrets/" + rs.Name,
 							SingletonExtraction: gw.Spec.App.SingletonExtraction,
-							StateStoreReference: gw.Status.RepositoryStatus[i].StateStoreReference,
-							StateStoreKey:       gw.Status.RepositoryStatus[i].StateStoreKey,
-							Directories:         gw.Status.RepositoryStatus[i].Directories,
+							StateStoreReference: rs.StateStoreReference,
+							StateStoreKey:       rs.StateStoreKey,
+							Directories:         rs.Directories,
 						})
+						continue
 					}
+					if opt.StorageSecretExists != nil && !opt.StorageSecretExists(storageName) {
+						continue
+					}
+					localRef := "/graphman/localref/" + storageName
+					initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
+						Name:                rs.Name,
+						LocalReference:      localRef,
+						SingletonExtraction: gw.Spec.App.SingletonExtraction,
+						Directories:         rs.Directories,
+					})
 				}
 			}
 		}

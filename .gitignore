@@ -43,6 +43,7 @@ docker-secret.yaml
 tenant_info.json
 example/repositories/local-tests
 example/gateway/local-tests
+example/state-store/local-tests
 example/base/resources/configmaps/cassandra
 .vscode
 

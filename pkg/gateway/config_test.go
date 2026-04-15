@@ -356,3 +356,67 @@ func TestRepositoryConfigWithAuthentication(t *testing.T) {
 		t.Errorf("repository config authType %s should be %s", initContainerStaticConfig.Repositories[0].AuthType, "basic")
 	}
 }
+
+func TestRepositoryConfigOmitWhenStorageSecretNameEmpty(t *testing.T) {
+	gateway := securityv1.Gateway{
+		ObjectMeta: v1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: securityv1.GatewaySpec{
+			App: securityv1.App{
+				RepositoryReferenceBootstrap: securityv1.RepositoryReferenceBootstrap{Enabled: true},
+			},
+		},
+		Status: securityv1.GatewayStatus{
+			RepositoryStatus: []securityv1.GatewayRepositoryStatus{{
+				Enabled:           true,
+				Name:              "empty-repo",
+				Type:              "static",
+				StorageSecretName: "",
+				Branch:            "main",
+				Endpoint:          "https://example.com/git",
+			}},
+		},
+	}
+
+	configMap := NewConfigMap(&gateway, gateway.Name+"-repository-init-config")
+	initContainerStaticConfig := InitContainerStaticConfig{}
+	if err := json.Unmarshal([]byte(configMap.Data["config.json"]), &initContainerStaticConfig); err != nil {
+		t.Fatalf("failed to unmarshal repository config: %v", err)
+	}
+	if len(initContainerStaticConfig.Repositories) != 0 {
+		t.Errorf("expected no repositories when StorageSecretName is empty, got %d", len(initContainerStaticConfig.Repositories))
+	}
+}
+
+func TestRepositoryConfigNamedSecretOmittedWhenCheckerSaysMissing(t *testing.T) {
+	gateway := securityv1.Gateway{
+		ObjectMeta: v1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: securityv1.GatewaySpec{
+			App: securityv1.App{
+				RepositoryReferenceBootstrap: securityv1.RepositoryReferenceBootstrap{Enabled: true},
+			},
+		},
+		Status: securityv1.GatewayStatus{
+			RepositoryStatus: []securityv1.GatewayRepositoryStatus{{
+				Enabled:           true,
+				Name:              "r1",
+				Type:              "static",
+				StorageSecretName: "missing-secret",
+			}},
+		},
+	}
+	opts := ConfigMapOpts{
+		StorageSecretExists: func(string) bool { return false },
+	}
+	configMap := NewConfigMap(&gateway, gateway.Name+"-repository-init-config", opts)
+	initContainerStaticConfig := InitContainerStaticConfig{}
+	if err := json.Unmarshal([]byte(configMap.Data["config.json"]), &initContainerStaticConfig); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	if len(initContainerStaticConfig.Repositories) != 0 {
+		t.Errorf("expected checker to omit repository, got %d entries", len(initContainerStaticConfig.Repositories))
+	}
+}

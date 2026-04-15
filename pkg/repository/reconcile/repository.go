@@ -386,6 +386,28 @@ func setRepoReady(ctx context.Context, params Params, patch []byte) error {
 	return nil
 }
 
+// analyzeGraphmanCloneRoot inspects the clone root when util.DetectGraphmanFolders returned no per-project
+// directories (no intermediate folders wrapping entity dirs).
+// warnNoProjectDirs: emit the "no graphman repository layout" / "no bundle folders" info log.
+// useCloneRootAsProject: root still yields a non-empty graphman bundle (flat or JSON-only); build one bundle from repositoryPath.
+// rootBundleBytes is set when useCloneRootAsProject is true so callers can reuse it and avoid calling BuildAndValidateBundle twice.
+func analyzeGraphmanCloneRoot(repositoryPath string) (warnNoProjectDirs bool, useCloneRootAsProject bool, rootBundleBytes []byte) {
+	rootBytes, err := util.BuildAndValidateBundle(repositoryPath, false)
+	if err != nil {
+		return true, false, nil
+	}
+	if util.GraphmanBundleBytesHaveNoEntities(rootBytes) {
+		return true, false, nil
+	}
+	return false, true, rootBytes
+}
+
+// shouldWarnNoGraphmanProjectDirs mirrors the warnNoProjectDirs result from analyzeGraphmanCloneRoot (for Secret paths that only need a yes/no).
+func shouldWarnNoGraphmanProjectDirs(repositoryPath string) bool {
+	warn, _, _ := analyzeGraphmanCloneRoot(repositoryPath)
+	return warn
+}
+
 // BuildRepositoryCache scans a repository, builds bundles per directory, and caches them
 // Returns the bundleMap for reuse (e.g., in StorageSecret)
 func BuildRepositoryCache(ctx context.Context, params Params, commit string, storageSecretName string) (map[string][]byte, error) {
@@ -432,30 +454,49 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 		return nil, err
 	}
 
+	var warnNoProjectDirs, useCloneRootAsProject bool
+	var rootBundleBytes []byte
 	if len(projects) == 0 {
-		params.Log.Info("no graphman repository layout detected under clone path. repository cache will contain no directory bundles",
-			"name", repository.Name,
-			"namespace", repository.Namespace,
-			"commit", commit)
+		warnNoProjectDirs, useCloneRootAsProject, rootBundleBytes = analyzeGraphmanCloneRoot(repositoryPath)
+		if warnNoProjectDirs {
+			params.Log.Info("no graphman repository layout detected under clone path. repository cache will contain no directory bundles",
+				"name", repository.Name,
+				"namespace", repository.Namespace,
+				"commit", commit)
+		}
+	}
+
+	projectsToBuild := projects
+	if len(projects) == 0 && useCloneRootAsProject {
+		projectsToBuild = []string{repositoryPath}
 	}
 
 	bundleMap := map[string][]byte{}
 	currentBundles := map[string][]byte{}
 
 	// Build the current commit
-	for _, project := range projects {
+	for _, project := range projectsToBuild {
 		// need to see what a base level directory has here so we can account for that
 		// may require new build of graphman-static-init
 		// empty directory prob covers it already..
 
-		bundleBytes, err := util.BuildAndValidateBundle(project, false)
-		if err != nil {
-			return nil, err
+		var bundleBytes []byte
+		if rootBundleBytes != nil && project == repositoryPath {
+			bundleBytes = rootBundleBytes
+			rootBundleBytes = nil
+		} else {
+			bundleBytes, err = util.BuildAndValidateBundle(project, false)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// Generate key name (normalize directory path)
 		keyName := strings.Replace(project, repositoryPath, "", 1)
 		keyName = strings.TrimPrefix(strings.ReplaceAll(keyName, "/", "-"), "-")
+		if keyName == "" {
+			keyName = repository.Name
+		}
 
 		currentBundles[keyName+".json"] = bundleBytes
 

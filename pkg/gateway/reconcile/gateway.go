@@ -48,7 +48,6 @@ import (
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
 	"github.com/caapim/layer7-operator/internal/graphman"
-	"github.com/caapim/layer7-operator/pkg/gateway/reconcile/retrymarker"
 	"github.com/caapim/layer7-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -973,13 +972,21 @@ func buildDeleteBundle(repository *securityv1.Repository, repoRef *securityv1.Re
 	return bundleBytes, nil
 }
 
+// commitMarkerPresent reports whether tmpPath contains a commit marker file for the given SHA
+// (<commit>.txt). The marker is written after a bundle for that commit is built and persisted
+// (see writeBundlesToDisk). Used by checkRetryScenario.
+func commitMarkerPresent(tmpPath, commit string) bool {
+	_, err := os.Stat(filepath.Join(tmpPath, commit+".txt"))
+	return err == nil
+}
+
 // checkRetryScenario checks if we should retry the last applied bundle due to previous failure.
 // Retrying requires a commit marker file (<commit>.txt): it is written only after a bundle for that
 // SHA has been built and persisted under tmpPath (see writeBundlesToDisk). Without it—e.g. a new
 // git commit whose bundle was never completed—do not short-circuit with last_applied JSON from an
 // older build even if gateway status still shows failure and repoStatus.Commit matches the new SHA.
 func checkRetryScenario(gateway *securityv1.Gateway, repoRefName string, currentCommit string, tmpPath string, params Params) (shouldRetry bool, bundle []byte) {
-	if !retrymarker.CommitMarkerPresent(tmpPath, currentCommit) {
+	if !commitMarkerPresent(tmpPath, currentCommit) {
 		return false, nil
 	}
 

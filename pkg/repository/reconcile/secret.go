@@ -122,22 +122,32 @@ func StorageSecret(ctx context.Context, params Params) error {
 		return errors.New("exceededMaxSize")
 	}
 
-	projects, err := util.DetectGraphmanFolders("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
+	checkoutPath := "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext
+	projects, err := util.DetectGraphmanFolders(checkoutPath)
 
 	if err != nil {
 		return err
 	}
 
+	var warnNoProjectDirs, useCloneRootAsProject bool
 	if len(projects) == 0 {
-		params.Log.Info("no graphman bundle folders found under repository checkout. storage secret will have no compressed bundle keys",
-			"name", params.Instance.Name,
-			"namespace", params.Instance.Namespace)
+		warnNoProjectDirs, useCloneRootAsProject, _ = analyzeGraphmanCloneRoot(checkoutPath)
+		if warnNoProjectDirs {
+			params.Log.Info("no graphman bundle folders found under repository checkout. storage secret will have no compressed bundle keys",
+				"name", params.Instance.Name,
+				"namespace", params.Instance.Namespace)
+		}
+	}
+
+	projectsToBuild := projects
+	if len(projects) == 0 && useCloneRootAsProject {
+		projectsToBuild = []string{checkoutPath}
 	}
 
 	data := map[string][]byte{}
 
 	secretSize := 0
-	for _, p := range projects {
+	for _, p := range projectsToBuild {
 
 		bundleGzip, err := util.CompressGraphmanBundle(p, false)
 		if err != nil {
@@ -164,7 +174,11 @@ func StorageSecret(ctx context.Context, params Params) error {
 		}
 
 		keyName := strings.Replace(p, "/tmp/"+params.Instance.Name+"-"+params.Instance.Namespace+"-"+ext, "", 1)
-		keyName = strings.Replace(strings.ReplaceAll(keyName, "/", "-"), "-", "", 1) + ".gz"
+		keyName = strings.Replace(strings.ReplaceAll(keyName, "/", "-"), "-", "", 1)
+		if keyName == "" {
+			keyName = params.Instance.Name
+		}
+		keyName = keyName + ".gz"
 		data[keyName] = bundleGzip
 		buf.Reset()
 	}

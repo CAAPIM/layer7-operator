@@ -249,7 +249,12 @@ func syncRepository(ctx context.Context, params Params) error {
 			// Build directory-based bundle cache for all repos (state store and non-state store)
 			bundleMap, buildCacheErr := BuildRepositoryCache(ctx, params, commit, storageSecretName)
 			if buildCacheErr != nil {
-				params.Log.V(2).Info("failed to build repository cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", buildCacheErr.Error())
+				params.Log.Info("failed to build repository cache", "name", repository.Name, "namespace", repository.Namespace, "error", buildCacheErr.Error())
+				err = setRepoReady(ctx, params, patch)
+				if err != nil {
+					params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
+				}
+				return nil
 			}
 
 			storageSecretBundleMap := make(map[string][]byte)
@@ -361,6 +366,13 @@ func updateStatus(ctx context.Context, params Params, commit string, storageSecr
 func ensureReadyOnIdleSync(ctx context.Context, params Params, start time.Time, commit, storageSecretName string, stateStoreSynced bool) {
 	if params.Instance.Status.Ready {
 		return
+	}
+	typ := strings.ToLower(string(params.Instance.Spec.Type))
+	if typ != "statestore" && storageSecretName != "_" && storageSecretName != "" {
+		if _, err := BuildRepositoryCache(ctx, params, commit, storageSecretName); err != nil {
+			params.Log.Info("failed to build repository cache", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
+			return
+		}
 	}
 	err := updateStatus(ctx, params, commit, storageSecretName, stateStoreSynced)
 	if err != nil {

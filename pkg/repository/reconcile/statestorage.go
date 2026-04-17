@@ -322,6 +322,95 @@ func GetStateStoreChecksum(ctx context.Context, params Params, statestore securi
 
 }
 
+// parseStateStoreKeyPayload returns bundle JSON bytes from the Redis value: UTF-8 JSON object or gzip-compressed JSON object.
+// The document must be a top-level JSON object ({...}), not an array.
+func parseStateStoreKeyPayload(blob []byte) ([]byte, error) {
+	blob = bytes.TrimSpace(blob)
+	if len(blob) == 0 {
+		return nil, fmt.Errorf("empty state store payload")
+	}
+	if len(blob) >= 2 && blob[0] == 0x1f && blob[1] == 0x8b {
+		raw, err := util.GzipDecompress(blob)
+		if err != nil {
+			return nil, fmt.Errorf("gzip decompress state store payload: %w", err)
+		}
+		blob = bytes.TrimSpace(raw)
+		if len(blob) == 0 {
+			return nil, fmt.Errorf("empty state store payload after decompress")
+		}
+	}
+	if blob[0] != '{' {
+		return nil, fmt.Errorf("state store payload must be a top-level JSON object")
+	}
+	return blob, nil
+}
+
+// stateStorePayloadToLatestJSON builds the JSON bytes for latest.json (map[string][]byte with one *.gz key).
+func stateStorePayloadToLatestJSON(repoName string, blob []byte) ([]byte, error) {
+	bundleJSON, err := parseStateStoreKeyPayload(blob)
+	if err != nil {
+		return nil, err
+	}
+	gz, err := util.GzipCompress(bundleJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress bundle: %w", err)
+	}
+	return json.Marshal(map[string][]byte{repoName + ".gz": gz})
+}
+
+// BuildStateStoreRepositoryCache writes util.StateStoreCacheDir/latest.json for RepositoryTypeStateStore: GET spec.stateStoreKey
+// (read-only), single entry {name}.gz with gzip of bundle JSON. Does not write repository data back to Redis.
+func BuildStateStoreRepositoryCache(ctx context.Context, params Params, statestore securityv1alpha1.L7StateStore, commit string) error {
+	tmpPath := util.StateStoreCacheDir(params.Instance.Name, params.Instance.Namespace)
+	commitTracker := commit + ".txt"
+	fileName := "latest.json"
+	if _, err := os.Stat(tmpPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(tmpPath, 0755); err != nil {
+			return err
+		}
+	}
+
+	latestFullPath := tmpPath + "/" + fileName
+	if _, err := os.Stat(tmpPath + "/" + commitTracker); err == nil {
+		if _, err := os.Stat(latestFullPath); err == nil {
+			return nil
+		}
+	}
+
+	if statestore.Spec.Redis.ExistingSecret != "" {
+		stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, statestore, params)
+		if err != nil {
+			return err
+		}
+		statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
+		statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
+	}
+
+	rc, err := util.RedisClient(&statestore.Spec.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to connect to state store: %w", err)
+	}
+
+	currentStr, err := rc.Get(ctx, params.Instance.Spec.StateStoreKey).Result()
+	if err != nil {
+		return fmt.Errorf("failed to read stateStoreKey from redis: %w", err)
+	}
+
+	compressedBundleBytes, err := stateStorePayloadToLatestJSON(params.Instance.Name, []byte(currentStr))
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(latestFullPath, compressedBundleBytes, 0755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(tmpPath+"/"+commitTracker, []byte{}, 0755); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func localRepoStorageInfo(params Params) (storageSecretName string, repositoryPath string, ext string, err error) {
 	ext = params.Instance.Spec.Branch
 	if ext == "" {

@@ -221,6 +221,14 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 
 		if params.Instance.Status.Commit == commit {
+			if repository.Spec.StateStoreReference != "" {
+				cacheDir := util.StateStoreCacheDir(repository.Name, repository.Namespace)
+				if _, statErr := os.Stat(cacheDir + "/latest.json"); os.IsNotExist(statErr) {
+					if cacheErr := BuildStateStoreRepositoryCache(ctx, params, statestore, commit); cacheErr != nil {
+						params.Log.V(2).Info("failed to materialize statestore disk cache", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", cacheErr.Error())
+					}
+				}
+			}
 			params.Log.V(5).Info("already up-to-date", "name", repository.Name, "namespace", repository.Namespace)
 			ensureReadyOnIdleSync(ctx, params, start, commit, "_", true)
 			return nil
@@ -284,7 +292,11 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	if repository.Spec.StateStoreReference != "" && (!repository.Status.StateStoreSynced || commit != repository.Status.Commit) {
-		err = StateStorage(ctx, params, statestore, commit)
+		if repository.Spec.Type == securityv1.RepositoryTypeStateStore {
+			err = BuildStateStoreRepositoryCache(ctx, params, statestore, commit)
+		} else {
+			err = StateStorage(ctx, params, statestore, commit)
+		}
 		if err != nil {
 			params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 			stateStoreSynced = false

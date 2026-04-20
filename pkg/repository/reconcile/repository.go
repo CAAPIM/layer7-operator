@@ -279,13 +279,12 @@ func syncRepository(ctx context.Context, params Params) error {
 				if err.Error() == "exceededMaxSize" {
 					storageSecretName = "_"
 				}
-			} else if buildCacheErr == nil && len(storageSecretBundleMap) == 0 && repository.Spec.StateStoreReference == "" {
+			} else if len(storageSecretBundleMap) == 0 && repository.Spec.StateStoreReference == "" {
 				// Empty git/http clone: no bundle artifacts and no storage secret created — omit from gateway bootstrap (not "_" large/statestore paths).
+				// (buildCacheErr is always nil here — we return above on build failure.)
 				switch strings.ToLower(string(repository.Spec.Type)) {
 				case "git", "http":
-					if storageSecretName != "_" {
-						storageSecretName = ""
-					}
+					storageSecretName = ""
 				}
 			}
 		}

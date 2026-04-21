@@ -29,6 +29,7 @@ package graphman
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"testing"
 )
 
@@ -254,5 +255,19 @@ func TestBundleJSONFromPolicyOrServiceAlias(t *testing.T) {
 	_, ok, _ = BundleJSONFromPolicyOrServiceAlias([]byte(`{"goid":"x"}`))
 	if ok {
 		t.Fatal("expected not alias")
+	}
+}
+
+func TestParseEntityPath_CheckoutPrefixFoldersSubstring(t *testing.T) {
+	// Synthetic root: prefix contains "/folders/" as a path segment (common cache/temp layouts) but
+	// repo-relative paths at root must not be classified as the graphman "folders" entity.
+	repoRoot := filepath.Join("/var", "folders", "abc", "T", "TestRepo", "001")
+	fullPath := filepath.Join(repoRoot, "invalid-full.json")
+	if _, m := ParseEntityPath(fullPath, repoRoot); m {
+		t.Fatalf("file at repo root should not match entity: prefix contains /folders/ substring only outside repo layout")
+	}
+	under := filepath.Join(repoRoot, "folders", "x.json")
+	if et, m := ParseEntityPath(under, repoRoot); !m || et != "folders" {
+		t.Fatalf("expected graphman folders/ entity, got matched=%v entity=%q", m, et)
 	}
 }

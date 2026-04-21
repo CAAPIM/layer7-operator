@@ -131,7 +131,10 @@ func StorageSecret(ctx context.Context, params Params) error {
 
 	var warnNoProjectDirs, useCloneRootAsProject bool
 	if len(projects) == 0 {
-		warnNoProjectDirs, useCloneRootAsProject, _ = analyzeGraphmanCloneRoot(checkoutPath)
+		warnNoProjectDirs, useCloneRootAsProject, err = analyzeGraphmanCloneRoot(checkoutPath, params.Log)
+		if err != nil {
+			return err
+		}
 		if warnNoProjectDirs {
 			params.Log.Info("no graphman bundle folders found under repository checkout. storage secret will have no compressed bundle keys",
 				"name", params.Instance.Name,
@@ -149,7 +152,7 @@ func StorageSecret(ctx context.Context, params Params) error {
 	secretSize := 0
 	for _, p := range projectsToBuild {
 
-		bundleGzip, err := util.CompressGraphmanBundle(p, false)
+		bundleGzip, err := util.CompressGraphmanBundle(p, false, params.Log)
 		if err != nil {
 			return err
 		}

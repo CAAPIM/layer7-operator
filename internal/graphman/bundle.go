@@ -30,7 +30,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -547,17 +546,33 @@ func parsePacCode(p *PolicyInput, file string) (PolicyInput, error) {
 }
 
 // parseEntity determines which entity the file from a Graphman directory belongs to
-// this works with a static list of globally defined entities
-func parseEntity(path string) (string, bool) {
+// this works with a static list of globally defined entities.
+// repoRoot must be the graphman repository root (the path passed to Implode / BuildAndValidateBundle).
+//
+// WalkDir passes absolute paths. The checkout prefix (e.g. /tmp/<name>-<ns>-<branch>/ from this operator,
+// or any other host/volume layout) is not part of graphman semantics. Matching entity folder names with
+// strings.Contains on the full path can false-positive when that prefix contains the substring "/folders/"
+// (same characters as the graphman "folders" entity) without any graphman folders/ directory under the
+// repo. Matching on "/" + Rel(repoRoot, fullPath) + "/" applies entity names only under repoRoot.
+func parseEntity(fullPath, repoRoot string) (string, bool) {
+	repoRoot = filepath.Clean(repoRoot)
+	fullPath = filepath.Clean(fullPath)
+	rel, err := filepath.Rel(repoRoot, fullPath)
+	if err != nil {
+		return "", false
+	}
+	relSlash := filepath.ToSlash(rel)
+	pathForMatch := "/" + relSlash + "/"
 	for _, e := range entities {
-		entityName := e
-		filePath := path
-		if !strings.HasPrefix(e, ".") {
-			entityName = fmt.Sprintf("/%s/", e)
-		} else {
-			filePath = strings.Split(path, "/")[len(strings.Split(path, "/"))-1]
+		if strings.HasPrefix(e, ".") {
+			base := filepath.Base(fullPath)
+			if strings.Contains(base, e) {
+				return e, true
+			}
+			continue
 		}
-		if strings.Contains(filePath, entityName) {
+		entityName := "/" + e + "/"
+		if strings.Contains(pathForMatch, entityName) {
 			return e, true
 		}
 	}
@@ -566,8 +581,9 @@ func parseEntity(path string) (string, bool) {
 
 // ParseEntityPath returns the entity type if path matches the same rules as implodeBundle (parseEntity).
 // Callers use this to skip files in a second pass that were already merged by Implode.
-func ParseEntityPath(path string) (entityType string, matched bool) {
-	return parseEntity(path)
+// repoRoot must be the same root passed to WalkDir (the graphman clone or bundle directory).
+func ParseEntityPath(fullPath, repoRoot string) (entityType string, matched bool) {
+	return parseEntity(fullPath, repoRoot)
 }
 
 // BundleJSONFromPolicyOrServiceAlias returns a minimal bundle JSON if data is a single policy or
@@ -1038,7 +1054,7 @@ func implodeBundle(path string, processNestedRepos bool) (Bundle, error) {
 		}
 
 		if !d.IsDir() {
-			name, isEntity := parseEntity(path)
+			name, isEntity := parseEntity(path, startPath)
 			if isEntity {
 				bundle, err = readBundle(name, path, &bundle)
 				if err != nil {

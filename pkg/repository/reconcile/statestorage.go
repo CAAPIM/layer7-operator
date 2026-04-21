@@ -89,7 +89,7 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 	bundles := map[string][]byte{}
 	compressedBundle := map[string][]byte{}
 	for _, p := range projects {
-		bundle, err := util.BuildAndValidateBundle(p, false)
+		bundle, err := util.BuildAndValidateBundle(p, false, params.Log)
 		if err != nil {
 			return err
 		}

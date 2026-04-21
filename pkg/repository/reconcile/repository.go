@@ -40,6 +40,7 @@ import (
 	"github.com/caapim/layer7-operator/internal/graphman"
 	"github.com/caapim/layer7-operator/pkg/util"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-logr/logr"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -242,20 +243,14 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	if strings.ToLower(string(repository.Spec.Type)) != "statestore" {
 
-		if repository.Spec.StateStoreReference != "" {
-			// For state store repos, sync to Redis
-			err = StateStorage(ctx, params, statestore, commit)
-			if err != nil {
-				params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
-				params.Instance.Status.StateStoreSynced = false
-			}
+		// Build cache before StateStorage so bundle failures do not advance Redis/commit tracking.
+		// With StateStoreReference, status uses storageSecretName "_" but cache still uses localRepoStorageInfo's secret name.
+		cacheSecretName, _, _, cacheInfoErr := localRepoStorageInfo(params)
+		if cacheInfoErr != nil {
+			params.Log.V(2).Info("could not resolve name for repository cache build", "name", repository.Name, "namespace", repository.Namespace, "error", cacheInfoErr.Error())
 		}
-
-		// Create storage secret from bundleMap for all repos
-		// Filter out delta bundles - we don't use them in Gateway yet and they take up space
-		if storageSecretName != "_" && storageSecretName != "" {
-			// Build directory-based bundle cache for all repos (state store and non-state store)
-			bundleMap, buildCacheErr := BuildRepositoryCache(ctx, params, commit, storageSecretName)
+		if cacheInfoErr == nil && cacheSecretName != "" {
+			bundleMap, buildCacheErr := BuildRepositoryCache(ctx, params, commit, cacheSecretName)
 			if buildCacheErr != nil {
 				params.Log.Info("failed to build repository cache", "name", repository.Name, "namespace", repository.Namespace, "error", buildCacheErr.Error())
 				err = setRepoReady(ctx, params, patch)
@@ -265,27 +260,40 @@ func syncRepository(ctx context.Context, params Params) error {
 				return nil
 			}
 
-			storageSecretBundleMap := make(map[string][]byte)
-			for k, v := range bundleMap {
-				if !strings.HasSuffix(k, "-delta.gz") {
-					storageSecretBundleMap[k] = v
+			// Create storage secret from bundleMap only when status tracks a real secret (not "_" for state-store-only repos).
+			// Filter out delta bundles - we don't use them in Gateway yet and they take up space
+			if storageSecretName != "_" && storageSecretName != "" {
+				storageSecretBundleMap := make(map[string][]byte)
+				for k, v := range bundleMap {
+					if !strings.HasSuffix(k, "-delta.gz") {
+						storageSecretBundleMap[k] = v
+					}
+				}
+
+				err = StorageSecretFromBundleMap(ctx, params, storageSecretBundleMap, storageSecretName)
+				if err != nil {
+					params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+					storageSecretName = ""
+					if err.Error() == "exceededMaxSize" {
+						storageSecretName = "_"
+					}
+				} else if len(storageSecretBundleMap) == 0 && repository.Spec.StateStoreReference == "" {
+					// Empty git/http clone: no bundle artifacts and no storage secret created — omit from gateway bootstrap (not "_" large/statestore paths).
+					// (buildCacheErr is always nil here — we return above on build failure.)
+					switch strings.ToLower(string(repository.Spec.Type)) {
+					case "git", "http":
+						storageSecretName = ""
+					}
 				}
 			}
+		}
 
-			err = StorageSecretFromBundleMap(ctx, params, storageSecretBundleMap, storageSecretName)
+		if repository.Spec.StateStoreReference != "" {
+			// For state store repos, sync to Redis
+			err = StateStorage(ctx, params, statestore, commit)
 			if err != nil {
-				params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
-				storageSecretName = ""
-				if err.Error() == "exceededMaxSize" {
-					storageSecretName = "_"
-				}
-			} else if len(storageSecretBundleMap) == 0 && repository.Spec.StateStoreReference == "" {
-				// Empty git/http clone: no bundle artifacts and no storage secret created — omit from gateway bootstrap (not "_" large/statestore paths).
-				// (buildCacheErr is always nil here — we return above on build failure.)
-				switch strings.ToLower(string(repository.Spec.Type)) {
-				case "git", "http":
-					storageSecretName = ""
-				}
+				params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
+				params.Instance.Status.StateStoreSynced = false
 			}
 		}
 	}
@@ -378,9 +386,15 @@ func ensureReadyOnIdleSync(ctx context.Context, params Params, start time.Time, 
 	if params.Instance.Status.Ready {
 		return
 	}
-	typ := strings.ToLower(string(params.Instance.Spec.Type))
-	if typ != "statestore" && storageSecretName != "_" && storageSecretName != "" {
-		if _, err := BuildRepositoryCache(ctx, params, commit, storageSecretName); err != nil {
+	repositoryType := strings.ToLower(string(params.Instance.Spec.Type))
+	cacheSecretName := storageSecretName
+	if (cacheSecretName == "_" || cacheSecretName == "") && repositoryType != "statestore" {
+		if localStorageSecretName, _, _, err := localRepoStorageInfo(params); err == nil && localStorageSecretName != "" {
+			cacheSecretName = localStorageSecretName
+		}
+	}
+	if repositoryType != "statestore" && cacheSecretName != "" && cacheSecretName != "_" {
+		if _, err := BuildRepositoryCache(ctx, params, commit, cacheSecretName); err != nil {
 			params.Log.Info("failed to build repository cache", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
 			return
 		}
@@ -409,26 +423,17 @@ func setRepoReady(ctx context.Context, params Params, patch []byte) error {
 	return nil
 }
 
-// analyzeGraphmanCloneRoot inspects the clone root when util.DetectGraphmanFolders returned no per-project
-// directories (no intermediate folders wrapping entity dirs).
-// warnNoProjectDirs: emit the "no graphman repository layout" / "no bundle folders" info log.
-// useCloneRootAsProject: root still yields a non-empty graphman bundle (flat or JSON-only); build one bundle from repositoryPath.
-// rootBundleBytes is set when useCloneRootAsProject is true so callers can reuse it and avoid calling BuildAndValidateBundle twice.
-func analyzeGraphmanCloneRoot(repositoryPath string) (warnNoProjectDirs bool, useCloneRootAsProject bool, rootBundleBytes []byte) {
-	rootBytes, err := util.BuildAndValidateBundle(repositoryPath, false)
+// analyzeGraphmanCloneRoot runs when DetectGraphmanFolders found no project subdirs: decide whether to
+// log "no layout", and whether the clone root alone is a valid graphman bundle (flat / JSON-only layout).
+func analyzeGraphmanCloneRoot(repositoryPath string, log logr.Logger) (warnNoProjectDirs bool, useCloneRootAsProject bool, err error) {
+	rootBytes, err := util.BuildAndValidateBundle(repositoryPath, false, log)
 	if err != nil {
-		return true, false, nil
+		return false, false, err
 	}
 	if util.GraphmanBundleBytesHaveNoEntities(rootBytes) {
 		return true, false, nil
 	}
-	return false, true, rootBytes
-}
-
-// shouldWarnNoGraphmanProjectDirs mirrors the warnNoProjectDirs result from analyzeGraphmanCloneRoot (for Secret paths that only need a yes/no).
-func shouldWarnNoGraphmanProjectDirs(repositoryPath string) bool {
-	warn, _, _ := analyzeGraphmanCloneRoot(repositoryPath)
-	return warn
+	return false, true, nil
 }
 
 // BuildRepositoryCache scans a repository, builds bundles per directory, and caches them
@@ -436,7 +441,6 @@ func shouldWarnNoGraphmanProjectDirs(repositoryPath string) bool {
 func BuildRepositoryCache(ctx context.Context, params Params, commit string, storageSecretName string) (map[string][]byte, error) {
 	repository := params.Instance
 	cachePath := util.RepoCacheDir(repository.Name, repository.Namespace)
-	// fileName := commit + ".json"
 
 	// there is a flag that facilitates delete being managed using mappings outside of the operator which is the default
 	// behaviour if you are not using a L7StateStore.
@@ -478,9 +482,11 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 	}
 
 	var warnNoProjectDirs, useCloneRootAsProject bool
-	var rootBundleBytes []byte
 	if len(projects) == 0 {
-		warnNoProjectDirs, useCloneRootAsProject, rootBundleBytes = analyzeGraphmanCloneRoot(repositoryPath)
+		warnNoProjectDirs, useCloneRootAsProject, err = analyzeGraphmanCloneRoot(repositoryPath, params.Log)
+		if err != nil {
+			return nil, err
+		}
 		if warnNoProjectDirs {
 			params.Log.Info("no graphman repository layout detected under clone path. repository cache will contain no directory bundles",
 				"name", repository.Name,
@@ -499,19 +505,9 @@ func BuildRepositoryCache(ctx context.Context, params Params, commit string, sto
 
 	// Build the current commit
 	for _, project := range projectsToBuild {
-		// need to see what a base level directory has here so we can account for that
-		// may require new build of graphman-static-init
-		// empty directory prob covers it already..
-
-		var bundleBytes []byte
-		if rootBundleBytes != nil && project == repositoryPath {
-			bundleBytes = rootBundleBytes
-			rootBundleBytes = nil
-		} else {
-			bundleBytes, err = util.BuildAndValidateBundle(project, false)
-			if err != nil {
-				return nil, err
-			}
+		bundleBytes, err := util.BuildAndValidateBundle(project, false, params.Log)
+		if err != nil {
+			return nil, err
 		}
 
 		// Generate key name (normalize directory path)

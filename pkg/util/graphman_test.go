@@ -1,11 +1,40 @@
+/*
+* Copyright (c) 2025 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
+ */
 package util
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/caapim/layer7-operator/internal/graphman"
+	"github.com/go-logr/logr"
 )
 
 func TestGraphmanBundleBytesHaveNoEntities(t *testing.T) {
@@ -37,6 +66,55 @@ func TestGraphmanBundleBytesHaveNoEntities(t *testing.T) {
 	copy(longInvalidJSON, []byte(`not json`))
 	if GraphmanBundleBytesHaveNoEntities(longInvalidJSON) {
 		t.Fatal("invalid JSON should not be treated as empty")
+	}
+}
+
+func TestBuildAndValidateBundle_LooseFullBundleStrictDecodeFails(t *testing.T) {
+	d := t.TempDir()
+	valid := `{
+    "clusterProperties": [
+        {
+            "goid": "982cc1ee7369c6ca5a7ae1e4ad866070",
+            "name": "cfg",
+            "hiddenProperty": false,
+            "value": "v"
+        }
+    ]
+}`
+	if err := os.WriteFile(filepath.Join(d, "base.json"), []byte(valid), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Full bundle shape but unknown top-level key fails strict Decode (DisallowUnknownFields).
+	bad := `{"services":[],"unexpectedTopLevel":true}`
+	// Filename must not contain a substring that ParseEntityPath treats as an entity
+	// (e.g. "bad-bundle.json" matches ".service" and would be skipped here).
+	if err := os.WriteFile(filepath.Join(d, "invalid-full.json"), []byte(bad), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := BuildAndValidateBundle(d, false, logr.Discard())
+	if err == nil {
+		t.Fatal("expected error for invalid full bundle loose JSON")
+	}
+	if !strings.Contains(err.Error(), "invalid-full.json") {
+		t.Fatalf("expected error to mention file path, got: %v", err)
+	}
+}
+
+func TestBuildAndValidateBundle_UnrelatedJSONIgnored(t *testing.T) {
+	d := t.TempDir()
+	valid := `{"services":[{"name":"s","resolutionPath":"/x","enabled":true}]}`
+	if err := os.WriteFile(filepath.Join(d, "svc.json"), []byte(valid), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(d, "settings.json"), []byte(`{"app":{"foo":1}}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	b, err := BuildAndValidateBundle(d, false, logr.Discard())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(b) <= 40 {
+		t.Fatalf("expected non-trivial bundle, len=%d", len(b))
 	}
 }
 

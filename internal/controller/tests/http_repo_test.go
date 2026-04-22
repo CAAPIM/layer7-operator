@@ -17,8 +17,8 @@ var _ = Describe("Gateway controller", func() {
 			gwLicenseSecretName = "gateway-license"
 			namespace           = "l7operator"
 			gatewayName         = "http-repo-ssg"
-			version             = "11.1.3"
-			image               = "docker.io/caapim/gateway:11.1.3"
+			version             = "11.2.1"
+			image               = "docker.io/caapim/gateway:11.2.1"
 			repoName            = "http-repo"
 		)
 

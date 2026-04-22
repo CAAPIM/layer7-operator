@@ -18,8 +18,8 @@ var _ = Describe("Gateway controller", func() {
 			gwLicenseSecretName = "gateway-license"
 			namespace           = "l7operator"
 			gatewayName         = "podconfig-ssg"
-			version             = "11.1.3"
-			image               = "docker.io/caapim/gateway:11.1.3"
+			version             = "11.2.1"
+			image               = "docker.io/caapim/gateway:11.2.1"
 		)
 
 		BeforeEach(func() {

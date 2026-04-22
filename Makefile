@@ -68,8 +68,8 @@ START_KIND_CLUSTER ?= true
 KUBE_VERSION ?= 1.34
 KIND_CONFIG ?= kind-$(KUBE_VERSION).yaml
 
-GATEWAY_IMG ?= docker.io/caapim/gateway:11.1.3
-GO_BUILD_IMG ?= golang:1.24
+GATEWAY_IMG ?= docker.io/caapim/gateway:11.2.1
+GO_BUILD_IMG ?= golang:1.26
 DISTROLESS_IMG ?= gcr.io/distroless/static:nonroot
 GO_PROXY ?= ""
 

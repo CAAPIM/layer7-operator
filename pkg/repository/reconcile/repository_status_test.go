@@ -41,9 +41,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// testK8sObjectNameSuffix derives a substring safe for metadata.name (RFC 1123 label rules) from t.Name().
+func testK8sObjectNameSuffix(t *testing.T) string {
+	s := strings.ToLower(t.Name())
+	s = strings.ReplaceAll(s, "/", "-")
+	s = strings.ReplaceAll(s, "_", "-")
+	return s
+}
+
 func TestRecoverReadyIfStuck_SetsReadyWhenNotReady(t *testing.T) {
 	ctx := context.Background()
-	name := "recover-ready-" + strings.ToLower(strings.ReplaceAll(t.Name(), "/", "-"))
+	name := "recover-ready-" + testK8sObjectNameSuffix(t)
 
 	repo := &securityv1.Repository{
 		TypeMeta: metav1.TypeMeta{
@@ -108,7 +116,7 @@ func TestRecoverReadyIfStuck_SetsReadyWhenNotReady(t *testing.T) {
 
 func TestRecoverReadyIfStuck_NoOpWhenAlreadyReady(t *testing.T) {
 	ctx := context.Background()
-	name := "recover-ready-" + strings.ToLower(strings.ReplaceAll(t.Name(), "/", "-"))
+	name := "recover-ready-" + testK8sObjectNameSuffix(t)
 
 	repo := &securityv1.Repository{
 		TypeMeta: metav1.TypeMeta{

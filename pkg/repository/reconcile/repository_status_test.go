@@ -43,7 +43,7 @@ import (
 
 func TestRecoverReadyIfStuck_SetsReadyWhenNotReady(t *testing.T) {
 	ctx := context.Background()
-	name := "recover-ready-" + strings.ReplaceAll(t.Name(), "/", "-")
+	name := "recover-ready-" + strings.ToLower(strings.ReplaceAll(t.Name(), "/", "-"))
 
 	repo := &securityv1.Repository{
 		TypeMeta: metav1.TypeMeta{
@@ -108,7 +108,7 @@ func TestRecoverReadyIfStuck_SetsReadyWhenNotReady(t *testing.T) {
 
 func TestRecoverReadyIfStuck_NoOpWhenAlreadyReady(t *testing.T) {
 	ctx := context.Background()
-	name := "recover-ready-" + strings.ReplaceAll(t.Name(), "/", "-")
+	name := "recover-ready-" + strings.ToLower(strings.ReplaceAll(t.Name(), "/", "-"))
 
 	repo := &securityv1.Repository{
 		TypeMeta: metav1.TypeMeta{

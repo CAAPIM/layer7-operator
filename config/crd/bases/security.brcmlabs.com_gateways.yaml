@@ -1938,8 +1938,7 @@ spec:
                               present in a Container.
                             properties:
                               name:
-                                description: Name of the environment variable. Must
-                                  be a C_IDENTIFIER.
+                                description: Name of the environment variable.
                                 type: string
                               value:
                                 description: |-
@@ -1982,6 +1981,32 @@ spec:
                                         type: string
                                     required:
                                     - fieldPath
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  fileKeyRef:
+                                    description: FileKeyRef selects a key of the env
+                                      file.
+                                    properties:
+                                      key:
+                                        description: The key within the env file.
+                                        type: string
+                                      optional:
+                                        default: false
+                                        description: Specify whether the file or its
+                                          key must be defined.
+                                        type: boolean
+                                      path:
+                                        description: The path within the volume from
+                                          which to select the file.
+                                        type: string
+                                      volumeName:
+                                        description: The name of the volume mount
+                                          containing the env file.
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    - volumeName
                                     type: object
                                     x-kubernetes-map-type: atomic
                                   resourceFieldRef:
@@ -2642,6 +2667,43 @@ spec:
                           description: RestartPolicy defines the restart behavior
                             of individual containers in a...
                           type: string
+                        restartPolicyRules:
+                          description: |-
+                            Represents a list of rules to be checked to determine if the
+                            container...
+                          items:
+                            description: ContainerRestartRule describes how a container
+                              exit is handled.
+                            properties:
+                              action:
+                                description: |-
+                                  Specifies the action taken on a container exit if the requirements
+                                  are...
+                                type: string
+                              exitCodes:
+                                description: Represents the exit codes to check on
+                                  container exits.
+                                properties:
+                                  operator:
+                                    description: Represents the relationship between
+                                      the container exit code(s) and the...
+                                    type: string
+                                  values:
+                                    description: Specifies the set of values to check
+                                      for container exit codes.
+                                    items:
+                                      format: int32
+                                      type: integer
+                                    type: array
+                                    x-kubernetes-list-type: set
+                                required:
+                                - operator
+                                type: object
+                            required:
+                            - action
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
                         securityContext:
                           description: SecurityContext defines the security options
                             the container should be run...
@@ -5195,8 +5257,7 @@ spec:
                               present in a Container.
                             properties:
                               name:
-                                description: Name of the environment variable. Must
-                                  be a C_IDENTIFIER.
+                                description: Name of the environment variable.
                                 type: string
                               value:
                                 description: |-
@@ -5239,6 +5300,32 @@ spec:
                                         type: string
                                     required:
                                     - fieldPath
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  fileKeyRef:
+                                    description: FileKeyRef selects a key of the env
+                                      file.
+                                    properties:
+                                      key:
+                                        description: The key within the env file.
+                                        type: string
+                                      optional:
+                                        default: false
+                                        description: Specify whether the file or its
+                                          key must be defined.
+                                        type: boolean
+                                      path:
+                                        description: The path within the volume from
+                                          which to select the file.
+                                        type: string
+                                      volumeName:
+                                        description: The name of the volume mount
+                                          containing the env file.
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    - volumeName
                                     type: object
                                     x-kubernetes-map-type: atomic
                                   resourceFieldRef:
@@ -5899,6 +5986,43 @@ spec:
                           description: RestartPolicy defines the restart behavior
                             of individual containers in a...
                           type: string
+                        restartPolicyRules:
+                          description: |-
+                            Represents a list of rules to be checked to determine if the
+                            container...
+                          items:
+                            description: ContainerRestartRule describes how a container
+                              exit is handled.
+                            properties:
+                              action:
+                                description: |-
+                                  Specifies the action taken on a container exit if the requirements
+                                  are...
+                                type: string
+                              exitCodes:
+                                description: Represents the exit codes to check on
+                                  container exits.
+                                properties:
+                                  operator:
+                                    description: Represents the relationship between
+                                      the container exit code(s) and the...
+                                    type: string
+                                  values:
+                                    description: Specifies the set of values to check
+                                      for container exit codes.
+                                    items:
+                                      format: int32
+                                      type: integer
+                                    type: array
+                                    x-kubernetes-list-type: set
+                                required:
+                                - operator
+                                type: object
+                            required:
+                            - action
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
                         securityContext:
                           description: SecurityContext defines the security options
                             the container should be run...

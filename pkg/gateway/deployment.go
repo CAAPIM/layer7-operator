@@ -99,6 +99,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		readinessProbe = gw.Spec.App.ReadinessProbe
 	}
 
+	var startupProbe *corev1.Probe
+	if gw.Spec.App.StartupProbe != (corev1.Probe{}) {
+		sp := gw.Spec.App.StartupProbe
+		startupProbe = &sp
+	}
+
 	terminationGracePeriodSeconds := int64(30)
 	if gw.Spec.App.TerminationGracePeriodSeconds != 0 {
 		terminationGracePeriodSeconds = gw.Spec.App.TerminationGracePeriodSeconds
@@ -966,6 +972,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		Ports:          ports,
 		LivenessProbe:  &livenessProbe,
 		ReadinessProbe: &readinessProbe,
+		StartupProbe:   startupProbe,
 		Resources:      resources,
 		Lifecycle:      &lifecycleHooks,
 	}

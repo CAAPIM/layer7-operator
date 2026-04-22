@@ -1551,14 +1551,14 @@ spec:
                   externalCerts:
                     items:
                       description: ExternalCert is a reference to an existing TLS
-                        or Opaque Secret in...
+                        or Opaque Secret or...
                       properties:
                         enabled:
                           description: Enabled or disabled
                           type: boolean
                         name:
-                          description: Name of the Secret which already exists in
-                            Kubernetes
+                          description: Name of the Secret or ConfigMap which already
+                            exists in Kubernetes
                           type: string
                         revocationCheckPolicyName:
                           type: string
@@ -1570,6 +1570,10 @@ spec:
                           items:
                             type: string
                           type: array
+                        type:
+                          description: 'Type of the referenced resource: "secret"
+                            (default) or "configmap"'
+                          type: string
                         verifyHostname:
                           type: boolean
                       type: object
@@ -6257,6 +6261,131 @@ spec:
                     description: SingletonExtraction works with the Gateway in Ephemeral
                       mode.
                     type: boolean
+                  startupProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to...
+                    properties:
+                      exec:
+                        description: Exec specifies a command to execute in the container.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working...
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after...
+                        format: int32
+                        type: integer
+                      grpc:
+                        description: GRPC specifies a GRPC HealthCheckRequest.
+                        properties:
+                          port:
+                            description: Port number of the gRPC service. Number must
+                              be in the range 1 to 65535.
+                            format: int32
+                            type: integer
+                          service:
+                            default: ""
+                            description: Service is the name of the service to place
+                              in the gRPC HealthCheckRequest...
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      httpGet:
+                        description: HTTPGet specifies an HTTP GET request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name.
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Name or number of the port to access on the
+                              container.
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            description: |-
+                              Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: Number of seconds after the container has started
+                          before liveness probes...
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: |-
+                          How often (in seconds) to perform the probe.
+                          Default to 10 seconds.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful...
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: TCPSocket specifies a connection to a TCP port.
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Number or name of the port to access on the
+                              container.
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - port
+                        type: object
+                      terminationGracePeriodSeconds:
+                        description: Optional duration in seconds the pod needs to
+                          terminate gracefully upon...
+                        format: int64
+                        type: integer
+                      timeoutSeconds:
+                        description: |-
+                          Number of seconds after which the probe times out.
+                          Defaults to 1 second.
+                        format: int32
+                        type: integer
+                    type: object
                   system:
                     description: System
                     properties:

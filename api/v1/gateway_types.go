@@ -259,10 +259,10 @@ type App struct {
 	ExternalSecrets           []ExternalSecret                  `json:"externalSecrets,omitempty"`
 	ExternalKeys              []ExternalKey                     `json:"externalKeys,omitempty"`
 	ExternalCerts             []ExternalCert                    `json:"externalCerts,omitempty"`
-	//StartupProbe              corev1.Probe                      `json:"startupProbe,omitempty"`
-	LivenessProbe  corev1.Probe `json:"livenessProbe,omitempty"`
-	ReadinessProbe corev1.Probe `json:"readinessProbe,omitempty"`
-	CustomConfig   CustomConfig `json:"customConfig,omitempty"`
+	StartupProbe              corev1.Probe                      `json:"startupProbe,omitempty"`
+	LivenessProbe             corev1.Probe                      `json:"livenessProbe,omitempty"`
+	ReadinessProbe            corev1.Probe                      `json:"readinessProbe,omitempty"`
+	CustomConfig              CustomConfig                      `json:"customConfig,omitempty"`
 	// TerminationGracePeriodSeconds is the time kubernetes will wait for the Gateway to shutdown before forceably removing it
 	TerminationGracePeriodSeconds int64            `json:"terminationGracePeriodSeconds,omitempty"`
 	PortalReference               PortalReference  `json:"portalReference,omitempty"`

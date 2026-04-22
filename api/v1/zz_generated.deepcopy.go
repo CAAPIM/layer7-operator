@@ -153,6 +153,7 @@ func (in *App) DeepCopyInto(out *App) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	in.StartupProbe.DeepCopyInto(&out.StartupProbe)
 	in.LivenessProbe.DeepCopyInto(&out.LivenessProbe)
 	in.ReadinessProbe.DeepCopyInto(&out.ReadinessProbe)
 	in.CustomConfig.DeepCopyInto(&out.CustomConfig)

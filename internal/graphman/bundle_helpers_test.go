@@ -291,6 +291,46 @@ func TestCombineWithOverwrite_CustomKeyValuesByKey(t *testing.T) {
 	}
 }
 
+func TestCombineWithOverwrite_ServiceResolutionConfigsByGoid(t *testing.T) {
+	goidA := "0000000000000000fffffffffffffffe"
+	goidB := "0000000000000000fffffffffffffffd"
+
+	bundle1 := Bundle{
+		ServiceResolutionConfigs: []*ServiceResolutionConfigInput{
+			{Goid: goidA, ResolutionPathRequired: false},
+			{Goid: goidB, ResolutionPathRequired: false},
+		},
+	}
+
+	bundle2 := Bundle{
+		ServiceResolutionConfigs: []*ServiceResolutionConfigInput{
+			{Goid: goidA, ResolutionPathRequired: true}, // same Goid overwrites
+		},
+	}
+
+	result, err := CombineWithOverwrite(bundle2, bundle1)
+	if err != nil {
+		t.Fatalf("CombineWithOverwrite failed: %v", err)
+	}
+
+	if len(result.ServiceResolutionConfigs) != 2 {
+		t.Fatalf("Expected 2 service resolution configs, got %d", len(result.ServiceResolutionConfigs))
+	}
+
+	for _, c := range result.ServiceResolutionConfigs {
+		switch c.Goid {
+		case goidA:
+			if !c.ResolutionPathRequired {
+				t.Errorf("expected goid A ResolutionPathRequired true after overwrite")
+			}
+		case goidB:
+			if c.ResolutionPathRequired {
+				t.Errorf("expected goid B unchanged (ResolutionPathRequired false)")
+			}
+		}
+	}
+}
+
 func TestCalculateDelta_DetectsNewEntities(t *testing.T) {
 	// Test that new entities are detected
 	current := Bundle{}

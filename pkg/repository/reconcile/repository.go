@@ -252,7 +252,8 @@ func syncRepository(ctx context.Context, params Params) error {
 		if cacheInfoErr == nil && cacheSecretName != "" {
 			bundleMap, buildCacheErr := BuildRepositoryCache(ctx, params, commit, cacheSecretName)
 			if buildCacheErr != nil {
-				params.Log.Info("failed to build repository cache", "name", repository.Name, "namespace", repository.Namespace, "error", buildCacheErr.Error())
+				// Log full error (includes graphman entity paths from readBundle / loose JSON) for operators.
+				params.Log.Error(buildCacheErr, "failed to build repository cache", "name", repository.Name, "namespace", repository.Namespace)
 				err = setRepoReady(ctx, params, patch)
 				if err != nil {
 					params.Log.V(2).Error(err, "failed to patch repository status", "namespace", params.Instance.Namespace, "name", params.Instance.Name)
@@ -261,8 +262,9 @@ func syncRepository(ctx context.Context, params Params) error {
 			}
 
 			// Create storage secret from bundleMap only when status tracks a real secret (not "_" for state-store-only repos).
+			// Skip when status already has "_" (too large for secret / state-store-only): avoids rebuilding and re-logging every reconcile.
 			// Filter out delta bundles - we don't use them in Gateway yet and they take up space
-			if storageSecretName != "_" && storageSecretName != "" {
+			if storageSecretName != "_" && storageSecretName != "" && repository.Status.StorageSecretName != "_" {
 				storageSecretBundleMap := make(map[string][]byte)
 				for k, v := range bundleMap {
 					if !strings.HasSuffix(k, "-delta.gz") {
@@ -274,7 +276,8 @@ func syncRepository(ctx context.Context, params Params) error {
 				if err != nil {
 					params.Log.V(2).Info("failed to reconcile storage secret", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 					storageSecretName = ""
-					if err.Error() == "exceededMaxSize" {
+					switch err.Error() {
+					case "exceededMaxSize", "file size exceeded", "combined file size exceeded":
 						storageSecretName = "_"
 					}
 				} else if len(storageSecretBundleMap) == 0 && repository.Spec.StateStoreReference == "" {
@@ -395,7 +398,7 @@ func ensureReadyOnIdleSync(ctx context.Context, params Params, start time.Time, 
 	}
 	if repositoryType != "statestore" && cacheSecretName != "" && cacheSecretName != "_" {
 		if _, err := BuildRepositoryCache(ctx, params, commit, cacheSecretName); err != nil {
-			params.Log.Info("failed to build repository cache", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "error", err.Error())
+			params.Log.Error(err, "failed to build repository cache", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 			return
 		}
 	}
@@ -409,6 +412,10 @@ func ensureReadyOnIdleSync(ctx context.Context, params Params, start time.Time, 
 	params.Log.Info("reconciled", "name", params.Instance.Name, "namespace", params.Instance.Namespace, "commit", commit)
 }
 
+// setRepoReady patches status.ready to false when the sync already determined the repo should not be ready
+// (e.g. bundle/cache build failure). It only sends a patch if the instance is currently Ready, to avoid
+// redundant writes; if Ready is already false, the reconcile still exits before success paths (storage secret,
+// updateStatus with ready true) so no spurious "success" update runs.
 func setRepoReady(ctx context.Context, params Params, patch []byte) error {
 
 	if !params.Instance.Status.Ready {

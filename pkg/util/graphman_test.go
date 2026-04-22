@@ -118,6 +118,66 @@ func TestBuildAndValidateBundle_UnrelatedJSONIgnored(t *testing.T) {
 	}
 }
 
+func TestBuildAndValidateBundle_DotServiceStringVersionFails(t *testing.T) {
+	d := t.TempDir()
+	// Basename must contain ".service" so parseEntity classifies as .service (readBundle case ".service").
+	// L7ServiceInput.Version is int; a JSON string must surface an error with file path (not be dropped).
+	bad := `{
+  "goid": "6d2ca7e0a5c6c9f37dd0b124a6a26532",
+  "guid": "0ed53d22-bed8-424b-8b4e-68e3e40a9311",
+  "name": "Rest Api 4",
+  "resolutionPath": "/api4",
+  "serviceType": "WEB_API",
+  "enabled": true,
+  "version": "1"
+}`
+	path := filepath.Join(d, "api.service.json")
+	if err := os.WriteFile(path, []byte(bad), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := BuildAndValidateBundle(d, false, logr.Discard())
+	if err == nil {
+		t.Fatal("expected error for invalid .service entity JSON (version must be number)")
+	}
+	if !strings.Contains(err.Error(), "api.service.json") {
+		t.Fatalf("expected error to mention file path, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), ".service") {
+		t.Fatalf("expected error to mention entity kind, got: %v", err)
+	}
+}
+
+func TestBuildAndValidateBundle_ServicesFolderStringVersionFails(t *testing.T) {
+	d := t.TempDir()
+	servicesDir := filepath.Join(d, "services")
+	if err := os.MkdirAll(servicesDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	bad := `{
+  "goid": "6d2ca7e0a5c6c9f37dd0b124a6a26532",
+  "guid": "0ed53d22-bed8-424b-8b4e-68e3e40a9311",
+  "name": "svc",
+  "resolutionPath": "/api4",
+  "serviceType": "WEB_API",
+  "enabled": true,
+  "version": "1"
+}`
+	path := filepath.Join(servicesDir, "bad.json")
+	if err := os.WriteFile(path, []byte(bad), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := BuildAndValidateBundle(d, false, logr.Discard())
+	if err == nil {
+		t.Fatal("expected error for invalid JSON under services/")
+	}
+	if !strings.Contains(err.Error(), "bad.json") {
+		t.Fatalf("expected error to mention file path, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "services") {
+		t.Fatalf("expected error to mention entity kind, got: %v", err)
+	}
+}
+
 func TestConvertOpaqueMapToGraphmanBundle(t *testing.T) {
 	secrets := []GraphmanSecret{{Name: "test1", Secret: "secret1"}, {Name: "test2", Secret: "secret2"}}
 	bundleBytes, err := ConvertOpaqueMapToGraphmanBundle(secrets, []string{})

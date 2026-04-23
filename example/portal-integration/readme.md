@@ -201,9 +201,9 @@ Enrollment key retrieved
 1. You have not configured your local hosts file. Please see step 6 in [getting-started](#getting-started)
 
 ### Deploy the Layer7 Operator
-This integration example uses v1.2.2 of the Layer7 Operator
+This integration example uses v1.3.0 of the Layer7 Operator
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml -n ${NAMESPACE}
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml -n ${NAMESPACE}
 kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 ```
 
@@ -223,7 +223,7 @@ kubectl get l7statestores
 ```
 
 ### Create a Gateway
-The [Gateway Custom Resource](../gateway/portal-gateway.yaml) is configured to use Redis and Gateway version 11.1.3
+The [Gateway Custom Resource](../gateway/portal-gateway.yaml) is configured to use Redis and Gateway version 11.2.1
 
 Make sure that you've accepted the license in [portal-gateway.yaml](../gateway/portal-gateway.yaml) and placed a gateway v11 license in [example/base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
 ```
@@ -640,7 +640,7 @@ Repository Status:
     State Store Reference:  portal-state-store
     Storage Secret Name:    _
     Type:                   dynamic
-  Version:                  11.1.3
+  Version:                  11.2.1
 Events:                     <none>
 ```
 #### View the L7Api
@@ -828,5 +828,5 @@ helm del portal
 kubectl delete statefulset portal-mysql
 kubectl delete pvc data-portal-mysql-0 data-rabbitmq-0
 helm del redis
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml -n ${NAMESPACE}
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml -n ${NAMESPACE}
 ```

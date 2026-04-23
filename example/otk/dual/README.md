@@ -134,13 +134,13 @@ kind: Gateway
 metadata:
   name: otk-ssg-dmz
 spec:
-  version: "11.1.3"
+  version: "11.2.1"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.3
+    image: docker.io/caapim/gateway:11.2.1
     imagePullPolicy: IfNotPresent
     resources:
       requests:
@@ -158,7 +158,7 @@ spec:
       otk: true
     otk:
       enabled: true
-      initContainerImage: docker.io/caapim/otk-install:4.6.4
+      initContainerImage: docker.io/caapim/otk-install:4.7.0
       type: dmz
       # Reference to Internal gateway (can be Gateway name or external hostname)
       internalGatewayReference: otk-ssg-internal
@@ -202,7 +202,7 @@ spec:
       secretName: gateway-secret
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.4
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.5
         dynamicSyncPort: 9443
       cluster:
         hostname: gateway.brcmlabs.com
@@ -233,13 +233,13 @@ kind: Gateway
 metadata:
   name: otk-ssg-internal
 spec:
-  version: "11.1.3"
+  version: "11.2.1"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.3
+    image: docker.io/caapim/gateway:11.2.1
     imagePullPolicy: IfNotPresent
     resources:
       requests:
@@ -257,7 +257,7 @@ spec:
       otk: true
     otk:
       enabled: true
-      initContainerImage: docker.io/caapim/otk-install:4.6.4
+      initContainerImage: docker.io/caapim/otk-install:4.7.0
       type: internal
       # Reference to DMZ gateway (can be Gateway name or external hostname)
       dmzGatewayReference: otk-ssg-dmz
@@ -301,7 +301,7 @@ spec:
       secretName: gateway-secret
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.4
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.5
       cluster:
         hostname: gateway.brcmlabs.com
     service:

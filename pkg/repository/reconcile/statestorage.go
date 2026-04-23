@@ -80,6 +80,7 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 	if err != nil {
 		return fmt.Errorf("failed to connect to state store: %w", err)
 	}
+	defer rc.Close()
 
 	projects, err := util.DetectGraphmanFolders(repositoryPath)
 	if err != nil {
@@ -309,6 +310,7 @@ func GetStateStoreChecksum(ctx context.Context, params Params, statestore securi
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to state store: %w", err)
 	}
+	defer rc.Close()
 
 	bundle, err := rc.Get(ctx, params.Instance.Spec.StateStoreKey).Result()
 	if err != nil {
@@ -390,6 +392,7 @@ func BuildStateStoreRepositoryCache(ctx context.Context, params Params, statesto
 	if err != nil {
 		return fmt.Errorf("failed to connect to state store: %w", err)
 	}
+	defer rc.Close()
 
 	currentStr, err := rc.Get(ctx, params.Instance.Spec.StateStoreKey).Result()
 	if err != nil {

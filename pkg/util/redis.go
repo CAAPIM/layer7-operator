@@ -38,6 +38,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// RedisClient builds a short-lived go-redis client. Callers must Close() when done to release the connection pool.
 func RedisClient(c *v1alpha1.Redis) (rdb *redis.Client, err error) {
 	username := ""
 	if c.Username != "" {

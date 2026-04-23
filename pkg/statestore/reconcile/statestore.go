@@ -68,6 +68,8 @@ func RedisStateStore(ctx context.Context, params Params) error {
 		}
 		return err
 	}
+	defer c.Close()
+
 	ping := c.Ping(ctx)
 
 	pong, err := ping.Result()

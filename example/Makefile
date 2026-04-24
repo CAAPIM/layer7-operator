@@ -250,7 +250,7 @@ pki-otk-dmz: pki-otk
 	-kubectl create secret tls otk-dmz-mtls-secret \
 	  --cert=/tmp/otk-dmz-mtls.crt --key=/tmp/otk-dmz-mtls.key \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	-kubectl create secret generic otk-internal-ca-cert \
+	-kubectl create configmap otk-internal-ca-cert \
 	  --from-file=ca.crt=/tmp/otk-internal-tls.crt \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
@@ -258,8 +258,11 @@ pki-otk-internal: pki-otk
 	-kubectl create secret tls otk-internal-secret \
 	  --cert=/tmp/otk-internal-tls.crt --key=/tmp/otk-internal-tls.key \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	-kubectl create secret generic otk-dmz-mtls-public-cert \
+	-kubectl create configmap otk-dmz-mtls-public-cert \
 	  --from-file=dmz-gateway.crt=/tmp/otk-dmz-mtls.crt \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	-kubectl create configmap otk-dmz-mtls-ca-cert \
+	  --from-file=dmz-gateway-mtls-ca.crt=/tmp/otk-dmz-mtls-ca.crt \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 cassandra:

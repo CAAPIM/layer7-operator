@@ -4071,18 +4071,6 @@ spec:
                       dmzGateway:
                         description: DmzOTKGateway reference if type is internal
                         properties:
-                          name:
-                            description: |-
-                              Name of the gateway
-                              if managing otk gateways across namespaces this must...
-                            type: string
-                          namespace:
-                            description: Namespace of the referenced gateway if managing
-                              gateways cross namespace...
-                            type: string
-                          port:
-                            description: Port of the target gateway
-                            type: integer
                           url:
                             description: |-
                               Url of the target gateway
@@ -4245,18 +4233,6 @@ spec:
                       internalGateway:
                         description: InternalOTKGateway reference if type is dmz
                         properties:
-                          name:
-                            description: |-
-                              Name of the gateway
-                              if managing otk gateways across namespaces this must...
-                            type: string
-                          namespace:
-                            description: Namespace of the referenced gateway if managing
-                              gateways cross namespace...
-                            type: string
-                          port:
-                            description: Port of the target gateway
-                            type: integer
                           url:
                             description: |-
                               Url of the target gateway
@@ -4271,10 +4247,6 @@ spec:
                             description: Enable or disable database maintenance tasks
                             type: boolean
                         type: object
-                      manageCrossNamespace:
-                        description: ManageCrossNamespace allows a cluster-wide layer7
-                          operator to manage...
-                        type: boolean
                       overrides:
                         description: Overrides default OTK install functionality
                         properties:

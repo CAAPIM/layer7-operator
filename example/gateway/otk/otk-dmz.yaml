@@ -5,7 +5,7 @@ metadata:
 spec:
   version: "11.2.1"
   license:
-    accept: false
+    accept: true
     secretName: gateway-license
   app:
     replicas: 2
@@ -16,60 +16,96 @@ spec:
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 2
-    resources:
-      requests:
-        memory: 8Gi
-        cpu: 3
-      limits:
-        memory: 8Gi
-        cpu: 3
+    resources: {}
+      #requests:
+      #  memory: 8Gi
+      #  cpu: 3
+      #limits:
+      #  memory: 8Gi
+      #  cpu: 3
     externalSecrets:
     - name: gateway-secret
       enabled: true
       variableReferencable: true
       description: Gateway Secret
+    # ExternalKey for the OTK
+    externalKeys:
+    - name: otk-dmz-secret
+      enabled: true
+      alias: otk-dmz-key
+      keyUsageType: "SSL"
+    - name: otk-dmz-mtls-secret
+      enabled: true
+      alias: otk-dmz-mtls-key
+      #keyUsageType: [""]
+    externalCerts:
+    - name: otk-dmz-mtls-public-cert
+      enabled: true
+      type: configMap
+      revocationCheckPolicyType: USE_DEFAULT
+      trustedFor: [SSL,SIGNING_SERVER_CERTS]
+      trustAnchor: true
+    - name: otk-internal-ca-cert
+      enabled: true
+      type: configMap
+      revocationCheckPolicyType: USE_DEFAULT
+      trustedFor: [SSL,SIGNING_SERVER_CERTS]
+      trustAnchor: true
     otk:
       enabled: true
-      initContainerImage: docker.io/caapim/otk-install:4.6.2_202402
+      initContainerImage: docker.io/caapim/otk-install:4.7.0
       type: dmz
-      internalGatewayReference: otk-ssg-internal
+      internalGateway:
+        #url: https://gateway-internal-otk.brcmlabs.com:8443
+        url: https://otk-ssg-internal.default.svc.cluster.local:8443
+      port: 443
       database:
         type: mysql
-        create: true
-        connectionName: OAuth
-        auth:
-          # A single secret containing all of the values defined here will be created
-          # if existingSecret is set the corresponding gateway, readOnly or admin will be omitted from the secret
-          # if no values are set, a secret will not be created or referenced and the deployment will be invalidated.
-          # existingSecret: otk-db-secret
-          gateway:
-            username: otk_user
-            password: otkUserPass
-          readOnly:
-           # username: readonly_user
-            username: readonly_user
-            password: readonly_userPass
-          admin:
-           # username: admin
-            username: admin
-            password: adminPass
-        properties:
-          minimumPoolSize: 3
-          maximumPoolSize: 15
-        sql:
-          databaseName: otk_db
-          #jdbcUrl: jdbc:mysql://<host>:<port>/<database>
-          jdbcUrl: jdbc:mysql://mysql.brcmlabs.com:3306/otk_db_init
-          jdbcDriverClass: com.mysql.cj.jdbc.Driver
-          connectionProperties:
-            c3p0.maxConnectionAge: "100"
-            c3p0.maxIdleTime: "1000"
-          manageSchema: true
-          databaseWaitTimeout: 60
+        create: false
+        auth: {}
+        sql: {}
+    customHosts:
+      enabled: false
+      hostAliases:
+      - ip: 10.96.137.129
+        hostnames:
+        - gateway-internal-otk.brcmlabs.com
     autoscaling:
       enabled: false
-    bundle: []
-    repositoryReferences: []
+    bundle:
+      - type: restman
+        source: secret
+        name: restman-bootstrap-bundle
+      - type: graphman
+        source: secret
+        name: graphman-bootstrap-bundle
+    repositoryReferences:
+      - name: l7-gw-myframework
+        enabled: true
+        type: static
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: FRAMEWORK_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-myapis
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: APIS_ENCRYPTION_PASSPHRASE
+      - name: l7-gw-mysubscriptions
+        enabled: true
+        type: dynamic
+        encryption:
+          existingSecret: graphman-encryption-secret
+          key: SUBSCRIPTIONS_ENCRYPTION_PASSPHRASE
+      - name: local-reference-repository
+        enabled: true
+        type: dynamic
+        encryption: {}
+#      - name: otk-customizations-dmz
+#        enabled: false
+#        type: dynamic
+#        encryption: {}
     bootstrap:
       script:
         enabled: true
@@ -96,11 +132,11 @@ spec:
         enabled: false
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.5
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.4
         dynamicSyncPort: 9443
       cluster:
         #password: 7layer
-        hostname: gateway.brcmlabs.com
+        hostname: gateway-dmz-otk.brcmlabs.com
       database:
         enabled: false # this runs the gateway in dbbacked/ephemeral mode
       #  jdbcUrl: "jdbc:mysql://cluster1-haproxy.pxc.svc.cluster.local:3306/ssg"
@@ -122,12 +158,17 @@ spec:
       #- -Dcom.l7tech.bootstrap.autoTrustSslKey=trustAnchor,TrustedFor.SSL,TrustedFor.SAML_ISSUER
     listenPorts:
       harden: true
+      refreshOnKeyChanges: true
       custom:
         enabled: false
       ports: []
     cwp:
       enabled: true
       properties:
+        - name: otk.port
+          value: "443"
+        - name: otk.dmz.private_key.name
+          value: otk-dmz-mtls-key
         - name: io.httpsHostAllowWildcard
           value: "true"
         - name: log.levels
@@ -154,6 +195,7 @@ spec:
         javax.net.ssl.trustStoreType=jks
         com.l7tech.server.clusterStaleNodeCleanupTimeoutSeconds=86400
         # Additional properties go here
+        com.l7tech.server.policy.assertion.ServerHttpRoutingAssertion.refreshOnKeyChanges=true
     service:
       annotations:
         projectcontour.io/upstream-protocol.tls: "8443"
@@ -169,17 +211,21 @@ spec:
       annotations: {}
       tls:
       - hosts: 
-        - gateway-dmz.brcmlabs.com
+        - gateway-dmz-otk.brcmlabs.com
+        - gateway-dmz-otk-pm.brcmlabs.com
         secretName: brcmlabs
       rules:
-      - host: gateway-dmz.brcmlabs.com
-    # containerSecurityContext:
-    #   runAsNonRoot: true
-    #   runAsUser: 1000669998
-    #   capabilities:
-    #     drop:
-    #     - ALL
-    #   allowPrivilegeEscalation: false
-    # podSecurityContext:
-    #   runAsUser: 1000669998
-    #   runAsGroup: 1000669998
+      - host: gateway-dmz-otk.brcmlabs.com
+      - host: gateway-dmz-otk-pm.brcmlabs.com
+        http:
+          paths:
+          - backend:
+              service:
+                name: management
+                port:
+                  name: management
+            path: /
+            pathType: Prefix
+
+
+

@@ -322,14 +322,8 @@ func NewOtkOverrideBundleSecret(gw *securityv1.Gateway) (*corev1.Secret, error) 
 	switch gw.Spec.App.Otk.Type {
 	case securityv1.OtkTypeInternal:
 		gatewayHost = gw.Spec.App.Otk.DmzOTKGateway.Url
-		if gw.Spec.App.Otk.DmzOTKGateway.Port != 0 {
-			otkPort = gw.Spec.App.Otk.DmzOTKGateway.Port
-		}
 	case securityv1.OtkTypeDMZ:
 		gatewayHost = gw.Spec.App.Otk.InternalOTKGateway.Url
-		if gw.Spec.App.Otk.InternalOTKGateway.Port != 0 {
-			otkPort = gw.Spec.App.Otk.InternalOTKGateway.Port
-		}
 	}
 
 	bundleBytes, checksum, err := util.BuildOtkOverrideBundle(mode, gatewayHost, otkPort, includeOtkPort)

@@ -10871,14 +10871,6 @@ leaf certificates for DMZ gateway mTLS client authentication.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>manageCrossNamespace</b></td>
-        <td>boolean</td>
-        <td>
-          ManageCrossNamespace allows a cluster-wide layer7 operator to manage internal/dmz gateways across namespaces
-this is limited to a single kubernetes cluster.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b><a href="#gatewayspecappotkoverrides">overrides</a></b></td>
         <td>object</td>
         <td>
@@ -11510,28 +11502,6 @@ DmzOTKGateway reference if type is internal
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name of the gateway
-if managing otk gateways across namespaces this must match the referenced gateway CR<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>namespace</b></td>
-        <td>string</td>
-        <td>
-          Namespace of the referenced gateway if managing gateways cross namespace (optional)<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>port</b></td>
-        <td>integer</td>
-        <td>
-          Port of the target gateway<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>url</b></td>
         <td>string</td>
         <td>
@@ -11986,28 +11956,6 @@ InternalOTKGateway reference if type is dmz
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name of the gateway
-if managing otk gateways across namespaces this must match the referenced gateway CR<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>namespace</b></td>
-        <td>string</td>
-        <td>
-          Namespace of the referenced gateway if managing gateways cross namespace (optional)<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>port</b></td>
-        <td>integer</td>
-        <td>
-          Port of the target gateway<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>url</b></td>
         <td>string</td>
         <td>

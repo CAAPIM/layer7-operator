@@ -345,9 +345,6 @@ type PortalReference struct {
 type Otk struct {
 	// Enable or disable the OTK initContainer
 	Enabled bool `json:"enabled,omitempty"`
-	// ManageCrossNamespace allows a cluster-wide layer7 operator to manage internal/dmz gateways across namespaces
-	// this is limited to a single kubernetes cluster.
-	ManageCrossNamespace bool `json:"manageCrossNamespace,omitempty"`
 	// InitContainerImage for the initContainer
 	InitContainerImage string `json:"initContainerImage,omitempty"`
 	// InitContainerImagePullPolicy
@@ -393,16 +390,9 @@ type OtkMaintenanceTasks struct {
 }
 
 type GatewayReference struct {
-	// Name of the gateway
-	// if managing otk gateways across namespaces this must match the referenced gateway CR
-	Name string `json:"name,omitempty"`
-	// Namespace of the referenced gateway if managing gateways cross namespace (optional)
-	Namespace string `json:"namespace,omitempty"`
 	// Url of the target gateway
 	// used for post-installation gateway policy configuration
 	Url string `json:"url,omitempty"`
-	// Port of the target gateway
-	Port int `json:"port,omitempty"`
 }
 
 type OtkOverrides struct {

@@ -40,6 +40,19 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        # BROKER_TYPE selects the message transport: "mqtt" (default) or "kafka".
+        # Uncomment and set to "kafka" to enable the Kafka consumer path.
+        # - name: BROKER_TYPE
+        #   value: "kafka"
+        # KAFKA_BOOTSTRAP_SERVERS is the comma-separated list of Kafka broker addresses.
+        # Required when BROKER_TYPE=kafka and the enrollment bundle does not supply
+        # portal.config.kafka.bootstrap.servers, e.g. "kafka:9092".
+        # - name: KAFKA_BOOTSTRAP_SERVERS
+        #   value: "kafka:9092"
+        # KAFKA_TLS_ENABLED=true mounts the Portal Kafka CA cert into /tmp/agent/kafka-ca.crt
+        # and enables TLS for the Kafka connection.
+        # - name: KAFKA_TLS_ENABLED
+        #   value: "true"
         volumeMounts:
           - name: tmp-dir
             mountPath: /tmp/agent

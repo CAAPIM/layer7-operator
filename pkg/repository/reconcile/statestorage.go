@@ -291,6 +291,58 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 	return nil
 }
 
+// ReadStateStorage handles repositories of type "statestore" that read FROM the state store.
+// It fetches the bundle at spec.stateStoreKey from Redis and writes it to the local /tmp cache
+// in the map[string][]byte format expected by buildBundleFromCache in the Gateway reconciler.
+// The commit-tracker file prevents redundant Redis reads when the cache is already current.
+func ReadStateStorage(ctx context.Context, params Params, statestore securityv1alpha1.L7StateStore, commit string) error {
+	tmpPath := "/tmp/statestore/" + params.Instance.Name
+	commitTracker := commit + ".txt"
+	fileName := "latest.json"
+
+	if _, dErr := os.Stat(tmpPath); dErr != nil {
+		_ = os.MkdirAll(tmpPath, 0755)
+	}
+
+	if _, fErr := os.Stat(tmpPath + "/" + commitTracker); fErr == nil {
+		return nil
+	}
+
+	if statestore.Spec.Redis.ExistingSecret != "" {
+		stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, statestore, params)
+		if err != nil {
+			return err
+		}
+		statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
+		statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
+	}
+
+	rc, err := util.RedisClient(&statestore.Spec.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to connect to state store: %w", err)
+	}
+
+	bundleString, err := rc.Get(ctx, params.Instance.Spec.StateStoreKey).Result()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve bundle from state store key %s: %w", params.Instance.Spec.StateStoreKey, err)
+	}
+
+	bundleMap := map[string][]byte{
+		params.Instance.Name + ".json": []byte(bundleString),
+	}
+
+	compressedBundleBytes, err := json.Marshal(bundleMap)
+	if err != nil {
+		return fmt.Errorf("failed to marshal bundle map: %w", err)
+	}
+
+	if err := os.WriteFile(tmpPath+"/"+fileName, compressedBundleBytes, 0755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(tmpPath+"/"+commitTracker, []byte{}, 0755)
+}
+
 func GetStateStoreChecksum(ctx context.Context, params Params, statestore securityv1alpha1.L7StateStore) (commit string, err error) {
 	if params.Instance.Spec.Type != v1.RepositoryTypeStateStore || params.Instance.Spec.StateStoreKey == "" {
 		return "", fmt.Errorf("repository %s in namespace %s does not use a statestore or no statestore key defined, please check your repository configuration", params.Instance.Name, params.Instance.Namespace)

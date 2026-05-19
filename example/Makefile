@@ -46,6 +46,7 @@ portal-example: redis
 	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml -n ${NAMESPACE}
 	@$(MAKE) --silent t=15 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
+	kubectl apply -f ./state-store/portal-state-store.yaml -n ${NAMESPACE}
 	kubectl apply -k ./base -n ${NAMESPACE}
 	kubectl apply -f ./gateway/portal-gateway.yaml -n ${NAMESPACE}
 	helm repo add layer7 https://caapim.github.io/apim-charts/
@@ -275,6 +276,7 @@ enable-otel-l7operator:
 
 uninstall:
 	-kubectl delete -f ./gateway
+	-kubectl delete -f ./state-store/portal-state-store.yaml
 	-kubectl delete -k ./repositories/
 	-kubectl delete -f ./otel-prometheus/collector.yaml
 	-kubectl delete -f ./otel-elastic/collector.yaml

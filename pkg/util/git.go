@@ -178,7 +178,19 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			return "", err
 		}
 
-		return commit.Hash.String(), nil
+		// Re-read HEAD after a successful pull to return the actual new commit SHA.
+		// The pre-pull `commit` captured above reflects the old HEAD; without this
+		// re-read the caller receives the stale SHA and treats the new push as if
+		// nothing changed, causing a one-cycle delay before any commit is detected.
+		newRef, err := r.Head()
+		if err != nil {
+			return "", err
+		}
+		newCommit, err := r.CommitObject(newRef.Hash())
+		if err != nil {
+			return "", err
+		}
+		return newCommit.Hash.String(), nil
 	}
 
 	if err != nil {

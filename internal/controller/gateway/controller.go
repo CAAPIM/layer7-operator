@@ -102,6 +102,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.ConfigMaps, "configMaps"},
 		{reconcile.Deployment, "deployment"},
 		{reconcile.ManagementPod, "management pod"},
+		{reconcile.HandleEphemeralRestarts, "ephemeral restart detection"},
 		{reconcile.ClusterProperties, "cluster properties"},
 		{reconcile.ListenPorts, "listen ports"},
 		{reconcile.ExternalRepository, "repository references"},

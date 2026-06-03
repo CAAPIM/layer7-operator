@@ -101,6 +101,13 @@ const (
 	BundleTypeOTKFips                BundleType = "otk fips"
 )
 
+// podContainerIDAnnotation is the single per-pod annotation that records which
+// container instance last received bundles successfully.  One shared key (rather
+// than one key per bundle type) keeps annotations clean and ensures all bundle
+// types — repositories, CWPs, listen ports, external secrets, external certs,
+// and keys — benefit from restart detection.
+const podContainerIDAnnotation = "security.brcmlabs.com/gateway-container-id"
+
 type GatewayUpdateRequestOpt func(*GatewayUpdateRequest)
 
 type MappingSource struct {
@@ -186,7 +193,8 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			updCntr := 0
 			ready := false
 			for _, pod := range gwUpdReq.podList.Items {
-				if (pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum && pod.ObjectMeta.Labels["management-access"] != "leader") || pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum+"-leader" {
+				checksumOK := (pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum && pod.ObjectMeta.Labels["management-access"] != "leader") || pod.ObjectMeta.Annotations[gwUpdReq.patchAnnotation] == gwUpdReq.checksum+"-leader"
+				if checksumOK {
 					updCntr = updCntr + 1
 				}
 				for _, ps := range pod.Status.ContainerStatuses {
@@ -916,6 +924,92 @@ func WithOTKCerts(otkCerts bool) GatewayUpdateRequestOpt {
 	}
 }
 
+// HandleEphemeralRestarts detects when an ephemeral gateway container has been
+// restarted (the ContainerID changed but the pod object persists with its stale
+// checksum annotations).  When a restart is detected it atomically clears every
+// bundle checksum annotation and writes the new container ID in a single patch,
+// so that every bundle reconciler that follows in the same reconcile loop sees
+// empty checksums and is forced to re-apply its bundle to the fresh container.
+//
+// This must be called before any bundle reconciler (ClusterProperties,
+// ListenPorts, L7Repositories, ExternalSecrets, ExternalCerts, ExternalKeys,
+// OTK) in the reconcile loop.
+func HandleEphemeralRestarts(ctx context.Context, params Params) error {
+	gateway := params.Instance
+	if gateway.Spec.App.Management.Database.Enabled {
+		return nil
+	}
+
+	podList, err := getGatewayPods(ctx, params)
+	if err != nil {
+		return err
+	}
+
+	for i, pod := range podList.Items {
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+
+		currentCID := gatewayContainerID(pod)
+		if currentCID == "" {
+			continue
+		}
+
+		storedCID := pod.ObjectMeta.Annotations[podContainerIDAnnotation]
+		if storedCID == currentCID {
+			continue
+		}
+
+		params.Log.Info("ephemeral gateway container restart detected, clearing bundle checksums for re-apply",
+			"pod", pod.Name,
+			"gateway", gateway.Name,
+			"namespace", gateway.Namespace,
+			"previousCID", storedCID,
+			"currentCID", currentCID,
+		)
+
+		// Build an atomic patch: write the new container ID and zero-out every
+		// bundle checksum annotation already on this pod so that each bundle
+		// reconciler is forced to re-apply to the fresh container.
+		// We scan the pod's live annotations rather than enumerating known keys
+		// so that any bundle type added in the future is handled automatically.
+		// The only security.brcmlabs.com/ annotation that must NOT be cleared is
+		// the OTK policies readiness gate (used as a ready guard in updateGatewayPods).
+		otkPoliciesKey := "security.brcmlabs.com/" + gateway.Name + "-" + string(gateway.Spec.App.Otk.Type) + "-policies"
+		annotations := map[string]string{
+			podContainerIDAnnotation: currentCID,
+		}
+		for key := range pod.ObjectMeta.Annotations {
+			if !strings.HasPrefix(key, "security.brcmlabs.com/") {
+				continue
+			}
+			if key == podContainerIDAnnotation || key == otkPoliciesKey {
+				continue
+			}
+			annotations[key] = ""
+		}
+
+		patchData := map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"annotations": annotations,
+			},
+		}
+		patchBytes, err := json.Marshal(patchData)
+		if err != nil {
+			return err
+		}
+
+		if err := params.Client.Patch(ctx, &podList.Items[i],
+			client.RawPatch(types.StrategicMergePatchType, []byte(patchBytes))); err != nil {
+			params.Log.Error(err, "failed to clear bundle checksums on container restart",
+				"pod", pod.Name, "gateway", gateway.Name)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func SyncGateway(ctx context.Context, params Params, gwUpdReq GatewayUpdateRequest) (err error) {
 	switch gwUpdReq.ephemeral {
 	case true:
@@ -1635,6 +1729,26 @@ func buildBundleFromDirectories(directories []string, bundleMap map[string][]byt
 	return bundleBytes, nil
 }
 
+// gatewayContainerID returns the bare container ID (hex string) for the
+// "gateway" container in the given pod, stripping the runtime prefix
+// (e.g. "containerd://", "docker://", "cri-o://") that Kubernetes prepends.
+// Returns an empty string when the container status is not yet available.
+// The ID changes every time a container is (re)created, making it a reliable
+// signal for detecting restarts even when the pod object persists with its
+// old annotations.
+func gatewayContainerID(pod corev1.Pod) string {
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Name == "gateway" {
+			id := cs.ContainerID
+			if i := strings.Index(id, "://"); i != -1 {
+				return id[i+3:]
+			}
+			return id
+		}
+	}
+	return ""
+}
+
 // cleanupOldBundles removes bundles older than 10 days
 func cleanupOldBundles(tmpPath string) {
 	existingBundles, err := os.ReadDir(tmpPath)
@@ -1897,7 +2011,11 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 			checksum = gwUpdReq.checksum + "-leader"
 		}
 
-		// Skip this pod if it already has the correct checksum and no directory change
+		// Skip this pod if it already has the correct checksum and there is no
+		// directory change.  Restart detection is handled upstream by
+		// HandleEphemeralRestarts which clears the checksum annotations atomically
+		// when a container ID change is observed, so an empty checksum here is the
+		// signal that a re-apply is required.
 		if currentChecksum == checksum && !gwUpdReq.delete {
 			// Check if there's a directory change for repositories
 			if gwUpdReq.bundleType == BundleTypeRepository {
@@ -2014,8 +2132,6 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 		}
 		patch := string(patchBytes)
 
-		// Set update=true if checksums don't match, checksum is empty, or it's a delete
-		// (update may already be true from directory change check above)
 		if currentChecksum != checksum || currentChecksum == "" || gwUpdReq.delete {
 			update = true
 		}
@@ -2062,7 +2178,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				}
 			}
 		} else {
-			// Patch annotation for non-ready pods
+			// Patch annotation for non-ready pods (bootstrap path).
 			if (!ready && gwUpdReq.bundleType == BundleTypeClusterProp) ||
 				(!ready && gwUpdReq.bundleType == BundleTypeListenPort) ||
 				(!ready && gwUpdReq.bundleType == BundleTypeRepository && gwUpdReq.gateway.Spec.App.RepositoryReferenceBootstrap.Enabled && pod.ObjectMeta.Labels["management-access"] != "leader" && !singleton) {

@@ -84,7 +84,7 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 	if !repository.Status.Ready {
 		params.Log.Info("repository not ready", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 
-		localRepoAvailable, err := checkLocalRepoOnFs(params, repository)
+		localRepoAvailable, err := checkLocalRepoOnFs(repository)
 		if err != nil {
 			//return err
 			params.Log.Info("repository not available on local fs", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
@@ -92,12 +92,23 @@ func reconcileDynamicRepository(ctx context.Context, params Params, repoRef secu
 		// If repository not available locally, check if storage secret exists
 		// storageSecret primary use is bootstrap, does not track delta so this is not reliable for delete
 		if !localRepoAvailable {
-			if !gateway.Spec.App.RepositoryReferenceDelete.Enabled && (repository.Status.StorageSecretName != "" && repository.Status.StorageSecretName != "_") {
-				_, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
-				if err != nil {
-					params.Log.V(2).Info("storage secret not found", "secret", repository.Status.StorageSecretName, "repository", repository.Name)
+			// If a state store reference is present the repository controller is expected to
+			// rebuild latest.json from Redis (state store fallback). Return nil to requeue
+			// without error and allow that rebuild to complete before retrying.
+			if repository.Spec.StateStoreReference != "" {
+				params.Log.Info("repository cache not yet available on local filesystem; waiting for state store fallback rebuild",
+					"repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
+				return nil
+			}
+			if repository.Status.StorageSecretName != "" && repository.Status.StorageSecretName != "_" {
+				if rebuildErr := rebuildCacheFromStorageSecret(ctx, params, repository, gateway); rebuildErr != nil {
+					params.Log.V(2).Info("storage secret not found or cache rebuild failed",
+						"secret", repository.Status.StorageSecretName,
+						"repository", repository.Name, "error", rebuildErr.Error())
 					return nil
 				}
+				params.Log.Info("rebuilt local cache from storage secret",
+					"repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 			} else {
 				params.Log.Info("repository not reconcilable via storage secret", "repository", repository.Name, "name", gateway.Name, "namespace", gateway.Namespace)
 				return fmt.Errorf("unable to apply repository reference: %s to gateway: %s in namespace: %s", repository.Name, gateway.Name, gateway.Namespace)

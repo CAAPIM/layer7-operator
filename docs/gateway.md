@@ -3690,7 +3690,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -4791,10 +4790,12 @@ TLSConfig defines config used to secure a route and provide termination
         <td><b>termination</b></td>
         <td>enum</td>
         <td>
-          termination indicates termination type.
+          termination indicates the TLS termination type.
 
 * edge - TLS termination is done by the router and http is used to communicate with the backend (default)
+
 * passthrough - Traffic is sent straight to the destination without the router providing TLS termination
+
 * reencrypt - TLS termination is done by the router and https is used to communicate with the backend
 
 Note: passthrough termination is incompatible with httpHeader actions<br/>
@@ -4836,7 +4837,9 @@ verify.<br/>
 This should be a single serving certificate, not a certificate
 chain. Do not include a CA certificate. The secret referenced should
 be present in the same namespace as that of the Route.
-Forbidden when `certificate` is set.<br/>
+Forbidden when `certificate` is set.
+The router service account needs to be granted with read-only access to this secret,
+please refer to openshift docs for additional details.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4878,6 +4881,8 @@ This should be a single serving certificate, not a certificate
 chain. Do not include a CA certificate. The secret referenced should
 be present in the same namespace as that of the Route.
 Forbidden when `certificate` is set.
+The router service account needs to be granted with read-only access to this secret,
+please refer to openshift docs for additional details.
 
 <table>
     <thead>
@@ -7593,7 +7598,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -10059,7 +10063,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -11618,7 +11621,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -12658,7 +12660,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -17061,7 +17062,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>

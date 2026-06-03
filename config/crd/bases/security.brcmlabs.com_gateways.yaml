@@ -1743,7 +1743,8 @@ spec:
                                   description: key provides key file contents
                                   type: string
                                 termination:
-                                  description: termination indicates termination type.
+                                  description: termination indicates the TLS termination
+                                    type.
                                   enum:
                                   - edge
                                   - reencrypt

@@ -232,7 +232,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				return nil, err
 			}
 		} else {
-			gwUpdReq.bundle, err = buildBundle(ctx, params, gwUpdReq.repositoryReference, gwUpdReq.repository, gwUpdReq.gateway, gwUpdReq.delete)
+			gwUpdReq.bundle, err = buildBundle(params, gwUpdReq.repositoryReference, gwUpdReq.repository, gwUpdReq.gateway, gwUpdReq.delete)
 			if err != nil {
 				return nil, err
 			}
@@ -1068,7 +1068,7 @@ func shouldSkipDeltaComparison(gateway *securityv1.Gateway, repository *security
 }
 
 // buildAndPersistBundleFromCache loads the repository bundle from disk cache and writes it via writeBundlesToDisk.
-func buildAndPersistBundleFromCache(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, cachePath string, cacheFileName string, tmpPath string, fileName string, params Params) ([]byte, error) {
+func buildAndPersistBundleFromCache(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, cachePath string, cacheFileName string, tmpPath string, fileName string, params Params) ([]byte, error) {
 	// Build bundle from cache
 	bundleBytes, err := buildBundleFromCache(repository, repoRef, cachePath, cacheFileName)
 	if err != nil {
@@ -1076,7 +1076,7 @@ func buildAndPersistBundleFromCache(repository *securityv1.Repository, repoRef *
 	}
 
 	// Write to cache and last_applied
-	if err := writeBundlesToDisk(repository, repoRef, gateway, bundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+	if err := writeBundlesToDisk(repository, repoRef, bundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
 		return nil, err
 	}
 
@@ -1084,7 +1084,7 @@ func buildAndPersistBundleFromCache(repository *securityv1.Repository, repoRef *
 }
 
 // handleDirectoryChange handles directory changes with delta calculation
-func handleDirectoryChange(ctx context.Context, params Params, repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, cachePath string, cacheFileName string, tmpPath string, fileName string, previousDirectories []string) ([]byte, error) {
+func handleDirectoryChange(params Params, repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, cachePath string, cacheFileName string, tmpPath string, fileName string, previousDirectories []string) ([]byte, error) {
 	// Step 1: Build new bundle from current directories
 	newBundleBytes, err := buildBundleFromCache(repository, repoRef, cachePath, cacheFileName)
 	if err != nil {
@@ -1121,7 +1121,7 @@ func handleDirectoryChange(ctx context.Context, params Params, repository *secur
 			"previousDirs", previousDirectories,
 			"currentDirs", repoRef.Directories)
 
-		if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+		if err := writeBundlesToDisk(repository, repoRef, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
 			return nil, err
 		}
 		return newBundleBytes, nil
@@ -1136,7 +1136,7 @@ func handleDirectoryChange(ctx context.Context, params Params, repository *secur
 			"repository", repoRef.Name)
 
 		// Just write and return the new bundle
-		if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+		if err := writeBundlesToDisk(repository, repoRef, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
 			return nil, err
 		}
 		return newBundleBytes, nil
@@ -1304,7 +1304,7 @@ func handleDirectoryChange(ctx context.Context, params Params, repository *secur
 	}
 
 	// Step 10: Write bundles to disk
-	if err := writeBundlesToDisk(repository, repoRef, gateway, bundleWithMappings, cleanBundleBytes, tmpPath, fileName, cachePath, params); err != nil {
+	if err := writeBundlesToDisk(repository, repoRef, bundleWithMappings, cleanBundleBytes, tmpPath, fileName, cachePath, params); err != nil {
 		return nil, err
 	}
 
@@ -1317,7 +1317,7 @@ func handleDirectoryChange(ctx context.Context, params Params, repository *secur
 }
 
 // handleCommitChange handles commit changes with optional delta calculation
-func handleCommitChange(ctx context.Context, params Params, repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, cachePath string, cacheFileName string, tmpPath string, fileName string) ([]byte, error) {
+func handleCommitChange(params Params, repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, cachePath string, cacheFileName string, tmpPath string, fileName string) ([]byte, error) {
 	// Step 1: Build new bundle from latest commit
 	newBundleBytes, err := buildBundleFromCache(repository, repoRef, cachePath, cacheFileName)
 	if err != nil {
@@ -1351,7 +1351,7 @@ func handleCommitChange(ctx context.Context, params Params, repository *security
 		}
 
 		// Write and return the bundle (repository controller already added delete mappings)
-		if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+		if err := writeBundlesToDisk(repository, repoRef, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
 			return nil, err
 		}
 		return newBundleBytes, nil
@@ -1364,14 +1364,14 @@ func handleCommitChange(ctx context.Context, params Params, repository *security
 		"commit", repository.Status.Commit)
 
 	// Write and return the bundle as-is (user-defined mappings only)
-	if err := writeBundlesToDisk(repository, repoRef, gateway, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
+	if err := writeBundlesToDisk(repository, repoRef, newBundleBytes, nil, tmpPath, fileName, cachePath, params); err != nil {
 		return nil, err
 	}
 	return newBundleBytes, nil
 }
 
 // writeBundlesToDisk writes bundle versions to disk for caching and retry
-func writeBundlesToDisk(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, gateway *securityv1.Gateway, bundleWithMappings []byte, cleanBundle []byte, tmpPath string, fileName string, cachePath string, params Params) error {
+func writeBundlesToDisk(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, bundleWithMappings []byte, cleanBundle []byte, tmpPath string, fileName string, cachePath string, params Params) error {
 	// Clean up old bundles
 	cleanupOldBundles(tmpPath)
 
@@ -1441,7 +1441,7 @@ func writeBundlesToDisk(repository *securityv1.Repository, repoRef *securityv1.R
 	return nil
 }
 
-func buildBundle(ctx context.Context, params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository, gateway *securityv1.Gateway, delete bool) (bundleBytes []byte, err error) {
+func buildBundle(params Params, repoRef *securityv1.RepositoryReference, repository *securityv1.Repository, gateway *securityv1.Gateway, delete bool) (bundleBytes []byte, err error) {
 	tmpPath := util.GatewayBundleWorkDir(repository.Name, repository.Namespace)
 	fileName := calculateBundleFileName(params.Instance, repoRef.Name, repoRef.Directories)
 
@@ -1470,7 +1470,7 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 	// Step 4: When gateway-side delta comparison is disabled, load from cache and persist only
 	if shouldSkipDeltaComparison(gateway, repository) {
 		params.Log.V(5).Info("building bundle from cache without gateway-side delta comparison", "repository", repoRef.Name)
-		return buildAndPersistBundleFromCache(repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName, params)
+		return buildAndPersistBundleFromCache(repository, repoRef, cachePath, cacheFileName, tmpPath, fileName, params)
 	}
 
 	// Step 5: Check if commit changed
@@ -1515,18 +1515,18 @@ func buildBundle(ctx context.Context, params Params, repoRef *securityv1.Reposit
 	// Step 8: Route to appropriate handler
 	if directoryChanged && gateway.Spec.App.RepositoryReferenceDelete.ReconcileDirectoryChanges {
 		params.Log.V(2).Info("handling directory change with reconciliation", "repository", repoRef.Name)
-		return handleDirectoryChange(ctx, params, repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName, previousDirectories)
+		return handleDirectoryChange(params, repository, repoRef, cachePath, cacheFileName, tmpPath, fileName, previousDirectories)
 	} else if directoryChanged && !gateway.Spec.App.RepositoryReferenceDelete.ReconcileDirectoryChanges {
 		params.Log.V(5).Info("directory changed but reconciliation disabled; persisting bundle from cache without delta", "repository", repoRef.Name)
-		return buildAndPersistBundleFromCache(repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName, params)
+		return buildAndPersistBundleFromCache(repository, repoRef, cachePath, cacheFileName, tmpPath, fileName, params)
 	} else if newCommit {
 		params.Log.V(2).Info("handling commit change", "repository", repoRef.Name, "commit", repository.Status.Commit)
-		return handleCommitChange(ctx, params, repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName)
+		return handleCommitChange(params, repository, repoRef, cachePath, cacheFileName, tmpPath, fileName)
 	}
 
 	// Fallback: persist bundle from cache without gateway-side delta
 	params.Log.V(5).Info("fallback: persisting repository bundle from cache", "repository", repoRef.Name)
-	return buildAndPersistBundleFromCache(repository, repoRef, gateway, cachePath, cacheFileName, tmpPath, fileName, params)
+	return buildAndPersistBundleFromCache(repository, repoRef, cachePath, cacheFileName, tmpPath, fileName, params)
 }
 
 // calculateBundleFileName generates a unique filename based on directories and commit
@@ -1653,7 +1653,7 @@ func cleanupOldBundles(tmpPath string) {
 	}
 }
 
-func checkLocalRepoOnFs(params Params, repository *securityv1.Repository) (bool, error) {
+func checkLocalRepoOnFs(repository *securityv1.Repository) (bool, error) {
 
 	// Check if pre-built bundle cache exists
 	var cachePath string
@@ -1681,7 +1681,40 @@ func checkLocalRepoOnFs(params Params, repository *securityv1.Repository) (bool,
 		}
 	}
 
-	return true, nil
+	return false, nil
+}
+
+// rebuildCacheFromStorageSecret reads the storage secret for this repository and
+// writes its bundle data to the local RepoCacheDir so that buildBundleFromCache
+// can serve the gateway while git/http is unavailable and the local cache is empty.
+// It writes to the file determineCacheLocation expects AND to {commit}.json (the
+// file checkLocalRepoOnFs checks), preventing repeated fallback rebuilds.
+func rebuildCacheFromStorageSecret(ctx context.Context, params Params, repository *securityv1.Repository, gateway *securityv1.Gateway) error {
+	if repository.Status.Commit == "" {
+		return fmt.Errorf("repository %s has no commit in status", repository.Name)
+	}
+	storageSecret, err := getGatewaySecret(ctx, params, repository.Status.StorageSecretName)
+	if err != nil {
+		return err
+	}
+	cacheBytes, err := json.Marshal(storageSecret.Data)
+	if err != nil {
+		return err
+	}
+	cachePath, cacheFileName := determineCacheLocation(repository, gateway)
+	if err := os.MkdirAll(cachePath, 0755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(cachePath, cacheFileName), cacheBytes, 0755); err != nil {
+		return err
+	}
+	// Also write {commit}.json as the presence marker checkLocalRepoOnFs looks for.
+	// When cacheFileName is already {commit}.json this is a no-op write of the same data.
+	commitFile := filepath.Join(cachePath, repository.Status.Commit+".json")
+	if filepath.Join(cachePath, cacheFileName) != commitFile {
+		return os.WriteFile(commitFile, cacheBytes, 0755)
+	}
+	return nil
 }
 
 func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *GatewayUpdateRequest) (err error) {

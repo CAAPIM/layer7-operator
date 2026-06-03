@@ -414,6 +414,46 @@ func BuildStateStoreRepositoryCache(ctx context.Context, params Params, statesto
 	return nil
 }
 
+// RebuildCacheFromStateStore rebuilds the local filesystem bundle cache for a git/http repository
+// that has a StateStoreReference, by reading the last-known-good bundle from Redis and writing it
+// to util.StateStoreCacheDir/latest.json. This is the fallback path invoked when git (or the HTTP
+// endpoint) is unavailable after an operator pod restart wiped the ephemeral filesystem.
+// It returns an error when Redis is unreachable or no prior successful sync exists for this repository.
+func RebuildCacheFromStateStore(ctx context.Context, params Params, statestore securityv1alpha1.L7StateStore) error {
+	storageSecretName, _, _, err := localRepoStorageInfo(params)
+	if err != nil {
+		return fmt.Errorf("could not determine storage secret name: %w", err)
+	}
+
+	if statestore.Spec.Redis.ExistingSecret != "" {
+		stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, statestore, params)
+		if err != nil {
+			return err
+		}
+		statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
+		statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
+	}
+
+	rc, err := util.RedisClient(&statestore.Spec.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to connect to state store: %w", err)
+	}
+	defer rc.Close()
+
+	key := statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":repository:" + storageSecretName + ":latest"
+	bundleMapStr, err := rc.Get(ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("no cached state in state store for key %s: %w", key, err)
+	}
+
+	tmpPath := util.StateStoreCacheDir(params.Instance.Name, params.Instance.Namespace)
+	if err := os.MkdirAll(tmpPath, 0755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(tmpPath+"/latest.json", []byte(bundleMapStr), 0755)
+}
+
 func localRepoStorageInfo(params Params) (storageSecretName string, repositoryPath string, ext string, err error) {
 	ext = params.Instance.Spec.Branch
 	if ext == "" {

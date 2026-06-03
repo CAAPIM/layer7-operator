@@ -149,6 +149,23 @@ func syncRepository(ctx context.Context, params Params) error {
 				return nil
 			}
 			params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
+
+			// If a state store reference is configured and the local cache is missing,
+			// rebuild it from the state store so gateways can continue operating with
+			// the last known good content while the HTTP endpoint is unavailable.
+			if repository.Spec.StateStoreReference != "" {
+				cacheDir := util.StateStoreCacheDir(repository.Name, repository.Namespace)
+				if _, statErr := os.Stat(cacheDir + "/latest.json"); os.IsNotExist(statErr) {
+					if rebuildErr := RebuildCacheFromStateStore(ctx, params, statestore); rebuildErr != nil {
+						params.Log.V(2).Info("http unavailable; state store cache rebuild failed",
+							"name", repository.Name, "namespace", repository.Namespace, "error", rebuildErr.Error())
+					} else {
+						params.Log.Info("http unavailable; rebuilt local cache from state store",
+							"name", repository.Name, "namespace", repository.Namespace)
+					}
+				}
+			}
+
 			attempts := syncRequest.Attempts + 1
 			backoffAttempts := backoffSyncRequest.Attempts + 1
 			syncCache.Update(util.SyncRequest{RequestName: backoffRequestCacheEntry, Attempts: backoffAttempts}, time.Now().Add(360*time.Second).Unix())
@@ -197,6 +214,23 @@ func syncRepository(ctx context.Context, params Params) error {
 
 		if err != nil {
 			params.Log.Info("repository error", "name", repository.Name, "namespace", repository.Namespace, "error", err.Error())
+
+			// If a state store reference is configured and the local cache is missing,
+			// rebuild it from the state store so gateways can continue operating with
+			// the last known good content while git is unavailable.
+			if repository.Spec.StateStoreReference != "" {
+				cacheDir := util.StateStoreCacheDir(repository.Name, repository.Namespace)
+				if _, statErr := os.Stat(cacheDir + "/latest.json"); os.IsNotExist(statErr) {
+					if rebuildErr := RebuildCacheFromStateStore(ctx, params, statestore); rebuildErr != nil {
+						params.Log.V(2).Info("git unavailable; state store cache rebuild failed",
+							"name", repository.Name, "namespace", repository.Namespace, "error", rebuildErr.Error())
+					} else {
+						params.Log.Info("git unavailable; rebuilt local cache from state store",
+							"name", repository.Name, "namespace", repository.Namespace)
+					}
+				}
+			}
+
 			attempts := syncRequest.Attempts + 1
 			syncCache.Update(util.SyncRequest{RequestName: requestCacheEntry, Attempts: attempts}, time.Now().Add(30*time.Second).Unix())
 			err = setRepoReady(ctx, params, patch)

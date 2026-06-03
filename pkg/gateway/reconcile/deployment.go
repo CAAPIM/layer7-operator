@@ -77,34 +77,6 @@ func getOpenShiftUIDRange(ctx context.Context, k8sClient client.Client, namespac
 	return &minUID, &minUID, nil
 }
 
-// applyDefaultCapabilities ensures all init containers and sidecars drop ALL capabilities by default
-// This is a security best practice unless explicitly overridden by the user
-func applyDefaultCapabilities(dep *appsv1.Deployment) {
-	// Apply to all init containers
-	for i := range dep.Spec.Template.Spec.InitContainers {
-		if dep.Spec.Template.Spec.InitContainers[i].SecurityContext == nil {
-			dep.Spec.Template.Spec.InitContainers[i].SecurityContext = &corev1.SecurityContext{}
-		}
-		if dep.Spec.Template.Spec.InitContainers[i].SecurityContext.Capabilities == nil {
-			dep.Spec.Template.Spec.InitContainers[i].SecurityContext.Capabilities = &corev1.Capabilities{
-				Drop: []corev1.Capability{"ALL"},
-			}
-		}
-	}
-
-	// Apply to main container (gateway)
-	for i := range dep.Spec.Template.Spec.Containers {
-		if dep.Spec.Template.Spec.Containers[i].SecurityContext == nil {
-			dep.Spec.Template.Spec.Containers[i].SecurityContext = &corev1.SecurityContext{}
-		}
-		if dep.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities == nil {
-			dep.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{
-				Drop: []corev1.Capability{"ALL"},
-			}
-		}
-	}
-}
-
 // applyOpenShiftSecurityDefaults applies OpenShift-specific security context defaults
 // including UID/GID auto-detection and capability dropping
 func applyOpenShiftSecurityDefaults(ctx context.Context, params Params) {

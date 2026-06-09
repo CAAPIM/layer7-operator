@@ -103,10 +103,10 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	storageSecretName := repository.Name + "-repository-" + ext
 
-	requestCacheEntry := repository.Name
+	requestCacheEntry := repository.Namespace + "/" + repository.Name
 	syncRequest, _ := syncCache.Read(requestCacheEntry)
 
-	backoffRequestCacheEntry := repository.Name + "-backoff"
+	backoffRequestCacheEntry := repository.Namespace + "/" + repository.Name + "-backoff"
 	backoffSyncRequest, _ := syncCache.Read(backoffRequestCacheEntry)
 
 	if backoffSyncRequest.Attempts > 4 {
@@ -135,7 +135,7 @@ func syncRepository(ctx context.Context, params Params) error {
 		if repository.Status.Summary != repository.Spec.Endpoint {
 			forceUpdate = true
 		}
-		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Name, forceUpdate, repository.Namespace)
+		commit, err = util.DownloadArtifact(repository.Spec.Endpoint, username, token, repository.Name, forceUpdate, repository.Namespace, repository.Spec.InsecureSkipVerify)
 		if err != nil {
 			if err == util.ErrInvalidFileFormatError || err == util.ErrInvalidTarArchive || err == util.ErrInvalidZipArchive {
 				params.Log.Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
@@ -197,7 +197,7 @@ func syncRepository(ctx context.Context, params Params) error {
 			return nil
 		}
 	case "git":
-		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace)
+		commit, err = util.CloneRepository(repository.Spec.Endpoint, username, token, sshKey, sshKeyPass, repository.Spec.Branch, repository.Spec.Tag, repository.Spec.RemoteName, repository.Name, repository.Spec.Auth.Vendor, string(authType), knownHosts, repository.Namespace, repository.Spec.InsecureSkipVerify)
 		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
 			params.Log.V(5).Info(err.Error(), "name", repository.Name, "namespace", repository.Namespace)
 
@@ -347,6 +347,8 @@ func syncRepository(ctx context.Context, params Params) error {
 		}
 	}
 
+	prevCommit := params.Instance.Status.Commit
+
 	err = updateStatus(ctx, params, commit, storageSecretName, stateStoreSynced)
 	if err != nil {
 		_ = captureRepositorySyncMetrics(ctx, params, start, commit, true)
@@ -355,7 +357,9 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	_ = captureRepositorySyncMetrics(ctx, params, start, commit, false)
-	params.Log.Info("reconciled", "name", repository.Name, "namespace", repository.Namespace, "commit", commit)
+	if commit != prevCommit || prevCommit == "" {
+		params.Log.Info("reconciled", "name", repository.Name, "namespace", repository.Namespace, "commit", commit)
+	}
 	return nil
 }
 

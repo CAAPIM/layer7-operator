@@ -6,17 +6,25 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
+
+// restResponseLimit caps the number of bytes read from any HTTP response body
+// returned by RestCall, mirroring the decompression limit used in archive.go.
+const restResponseLimit = maxDecompressedSize
 
 func RestCall(method string, URL string, insecureSkipVerify bool, headers map[string]string, contentType string, data []byte, username string, password string) ([]byte, error) {
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify}, //nolint:gosec
 	}
-	client := &http.Client{Transport: tr,
+	client := &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: tr,
 		CheckRedirect: func(r *http.Request, via []*http.Request) error {
 			r.URL.Opaque = r.URL.Path
 			return nil
-		}}
+		},
+	}
 
 	req, err := http.NewRequest(method, URL, strings.NewReader(string(data)))
 	if err != nil {
@@ -43,7 +51,7 @@ func RestCall(method string, URL string, insecureSkipVerify bool, headers map[st
 
 	defer resp.Body.Close()
 
-	bytes, err := io.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(io.LimitReader(resp.Body, restResponseLimit))
 	if err != nil {
 		return []byte{}, err
 	}

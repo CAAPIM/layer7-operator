@@ -72,6 +72,10 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 				ref = params.Instance.Spec.Branch
 			}
 
+			if err = util.ValidateRef(ref); err != nil {
+				return err
+			}
+
 			err = os.RemoveAll("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ref)
 
 			if err != nil {
@@ -82,9 +86,10 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 			path := fileURL.Path
 			segments := strings.Split(path, "/")
 			fileName := segments[len(segments)-1]
-			ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+			parts := strings.Split(fileName, ".")
+			ext := parts[len(parts)-1]
 			folderName := strings.ReplaceAll(fileName, "."+ext, "")
-			if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+			if ext == "gz" && len(parts) >= 2 && parts[len(parts)-2] == "tar" {
 				folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 			}
 

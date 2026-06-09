@@ -499,7 +499,12 @@ func parseCacString(entityType string, configFile string, f interface{}) (string
 	match := matchOptionsLevelFormat(v.String())
 	if match != "" {
 		dir, _ := filepath.Split(configFile)
-		fBytes, err := os.ReadFile(dir + match)
+		cleanDir := filepath.Clean(dir)
+		target := filepath.Clean(filepath.Join(dir, match))
+		if !strings.HasPrefix(target, cleanDir+string(os.PathSeparator)) {
+			return "", fmt.Errorf("bundle reference %q escapes repository directory", match)
+		}
+		fBytes, err := os.ReadFile(target)
 		if err != nil {
 			return "", err
 		}

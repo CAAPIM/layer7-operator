@@ -28,12 +28,12 @@ func syncPortal(ctx context.Context, params Params) {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: params.Instance.Name, Namespace: params.Instance.Namespace}, l7Portal)
 	if err != nil && k8serrors.IsNotFound(err) {
 		params.Log.Info("portal not found", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
-		_ = removeJob(params.Instance.Name + "-sync-portal")
+		_ = removeJob(params.Instance.Namespace + "/" + params.Instance.Name + "-sync-portal")
 		return
 	}
 
 	if !l7Portal.Spec.Enabled {
-		_ = removeJob(params.Instance.Name + "-sync-portal")
+		_ = removeJob(params.Instance.Namespace + "/" + params.Instance.Name + "-sync-portal")
 		return
 	}
 

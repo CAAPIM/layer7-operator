@@ -122,11 +122,13 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		return err
 	}
 
+	redisKey := statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":repository:" + params.Instance.Namespace + ":" + storageSecretName + ":latest"
+
 	// check for previous version - statestore may be empty
-	stateStoreBundleMapString, err := rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest").Result()
+	stateStoreBundleMapString, err := rc.Get(ctx, redisKey).Result()
 	if err != nil {
 		// if the previous version can't be retrieved, write the current version
-		rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", compressedBundleBytes, 0)
+		rs := rc.Set(ctx, redisKey, compressedBundleBytes, 0)
 		if rs.Err() != nil {
 			return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
 		}
@@ -274,7 +276,7 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		return err
 	}
 
-	rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", compressedBundleBytes, 0)
+	rs := rc.Set(ctx, redisKey, compressedBundleBytes, 0)
 	if rs.Err() != nil {
 		return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
 	}
@@ -440,7 +442,7 @@ func RebuildCacheFromStateStore(ctx context.Context, params Params, statestore s
 	}
 	defer rc.Close()
 
-	key := statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":repository:" + storageSecretName + ":latest"
+	key := statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":repository:" + params.Instance.Namespace + ":" + storageSecretName + ":latest"
 	bundleMapStr, err := rc.Get(ctx, key).Result()
 	if err != nil {
 		return fmt.Errorf("no cached state in state store for key %s: %w", key, err)

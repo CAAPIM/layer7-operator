@@ -91,7 +91,7 @@ type GraphmanOtkConfig struct {
 	InternalGatewayReference string `json:"internalGatewayReference,omitempty"`
 }
 
-func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, password string, target string, encpass string, delete bool) error {
+func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, password string, target string, encpass string, delete bool, insecureSkipVerify bool) error {
 	bundle := graphman.Bundle{}
 	var err error
 
@@ -126,21 +126,17 @@ func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, 
 	}
 
 	if !delete {
-		_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+		_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes, insecureSkipVerify)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, err = graphman.DeleteDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+		_, err = graphman.DeleteDynamicBundle(username, password, "https://"+target, encpass, bundleBytes, insecureSkipVerify)
 		if err != nil {
 			return err
 		}
 	}
 
-	// _, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
-	// if err != nil {
-	// 	return err
-	// }
 	return nil
 }
 
@@ -154,6 +150,9 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 		certsChain := []string{}
 		for crt := range crtStrings {
 			b, _ := pem.Decode([]byte(crtStrings[crt]))
+			if b == nil {
+				continue
+			}
 			crtX509, _ := x509.ParseCertificate(b.Bytes)
 			crtsX509 = append(crtsX509, *crtX509)
 			certsChain = append(certsChain, crtStrings[crt])
@@ -216,6 +215,9 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 
 	for _, cert := range certs {
 		b, _ := pem.Decode([]byte(cert.Crt))
+		if b == nil {
+			continue
+		}
 		crtX509, _ := x509.ParseCertificate(b.Bytes)
 
 		tf := []graphman.TrustedForType{}
@@ -336,8 +338,8 @@ func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret, notFound []strin
 	return bundleBytes, nil
 }
 
-func ApplyGraphmanBundle(username string, password string, target string, encpass string, bundle []byte) error {
-	_, err := graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundle)
+func ApplyGraphmanBundle(username string, password string, target string, encpass string, bundle []byte, insecureSkipVerify bool) error {
+	_, err := graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundle, insecureSkipVerify)
 
 	if err != nil {
 		return err
@@ -345,8 +347,8 @@ func ApplyGraphmanBundle(username string, password string, target string, encpas
 	return nil
 }
 
-func RemoveL7API(username string, password string, target string, apiName string, policyFragmentName string, secretNames []string) error {
-	_, err := graphman.RemoveL7PortalApi(username, password, "https://"+target, apiName, policyFragmentName, secretNames)
+func RemoveL7API(username string, password string, target string, apiName string, policyFragmentName string, secretNames []string, insecureSkipVerify bool) error {
+	_, err := graphman.RemoveL7PortalApi(username, password, "https://"+target, apiName, policyFragmentName, secretNames, insecureSkipVerify)
 	if err != nil {
 		return err
 	}

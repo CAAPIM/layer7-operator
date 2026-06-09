@@ -75,6 +75,12 @@ type RepositorySpec struct {
 	// Auth contains a reference to the credentials required to connect to your Git repository
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Auth"
 	Auth RepositoryAuth `json:"auth,omitempty"`
+	// InsecureSkipVerify disables TLS certificate verification for all repository
+	// types (http, git). For git repositories this is OR-combined with the legacy
+	// -insecure vendor flag: either condition set to true enables insecure mode.
+	// Should only be set to true for internal repositories using self-signed certificates.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="InsecureSkipVerify"
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
 //+kubebuilder:object:root=true

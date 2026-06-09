@@ -36,9 +36,32 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	gossh "golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-func CloneRepository(url string, username string, token string, privateKey []byte, privateKeyPass string, branch string, tag string, remoteName string, name string, vendor string, authType string, knownHosts []byte, namespace string) (string, error) {
+// ValidateRef rejects branch and tag values that contain path traversal
+// sequences or separator characters to prevent os.RemoveAll / path construction
+// from escaping /tmp.
+func ValidateRef(ref string) error {
+	if strings.Contains(ref, "..") || strings.ContainsAny(ref, "/\\") {
+		return fmt.Errorf("branch/tag %q contains invalid characters", ref)
+	}
+	return nil
+}
+
+func CloneRepository(url string, username string, token string, privateKey []byte, privateKeyPass string, branch string, tag string, remoteName string, name string, vendor string, authType string, knownHosts []byte, namespace string, insecureSkipVerify bool) (string, error) {
+	if branch != "" {
+		if err := ValidateRef(branch); err != nil {
+			return "", err
+		}
+	}
+	if tag != "" {
+		if err := ValidateRef(tag); err != nil {
+			return "", err
+		}
+	}
+
 	if remoteName == "" {
 		remoteName = "origin"
 	}
@@ -63,7 +86,7 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 		cloneOpts.URL = url
 	}
 
-	if strings.Contains(strings.ToLower(vendor), "insecure") {
+	if insecureSkipVerify || strings.Contains(strings.ToLower(vendor), "insecure") {
 		cloneOpts.InsecureSkipTLS = true
 		pullOpts.InsecureSkipTLS = true
 	}
@@ -91,45 +114,11 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 		cloneOpts.Auth = publicKeys
 		pullOpts.Auth = publicKeys
 
-		if os.Getenv("SSH_KNOWN_HOSTS") != "/tmp/known_hosts" {
-			os.Setenv("SSH_KNOWN_HOSTS", "/tmp/known_hosts")
-		}
-		var newKnownHosts string
-		currentKnownHosts, err := os.ReadFile("/tmp/known_hosts")
+		cb, err := knownHostsCallbackFromBytes(knownHosts)
 		if err != nil {
-			err = os.WriteFile("/tmp/known_hosts", knownHosts, 0644)
-			if err != nil {
-				return "", err
-			}
-		} else {
-			if len(currentKnownHosts) == 0 {
-				newKnownHosts = string(knownHosts)
-			}
-			for _, c := range strings.Split(string(currentKnownHosts), "\n") {
-				if !strings.Contains(newKnownHosts, c) {
-					if newKnownHosts == "" {
-						newKnownHosts = c
-					} else {
-						newKnownHosts = newKnownHosts + "\n" + c
-					}
-
-					for _, n := range strings.Split(string(knownHosts), "\n") {
-						if !strings.Contains(newKnownHosts, n) {
-							if newKnownHosts == "" {
-								newKnownHosts = n
-							} else {
-								newKnownHosts = newKnownHosts + "\n" + n
-							}
-						}
-					}
-				}
-			}
-
-			err = os.WriteFile("/tmp/known_hosts", []byte(newKnownHosts), 0644)
-			if err != nil {
-				return "", err
-			}
+			return "", fmt.Errorf("failed to parse known_hosts: %w", err)
 		}
+		publicKeys.HostKeyCallback = cb
 
 	case "basic":
 		if username != "" && token != "" {
@@ -205,4 +194,26 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 	}
 
 	return commit.Hash.String(), nil
+}
+
+// knownHostsCallbackFromBytes builds a per-repository SSH HostKeyCallback from
+// raw known_hosts bytes without touching any process-wide file or environment
+// variable. It writes to a unique temp file, lets knownhosts.New parse it into
+// an in-memory closure, then removes the file immediately.
+func knownHostsCallbackFromBytes(data []byte) (gossh.HostKeyCallback, error) {
+	f, err := os.CreateTemp("", "layer7-known-hosts-*")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(f.Name())
+
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		return nil, err
+	}
+	if err := f.Close(); err != nil {
+		return nil, err
+	}
+
+	return knownhosts.New(f.Name())
 }

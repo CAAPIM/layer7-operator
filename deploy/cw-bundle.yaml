@@ -7403,6 +7403,10 @@ spec:
               endpoint:
                 description: Endoint - Git repository endpoint
                 type: string
+              insecureSkipVerify:
+                description: InsecureSkipVerify disables TLS certificate verification
+                  for all...
+                type: boolean
               labels:
                 additionalProperties:
                   type: string

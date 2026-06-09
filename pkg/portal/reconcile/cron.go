@@ -37,7 +37,7 @@ func registerJobs(ctx context.Context, params Params) {
 		portalSyncInterval = params.Instance.Spec.SyncIntervalSeconds
 	}
 
-	_, err := s.Every(portalSyncInterval).Seconds().Tag(params.Instance.Name+"-sync-portal").Do(syncPortal, ctx, params)
+	_, err := s.Every(portalSyncInterval).Seconds().Tag(params.Instance.Namespace+"/"+params.Instance.Name+"-sync-portal").Do(syncPortal, ctx, params)
 
 	if err != nil {
 		params.Log.V(2).Info("portal sync job already registered", "name", params.Instance.Name, "namespace", params.Instance.Namespace)

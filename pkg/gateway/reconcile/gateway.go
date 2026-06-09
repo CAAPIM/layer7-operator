@@ -77,6 +77,7 @@ type GatewayUpdateRequest struct {
 	podList                      *corev1.PodList
 	deployment                   *appsv1.Deployment
 	externalEntities             []ExternalEntity
+	insecureSkipVerify           bool
 }
 
 type ExternalEntity struct {
@@ -142,7 +143,10 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 		return nil, fmt.Errorf("could not retrieve gateway credentials for %s", name)
 	}
 
-	gwUpdReq := &GatewayUpdateRequest{username: username, password: password, graphmanPort: graphmanPort, gateway: gateway}
+	// Graphman is always reached via pod IP; TLS certificates are issued for hostnames,
+	// so certificate verification against a raw IP will always fail. Always skip TLS
+	// verification for pod-IP-based graphman connections.
+	gwUpdReq := &GatewayUpdateRequest{username: username, password: password, graphmanPort: graphmanPort, gateway: gateway, insecureSkipVerify: true}
 
 	for _, opt := range opts {
 		opt(gwUpdReq)
@@ -494,11 +498,14 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				for _, pemStr := range certPEMData {
 					crtStrings := strings.SplitAfter(pemStr, "-----END CERTIFICATE-----")
 					crtStrings = crtStrings[:len(crtStrings)-1]
-					for crt := range crtStrings {
-						b, _ := pem.Decode([]byte(crtStrings[crt]))
-						crtX509, _ := x509.ParseCertificate(b.Bytes)
+				for crt := range crtStrings {
+					b, _ := pem.Decode([]byte(crtStrings[crt]))
+					if b == nil {
+						continue
+					}
+					crtX509, _ := x509.ParseCertificate(b.Bytes)
 
-						gmanCert := util.GraphmanCert{
+					gmanCert := util.GraphmanCert{
 							Name:                      crtX509.Subject.CommonName,
 							Crt:                       crtStrings[crt],
 							VerifyHostname:            externalCert.VerifyHostname,
@@ -1464,18 +1471,16 @@ func handleCommitChange(params Params, repository *securityv1.Repository, repoRe
 	return newBundleBytes, nil
 }
 
-// writeBundlesToDisk writes bundle versions to disk for caching and retry
+// writeBundlesToDisk writes bundle versions to disk for caching and retry.
+// Bundle files are written before the commit marker so that the marker's existence
+// signals both the bundle and the marker are consistent. If the process terminates
+// between the bundle write and the marker write the next reconcile cycle will not
+// find the marker and will re-read from the authoritative source.
 func writeBundlesToDisk(repository *securityv1.Repository, repoRef *securityv1.RepositoryReference, bundleWithMappings []byte, cleanBundle []byte, tmpPath string, fileName string, cachePath string, params Params) error {
 	// Clean up old bundles
 	cleanupOldBundles(tmpPath)
 
-	// Write commit marker
-	commitMarkerPath := tmpPath + "/" + repository.Status.Commit + ".txt"
-	if err := os.WriteFile(commitMarkerPath, []byte{}, 0755); err != nil {
-		return fmt.Errorf("failed to write commit marker: %w", err)
-	}
-
-	// Write clean bundle (if provided)
+	// Write clean bundle (if provided) BEFORE the commit marker
 	if cleanBundle != nil {
 		// Write to tmpPath for immediate access
 		cleanBundlePath := tmpPath + "/" + fileName
@@ -1531,6 +1536,12 @@ func writeBundlesToDisk(repository *securityv1.Repository, repoRef *securityv1.R
 		return fmt.Errorf("failed to write last applied bundle to cache: %w", err)
 	}
 	params.Log.V(5).Info("wrote last applied bundle to cache", "path", lastAppliedCachePath)
+
+	// Write commit marker LAST — its presence signals the bundle files are consistent
+	commitMarkerPath := tmpPath + "/" + repository.Status.Commit + ".txt"
+	if err := os.WriteFile(commitMarkerPath, []byte{}, 0755); err != nil {
+		return fmt.Errorf("failed to write commit marker: %w", err)
+	}
 
 	return nil
 }
@@ -1597,12 +1608,23 @@ func buildBundle(params Params, repoRef *securityv1.RepositoryReference, reposit
 				params.Log.V(5).Info("returning cached bundle with mappings (no changes)", "repository", repoRef.Name)
 				return bundleWithMappings, nil
 			}
-		}
-
-		// Otherwise use the clean bundle
-		if cachedBundle, err := os.ReadFile(tmpPath + "/" + fileName); err == nil {
-			params.Log.V(5).Info("returning cached bundle (no changes)", "repository", repoRef.Name)
-			return cachedBundle, nil
+			// Statestore repos: latest.json is authoritative and is updated by StateStorage independently
+			// of the gateway reconcile cycle. The gateway-side {fileName} cache can diverge from it.
+			// Do not return the stale cache — fall through so the fallback re-reads latest.json fresh.
+			if repository.Spec.StateStoreReference != "" {
+				params.Log.V(5).Info("statestore repo: no change detected, re-reading latest.json", "repository", repoRef.Name)
+				// intentional fall-through to fallback
+			} else {
+				if cachedBundle, err := os.ReadFile(tmpPath + "/" + fileName); err == nil {
+					params.Log.V(5).Info("returning cached bundle (no changes)", "repository", repoRef.Name)
+					return cachedBundle, nil
+				}
+			}
+		} else {
+			if cachedBundle, err := os.ReadFile(tmpPath + "/" + fileName); err == nil {
+				params.Log.V(5).Info("returning cached bundle (no changes)", "repository", repoRef.Name)
+				return cachedBundle, nil
+			}
 		}
 	}
 
@@ -1947,7 +1969,7 @@ func updateGatewayDeployment(ctx context.Context, params Params, gwUpdReq *Gatew
 		start := time.Now()
 
 		params.Log.V(5).Info("graphman bundle reconcile", "stage", "starting", "operation", graphmanOp, "bundleType", string(gwUpdReq.bundleType), "bundleName", gwUpdReq.bundleName, "checksum", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "gateway", gwUpdReq.gateway.Name, "gatewayNamespace", gwUpdReq.gateway.Namespace)
-		err = util.ApplyToGraphmanTarget(gwUpdReq.bundle, true, gwUpdReq.username, gwUpdReq.password, endpoint, gwUpdReq.graphmanEncryptionPassphrase, gwUpdReq.delete)
+		err = util.ApplyToGraphmanTarget(gwUpdReq.bundle, true, gwUpdReq.username, gwUpdReq.password, endpoint, gwUpdReq.graphmanEncryptionPassphrase, gwUpdReq.delete, gwUpdReq.insecureSkipVerify)
 		if err != nil {
 			params.Log.Info("graphman bundle reconcile", "stage", "failed", "operation", graphmanOp, "bundleType", string(gwUpdReq.bundleType), "bundleName", gwUpdReq.bundleName, "checksum", gwUpdReq.checksum, "deployment", gwUpdReq.deployment.Name, "gateway", gwUpdReq.gateway.Name, "gatewayNamespace", gwUpdReq.gateway.Namespace)
 			_ = captureGraphmanMetrics(ctx, params, start, gwUpdReq.deployment.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, gwUpdReq.checksum, true)
@@ -2161,7 +2183,7 @@ func updateGatewayPods(ctx context.Context, params Params, gwUpdReq *GatewayUpda
 				start := time.Now()
 
 				params.Log.V(5).Info("graphman bundle reconcile", "stage", "starting", "operation", graphmanOp, "bundleType", string(gwUpdReq.bundleType), "bundleName", gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "gateway", gwUpdReq.gateway.Name, "gatewayNamespace", gwUpdReq.gateway.Namespace)
-				err = util.ApplyToGraphmanTarget(gwUpdReq.bundle, singleton, gwUpdReq.username, gwUpdReq.password, endpoint, gwUpdReq.graphmanEncryptionPassphrase, gwUpdReq.delete)
+				err = util.ApplyToGraphmanTarget(gwUpdReq.bundle, singleton, gwUpdReq.username, gwUpdReq.password, endpoint, gwUpdReq.graphmanEncryptionPassphrase, gwUpdReq.delete, gwUpdReq.insecureSkipVerify)
 				if err != nil {
 					params.Log.Info("graphman bundle reconcile", "stage", "failed", "operation", graphmanOp, "bundleType", string(gwUpdReq.bundleType), "bundleName", gwUpdReq.bundleName, "checksum", checksum, "pod", pod.Name, "gateway", gwUpdReq.gateway.Name, "gatewayNamespace", gwUpdReq.gateway.Namespace)
 					_ = captureGraphmanMetrics(ctx, params, start, pod.Name, string(gwUpdReq.bundleType), gwUpdReq.bundleName, checksum, true)
@@ -2276,8 +2298,12 @@ func parseGatewaySecret(gwSecret *corev1.Secret) (string, string) {
 	if string(gwSecret.Data["node.properties"]) != "" {
 		usernameRe := regexp.MustCompile(`(?m)(admin.user=)(.*)`)
 		passwordRe := regexp.MustCompile(`(?m)(admin.pass=)(.*)`)
-		username = usernameRe.FindStringSubmatch(string(gwSecret.Data["node.properties"]))[2]
-		password = passwordRe.FindStringSubmatch(string(gwSecret.Data["node.properties"]))[2]
+		if m := usernameRe.FindStringSubmatch(string(gwSecret.Data["node.properties"])); len(m) > 2 {
+			username = m[2]
+		}
+		if m := passwordRe.FindStringSubmatch(string(gwSecret.Data["node.properties"])); len(m) > 2 {
+			password = m[2]
+		}
 	} else {
 		username = string(gwSecret.Data["SSG_ADMIN_USERNAME"])
 		password = string(gwSecret.Data["SSG_ADMIN_PASSWORD"])

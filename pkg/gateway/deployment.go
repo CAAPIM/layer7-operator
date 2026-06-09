@@ -978,7 +978,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	if gw.Spec.App.Otel.OtelSDKOnly.Enabled {
-		resourceAttributes := "k8s.container.name=$(CONTAINER_NAME),k8s.deployment.name=$(OTEL_SERVICE_NAME),service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(NAMESPACE),k8s.node.name=$(NODE_NAME),k8s.pod.name=$(POD_NAME),service.version='" + strings.Split(gw.Spec.App.Image, ":")[1] + "'"
+		imageParts := strings.SplitN(gw.Spec.App.Image, ":", 2)
+		imageTag := "unknown"
+		if len(imageParts) == 2 {
+			imageTag = imageParts[1]
+		}
+		resourceAttributes := "k8s.container.name=$(CONTAINER_NAME),k8s.deployment.name=$(OTEL_SERVICE_NAME),service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(NAMESPACE),k8s.node.name=$(NODE_NAME),k8s.pod.name=$(POD_NAME),service.version='" + imageTag + "'"
 		if len(gw.Spec.App.Otel.AdditionalResourceAttritbutes) > 0 {
 			additionalResourceAttributes := []string{}
 			for _, attr := range gw.Spec.App.Otel.AdditionalResourceAttritbutes {

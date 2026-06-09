@@ -131,20 +131,26 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	start := time.Now()
 	for _, op := range ops {
-		r.muTasks.Lock()
-		err = op.Run(ctx, params)
-		if err != nil {
+		if err = r.runOp(ctx, params, op); err != nil {
 			_ = captureMetrics(ctx, params, start, true, op.Name)
-			// record failures here
-			r.muTasks.Unlock()
 			return ctrl.Result{}, err
 		}
-		r.muTasks.Unlock()
 	}
 
 	_ = captureMetrics(ctx, params, start, false, "")
 
 	return ctrl.Result{RequeueAfter: 12 * time.Hour}, nil
+}
+
+// runOp executes a single reconcile operation under the task mutex.
+// Using a dedicated method ensures the deferred unlock fires when this
+// call returns rather than at the end of the outer Reconcile function,
+// which is what would happen if defer were placed inside the loop.
+// This also guarantees the mutex is always released even when op.Run panics.
+func (r *GatewayReconciler) runOp(ctx context.Context, params reconcile.Params, op ReconcileOperations) error {
+	r.muTasks.Lock()
+	defer r.muTasks.Unlock()
+	return op.Run(ctx, params)
 }
 
 func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {

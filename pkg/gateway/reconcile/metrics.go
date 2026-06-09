@@ -70,6 +70,12 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 		return err
 	}
 
+	imageParts := strings.SplitN(gateway.Spec.App.Image, ":", 2)
+	imageTag := "unknown"
+	if len(imageParts) == 2 {
+		imageTag = imageParts[1]
+	}
+
 	duration := time.Since(start)
 	graphmanApplyLatency.Record(ctx, duration.Seconds(),
 		metric.WithAttributes(
@@ -79,7 +85,7 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 			attribute.String("gateway_pod", podName),
 			attribute.String("bundle_type", bundleType),
 			attribute.String("gateway_name", gateway.Name),
-			attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
+			attribute.String("gateway_version", imageTag)))
 
 	graphmanRequestTotal.Add(ctx, 1,
 		metric.WithAttributes(
@@ -87,7 +93,7 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 			attribute.String("k8s.namespace.name", operatorNamespace),
 			attribute.String("gateway_namespace", gateway.Namespace),
 			attribute.String("gateway_name", gateway.Name),
-			attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1])))
+			attribute.String("gateway_version", imageTag)))
 
 	if hasError {
 		graphmanRequestFailure.Add(ctx, 1,
@@ -100,7 +106,7 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 				attribute.String("bundle_name", bundleName),
 				attribute.String("gateway_pod", podName),
 				attribute.String("gateway_name", gateway.Name),
-				attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1]),
+				attribute.String("gateway_version", imageTag),
 				attribute.String("applied_time", time.Now().UTC().String())))
 	} else {
 		graphmanRequestSuccess.Add(ctx, 1,
@@ -113,7 +119,7 @@ func captureGraphmanMetrics(ctx context.Context, params Params, start time.Time,
 				attribute.String("bundle_name", bundleName),
 				attribute.String("gateway_pod", podName),
 				attribute.String("gateway_name", gateway.Name),
-				attribute.String("gateway_version", strings.Split(gateway.Spec.App.Image, ":")[1]),
+				attribute.String("gateway_version", imageTag),
 				attribute.String("applied_time", time.Now().UTC().String())))
 	}
 

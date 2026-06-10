@@ -2,12 +2,14 @@
 These examples cover a broader set of the features that the Layer7 Operator provides and serve as a starting point for implementing these in your own environments or just trying them out.
 
 ## Prerequisites
-- Kubernetes v1.29+
+- Kubernetes v1.34+
 - Gateway v11.x License
 - Ingress Controller (You can also expose Gateway Services as L4 LoadBalancers)
 - Accept the Gateway License
   - license.accept defaults to false in all of the [Gateway examples](./gateway/)
   - update license.accept to true before proceeding
+
+> **Breaking change for users upgrading from v1.2.x or earlier:** All example Gateway YAML files and the `Makefile` quickstart now use **[Contour](https://projectcontour.io/)** as the ingress controller (`ingressClassName: contour`, `projectcontour.io/upstream-protocol.tls` annotations). If you were using the previous nginx-based examples, your ingress configuration is **incompatible** and must be updated. Replace `ingressClassName: nginx` with `ingressClassName: contour` and substitute any `nginx.ingress.kubernetes.io/*` annotations with their Contour equivalents. Run `make contour` (or `make contour-kind` for Kind clusters) to install Contour before applying the examples.
 
 The basic and advanced examples can be run in a single namespace, The OTel Examples require multiple namespaces for the additional components. Your Kubernetes user or service account must have sufficient privileges to create namespaces, deployments, configmaps, secrets, service accounts, roles, etc..
 

@@ -670,7 +670,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
 
-	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.4"
+	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.5"
 	graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
 	graphmanInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -786,7 +786,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	otkDbInitContainer := false
 	otkBootstrapDirectory := "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK"
 	otkInitContainerVolumeMounts := []corev1.VolumeMount{}
-	otkInitContainerImage := "docker.io/caapim/otk-install:4.6.2_202402"
+	otkInitContainerImage := "docker.io/caapim/otk-install:4.7.0"
 	otkInitContainerImagePullPolicy := corev1.PullIfNotPresent
 	otkInitContainerSecurityContext := corev1.SecurityContext{}
 

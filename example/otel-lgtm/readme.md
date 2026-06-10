@@ -19,7 +19,7 @@ As part of this guide we will deploy the following components
 ![grafana-stack](./images/grafana-stack-diagram.png)
 
 ## Prerequisites
-- Kubernetes v1.26+
+- Kubernetes v1.34+
 - Ingress Controller (important for grafana)
   - the quickstart examples deploy the contour ingress controller
 

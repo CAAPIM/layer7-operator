@@ -357,7 +357,12 @@ func syncRepository(ctx context.Context, params Params) error {
 	}
 
 	_ = captureRepositorySyncMetrics(ctx, params, start, commit, false)
+
+	insecure := repository.Spec.InsecureSkipVerify || strings.Contains(strings.ToLower(repository.Spec.Auth.Vendor), "insecure")
 	if commit != prevCommit || prevCommit == "" {
+		if insecure {
+			params.Log.Info("TLS certificate validation is disabled for this repository", "name", repository.Name, "namespace", repository.Namespace)
+		}
 		params.Log.Info("reconciled", "name", repository.Name, "namespace", repository.Namespace, "commit", commit)
 	}
 	return nil

@@ -155,6 +155,12 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 		}
 	}
 
+	for i, ec := range r.Spec.App.ExternalCerts {
+		if ec.Enabled && ec.Type != "" && strings.ToLower(ec.Type) != "secret" && strings.ToLower(ec.Type) != "configmap" {
+			return warnings, fmt.Errorf("please specify a valid external cert type, valid types are secret (default) or configmap. name: %s index: %d", ec.Name, i)
+		}
+	}
+
 	if r.Spec.App.Hazelcast.External {
 		if r.Spec.App.Hazelcast.Endpoint == "" {
 			return warnings, fmt.Errorf("please specify the endpoint for your external Hazelcast server")

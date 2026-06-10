@@ -454,36 +454,38 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 			if externalCert.Enabled {
 				var certPEMData []string
 
-				switch strings.ToLower(externalCert.Type) {
-				case "configmap":
-					cm, err := getGatewayConfigMap(ctx, params, externalCert.Name)
-					if err != nil {
-						return nil, err
-					}
-					for _, v := range cm.Data {
-						if strings.Contains(v, "-----BEGIN CERTIFICATE-----") {
-							certPEMData = append(certPEMData, v)
-						}
-					}
-					dataBytes, _ := json.Marshal(&cm.Data)
-					h := sha1.New()
-					h.Write(dataBytes)
-					sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
-				default:
-					secret, err := getGatewaySecret(ctx, params, externalCert.Name)
-					if err != nil {
-						return nil, err
-					}
-					for _, v := range secret.Data {
-						if strings.Contains(string(v), "-----BEGIN CERTIFICATE-----") {
-							certPEMData = append(certPEMData, string(v))
-						}
-					}
-					dataBytes, _ := json.Marshal(&secret.Data)
-					h := sha1.New()
-					h.Write(dataBytes)
-					sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
+			switch strings.ToLower(externalCert.Type) {
+			case "configmap":
+				cm, err := getGatewayConfigMap(ctx, params, externalCert.Name)
+				if err != nil {
+					return nil, err
 				}
+				for _, v := range cm.Data {
+					if strings.Contains(v, "-----BEGIN CERTIFICATE-----") {
+						certPEMData = append(certPEMData, v)
+					}
+				}
+				dataBytes, _ := json.Marshal(&cm.Data)
+				h := sha1.New()
+				h.Write(dataBytes)
+				sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
+			case "", "secret":
+				secret, err := getGatewaySecret(ctx, params, externalCert.Name)
+				if err != nil {
+					return nil, err
+				}
+				for _, v := range secret.Data {
+					if strings.Contains(string(v), "-----BEGIN CERTIFICATE-----") {
+						certPEMData = append(certPEMData, string(v))
+					}
+				}
+				dataBytes, _ := json.Marshal(&secret.Data)
+				h := sha1.New()
+				h.Write(dataBytes)
+				sha1Sum = fmt.Sprintf("%x", h.Sum(nil))
+			default:
+				return nil, fmt.Errorf("externalCert %q: unsupported type %q, valid values are \"secret\" (default) or \"configmap\"", externalCert.Name, externalCert.Type)
+			}
 
 				trustedFor := []string{}
 				for i := range externalCert.TrustedFor {
@@ -498,14 +500,14 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				for _, pemStr := range certPEMData {
 					crtStrings := strings.SplitAfter(pemStr, "-----END CERTIFICATE-----")
 					crtStrings = crtStrings[:len(crtStrings)-1]
-				for crt := range crtStrings {
-					b, _ := pem.Decode([]byte(crtStrings[crt]))
-					if b == nil {
-						continue
-					}
-					crtX509, _ := x509.ParseCertificate(b.Bytes)
+					for crt := range crtStrings {
+						b, _ := pem.Decode([]byte(crtStrings[crt]))
+						if b == nil {
+							continue
+						}
+						crtX509, _ := x509.ParseCertificate(b.Bytes)
 
-					gmanCert := util.GraphmanCert{
+						gmanCert := util.GraphmanCert{
 							Name:                      crtX509.Subject.CommonName,
 							Crt:                       crtStrings[crt],
 							VerifyHostname:            externalCert.VerifyHostname,

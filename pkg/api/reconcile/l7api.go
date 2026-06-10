@@ -201,9 +201,9 @@ func deployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gatewa
 					return err
 				}
 
-			params.Log.V(2).Info("applying api", "api", params.Instance.Name, "pod", pod.Name, "namespace", params.Instance.Namespace)
-			// Endpoint is always a pod IP; TLS certs are hostname-based so verification always fails against a raw IP.
-			err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "", graphmanBundleBytes, true)
+				params.Log.V(2).Info("applying api", "api", params.Instance.Name, "pod", pod.Name, "namespace", params.Instance.Namespace)
+				// Endpoint is always a pod IP; TLS certs are hostname-based so verification always fails against a raw IP.
+				err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "", graphmanBundleBytes, true)
 				if err != nil {
 					status = FAILURE
 					errorMessage = err.Error()
@@ -280,7 +280,7 @@ func undeployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gate
 				params.Log.V(2).Info("removing api", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 				var errorMessage string
 				// Endpoint is always a pod IP; TLS certs are hostname-based so verification always fails against a raw IP.
-			err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl, params.Instance.Spec.PortalMeta.Name+"-fragment", secretNames, true)
+				err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl, params.Instance.Spec.PortalMeta.Name+"-fragment", secretNames, true)
 				if err != nil {
 					status = FAILURE
 					errorMessage = err.Error()

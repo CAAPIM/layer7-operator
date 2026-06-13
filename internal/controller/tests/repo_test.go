@@ -151,7 +151,7 @@ var _ = Describe("Gateway controller", func() {
 						Management: securityv1.Management{
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
-								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.4",
+								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.5",
 							},
 							Cluster: securityv1.Cluster{
 								Hostname: "gateway.brcmlabs.com",

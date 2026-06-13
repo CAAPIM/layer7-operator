@@ -54,7 +54,7 @@ spec:
           value: /graphman/statestore-config/
         - name: STATESTORE_SECRET
           value: /graphman/statestore-secret/
-        image: docker.io/caapim/graphman-static-init:1.0.4
+        image: docker.io/caapim/graphman-static-init:1.0.5
         imagePullPolicy: IfNotPresent
         name: graphman-static-init
       restartPolicy: Always

@@ -46,6 +46,7 @@ example/gateway/local-tests
 example/state-store/local-tests
 example/base/resources/configmaps/cassandra
 .vscode
+plans/
 
 # internal automation modified files
 deploy/no-crd.yaml

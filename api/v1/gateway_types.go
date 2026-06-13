@@ -171,6 +171,9 @@ type GatewayRepositoryStatus struct {
 	Conditions []RepositoryCondition `json:"conditions,omitempty"`
 	// Directories
 	Directories []string `json:"directories,omitempty"`
+	// InsecureSkipVerify disables TLS certificate verification for http and git
+	// repository types. Propagated from Repository.Spec.InsecureSkipVerify.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
 type RepositoryCondition struct {

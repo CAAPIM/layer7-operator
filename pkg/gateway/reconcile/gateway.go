@@ -2400,17 +2400,18 @@ func updateRepoRefStatus(ctx context.Context, params Params, repository security
 	}
 
 	nrs := securityv1.GatewayRepositoryStatus{
-		Commit:            commit,
-		Enabled:           !delete,
-		Name:              repoRef.Name,
-		RepoType:          string(repository.Spec.Type),
-		Vendor:            repository.Spec.Auth.Vendor,
-		AuthType:          string(repository.Spec.Auth.Type),
-		Type:              string(repoRef.Type),
-		SecretName:        secretName,
-		StorageSecretName: repository.Status.StorageSecretName,
-		Endpoint:          repository.Spec.Endpoint,
-		Directories:       repoRef.Directories,
+		Commit:             commit,
+		Enabled:            !delete,
+		Name:               repoRef.Name,
+		RepoType:           string(repository.Spec.Type),
+		Vendor:             repository.Spec.Auth.Vendor,
+		AuthType:           string(repository.Spec.Auth.Type),
+		Type:               string(repoRef.Type),
+		SecretName:         secretName,
+		StorageSecretName:  repository.Status.StorageSecretName,
+		Endpoint:           repository.Spec.Endpoint,
+		Directories:        repoRef.Directories,
+		InsecureSkipVerify: repository.Spec.InsecureSkipVerify,
 	}
 
 	if repository.Spec.Tag != "" && repository.Spec.Branch == "" {

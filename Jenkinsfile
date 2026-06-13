@@ -4,7 +4,7 @@ pipeline {
     agent { label "default" }
     environment {
         ARTIFACTORY_DOCKER_IMS_IMAGE_REG = "ims-base-images-docker-release-local.usw1.packages.broadcom.com"
-        ARTIFACTORY_DOCKER_IMS_IMAGE = "ims-distro-debian13-static:202603"
+        ARTIFACTORY_DOCKER_IMS_IMAGE = "ims-distro-debian13-static:202605"
         ARTIFACTORY_DOCKER_GO_IMAGE_REG = "docker-hub.usw1.packages.broadcom.com"
         ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST = "apim-docker-dev-local.usw1.packages.broadcom.com"
         ARTIFACT_HOST =  "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}"

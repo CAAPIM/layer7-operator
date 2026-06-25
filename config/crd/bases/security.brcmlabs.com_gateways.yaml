@@ -6815,6 +6815,10 @@ spec:
                     endpoint:
                       description: Endoint is the Git or HTTP repo
                       type: string
+                    insecureSkipVerify:
+                      description: InsecureSkipVerify disables TLS certificate verification
+                        for http and git...
+                      type: boolean
                     name:
                       description: Name of the Repository Reference
                       type: string

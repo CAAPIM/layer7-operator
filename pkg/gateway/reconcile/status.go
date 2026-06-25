@@ -142,16 +142,17 @@ func buildRepoStatus(ctx context.Context, params Params, repository securityv1.R
 	}
 
 	rs := securityv1.GatewayRepositoryStatus{
-		Commit:            repository.Status.Commit,
-		Enabled:           repoRef.Enabled,
-		Name:              repoRef.Name,
-		RepoType:          string(repository.Spec.Type),
-		Vendor:            repository.Spec.Auth.Vendor,
-		AuthType:          string(repository.Spec.Auth.Type),
-		Type:              string(repoRef.Type),
-		SecretName:        secretName,
-		StorageSecretName: repository.Status.StorageSecretName,
-		Endpoint:          repository.Spec.Endpoint,
+		Commit:             repository.Status.Commit,
+		Enabled:            repoRef.Enabled,
+		Name:               repoRef.Name,
+		RepoType:           string(repository.Spec.Type),
+		Vendor:             repository.Spec.Auth.Vendor,
+		AuthType:           string(repository.Spec.Auth.Type),
+		Type:               string(repoRef.Type),
+		SecretName:         secretName,
+		StorageSecretName:  repository.Status.StorageSecretName,
+		Endpoint:           repository.Spec.Endpoint,
+		InsecureSkipVerify: repository.Spec.InsecureSkipVerify,
 		//Directories:       repoRef.Directories,
 	}
 
@@ -181,7 +182,7 @@ func buildRepoStatus(ctx context.Context, params Params, repository securityv1.R
 			params.Log.Info("state store not found", "name", repository.Spec.StateStoreReference, "repository", repository.Name, "namespace", params.Instance.Namespace)
 			return securityv1.GatewayRepositoryStatus{}, err
 		}
-		rs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + stateStoreKey + ":latest"
+		rs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":repository:" + repository.Namespace + ":" + stateStoreKey + ":latest"
 		if repository.Spec.StateStoreKey != "" {
 			rs.StateStoreKey = repository.Spec.StateStoreKey
 		}

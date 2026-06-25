@@ -18998,6 +18998,14 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>insecureSkipVerify</b></td>
+        <td>boolean</td>
+        <td>
+          InsecureSkipVerify disables TLS certificate verification for http and git
+repository types. Propagated from Repository.Spec.InsecureSkipVerify.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>

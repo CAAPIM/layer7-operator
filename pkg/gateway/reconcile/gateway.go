@@ -2483,7 +2483,7 @@ func updateRepoRefStatus(ctx context.Context, params Params, repository security
 			params.Log.Info("state store not found", "name", repository.Spec.StateStoreReference, "repository", repository.Name, "namespace", params.Instance.Namespace)
 			return err
 		}
-		nrs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":" + "repository" + ":" + stateStoreKey + ":latest"
+		nrs.StateStoreKey = statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":repository:" + repository.Namespace + ":" + stateStoreKey + ":latest"
 		if repository.Spec.StateStoreKey != "" {
 			nrs.StateStoreKey = repository.Spec.StateStoreKey
 		}

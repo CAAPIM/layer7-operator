@@ -3550,8 +3550,8 @@ spec:
                                 description: Enabled or disabled
                                 type: boolean
                               jdbcUrl:
-                                description: JDBCUrl for the migration job (useful
-                                  for bypassing proxies)
+                                description: JDBCUrl overrides the main database.jdbcUrl
+                                  for the migration job (e.g.
                                 type: string
                             type: object
                           password:

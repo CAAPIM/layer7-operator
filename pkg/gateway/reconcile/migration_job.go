@@ -28,13 +28,14 @@ package reconcile
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
-	"reflect"
+	"strconv"
 
+	securityv1 "github.com/caapim/layer7-operator/api/v1"
 	"github.com/caapim/layer7-operator/pkg/gateway"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,13 +50,22 @@ import (
 // failure metrics.
 var ErrMigrationPending = errors.New("migration pending")
 
+// GatewayMigrationJob manages the lifecycle of the pre-upgrade database migration
+// job. It uses Gateway.Status.MigrationStatus as the authoritative source of truth
+// for whether the migration has completed, so that:
+//
+//   - Completed migrations are not re-run on daily reconciles or operator restarts.
+//   - Completed migrations survive Job deletion/GC without triggering a re-run.
+//   - A spec change (image upgrade, jdbcUrl correction, clearLocks toggle) resets
+//     the status and triggers a fresh migration run automatically.
+//
+// The Deployment step is only unblocked when Status.MigrationStatus.Complete is true.
 func GatewayMigrationJob(ctx context.Context, params Params) error {
 	migrationEnabled := params.Instance.Spec.App.Management.Database.MigrationJob.Enabled
 	databaseEnabled := params.Instance.Spec.App.Management.Database.Enabled
 
-	// Fix #2/#8: when the migration job is disabled (or database is disabled),
-	// clean up any leftover job so that toggling enabled→false doesn't orphan
-	// a completed or failed Job in the namespace.
+	// When migration is disabled (or database is disabled), clean up any leftover
+	// job so that toggling enabled→false doesn't orphan a job in the namespace.
 	if !migrationEnabled || !databaseEnabled {
 		existingJob := &batchv1.Job{}
 		jobName := params.Instance.Name + "-db-migration"
@@ -69,6 +79,46 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 		return nil
 	}
 
+	desiredHash := migrationSpecHash(params.Instance)
+	currentStatus := params.Instance.Status.MigrationStatus
+
+	// Fast path: migration already completed for the current spec.
+	// This allows daily reconciles and operator restarts to skip migration
+	// management entirely — the status persists regardless of Job existence.
+	if currentStatus.SpecHash == desiredHash && currentStatus.Complete {
+		params.Log.V(2).Info("migration already complete for current spec, skipping",
+			"hash", desiredHash)
+		return nil
+	}
+
+	// Spec changed (image upgrade, jdbcUrl correction, clearLocks toggle, etc.):
+	// reset the status and delete the old job so a fresh migration runs.
+	if currentStatus.SpecHash != "" && currentStatus.SpecHash != desiredHash {
+		params.Log.Info("migration spec changed, resetting status and replacing job",
+			"oldHash", currentStatus.SpecHash,
+			"newHash", desiredHash)
+		if err := setMigrationStatus(ctx, params, securityv1.MigrationStatus{SpecHash: desiredHash}); err != nil {
+			return err
+		}
+		oldJob := &batchv1.Job{}
+		jobName := params.Instance.Name + "-db-migration"
+		if getErr := params.Client.Get(ctx, types.NamespacedName{Name: jobName, Namespace: params.Instance.Namespace}, oldJob); getErr == nil {
+			propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationForeground)
+			if delErr := params.Client.Delete(ctx, oldJob, propagationPolicy); delErr != nil {
+				return fmt.Errorf("failed deleting stale migration job: %w", delErr)
+			}
+		}
+		return fmt.Errorf("%w: migration spec changed, requeueing to create new job", ErrMigrationPending)
+	}
+
+	// Record the desired hash in status if this is the first time we see it.
+	if currentStatus.SpecHash == "" {
+		if err := setMigrationStatus(ctx, params, securityv1.MigrationStatus{SpecHash: desiredHash}); err != nil {
+			return err
+		}
+	}
+
+	// Build the desired Job and look for the current in-cluster Job.
 	desiredJob := gateway.NewMigrationJob(params.Instance)
 	if err := controllerutil.SetControllerReference(params.Instance, desiredJob, params.Scheme); err != nil {
 		return fmt.Errorf("failed to set controller reference on migration job: %w", err)
@@ -78,6 +128,8 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	err := params.Client.Get(ctx, types.NamespacedName{Name: desiredJob.Name, Namespace: desiredJob.Namespace}, currentJob)
 
 	if err != nil && k8serrors.IsNotFound(err) {
+		// Job does not exist — create it. This covers both the initial run and
+		// the user-deletes-failed-job-to-retry flow.
 		if err = params.Client.Create(ctx, desiredJob); err != nil {
 			return fmt.Errorf("failed creating migration job: %w", err)
 		}
@@ -87,27 +139,25 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 		return err
 	}
 
-	// Replace the job if any migration-relevant spec field changed.
-	// This covers image, env vars (jdbcUrl, clearLocks mode), EnvFrom (secretName
-	// rotation), Volumes (non-diskless secret path), and activeDeadlineSeconds.
-	if migrationJobSpecChanged(currentJob, desiredJob) {
-		params.Log.Info("migration job spec changed, replacing", "name", currentJob.Name)
-		propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationForeground)
-		if err := params.Client.Delete(ctx, currentJob, propagationPolicy); err != nil {
-			return fmt.Errorf("failed deleting stale migration job: %w", err)
-		}
-		return fmt.Errorf("%w: deleted stale migration job, requeueing to create new one", ErrMigrationPending)
-	}
-
+	// Job succeeded: persist completion in status so future reconciles skip migration.
+	// Because the controller owns the Job (Owns(&batchv1.Job{})), Job completion
+	// triggers a reconcile event, which is how we reach this branch promptly.
 	if currentJob.Status.Succeeded > 0 {
-		params.Log.V(2).Info("migration job completed successfully")
+		params.Log.Info("migration job completed successfully, updating status",
+			"name", currentJob.Name, "namespace", currentJob.Namespace)
+		if err := setMigrationStatus(ctx, params, securityv1.MigrationStatus{
+			SpecHash: desiredHash,
+			Complete: true,
+		}); err != nil {
+			return err
+		}
 		return nil
 	}
 
 	// Only declare terminal failure when no pod attempt is still active.
 	// With backoffLimit=1, Kubernetes briefly shows Active=1, Failed=1 while
-	// pod-2 (the retry) is running. Declaring failure at that point would kill
-	// a healthy retry and require unnecessary manual intervention.
+	// pod-2 (the retry) is running. Declaring failure then would kill a healthy
+	// retry and require unnecessary manual intervention.
 	if currentJob.Status.Active == 0 && currentJob.Status.Failed > 0 {
 		params.Log.Info("migration job failed — Gateway deployment is blocked. Investigate logs then delete the job to retry",
 			"name", currentJob.Name,
@@ -116,77 +166,43 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 		return fmt.Errorf("migration job %s/%s failed — Gateway deployment blocked pending manual intervention", currentJob.Namespace, currentJob.Name)
 	}
 
-	// Job is still active (or briefly between pod attempts). Return ErrMigrationPending
+	// Job is still running (or briefly between pod attempts). Return ErrMigrationPending
 	// so the controller requeues at a fixed interval without incrementing failure metrics.
 	params.Log.Info("migration job is active, waiting...")
 	return fmt.Errorf("%w: migration job is active", ErrMigrationPending)
 }
 
-// migrationJobSpecChanged returns true if any migration-relevant field differs
-// between the current (in-cluster) job and what the operator would create now.
-// Compares image, env vars, EnvFrom (covers secretName changes), Volumes (covers
-// non-diskless secret path changes), and activeDeadlineSeconds.
-func migrationJobSpecChanged(current, desired *batchv1.Job) bool {
-	// A zero-container current job is malformed — force replacement so
-	// it doesn't permanently block the Deployment step.
-	if len(current.Spec.Template.Spec.Containers) == 0 {
-		return true
+// migrationSpecHash returns a 16-character hex hash of the migration-relevant spec
+// fields: image, effective jdbcUrl, clearLocks flag, and activeDeadlineSeconds.
+// When any of these change the hash changes and a fresh migration job is triggered.
+func migrationSpecHash(gw *securityv1.Gateway) string {
+	h := sha256.New()
+	h.Write([]byte(gw.Spec.App.Image))
+
+	// Use the migration-specific jdbcUrl when set; otherwise fall back to the
+	// main database URL. This mirrors what NewMigrationJob passes to the container.
+	jdbcUrl := gw.Spec.App.Management.Database.JDBCUrl
+	if gw.Spec.App.Management.Database.MigrationJob.JDBCUrl != "" {
+		jdbcUrl = gw.Spec.App.Management.Database.MigrationJob.JDBCUrl
 	}
-	// desired is always built by NewMigrationJob and always has one container.
-	if len(desired.Spec.Template.Spec.Containers) == 0 {
-		return false
+	h.Write([]byte(jdbcUrl))
+
+	h.Write([]byte(strconv.FormatBool(gw.Spec.App.Management.Database.MigrationJob.ClearLocks)))
+
+	if gw.Spec.App.Management.Database.MigrationJob.ActiveDeadlineSeconds != nil {
+		h.Write([]byte(strconv.FormatInt(*gw.Spec.App.Management.Database.MigrationJob.ActiveDeadlineSeconds, 10)))
 	}
-	cc := current.Spec.Template.Spec.Containers[0]
-	dc := desired.Spec.Template.Spec.Containers[0]
-	if cc.Image != dc.Image {
-		return true
-	}
-	if envVarsChanged(cc.Env, dc.Env) {
-		return true
-	}
-	// Compare EnvFrom so a secretName rotation triggers job replacement.
-	if !reflect.DeepEqual(cc.EnvFrom, dc.EnvFrom) {
-		return true
-	}
-	// Compare Volumes so non-diskless secret path changes are detected.
-	if !reflect.DeepEqual(current.Spec.Template.Spec.Volumes, desired.Spec.Template.Spec.Volumes) {
-		return true
-	}
-	// Detect activeDeadlineSeconds changes so users can tune slow migrations
-	// without having to manually delete the failed job.
-	if !int64PtrEqual(
-		current.Spec.Template.Spec.ActiveDeadlineSeconds,
-		desired.Spec.Template.Spec.ActiveDeadlineSeconds,
-	) {
-		return true
-	}
-	return false
+
+	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
 
-// envVarsChanged compares two env var slices by name→value, ignoring order.
-func envVarsChanged(current, desired []corev1.EnvVar) bool {
-	cm := make(map[string]string, len(current))
-	for _, e := range current {
-		cm[e.Name] = e.Value
+// setMigrationStatus persists the given MigrationStatus into Gateway.Status.
+// It mutates params.Instance.Status in-place so that the running reconcile sees
+// the updated value without a re-fetch.
+func setMigrationStatus(ctx context.Context, params Params, status securityv1.MigrationStatus) error {
+	params.Instance.Status.MigrationStatus = status
+	if err := params.Client.Status().Update(ctx, params.Instance); err != nil {
+		return fmt.Errorf("failed to update migration status: %w", err)
 	}
-	if len(cm) != len(desired) {
-		return true
-	}
-	for _, e := range desired {
-		if cv, ok := cm[e.Name]; !ok || cv != e.Value {
-			return true
-		}
-	}
-	return false
-}
-
-// int64PtrEqual returns true if both pointers are nil or both point to equal values.
-func int64PtrEqual(a, b *int64) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
+	return nil
 }

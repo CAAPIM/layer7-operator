@@ -6785,6 +6785,19 @@ spec:
                 description: Management Pod is a Gateway with a special annotation
                   is used as a...
                 type: string
+              migrationStatus:
+                description: MigrationStatus tracks the state of the pre-upgrade database
+                  migration job.
+                properties:
+                  complete:
+                    description: Complete indicates that the migration job succeeded
+                      for the current...
+                    type: boolean
+                  specHash:
+                    description: SpecHash is a short hash of the migration-relevant
+                      spec fields (image,...
+                    type: string
+                type: object
               phase:
                 description: PodPhase is a label for the condition of a pod at the
                   current time.

@@ -65,6 +65,20 @@ type GatewayList struct {
 	Items           []Gateway `json:"items"`
 }
 
+// MigrationStatus tracks the state of the pre-upgrade database migration job.
+// It is persisted in Gateway.Status so that completed migrations survive job
+// deletion and are not re-run on daily reconciles or operator restarts.
+type MigrationStatus struct {
+	// SpecHash is a short hash of the migration-relevant spec fields (image,
+	// effective jdbcUrl, clearLocks). When any of these change the hash changes
+	// and a fresh migration job is triggered.
+	SpecHash string `json:"specHash,omitempty"`
+	// Complete indicates that the migration job succeeded for the current SpecHash.
+	// Once true, GatewayMigrationJob skips job management entirely and the
+	// Deployment step is unblocked — regardless of whether the Job still exists.
+	Complete bool `json:"complete,omitempty"`
+}
+
 // GatewayStatus defines the observed state of Gateways
 type GatewayStatus struct {
 	// Host is the Gateway Cluster Hostname
@@ -120,6 +134,8 @@ type GatewayStatus struct {
 	LastAppliedExternalCerts map[string][]string `json:"lastAppliedExternalCerts,omitempty"`
 	// LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates have been applied
 	LastAppliedOtkFipsCerts map[string][]string `json:"lastAppliedOtkFipsCerts,omitempty"`
+	// MigrationStatus tracks the state of the pre-upgrade database migration job.
+	MigrationStatus MigrationStatus `json:"migrationStatus,omitempty"`
 }
 
 // GatewayState tracks the status of Gateway Resources

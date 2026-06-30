@@ -30,6 +30,7 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -134,6 +135,13 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	start := time.Now()
 	for _, op := range ops {
 		if err = r.runOp(ctx, params, op); err != nil {
+			// ErrMigrationPending is a normal "not ready yet" state, not a failure.
+			// Requeue at a fixed short interval so the operator polls for job
+			// completion without applying exponential backoff or incrementing
+			// failure metrics.
+			if errors.Is(err, reconcile.ErrMigrationPending) {
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			}
 			_ = captureMetrics(ctx, params, start, true, op.Name)
 			return ctrl.Result{}, err
 		}

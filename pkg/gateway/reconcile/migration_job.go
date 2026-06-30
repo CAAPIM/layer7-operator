@@ -28,7 +28,9 @@ package reconcile
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/caapim/layer7-operator/pkg/gateway"
 	batchv1 "k8s.io/api/batch/v1"
@@ -40,8 +42,30 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// ErrMigrationPending is returned by GatewayMigrationJob when the migration job
+// exists and has not yet completed (created, replaced, or still active). The
+// controller treats this as a normal "not ready yet" state: it requeues with a
+// fixed short interval rather than applying exponential backoff or incrementing
+// failure metrics.
+var ErrMigrationPending = errors.New("migration pending")
+
 func GatewayMigrationJob(ctx context.Context, params Params) error {
-	if !params.Instance.Spec.App.Management.Database.MigrationJob.Enabled {
+	migrationEnabled := params.Instance.Spec.App.Management.Database.MigrationJob.Enabled
+	databaseEnabled := params.Instance.Spec.App.Management.Database.Enabled
+
+	// Fix #2/#8: when the migration job is disabled (or database is disabled),
+	// clean up any leftover job so that toggling enabled→false doesn't orphan
+	// a completed or failed Job in the namespace.
+	if !migrationEnabled || !databaseEnabled {
+		existingJob := &batchv1.Job{}
+		jobName := params.Instance.Name + "-db-migration"
+		if err := params.Client.Get(ctx, types.NamespacedName{
+			Name:      jobName,
+			Namespace: params.Instance.Namespace,
+		}, existingJob); err == nil {
+			propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationForeground)
+			_ = params.Client.Delete(ctx, existingJob, propagationPolicy)
+		}
 		return nil
 	}
 
@@ -58,21 +82,21 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 			return fmt.Errorf("failed creating migration job: %w", err)
 		}
 		params.Log.Info("created migration job", "name", desiredJob.Name, "namespace", desiredJob.Namespace)
-		return fmt.Errorf("migration job started, waiting for completion")
+		return fmt.Errorf("%w: migration job started, waiting for completion", ErrMigrationPending)
 	} else if err != nil {
 		return err
 	}
 
-	// Replace the job if any migration-relevant spec field changed: image, jdbcUrl,
-	// clearLocks, or any other env var. This ensures that applying an updated CR
-	// (e.g. fixing a wrong jdbcUrl or upgrading the image) always triggers a fresh run.
+	// Replace the job if any migration-relevant spec field changed.
+	// This covers image, env vars (jdbcUrl, clearLocks mode), EnvFrom (secretName
+	// rotation), Volumes (non-diskless secret path), and activeDeadlineSeconds.
 	if migrationJobSpecChanged(currentJob, desiredJob) {
 		params.Log.Info("migration job spec changed, replacing", "name", currentJob.Name)
 		propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationForeground)
 		if err := params.Client.Delete(ctx, currentJob, propagationPolicy); err != nil {
 			return fmt.Errorf("failed deleting stale migration job: %w", err)
 		}
-		return fmt.Errorf("deleted stale migration job, requeueing to create new one")
+		return fmt.Errorf("%w: deleted stale migration job, requeueing to create new one", ErrMigrationPending)
 	}
 
 	if currentJob.Status.Succeeded > 0 {
@@ -80,7 +104,11 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 		return nil
 	}
 
-	if currentJob.Status.Failed > 0 {
+	// Only declare terminal failure when no pod attempt is still active.
+	// With backoffLimit=1, Kubernetes briefly shows Active=1, Failed=1 while
+	// pod-2 (the retry) is running. Declaring failure at that point would kill
+	// a healthy retry and require unnecessary manual intervention.
+	if currentJob.Status.Active == 0 && currentJob.Status.Failed > 0 {
 		params.Log.Info("migration job failed — Gateway deployment is blocked. Investigate logs then delete the job to retry",
 			"name", currentJob.Name,
 			"namespace", currentJob.Namespace,
@@ -88,16 +116,24 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 		return fmt.Errorf("migration job %s/%s failed — Gateway deployment blocked pending manual intervention", currentJob.Namespace, currentJob.Name)
 	}
 
+	// Job is still active (or briefly between pod attempts). Return ErrMigrationPending
+	// so the controller requeues at a fixed interval without incrementing failure metrics.
 	params.Log.Info("migration job is active, waiting...")
-	return fmt.Errorf("migration job is active, waiting...")
+	return fmt.Errorf("%w: migration job is active", ErrMigrationPending)
 }
 
-// migrationJobSpecChanged returns true if any migration-relevant container fields
-// differ between the current (in-cluster) job and what the operator would create now.
-// Comparing env vars by name→value catches jdbcUrl, clearLocks, and mode changes
-// in addition to image upgrades.
+// migrationJobSpecChanged returns true if any migration-relevant field differs
+// between the current (in-cluster) job and what the operator would create now.
+// Compares image, env vars, EnvFrom (covers secretName changes), Volumes (covers
+// non-diskless secret path changes), and activeDeadlineSeconds.
 func migrationJobSpecChanged(current, desired *batchv1.Job) bool {
-	if len(current.Spec.Template.Spec.Containers) == 0 || len(desired.Spec.Template.Spec.Containers) == 0 {
+	// A zero-container current job is malformed — force replacement so
+	// it doesn't permanently block the Deployment step.
+	if len(current.Spec.Template.Spec.Containers) == 0 {
+		return true
+	}
+	// desired is always built by NewMigrationJob and always has one container.
+	if len(desired.Spec.Template.Spec.Containers) == 0 {
 		return false
 	}
 	cc := current.Spec.Template.Spec.Containers[0]
@@ -105,7 +141,26 @@ func migrationJobSpecChanged(current, desired *batchv1.Job) bool {
 	if cc.Image != dc.Image {
 		return true
 	}
-	return envVarsChanged(cc.Env, dc.Env)
+	if envVarsChanged(cc.Env, dc.Env) {
+		return true
+	}
+	// Compare EnvFrom so a secretName rotation triggers job replacement.
+	if !reflect.DeepEqual(cc.EnvFrom, dc.EnvFrom) {
+		return true
+	}
+	// Compare Volumes so non-diskless secret path changes are detected.
+	if !reflect.DeepEqual(current.Spec.Template.Spec.Volumes, desired.Spec.Template.Spec.Volumes) {
+		return true
+	}
+	// Detect activeDeadlineSeconds changes so users can tune slow migrations
+	// without having to manually delete the failed job.
+	if !int64PtrEqual(
+		current.Spec.Template.Spec.ActiveDeadlineSeconds,
+		desired.Spec.Template.Spec.ActiveDeadlineSeconds,
+	) {
+		return true
+	}
+	return false
 }
 
 // envVarsChanged compares two env var slices by name→value, ignoring order.
@@ -123,4 +178,15 @@ func envVarsChanged(current, desired []corev1.EnvVar) bool {
 		}
 	}
 	return false
+}
+
+// int64PtrEqual returns true if both pointers are nil or both point to equal values.
+func int64PtrEqual(a, b *int64) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
 }

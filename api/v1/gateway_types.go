@@ -706,7 +706,9 @@ type MigrationJob struct {
 	// schema updates. Use with caution: forcefully releasing a lock while
 	// another process is actively updating the schema can corrupt the database.
 	ClearLocks bool `json:"clearLocks,omitempty"`
-	// ActiveDeadlineSeconds is the max duration the job is allowed to run
+	// ActiveDeadlineSeconds is the max duration each pod attempt is allowed to run.
+	// The job may retry once (backoffLimit=1), so total elapsed time can be up to
+	// 2× this value. Defaults to 300 seconds (5 minutes) per attempt.
 	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 }
 

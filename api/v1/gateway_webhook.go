@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -191,6 +192,11 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 			return warnings, fmt.Errorf("please specify a jdbcUrl for the gateway database")
 
 		}
+	}
+
+	if r.Spec.App.Management.Database.MigrationJob.Enabled &&
+		!r.Spec.App.Management.Database.Enabled {
+		return warnings, fmt.Errorf("migrationJob.enabled requires database.enabled: true")
 	}
 
 	if r.Spec.App.Management.Service.Enabled {

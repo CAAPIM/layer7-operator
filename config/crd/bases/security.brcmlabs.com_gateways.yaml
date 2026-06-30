@@ -3539,7 +3539,7 @@ spec:
                             properties:
                               activeDeadlineSeconds:
                                 description: ActiveDeadlineSeconds is the max duration
-                                  the job is allowed to run
+                                  each pod attempt is allowed to...
                                 format: int64
                                 type: integer
                               clearLocks:

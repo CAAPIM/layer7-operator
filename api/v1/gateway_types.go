@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -688,6 +689,25 @@ type Database struct {
 	Password string `json:"password,omitempty"`
 	// LiquibaseLogLevel
 	LiquibaseLogLevel LiquibaseLogLevel `json:"liquibaseLogLevel,omitempty"`
+	// MigrationJob for pre-upgrade schema updates
+	MigrationJob MigrationJob `json:"migrationJob,omitempty"`
+}
+
+// MigrationJob configures the pre-upgrade database migration job
+type MigrationJob struct {
+	// Enabled or disabled
+	Enabled bool `json:"enabled,omitempty"`
+	// JDBCUrl overrides the main database.jdbcUrl for the migration job (e.g. to bypass a proxy).
+	// Only applies in diskless mode (disklessConfig.disabled: false, the default).
+	// In non-diskless mode the entrypoint reads the JDBC URL from the mounted node.properties
+	// file and this field has no effect — node.properties always wins, consistent with Helm behavior.
+	JDBCUrl string `json:"jdbcUrl,omitempty"`
+	// ClearLocks forces release of any stuck Liquibase locks before applying
+	// schema updates. Use with caution: forcefully releasing a lock while
+	// another process is actively updating the schema can corrupt the database.
+	ClearLocks bool `json:"clearLocks,omitempty"`
+	// ActiveDeadlineSeconds is the max duration the job is allowed to run
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 }
 
 // Restman is a Gateway Management interface that can be automatically provisioned.

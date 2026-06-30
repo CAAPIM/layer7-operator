@@ -3534,6 +3534,26 @@ spec:
                           liquibaseLogLevel:
                             description: LiquibaseLogLevel
                             type: string
+                          migrationJob:
+                            description: MigrationJob for pre-upgrade schema updates
+                            properties:
+                              activeDeadlineSeconds:
+                                description: ActiveDeadlineSeconds is the max duration
+                                  the job is allowed to run
+                                format: int64
+                                type: integer
+                              clearLocks:
+                                description: ClearLocks forces release of any stuck
+                                  Liquibase locks before applying...
+                                type: boolean
+                              enabled:
+                                description: Enabled or disabled
+                                type: boolean
+                              jdbcUrl:
+                                description: JDBCUrl for the migration job (useful
+                                  for bypassing proxies)
+                                type: string
+                            type: object
                           password:
                             description: Password MySQL - can be set in management.secretName
                             type: string

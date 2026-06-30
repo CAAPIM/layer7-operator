@@ -218,7 +218,7 @@ build: manifests generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/main.go --zap-log-level=5
+	go run ./cmd/main.go --zap-log-level=5 --leader-elect=false
 
 .PHONY: docker-build
 docker-build: dockerfile #test ## Build docker image with the manager.

@@ -115,7 +115,7 @@ func NewMigrationJob(gw *securityv1.Gateway) *batchv1.Job {
 			})
 		}
 	} else {
-		// Fix #5: optional must be false to match the main Gateway deployment.
+		// optional must be false to match the main Gateway deployment.
 		// With optional: true, Kubernetes schedules the pod even when the Secret
 		// is missing, causing a silent empty mount and a confusing DB connection
 		// error instead of a clear "secret not found" Kubernetes event.
@@ -154,7 +154,7 @@ func NewMigrationJob(gw *securityv1.Gateway) *batchv1.Job {
 		activeDeadlineSeconds = *gw.Spec.App.Management.Database.MigrationJob.ActiveDeadlineSeconds
 	}
 
-	// Fix #9: apply the same ServiceAccount fallback logic as the main deployment
+	// apply the same ServiceAccount fallback logic as the main deployment
 	// so the migration pod runs under the same identity as Gateway pods.
 	// Without this, pods default to the namespace "default" service account when
 	// spec.app.serviceAccount.name is not explicitly set, which can fail in clusters

@@ -548,8 +548,17 @@ func TestGatewayMigrationJob(t *testing.T) {
 		oldJob := gateway.NewMigrationJob(p.Instance)
 		createJob(t, oldJob)
 
-		// Simulate an image upgrade — this changes the desired spec hash.
+		// Simulate an image upgrade and persist it, mirroring a real "kubectl
+		// apply": the reconciler only ever sees a spec change once it's already
+		// stored server-side. Without this Update, setMigrationStatus's
+		// Status().Update() call round-trips through the API server and
+		// overwrites our in-memory (never-persisted) Image field with the
+		// original "11.1.1", making the post-call hash recompute below use the
+		// wrong spec.
 		p.Instance.Spec.App.Image = "gateway:11.3.0"
+		if err := k8sClient.Update(ctx, p.Instance); err != nil {
+			t.Fatalf("failed to persist image upgrade: %v", err)
+		}
 
 		err := GatewayMigrationJob(ctx, p)
 

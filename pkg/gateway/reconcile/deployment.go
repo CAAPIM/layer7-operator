@@ -165,6 +165,15 @@ func applyOpenShiftSecurityDefaults(ctx context.Context, params Params) {
 }
 
 func Deployment(ctx context.Context, params Params) error {
+	// Gate on migration status rather than relying on GatewayMigrationJob to
+	// short-circuit the reconcile loop. This lets unrelated ops (ConfigMaps,
+	// Secrets, status, etc.) keep reconciling while a migration is in progress,
+	// and only the Deployment step itself waits for Status.MigrationStatus.
+	if !migrationComplete(params.Instance) {
+		params.Log.V(2).Info("migration job has not completed for the current spec, skipping deployment reconciliation")
+		return nil
+	}
+
 	// Auto-detect and set OpenShift UID/GID if on OpenShift platform
 	// and user hasn't explicitly set RunAsUser
 	if params.Platform == "openshift" {

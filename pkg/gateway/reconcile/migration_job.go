@@ -211,6 +211,19 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	return fmt.Errorf("%w: migration job is active", ErrMigrationPending)
 }
 
+// migrationComplete reports whether the pre-upgrade migration job (if enabled)
+// has finished for the Gateway's current spec. The Deployment step calls this
+// directly so that it — not the reconcile loop's control flow — is what decides
+// whether the Deployment is created/updated. When
+// migration is disabled there is nothing to wait for, so it reports complete.
+func migrationComplete(gw *securityv1.Gateway) bool {
+	if !gw.Spec.App.Management.Database.MigrationJob.Enabled || !gw.Spec.App.Management.Database.Enabled {
+		return true
+	}
+	status := gw.Status.MigrationStatus
+	return status.Complete && status.SpecHash == migrationSpecHash(gw)
+}
+
 // migrationSpecHash returns a 16-character hex hash of all Gateway spec fields
 // that affect the Job built by NewMigrationJob. When any of these change, the
 // hash changes, status is reset, and a fresh migration job is triggered.

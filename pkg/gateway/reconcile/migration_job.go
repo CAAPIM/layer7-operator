@@ -54,10 +54,10 @@ var ErrMigrationPending = errors.New("migration pending")
 // job. It uses Gateway.Status.MigrationStatus as the authoritative source of truth
 // for whether the migration has completed, so that:
 //
-//   - Completed migrations are not re-run on daily reconciles or operator restarts.
+//   - Completed migrations are not re-run on 12-hour reconciles or operator restarts.
 //   - Completed migrations survive Job deletion/GC without triggering a re-run.
-//   - A spec change (image upgrade, jdbcUrl correction, clearLocks toggle) resets
-//     the status and triggers a fresh migration run automatically.
+//   - A spec change (image upgrade, jdbcUrl correction, clearLocks toggle, etc.)
+//     resets the status and triggers a fresh migration run automatically.
 //
 // The Deployment step is only unblocked when Status.MigrationStatus.Complete is true.
 func GatewayMigrationJob(ctx context.Context, params Params) error {
@@ -67,15 +67,12 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	// When migration is disabled (or database is disabled), clean up any leftover
 	// job so that toggling enabled→false doesn't orphan a job in the namespace.
 	if !migrationEnabled || !databaseEnabled {
-		existingJob := &batchv1.Job{}
-		jobName := params.Instance.Name + "-db-migration"
-		if err := params.Client.Get(ctx, types.NamespacedName{
-			Name:      jobName,
+		staleJob := &batchv1.Job{ObjectMeta: metav1.ObjectMeta{
+			Name:      gateway.MigrationJobName(params.Instance),
 			Namespace: params.Instance.Namespace,
-		}, existingJob); err == nil {
-			propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationForeground)
-			_ = params.Client.Delete(ctx, existingJob, propagationPolicy)
-		}
+		}}
+		propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationBackground)
+		_ = client.IgnoreNotFound(params.Client.Delete(ctx, staleJob, propagationPolicy))
 		return nil
 	}
 
@@ -83,7 +80,7 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	currentStatus := params.Instance.Status.MigrationStatus
 
 	// Fast path: migration already completed for the current spec.
-	// This allows daily reconciles and operator restarts to skip migration
+	// This allows 12-hour reconciles and operator restarts to skip migration
 	// management entirely — the status persists regardless of Job existence.
 	if currentStatus.SpecHash == desiredHash && currentStatus.Complete {
 		params.Log.V(2).Info("migration already complete for current spec, skipping",
@@ -91,37 +88,51 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 		return nil
 	}
 
-	// Spec changed (image upgrade, jdbcUrl correction, clearLocks toggle, etc.):
-	// reset the status and delete the old job so a fresh migration runs.
+	// Spec changed (image upgrade, jdbcUrl correction, clearLocks/secretName/
+	// disklessConfig toggle, etc.): delete the old Job first, then update status.
+	//
+	// Ordering matters: writing status first would update SpecHash to
+	// desiredHash before deletion, making this branch unreachable on the next
+	// reconcile if the deletion failed — turning a retryable error into a silent
+	// permanent skip. Instead we delete first and only write status after the
+	// delete succeeds or the job is already gone.
+	//
+	// No preceding Get (Fix 6): Delete with IgnoreNotFound is one fewer API
+	// round-trip and removes a swallowed-error opportunity.
+	//
+	// Background propagation (Fix 2): removes the Job object from etcd immediately
+	// so the next reconcile's Get cannot return the old (stale) object while it
+	// is mid-teardown, closing the foreground-deletion timing race.
 	if currentStatus.SpecHash != "" && currentStatus.SpecHash != desiredHash {
-		params.Log.Info("migration spec changed, resetting status and replacing job",
+		params.Log.Info("migration spec changed, replacing job",
 			"oldHash", currentStatus.SpecHash,
 			"newHash", desiredHash)
+		staleJob := &batchv1.Job{ObjectMeta: metav1.ObjectMeta{
+			Name:      gateway.MigrationJobName(params.Instance),
+			Namespace: params.Instance.Namespace,
+		}}
+		propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationBackground)
+		if delErr := params.Client.Delete(ctx, staleJob, propagationPolicy); client.IgnoreNotFound(delErr) != nil {
+			return fmt.Errorf("failed deleting stale migration job: %w", delErr)
+		}
 		if err := setMigrationStatus(ctx, params, securityv1.MigrationStatus{SpecHash: desiredHash}); err != nil {
 			return err
-		}
-		oldJob := &batchv1.Job{}
-		jobName := params.Instance.Name + "-db-migration"
-		if getErr := params.Client.Get(ctx, types.NamespacedName{Name: jobName, Namespace: params.Instance.Namespace}, oldJob); getErr == nil {
-			propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationForeground)
-			if delErr := params.Client.Delete(ctx, oldJob, propagationPolicy); delErr != nil {
-				return fmt.Errorf("failed deleting stale migration job: %w", delErr)
-			}
 		}
 		return fmt.Errorf("%w: migration spec changed, requeueing to create new job", ErrMigrationPending)
 	}
 
-	// Record the desired hash in status if this is the first time we see it.
+	// Build the desired Job now — needed both for creation and for the live
+	// sanity check (Fix 4+5) further below.
+	desiredJob := gateway.NewMigrationJob(params.Instance)
+	if err := controllerutil.SetControllerReference(params.Instance, desiredJob, params.Scheme); err != nil {
+		return fmt.Errorf("failed to set controller reference on migration job: %w", err)
+	}
+
+	// Record the desired hash in status on first enable (SpecHash is empty).
 	if currentStatus.SpecHash == "" {
 		if err := setMigrationStatus(ctx, params, securityv1.MigrationStatus{SpecHash: desiredHash}); err != nil {
 			return err
 		}
-	}
-
-	// Build the desired Job and look for the current in-cluster Job.
-	desiredJob := gateway.NewMigrationJob(params.Instance)
-	if err := controllerutil.SetControllerReference(params.Instance, desiredJob, params.Scheme); err != nil {
-		return fmt.Errorf("failed to set controller reference on migration job: %w", err)
 	}
 
 	currentJob := &batchv1.Job{}
@@ -137,6 +148,34 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 		return fmt.Errorf("%w: migration job started, waiting for completion", ErrMigrationPending)
 	} else if err != nil {
 		return err
+	}
+
+	// Don't trust Status on a Job that has already been requested for
+	// deletion — its Succeeded/Failed counts still reflect the previous run.
+	// Background deletion removes the object immediately, but a webhook delay or
+	// brief informer lag can still deliver a stale cached object for a short window.
+	if currentJob.DeletionTimestamp != nil {
+		return fmt.Errorf("%w: migration job is being deleted, waiting", ErrMigrationPending)
+	}
+
+	// Sanity-check the live Job against the desired spec before reading
+	// its Status. Re-adds the zero-container guard that existed in the previous
+	// implementation, and extends it with an image check.
+	//
+	// If the container count is zero the Job is malformed (manual edit, webhook
+	// interference) and must be replaced. If the image differs the Job carries a
+	// stale spec that somehow escaped hash-based detection (e.g., a field not yet
+	// covered by migrationSpecHash); replacing it is the safe fallback.
+	//
+	// In both cases: delete with Background propagation and return ErrMigrationPending
+	// so the next reconcile creates a fresh Job.
+	if len(currentJob.Spec.Template.Spec.Containers) == 0 ||
+		currentJob.Spec.Template.Spec.Containers[0].Image != desiredJob.Spec.Template.Spec.Containers[0].Image {
+		params.Log.Info("replacing malformed or stale migration job",
+			"name", currentJob.Name, "namespace", currentJob.Namespace)
+		propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationBackground)
+		_ = client.IgnoreNotFound(params.Client.Delete(ctx, currentJob, propagationPolicy))
+		return fmt.Errorf("%w: replacing malformed or stale migration job", ErrMigrationPending)
 	}
 
 	// Job succeeded: persist completion in status so future reconciles skip migration.
@@ -156,7 +195,7 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 
 	// Only declare terminal failure when no pod attempt is still active.
 	// With backoffLimit=1, Kubernetes briefly shows Active=1, Failed=1 while
-	// pod-2 (the retry) is running. Declaring failure then would kill a healthy
+	// pod-2 (the retry) is running. Declaring failure then would block a healthy
 	// retry and require unnecessary manual intervention.
 	if currentJob.Status.Active == 0 && currentJob.Status.Failed > 0 {
 		params.Log.Info("migration job failed — Gateway deployment is blocked. Investigate logs then delete the job to retry",
@@ -172,9 +211,17 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	return fmt.Errorf("%w: migration job is active", ErrMigrationPending)
 }
 
-// migrationSpecHash returns a 16-character hex hash of the migration-relevant spec
-// fields: image, effective jdbcUrl, clearLocks flag, and activeDeadlineSeconds.
-// When any of these change the hash changes and a fresh migration job is triggered.
+// migrationSpecHash returns a 16-character hex hash of all Gateway spec fields
+// that affect the Job built by NewMigrationJob. When any of these change, the
+// hash changes, status is reset, and a fresh migration job is triggered.
+//
+// Fields hashed:
+//   - Image: new version = new Liquibase changesets to apply
+//   - effective jdbcUrl: different target DB requires its own migration run
+//   - clearLocks: changes the schema-update mode flag passed to the container
+//   - activeDeadlineSeconds: changing this is typically to fix a too-short timeout
+//   - DisklessConfig.Disabled: determines Secret-mounting strategy (envFrom vs Volume)
+//   - effective secretName: controls which Secret the Job container references
 func migrationSpecHash(gw *securityv1.Gateway) string {
 	h := sha256.New()
 	h.Write([]byte(gw.Spec.App.Image))
@@ -192,6 +239,18 @@ func migrationSpecHash(gw *securityv1.Gateway) string {
 	if gw.Spec.App.Management.Database.MigrationJob.ActiveDeadlineSeconds != nil {
 		h.Write([]byte(strconv.FormatInt(*gw.Spec.App.Management.Database.MigrationJob.ActiveDeadlineSeconds, 10)))
 	}
+
+	// Include the two fields NewMigrationJob also reads but that were
+	// previously absent from the hash. Omitting them meant that rotating the
+	// Gateway Secret or flipping DisklessConfig after a completed migration would
+	// go undetected and the operator would keep trusting the old Complete: true status.
+	h.Write([]byte(strconv.FormatBool(gw.Spec.App.Management.DisklessConfig.Disabled)))
+
+	secretName := gw.Name
+	if gw.Spec.App.Management.SecretName != "" {
+		secretName = gw.Spec.App.Management.SecretName
+	}
+	h.Write([]byte(secretName))
 
 	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }

@@ -35,6 +35,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// MigrationJobName returns the canonical name of the migration Job for a Gateway.
+// Exported so pkg/gateway/reconcile can derive the same name without duplicating
+// the "-db-migration" suffix convention.
+func MigrationJobName(gw *securityv1.Gateway) string {
+	return gw.Name + "-db-migration"
+}
+
 func NewMigrationJob(gw *securityv1.Gateway) *batchv1.Job {
 	gatewaySecretName := gw.Name
 	if gw.Spec.App.Management.DisklessConfig.Disabled {
@@ -160,17 +167,18 @@ func NewMigrationJob(gw *securityv1.Gateway) *batchv1.Job {
 		serviceAccountName = "default"
 	}
 
+	jobName := MigrationJobName(gw)
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      gw.Name + "-db-migration",
+			Name:      jobName,
 			Namespace: gw.Namespace,
-			Labels:    map[string]string{"app": gw.Name + "-db-migration"},
+			Labels:    map[string]string{"app": jobName},
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit: &backoffLimit,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": gw.Name + "-db-migration"},
+					Labels: map[string]string{"app": jobName},
 				},
 				Spec: corev1.PodSpec{
 					ActiveDeadlineSeconds: &activeDeadlineSeconds,

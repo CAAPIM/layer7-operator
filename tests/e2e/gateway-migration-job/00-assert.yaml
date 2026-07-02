@@ -1,0 +1,50 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+# 60 s is enough for the operator to reconcile and create the Job.
+# The Job pod itself will fail (no real MySQL), but the Job object is
+# created synchronously by the operator — it does not depend on pod success.
+timeout: 60
+---
+# Assert: a Job named "<gateway>-db-migration" is created with the correct spec.
+#
+# Key fields verified:
+#   backoffLimit: 1              — operator allows exactly one pod retry before
+#                                  declaring terminal failure (requiring manual intervention)
+#   container.name: db-migration — canonical container name from NewMigrationJob
+#   container.image              — same image as spec.app.image (Liquibase is bundled
+#                                  in the Gateway image itself)
+#   container.envFrom            — ConfigMap and Secret both mounted via envFrom so the
+#                                  container inherits all Gateway env vars including
+#                                  SSG_DATABASE_USER and SSG_DATABASE_PASSWORD
+#   container.env[EXTRA_JAVA_ARGS] — liquibase-only mode (clearLocks=false)
+#                                    runs schema updates without releasing the lock first
+#   activeDeadlineSeconds: 300   — default deadline; Job pod is killed if it runs
+#                                  longer than this to prevent hung migrations
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ssg-migration-job-db-migration
+  labels:
+    app: ssg-migration-job-db-migration
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: default
+      activeDeadlineSeconds: 300
+      containers:
+      - name: db-migration
+        image: docker.io/caapim/gateway:11.2.1
+        envFrom:
+        - configMapRef:
+            name: ssg-migration-job
+        - secretRef:
+            name: ssg-migration-job
+        env:
+        - name: EXTRA_JAVA_ARGS
+          value: "-Dgateway.db.schema-update.mode=liquibase-only"
+# Note: Status.MigrationStatus.SpecHash (non-empty) is asserted in 01-assert.yaml
+# via a command script because KUTTL YAML assertions cannot express "field is not
+# empty". complete: false is the Go zero value and would match even if
+# setMigrationStatus was never called, so it is not a useful assertion here.

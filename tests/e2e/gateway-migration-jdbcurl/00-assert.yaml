@@ -1,0 +1,40 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+# Assert: when migrationJob.jdbcUrl is set, the Job container has
+# SSG_DATABASE_JDBC_URL in its env, overriding the main database.jdbcUrl.
+#
+# Key fields verified:
+#   env[EXTRA_JAVA_ARGS]         — liquibase-only (clearLocks=false, the default)
+#   env[SSG_DATABASE_JDBC_URL]   — the override URL with "?createDatabaseIfNotExist=false"
+#                                  appended. The suffix ensures a typo in the URL
+#                                  fails fast instead of silently creating a new DB.
+#
+# The proxy URL (jdbc:mysql://no-mysql-proxy.local:3306/ssg) must NOT appear in
+# the Job's SSG_DATABASE_JDBC_URL — only the direct primary writer URL should.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ssg-migration-jdbcurl-db-migration
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-migration
+        image: docker.io/caapim/gateway:11.2.1
+        envFrom:
+        - configMapRef:
+            name: ssg-migration-jdbcurl
+        - secretRef:
+            name: ssg-migration-jdbcurl
+        env:
+        - name: EXTRA_JAVA_ARGS
+          value: "-Dgateway.db.schema-update.mode=liquibase-only"
+        - name: SSG_DATABASE_JDBC_URL
+          # The override URL with createDatabaseIfNotExist=false appended.
+          # NewMigrationJob adds this suffix when the URL has no '?' yet,
+          # so "jdbc:mysql://no-mysql-primary.local:3306/ssg" becomes this value.
+          value: "jdbc:mysql://no-mysql-primary.local:3306/ssg?createDatabaseIfNotExist=false"

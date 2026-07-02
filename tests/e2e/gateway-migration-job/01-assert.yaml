@@ -1,0 +1,45 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+# Step 01 runs after step 00 confirmed the Job exists with the correct spec.
+# At that point the operator has already executed setMigrationStatus in the
+# same reconcile that created the Job, so the status write should already be
+# visible. The 60s timeout matches step 00 as a safety margin for slow clusters.
+timeout: 60
+commands:
+  - script: |
+      # Assert: Status.MigrationStatus.SpecHash is non-empty.
+      #
+      # YAML subset matching in 00-assert.yaml can only check that complete=false.
+      # It cannot express "specHash is not empty" because KUTTL has no "not empty"
+      # operator in YAML assertions. This command fills that gap.
+      #
+      # A non-empty specHash proves that setMigrationStatus was called on first
+      # enable, which is what allows all future 12-hour reconciles to use the fast
+      # path (skipping migration management when the spec has not changed).
+      HASH=$(kubectl get gateway ssg-migration-job \
+        -n "$NAMESPACE" \
+        -o jsonpath='{.status.migrationStatus.specHash}')
+
+      if [ -z "$HASH" ]; then
+        echo "FAIL: Status.MigrationStatus.SpecHash is empty — setMigrationStatus was not called"
+        exit 1
+      fi
+
+      echo "PASS: Status.MigrationStatus.SpecHash is set to: $HASH"
+  - script: |
+      # Assert: the Deployment must NOT exist while the migration Job has not
+      # succeeded. This is the core guarantee of the whole migration-job
+      # feature — pkg/gateway/reconcile/deployment.go's Deployment() step
+      # gates on migrationComplete(), which is false here because the Job
+      # (pointed at the fake DB host) can only be pending or failed, never
+      # Succeeded. Neither state is exercised by the Job-spec assertion in
+      # 00-assert.yaml, so it would not catch a regression in that gate.
+      #
+      # If this ever fails, the gate in deployment.go has regressed and
+      # Gateway pods could roll out against an unmigrated database schema.
+      if kubectl get deployment ssg-migration-job -n "$NAMESPACE" >/dev/null 2>&1; then
+        echo "FAIL: Deployment must not exist while migration is pending/failed"
+        exit 1
+      fi
+
+      echo "PASS: Deployment correctly does not exist while migration is unresolved"

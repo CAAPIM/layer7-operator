@@ -1,0 +1,45 @@
+# Test: migration enabled — operator creates the migration Job with the correct spec
+#
+# Scenario: migrationJob.enabled=true with no jdbcUrl override and clearLocks=false
+# (both are the common defaults). The operator must create a Job whose container:
+#   - uses the Gateway image
+#   - has EXTRA_JAVA_ARGS set to liquibase-only mode
+#   - reads database credentials from the operator-managed Secret via envFrom
+#
+# The jdbcUrl points to a non-existent host intentionally. This test only asserts
+# the Job object spec; it does not require a real MySQL instance. The Job pod will
+# fail to connect but the operator still creates the Job object correctly.
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg-migration-job
+spec:
+  version: "11.2.1"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:11.2.1
+    imagePullPolicy: IfNotPresent
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
+      username: admin
+      password: 7layer
+      database:
+        enabled: true
+        jdbcUrl: jdbc:mysql://no-mysql.local:3306/ssg
+        migrationJob:
+          enabled: true    # ← migration on
+          clearLocks: false  # default: liquibase-only mode
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+        - name: management
+          port: 9443
+          targetPort: 9443

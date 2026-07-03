@@ -30,6 +30,7 @@ import (
 	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	"github.com/caapim/layer7-operator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -138,6 +139,11 @@ func NewMigrationJob(gw *securityv1.Gateway) *batchv1.Job {
 		})
 	}
 
+	// Reuse the same SecurityContext derivation as the main Gateway Deployment so
+	// the migration pod is subject to the same PodSecurityContext/ContainerSecurityContext
+	// (e.g. runAsNonRoot, seccomp profiles) rather than running unconfined.
+	containerSecurityContext, podSecurityContext := gatewaySecurityContexts(gw)
+
 	container := corev1.Container{
 		Name:            "db-migration",
 		Image:           gw.Spec.App.Image,
@@ -145,6 +151,11 @@ func NewMigrationJob(gw *securityv1.Gateway) *batchv1.Job {
 		EnvFrom:         envFrom,
 		Env:             envVars,
 		VolumeMounts:    volumeMounts,
+		SecurityContext: &containerSecurityContext,
+		Resources: corev1.ResourceRequirements{
+			Requests: gw.Spec.App.Resources.Requests,
+			Limits:   gw.Spec.App.Resources.Limits,
+		},
 	}
 
 	var backoffLimit int32 = 1
@@ -168,25 +179,45 @@ func NewMigrationJob(gw *securityv1.Gateway) *batchv1.Job {
 	}
 
 	jobName := MigrationJobName(gw)
+
+	// Use the same label convention as every other resource the operator creates
+	// (Deployment, Services, ConfigMaps, ...) so the migration Job/Pod remain
+	// discoverable and consistent with any customer-authored NetworkPolicy,
+	// monitoring, or tooling that selects on these labels.
+	jobLabels := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
+	jobLabels["app"] = jobName
+
+	podLabels := util.DefaultLabels(gw.Name, gw.Spec.App.Labels)
+	podLabels["app"] = jobName
+	for k, v := range gw.Spec.App.PodLabels {
+		podLabels[k] = v
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
 			Namespace: gw.Namespace,
-			Labels:    map[string]string{"app": jobName},
+			Labels:    jobLabels,
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit: &backoffLimit,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": jobName},
+					Labels:      podLabels,
+					Annotations: gw.Spec.App.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					ActiveDeadlineSeconds: &activeDeadlineSeconds,
-					ServiceAccountName:    serviceAccountName,
-					RestartPolicy:         corev1.RestartPolicyNever,
-					Containers:            []corev1.Container{container},
-					ImagePullSecrets:      gw.Spec.App.ImagePullSecrets,
-					Volumes:               volumes,
+					ActiveDeadlineSeconds:     &activeDeadlineSeconds,
+					ServiceAccountName:        serviceAccountName,
+					RestartPolicy:             corev1.RestartPolicyNever,
+					Containers:                []corev1.Container{container},
+					ImagePullSecrets:          gw.Spec.App.ImagePullSecrets,
+					Volumes:                   volumes,
+					SecurityContext:           &podSecurityContext,
+					NodeSelector:              gw.Spec.App.NodeSelector,
+					Affinity:                  &gw.Spec.App.Affinity,
+					Tolerations:               gw.Spec.App.Tolerations,
+					TopologySpreadConstraints: gw.Spec.App.TopologySpreadConstraints,
 				},
 			},
 		},

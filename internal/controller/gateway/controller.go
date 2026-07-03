@@ -30,7 +30,6 @@ package gateway
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -133,32 +132,14 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	start := time.Now()
-	migrationPending := false
 	for _, op := range ops {
 		if err = r.runOp(ctx, params, op); err != nil {
-			// ErrMigrationPending is a normal "not ready yet" state, not a failure.
-			// The Deployment op gates itself on Status.MigrationStatus, so the rest
-			// of the ops (ConfigMaps, Secrets, status, etc.) keep reconciling
-			// normally instead of being blocked behind the migration job.
-			if errors.Is(err, reconcile.ErrMigrationPending) {
-				migrationPending = true
-				continue
-			}
 			_ = captureMetrics(ctx, params, start, true, op.Name)
 			return ctrl.Result{}, err
 		}
 	}
 
 	_ = captureMetrics(ctx, params, start, false, "")
-
-	// Poll at a fixed short interval while migration is pending, rather than
-	// applying exponential backoff or waiting for the normal 12-hour cadence.
-	// This is a safety net alongside the Owns(&batchv1.Job{}) watch, which
-	// already triggers a reconcile as soon as the Job's status changes.
-	if migrationPending {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
-
 	return ctrl.Result{RequeueAfter: 12 * time.Hour}, nil
 }
 

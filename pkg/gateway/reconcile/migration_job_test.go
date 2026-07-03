@@ -28,7 +28,6 @@ package reconcile
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -329,13 +328,12 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 	// ── first enable ─────────────────────────────────────────────────────────
 
-	t.Run("first enable: Job created, SpecHash written, ErrMigrationPending returned", func(t *testing.T) {
+	t.Run("first enable: Job created, SpecHash written, returns nil", func(t *testing.T) {
 		// Input:  Gateway with migration freshly enabled; empty Status.MigrationStatus;
 		//         no existing Job in the cluster.
 		// Output:
-		//   - GatewayMigrationJob returns an error wrapping ErrMigrationPending.
-		//     (ErrMigrationPending is a sentinel: "not done yet, check back in 10s".
-		//      It is not a real failure — the controller requeues without backoff.)
+		//   - GatewayMigrationJob returns nil (reconcile completes; the Owns watch
+		//     re-triggers reconciliation when the Job's status changes).
 		//   - A Job named "<gateway>-db-migration" exists in the cluster.
 		//   - Status.MigrationStatus.SpecHash is non-empty (hash persisted to etcd).
 		//   - Status.MigrationStatus.Complete is false (migration not yet finished).
@@ -344,8 +342,8 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 		err := GatewayMigrationJob(ctx, p)
 
-		if !errors.Is(err, ErrMigrationPending) {
-			t.Fatalf("expected ErrMigrationPending on first enable, got: %v", err)
+		if err != nil {
+			t.Fatalf("expected nil on first enable, got: %v", err)
 		}
 
 		// Verify the Job was created.
@@ -402,10 +400,11 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 	// ── job lifecycle: running ────────────────────────────────────────────────
 
-	t.Run("active job: returns ErrMigrationPending without modifying the Job", func(t *testing.T) {
+	t.Run("active job: returns nil without modifying the Job", func(t *testing.T) {
 		// Input:  Gateway with an existing Job that reports Active=1 (pod is running).
 		//         Status.MigrationStatus.SpecHash matches the current desired hash.
-		// Output: GatewayMigrationJob returns ErrMigrationPending.
+		// Output: GatewayMigrationJob returns nil (reconcile completes normally).
+		//         The Owns watch re-triggers when the Job finishes.
 		//         The existing Job is neither deleted nor recreated.
 		p := migrationParams("mj-active-job")
 		createGateway(t, p)
@@ -423,8 +422,8 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 		err := GatewayMigrationJob(ctx, p)
 
-		if !errors.Is(err, ErrMigrationPending) {
-			t.Fatalf("expected ErrMigrationPending while job is active, got: %v", err)
+		if err != nil {
+			t.Fatalf("expected nil while job is active, got: %v", err)
 		}
 
 		// Job must still exist and be unmodified.
@@ -449,9 +448,10 @@ func TestGatewayMigrationJob(t *testing.T) {
 		p := migrationParams("mj-succeeded")
 		createGateway(t, p)
 
-		// First call: creates the Job and writes SpecHash to status.
-		if firstErr := GatewayMigrationJob(ctx, p); !errors.Is(firstErr, ErrMigrationPending) {
-			t.Fatalf("first call should return ErrMigrationPending, got: %v", firstErr)
+		// First call: creates the Job and writes SpecHash to status. Returns nil
+		// so the reconcile completes; the Owns watch fires on Job status changes.
+		if firstErr := GatewayMigrationJob(ctx, p); firstErr != nil {
+			t.Fatalf("first call should return nil, got: %v", firstErr)
 		}
 
 		// Retrieve the created Job and simulate success by patching its status.
@@ -480,11 +480,11 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 	// ── job lifecycle: failed ─────────────────────────────────────────────────
 
-	t.Run("failed job: returns a blocking error (not ErrMigrationPending)", func(t *testing.T) {
+	t.Run("failed job: returns a blocking error", func(t *testing.T) {
 		// Input:  Gateway whose existing Job reports Active=0, Failed=1
 		//         (both pod attempts exhausted; backoffLimit=1 reached).
-		// Output: GatewayMigrationJob returns a non-nil error that does NOT wrap
-		//         ErrMigrationPending. The controller applies backoff and metrics.
+		// Output: GatewayMigrationJob returns a non-nil error. The controller
+		//         applies exponential backoff and records failure metrics.
 		//         The Job is NOT deleted — the user must fix the root cause
 		//         (restore DB to pre-upgrade state if partially migrated, fix
 		//         credentials, etc.) and then delete the Job manually to retry.
@@ -501,12 +501,8 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 		err := GatewayMigrationJob(ctx, p)
 
-		// Must be a real error (not the "pending" sentinel).
 		if err == nil {
 			t.Fatal("expected a blocking error for failed job, got nil")
-		}
-		if errors.Is(err, ErrMigrationPending) {
-			t.Fatalf("expected a real blocking error, not ErrMigrationPending — got: %v", err)
 		}
 
 		// Job must still exist (user must delete it manually to retry).
@@ -520,14 +516,14 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 	// ── spec change ───────────────────────────────────────────────────────────
 
-	t.Run("spec changed: old Job deleted, status reset to new hash, ErrMigrationPending returned", func(t *testing.T) {
+	t.Run("spec changed: old Job deleted, status reset to new hash, returns nil", func(t *testing.T) {
 		// Input:  Gateway previously migrated with image v1 (Complete=true, SpecHash=H1).
 		//         User changes spec.app.image to v2, making desiredHash=H2 != H1.
 		// Output:
 		//   - The old Job is deleted from the cluster.
 		//   - Status.MigrationStatus is reset to {SpecHash: H2, Complete: false}.
-		//   - GatewayMigrationJob returns ErrMigrationPending so the controller
-		//     requeues in 10s, at which point it will create the new Job.
+		//   - GatewayMigrationJob returns nil; the Job deletion event (Owns watch)
+		//     re-triggers reconciliation, which then creates the new Job.
 		// Why the delete-before-status-write ordering matters: if the status were
 		//   written first and the deletion then failed, the new hash would already be
 		//   persisted, making this branch unreachable on the next reconcile — a silent,
@@ -562,8 +558,8 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 		err := GatewayMigrationJob(ctx, p)
 
-		if !errors.Is(err, ErrMigrationPending) {
-			t.Fatalf("expected ErrMigrationPending after spec change, got: %v", err)
+		if err != nil {
+			t.Fatalf("expected nil after spec change, got: %v", err)
 		}
 
 		// Old Job must be gone (Background deletion removes it from etcd immediately).
@@ -576,6 +572,64 @@ func TestGatewayMigrationJob(t *testing.T) {
 		}
 
 		// Status must be reset to the new hash with Complete=false.
+		hashV2 := migrationSpecHash(p.Instance)
+		if p.Instance.Status.MigrationStatus.SpecHash != hashV2 {
+			t.Errorf("SpecHash: got %q, want %q", p.Instance.Status.MigrationStatus.SpecHash, hashV2)
+		}
+		if p.Instance.Status.MigrationStatus.Complete {
+			t.Error("Complete must be false after spec change — migration not yet run for new spec")
+		}
+	})
+
+	t.Run("spec changed with no existing Job: replacement Job is created in the same call", func(t *testing.T) {
+		// Input:  Gateway previously migrated with image v1 (Complete=true, SpecHash=H1),
+		//         but the v1 Job is no longer in the cluster (e.g. manually deleted or
+		//         garbage collected after completion). User changes spec.app.image to v2.
+		// Output:
+		//   - There is no old Job to delete, so no deletion event exists to retrigger
+		//     reconciliation. GatewayMigrationJob must fall through and create the
+		//     new Job itself in this same call instead of waiting up to 12h for the
+		//     next reconcile.
+		//   - Status.MigrationStatus is reset to {SpecHash: H2, Complete: false}.
+		p := migrationParams("mj-spec-change-no-job")
+		p.Instance.Spec.App.Image = "gateway:11.1.1"
+		createGateway(t, p)
+
+		hashV1 := migrationSpecHash(p.Instance)
+
+		// Seed status as if migration with image v1 already completed, but do NOT
+		// create a Job — it represents one that was already cleaned up.
+		seedMigrationStatus(t, p, securityv1.MigrationStatus{
+			SpecHash: hashV1,
+			Complete: true,
+		})
+
+		p.Instance.Spec.App.Image = "gateway:11.3.0"
+		if err := k8sClient.Update(ctx, p.Instance); err != nil {
+			t.Fatalf("failed to persist image upgrade: %v", err)
+		}
+
+		err := GatewayMigrationJob(ctx, p)
+
+		if err != nil {
+			t.Fatalf("expected nil after spec change with no existing job, got: %v", err)
+		}
+
+		// The replacement Job for the new spec must exist — created in this same
+		// call, since there was no deletion event to wait for.
+		newJob := &batchv1.Job{}
+		getErr := k8sClient.Get(ctx, types.NamespacedName{
+			Name:      gateway.MigrationJobName(p.Instance),
+			Namespace: p.Instance.Namespace,
+		}, newJob)
+		if getErr != nil {
+			t.Fatalf("expected replacement Job to be created, got error: %v", getErr)
+		}
+		if got := newJob.Spec.Template.Spec.Containers[0].Image; got != "gateway:11.3.0" {
+			t.Errorf("replacement Job image: got %q, want %q", got, "gateway:11.3.0")
+		}
+		t.Cleanup(func() { _ = k8sClient.Delete(context.Background(), newJob) })
+
 		hashV2 := migrationSpecHash(p.Instance)
 		if p.Instance.Status.MigrationStatus.SpecHash != hashV2 {
 			t.Errorf("SpecHash: got %q, want %q", p.Instance.Status.MigrationStatus.SpecHash, hashV2)
@@ -625,13 +679,13 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 	// ── stale / malformed job guard ───────────────────────────────────────────
 
-	t.Run("stale image job: Job with wrong image is replaced, ErrMigrationPending returned", func(t *testing.T) {
+	t.Run("stale image job: Job with wrong image is replaced, returns nil", func(t *testing.T) {
 		// Input:  An existing Job was built with image "old-image:1.0" but the
 		//         current Gateway spec still carries the same spec hash (the image
 		//         change somehow escaped hash detection). The live Job's image does
 		//         not match the image in the freshly-built desired Job.
-		// Output: The stale Job is deleted and ErrMigrationPending is returned so
-		//         the next reconcile creates a valid replacement.
+		// Output: The stale Job is deleted and nil is returned; the Job deletion
+		//         event (Owns watch) re-triggers reconciliation to create the replacement.
 		// This guard also covers the zero-container case (a Job whose containers
 		//         were cleared by a manual edit or a mutating webhook after creation —
 		//         something the API server admission webhook would not catch post-creation).
@@ -653,8 +707,8 @@ func TestGatewayMigrationJob(t *testing.T) {
 
 		err := GatewayMigrationJob(ctx, p)
 
-		if !errors.Is(err, ErrMigrationPending) {
-			t.Fatalf("expected ErrMigrationPending when replacing stale-image job, got: %v", err)
+		if err != nil {
+			t.Fatalf("expected nil when replacing stale-image job, got: %v", err)
 		}
 		got := &batchv1.Job{}
 		getErr := k8sClient.Get(ctx, types.NamespacedName{
@@ -672,7 +726,7 @@ func TestGatewayMigrationJob(t *testing.T) {
 		//         delete request but the object is still visible because a finalizer
 		//         is preventing immediate removal). The Job's status still shows
 		//         Succeeded=1 from the previous run — stale data.
-		// Output: GatewayMigrationJob returns ErrMigrationPending and does NOT write
+		// Output: GatewayMigrationJob returns nil and does NOT write
 		//         Complete=true to Status.MigrationStatus.
 		// Why:    Background deletion removes the Job from etcd immediately, but a
 		//         brief informer-cache lag or webhook delay can deliver a stale cached
@@ -718,10 +772,10 @@ func TestGatewayMigrationJob(t *testing.T) {
 		// ── Assert: the DeletionTimestamp guard fires ─────────────────────────────
 		//
 		// The guard is the check inside GatewayMigrationJob that inspects
-		// currentJob.DeletionTimestamp after the Get. It must return
-		// ErrMigrationPending instead of falling through to the Succeeded check.
-		if !errors.Is(err, ErrMigrationPending) {
-			t.Fatalf("DeletionTimestamp guard must return ErrMigrationPending, got: %v", err)
+		// currentJob.DeletionTimestamp after the Get. It must return nil (not
+		// an error) and must not fall through to the Succeeded check.
+		if err != nil {
+			t.Fatalf("DeletionTimestamp guard must return nil, got: %v", err)
 		}
 
 		// The guard must also prevent setMigrationStatus from being called with

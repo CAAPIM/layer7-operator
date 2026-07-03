@@ -29,7 +29,6 @@ package reconcile
 import (
 	"context"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -43,13 +42,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// ErrMigrationPending is returned by GatewayMigrationJob when the migration job
-// exists and has not yet completed (created, replaced, or still active). The
-// controller treats this as a normal "not ready yet" state: it requeues with a
-// fixed short interval rather than applying exponential backoff or incrementing
-// failure metrics.
-var ErrMigrationPending = errors.New("migration pending")
-
 // GatewayMigrationJob manages the lifecycle of the pre-upgrade database migration
 // job. It uses Gateway.Status.MigrationStatus as the authoritative source of truth
 // for whether the migration has completed, so that:
@@ -59,7 +51,11 @@ var ErrMigrationPending = errors.New("migration pending")
 //   - A spec change (image upgrade, jdbcUrl correction, clearLocks toggle, etc.)
 //     resets the status and triggers a fresh migration run automatically.
 //
-// The Deployment step is only unblocked when Status.MigrationStatus.Complete is true.
+// The function always returns nil unless it encounters a real error. Waiting states
+// (Job created, Job active, Job being replaced) return nil and rely on the
+// controller's Owns(&batchv1.Job{}) watch to re-trigger reconciliation as soon as
+// the Job's status changes. The Deployment step is only unblocked when
+// Status.MigrationStatus.Complete is true.
 func GatewayMigrationJob(ctx context.Context, params Params) error {
 	migrationEnabled := params.Instance.Spec.App.Management.Database.MigrationJob.Enabled
 	databaseEnabled := params.Instance.Spec.App.Management.Database.Enabled
@@ -101,8 +97,8 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	// round-trip and removes a swallowed-error opportunity.
 	//
 	// Background propagation (Fix 2): removes the Job object from etcd immediately
-	// so the next reconcile's Get cannot return the old (stale) object while it
-	// is mid-teardown, closing the foreground-deletion timing race.
+	// so a subsequent Get cannot return the old (stale) object while it is
+	// mid-teardown, closing the foreground-deletion timing race.
 	if currentStatus.SpecHash != "" && currentStatus.SpecHash != desiredHash {
 		params.Log.Info("migration spec changed, replacing job",
 			"oldHash", currentStatus.SpecHash,
@@ -112,13 +108,29 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 			Namespace: params.Instance.Namespace,
 		}}
 		propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationBackground)
-		if delErr := params.Client.Delete(ctx, staleJob, propagationPolicy); client.IgnoreNotFound(delErr) != nil {
+		delErr := params.Client.Delete(ctx, staleJob, propagationPolicy)
+		if delErr != nil && !k8serrors.IsNotFound(delErr) {
 			return fmt.Errorf("failed deleting stale migration job: %w", delErr)
 		}
 		if err := setMigrationStatus(ctx, params, securityv1.MigrationStatus{SpecHash: desiredHash}); err != nil {
 			return err
 		}
-		return fmt.Errorf("%w: migration spec changed, requeueing to create new job", ErrMigrationPending)
+		// Keep the local copy in sync so the first-enable status write further
+		// down (which checks for an empty SpecHash) doesn't run redundantly.
+		currentStatus.SpecHash = desiredHash
+
+		if delErr == nil {
+			// A Job existed and was just deleted. Rely on the deletion event (Owns
+			// watch) to retrigger reconciliation rather than reading it back here —
+			// an immediate Get could still return the stale cached object before
+			// the informer observes the delete.
+			return nil
+		}
+		// No Job existed to delete (e.g. it was manually removed, or garbage
+		// collected, after a previous migration completed). There is no deletion
+		// event to wait for in that case, so fall through and create the
+		// replacement Job in this same pass instead of stalling until the next
+		// spec change or the 12-hour periodic reconcile.
 	}
 
 	// Build the desired Job now — needed both for creation and for the live
@@ -145,7 +157,9 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 			return fmt.Errorf("failed creating migration job: %w", err)
 		}
 		params.Log.Info("created migration job", "name", desiredJob.Name, "namespace", desiredJob.Namespace)
-		return fmt.Errorf("%w: migration job started, waiting for completion", ErrMigrationPending)
+		// Return nil; the Job's status changes will re-trigger reconciliation via
+		// the Owns(&batchv1.Job{}) watch.
+		return nil
 	} else if err != nil {
 		return err
 	}
@@ -154,8 +168,9 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	// deletion — its Succeeded/Failed counts still reflect the previous run.
 	// Background deletion removes the object immediately, but a webhook delay or
 	// brief informer lag can still deliver a stale cached object for a short window.
+	// Return nil; the Job's full deletion event will re-trigger reconciliation.
 	if currentJob.DeletionTimestamp != nil {
-		return fmt.Errorf("%w: migration job is being deleted, waiting", ErrMigrationPending)
+		return nil
 	}
 
 	// Sanity-check the live Job against the desired spec before reading
@@ -167,15 +182,15 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	// stale spec that somehow escaped hash-based detection (e.g., a field not yet
 	// covered by migrationSpecHash); replacing it is the safe fallback.
 	//
-	// In both cases: delete with Background propagation and return ErrMigrationPending
-	// so the next reconcile creates a fresh Job.
+	// In both cases: delete with Background propagation and return nil so the
+	// Job deletion event re-triggers reconciliation to create a fresh Job.
 	if len(currentJob.Spec.Template.Spec.Containers) == 0 ||
 		currentJob.Spec.Template.Spec.Containers[0].Image != desiredJob.Spec.Template.Spec.Containers[0].Image {
 		params.Log.Info("replacing malformed or stale migration job",
 			"name", currentJob.Name, "namespace", currentJob.Namespace)
 		propagationPolicy := client.PropagationPolicy(metav1.DeletePropagationBackground)
 		_ = client.IgnoreNotFound(params.Client.Delete(ctx, currentJob, propagationPolicy))
-		return fmt.Errorf("%w: replacing malformed or stale migration job", ErrMigrationPending)
+		return nil
 	}
 
 	// Job succeeded: persist completion in status so future reconciles skip migration.
@@ -198,17 +213,17 @@ func GatewayMigrationJob(ctx context.Context, params Params) error {
 	// pod-2 (the retry) is running. Declaring failure then would block a healthy
 	// retry and require unnecessary manual intervention.
 	if currentJob.Status.Active == 0 && currentJob.Status.Failed > 0 {
-		params.Log.Info("migration job failed — Gateway deployment is blocked. Investigate logs then delete the job to retry",
+		params.Log.Info("migration job failed — delete the job to retry after resolving the root cause",
 			"name", currentJob.Name,
-			"namespace", currentJob.Namespace,
-			"fix", "kubectl delete job "+currentJob.Name+" -n "+currentJob.Namespace)
+			"namespace", currentJob.Namespace)
 		return fmt.Errorf("migration job %s/%s failed — Gateway deployment blocked pending manual intervention", currentJob.Namespace, currentJob.Name)
 	}
 
-	// Job is still running (or briefly between pod attempts). Return ErrMigrationPending
-	// so the controller requeues at a fixed interval without incrementing failure metrics.
-	params.Log.Info("migration job is active, waiting...")
-	return fmt.Errorf("%w: migration job is active", ErrMigrationPending)
+	// Job is still running (or briefly between pod attempts). Return nil so the
+	// reconcile loop completes normally; the Job completion event will re-trigger.
+	params.Log.V(2).Info("migration job is active, waiting for completion",
+		"name", currentJob.Name, "namespace", currentJob.Namespace)
+	return nil
 }
 
 // migrationComplete reports whether the pre-upgrade migration job (if enabled)

@@ -938,16 +938,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		imagePullPolicy = gw.Spec.App.ImagePullPolicy
 	}
 
-	gatewayContainerSecurityContext := corev1.SecurityContext{}
-	podSecurityContext := corev1.PodSecurityContext{}
-
-	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
-		gatewayContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
-	}
-
-	if !reflect.DeepEqual(gw.Spec.App.PodSecurityContext, corev1.PodSecurityContext{}) {
-		podSecurityContext = gw.Spec.App.PodSecurityContext
-	}
+	gatewayContainerSecurityContext, podSecurityContext := gatewaySecurityContexts(gw)
 	gatewaySecretName := gw.Name
 	if gw.Spec.App.Management.DisklessConfig.Disabled {
 		gatewaySecretName = gw.Name + "-node-properties"

@@ -34,7 +34,7 @@ pipeline {
                         if [[ "${BRANCH_NAME}" = "develop" ]]; then
                           export IMAGE_TAG="latest"
                         else
-                          export RELEASE_VERSION="${BRANCH_NAME}"
+                          export RELEASE_VERSION="${BRANCH_NAME//\//-}"
                         fi
                       fi
 

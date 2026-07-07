@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -64,6 +65,20 @@ type GatewayList struct {
 	Items           []Gateway `json:"items"`
 }
 
+// MigrationStatus tracks the state of the pre-upgrade database migration job.
+// It is persisted in Gateway.Status so that completed migrations survive job
+// deletion and are not re-run on daily reconciles or operator restarts.
+type MigrationStatus struct {
+	// SpecHash is a short hash of the migration-relevant spec fields (image,
+	// effective jdbcUrl, clearLocks). When any of these change the hash changes
+	// and a fresh migration job is triggered.
+	SpecHash string `json:"specHash,omitempty"`
+	// Complete indicates that the migration job succeeded for the current SpecHash.
+	// Once true, GatewayMigrationJob skips job management entirely and the
+	// Deployment step is unblocked — regardless of whether the Job still exists.
+	Complete bool `json:"complete,omitempty"`
+}
+
 // GatewayStatus defines the observed state of Gateways
 type GatewayStatus struct {
 	// Host is the Gateway Cluster Hostname
@@ -119,6 +134,8 @@ type GatewayStatus struct {
 	LastAppliedExternalCerts map[string][]string `json:"lastAppliedExternalCerts,omitempty"`
 	// LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates have been applied
 	LastAppliedOtkFipsCerts map[string][]string `json:"lastAppliedOtkFipsCerts,omitempty"`
+	// MigrationStatus tracks the state of the pre-upgrade database migration job.
+	MigrationStatus MigrationStatus `json:"migrationStatus,omitempty"`
 }
 
 // GatewayState tracks the status of Gateway Resources
@@ -688,6 +705,27 @@ type Database struct {
 	Password string `json:"password,omitempty"`
 	// LiquibaseLogLevel
 	LiquibaseLogLevel LiquibaseLogLevel `json:"liquibaseLogLevel,omitempty"`
+	// MigrationJob for pre-upgrade schema updates
+	MigrationJob MigrationJob `json:"migrationJob,omitempty"`
+}
+
+// MigrationJob configures the pre-upgrade database migration job
+type MigrationJob struct {
+	// Enabled or disabled
+	Enabled bool `json:"enabled,omitempty"`
+	// JDBCUrl overrides the main database.jdbcUrl for the migration job (e.g. to bypass a proxy).
+	// Only applies in diskless mode (disklessConfig.disabled: false, the default).
+	// In non-diskless mode the entrypoint reads the JDBC URL from the mounted node.properties
+	// file and this field has no effect — node.properties always wins, consistent with Helm behavior.
+	JDBCUrl string `json:"jdbcUrl,omitempty"`
+	// ClearLocks forces release of any stuck Liquibase locks before applying
+	// schema updates. Use with caution: forcefully releasing a lock while
+	// another process is actively updating the schema can corrupt the database.
+	ClearLocks bool `json:"clearLocks,omitempty"`
+	// ActiveDeadlineSeconds is the max duration each pod attempt is allowed to run.
+	// The job may retry once (backoffLimit=1), so total elapsed time can be up to
+	// 2× this value. Defaults to 300 seconds (5 minutes) per attempt.
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 }
 
 // Restman is a Gateway Management interface that can be automatically provisioned.

@@ -82,6 +82,26 @@ func NewConfigMap(gw *securityv1.Gateway, name string, opts ...ConfigMapOpts) *c
 		opt = opts[0]
 	}
 	javaArgs := strings.Join(gw.Spec.App.Java.ExtraArgs, " ")
+
+	// When the database migration job is enabled, automatically inject skip mode for
+	// Gateway pods so they bypass Liquibase entirely — the job handles schema updates.
+	// Only injected if the user has not explicitly set gateway.db.schema-update.mode.
+	if gw.Spec.App.Management.Database.MigrationJob.Enabled {
+		hasSchemaMode := false
+		for _, arg := range gw.Spec.App.Java.ExtraArgs {
+			if strings.Contains(arg, "gateway.db.schema-update.mode") {
+				hasSchemaMode = true
+				break
+			}
+		}
+		if !hasSchemaMode {
+			if javaArgs != "" {
+				javaArgs += " "
+			}
+			javaArgs += "-Dgateway.db.schema-update.mode=skip"
+		}
+	}
+
 	data := make(map[string]string)
 	jvmHeap := setJVMHeapSize(gw, "", gw.Spec.App.Java.JVMHeap.Percentage)
 	dataCheckSum := ""

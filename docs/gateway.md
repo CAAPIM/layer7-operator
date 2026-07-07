@@ -9849,6 +9849,13 @@ Database configuration for the Gateway
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementdatabasemigrationjob">migrationJob</a></b></td>
+        <td>object</td>
+        <td>
+          MigrationJob for pre-upgrade schema updates<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>password</b></td>
         <td>string</td>
         <td>
@@ -9860,6 +9867,63 @@ Database configuration for the Gateway
         <td>string</td>
         <td>
           Username MySQL - can be set in management.secretName<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.database.migrationJob
+<sup><sup>[↩ Parent](#gatewayspecappmanagementdatabase)</sup></sup>
+
+
+
+MigrationJob for pre-upgrade schema updates
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>activeDeadlineSeconds</b></td>
+        <td>integer</td>
+        <td>
+          ActiveDeadlineSeconds is the max duration each pod attempt is allowed to run.
+The job may retry once (backoffLimit=1), so total elapsed time can be up to
+2× this value. Defaults to 300 seconds (5 minutes) per attempt.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearLocks</b></td>
+        <td>boolean</td>
+        <td>
+          ClearLocks forces release of any stuck Liquibase locks before applying
+schema updates. Use with caution: forcefully releasing a lock while
+another process is actively updating the schema can corrupt the database.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcUrl</b></td>
+        <td>string</td>
+        <td>
+          JDBCUrl overrides the main database.jdbcUrl for the migration job (e.g. to bypass a proxy).
+Only applies in diskless mode (disklessConfig.disabled: false, the default).
+In non-diskless mode the entrypoint reads the JDBC URL from the mounted node.properties
+file and this field has no effect — node.properties always wins, consistent with Helm behavior.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -18721,6 +18785,13 @@ management service and applying singleton resources<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewaystatusmigrationstatus">migrationStatus</a></b></td>
+        <td>object</td>
+        <td>
+          MigrationStatus tracks the state of the pre-upgrade database migration job.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>phase</b></td>
         <td>string</td>
         <td>
@@ -18926,6 +18997,44 @@ GatewayState tracks the status of Gateway Resources
         <td>string</td>
         <td>
           StartTime is when the Gateway pod was started<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.status.migrationStatus
+<sup><sup>[↩ Parent](#gatewaystatus)</sup></sup>
+
+
+
+MigrationStatus tracks the state of the pre-upgrade database migration job.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>complete</b></td>
+        <td>boolean</td>
+        <td>
+          Complete indicates that the migration job succeeded for the current SpecHash.
+Once true, GatewayMigrationJob skips job management entirely and the
+Deployment step is unblocked — regardless of whether the Job still exists.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>specHash</b></td>
+        <td>string</td>
+        <td>
+          SpecHash is a short hash of the migration-relevant spec fields (image,
+effective jdbcUrl, clearLocks). When any of these change the hash changes
+and a fresh migration job is triggered.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

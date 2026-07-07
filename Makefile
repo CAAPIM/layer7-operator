@@ -59,7 +59,10 @@ endif
 OPERATOR_SDK_VERSION ?= v1.33.0
 # Image URL to use all building/pushing image targets
 #IMG ?= docker.io/layer7api/layer7-operator:v$(VERSION)
-IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
+# Sanitize VERSION for use as a Docker image tag: slashes (from branch names like
+# feature/foo) are not valid in tags and must be replaced with hyphens.
+DOCKER_VERSION := $(subst /,-,$(VERSION))
+IMG ?= $(IMAGE_TAG_BASE):$(DOCKER_VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.30.0
 
@@ -218,7 +221,7 @@ build: manifests generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/main.go --zap-log-level=5
+	go run ./cmd/main.go --zap-log-level=5 --leader-elect=false
 
 .PHONY: docker-build
 docker-build: dockerfile #test ## Build docker image with the manager.

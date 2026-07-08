@@ -3542,6 +3542,26 @@ spec:
                           liquibaseLogLevel:
                             description: LiquibaseLogLevel
                             type: string
+                          migrationJob:
+                            description: MigrationJob for pre-upgrade schema updates
+                            properties:
+                              activeDeadlineSeconds:
+                                description: ActiveDeadlineSeconds is the max duration
+                                  each pod attempt is allowed to...
+                                format: int64
+                                type: integer
+                              clearLocks:
+                                description: ClearLocks forces release of any stuck
+                                  Liquibase locks before applying...
+                                type: boolean
+                              enabled:
+                                description: Enabled or disabled
+                                type: boolean
+                              jdbcUrl:
+                                description: JDBCUrl overrides the main database.jdbcUrl
+                                  for the migration job (e.g.
+                                type: string
+                            type: object
                           password:
                             description: Password MySQL - can be set in management.secretName
                             type: string
@@ -6773,6 +6793,19 @@ spec:
                 description: Management Pod is a Gateway with a special annotation
                   is used as a...
                 type: string
+              migrationStatus:
+                description: MigrationStatus tracks the state of the pre-upgrade database
+                  migration job.
+                properties:
+                  complete:
+                    description: Complete indicates that the migration job succeeded
+                      for the current...
+                    type: boolean
+                  specHash:
+                    description: SpecHash is a short hash of the migration-relevant
+                      spec fields (image,...
+                    type: string
+                type: object
               phase:
                 description: PodPhase is a label for the condition of a pod at the
                   current time.

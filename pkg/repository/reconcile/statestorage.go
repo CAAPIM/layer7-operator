@@ -479,6 +479,10 @@ func localRepoStorageInfo(params Params) (storageSecretName string, repositoryPa
 		ext = folderName
 		return storageSecretName, "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext, ext, nil
 	case "git":
+		// Flatten any '/' in the ref so the storage-secret name is valid and the
+		// returned checkout path matches the directory CloneRepository created
+		// (both apply SafeRef to the same ref).
+		ext = util.SafeRef(ext)
 		storageSecretName = params.Instance.Name + "-repository-" + ext
 		return storageSecretName, "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext, ext, nil
 	default:

@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package util
 
@@ -99,11 +100,14 @@ func Unzip(src string, dest string) error {
 	return nil
 }
 
-const (
-	// maxDecompressedSize is the maximum number of bytes accepted from any
-	// decompressed archive or gzip payload. 500 MiB prevents decompression bombs
-	// from exhausting memory or disk before the operator can reject the content.
-	maxDecompressedSize = 500 << 20 // 500 MiB
+// These are vars (not consts) only so tests can lower them; treat them as
+// constants in production code.
+var (
+	// maxDecompressedSize is the maximum total number of decompressed bytes
+	// accepted from an archive — cumulative across all tar entries, or the size
+	// of a single gzip payload. 500 MiB prevents decompression bombs from
+	// exhausting memory or disk. Exceeding it is a hard error, not a truncation.
+	maxDecompressedSize int64 = 500 << 20 // 500 MiB
 
 	// maxArchiveEntries is the maximum number of entries accepted from a tar
 	// archive. Many tiny files can be used as a zip-bomb variant; this cap
@@ -142,6 +146,7 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 	_ = os.Mkdir(folderName, 0755)
 
 	entryCount := 0
+	var totalWritten int64
 	for {
 		header, err := tarReader.Next()
 
@@ -193,10 +198,22 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 			if err != nil {
 				return fmt.Errorf("failed to create file %s", header.Name)
 			}
-			defer outFile.Close()
-			if _, err := io.Copy(outFile, io.LimitReader(tarReader, maxDecompressedSize)); err != nil {
+			// Enforce a cumulative decompressed-size budget across all entries so
+			// that many individually-small files can't sum past the cap. Read one
+			// byte past the remaining budget so an overflow is detected and
+			// surfaced as an error rather than silently truncated. Close the file
+			// each iteration instead of deferring to avoid holding up to
+			// maxArchiveEntries file descriptors open until Untar returns.
+			remaining := maxDecompressedSize - totalWritten
+			written, err := io.Copy(outFile, io.LimitReader(tarReader, remaining+1))
+			outFile.Close()
+			if err != nil {
 				return fmt.Errorf("copy failed: %s", err)
 			}
+			if written > remaining {
+				return fmt.Errorf("archive exceeds maximum decompressed size of %d bytes", maxDecompressedSize)
+			}
+			totalWritten += written
 		default:
 			return fmt.Errorf("uknown type: %d in %s", header.Typeflag, header.Name)
 		}
@@ -211,9 +228,14 @@ func GzipDecompress(gzipBundle []byte) (bundleBytes []byte, err error) {
 		return nil, err
 	}
 
-	bundleBytes, err = io.ReadAll(io.LimitReader(gzr, maxDecompressedSize))
+	// Read one byte past the cap so an oversized payload is surfaced as an error
+	// rather than silently truncated.
+	bundleBytes, err = io.ReadAll(io.LimitReader(gzr, maxDecompressedSize+1))
 	if err != nil {
 		return nil, err
+	}
+	if int64(len(bundleBytes)) > maxDecompressedSize {
+		return nil, fmt.Errorf("gzip payload exceeds maximum decompressed size of %d bytes", maxDecompressedSize)
 	}
 
 	return bundleBytes, nil

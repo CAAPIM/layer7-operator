@@ -108,6 +108,10 @@ func StorageSecret(ctx context.Context, params Params) error {
 		storageSecretName = params.Instance.Name + "-repository-" + folderName
 		ext = folderName
 	case "git":
+		// Flatten any '/' in the ref so the storage-secret name is a valid
+		// Kubernetes name and the checkout path below matches the directory
+		// CloneRepository created (both apply SafeRef to the same ref).
+		ext = util.SafeRef(ext)
 		storageSecretName = params.Instance.Name + "-repository-" + ext
 	default:
 		params.Log.Info("repository type not set", "name", params.Instance.Name, "namespace", params.Instance.Name)

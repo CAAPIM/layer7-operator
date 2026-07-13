@@ -76,7 +76,7 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 				return err
 			}
 
-			err = os.RemoveAll("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ref)
+			err = os.RemoveAll("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + util.SafeRef(ref))
 
 			if err != nil {
 				return err

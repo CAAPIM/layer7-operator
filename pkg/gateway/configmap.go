@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -193,22 +193,22 @@ func NewConfigMap(gw *securityv1.Gateway, name string, opts ...ConfigMapOpts) *c
 					if storageName == "_" {
 						// only bootstrap if the Gateway is running in ephemeral mode
 						// bootstrapping large policy sets to database backed gateways causes start up delay
-					initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
-						Name:                rs.Name,
-						Endpoint:            rs.Endpoint,
-						Branch:              rs.Branch,
-						RemoteName:          rs.RemoteName,
-						Type:                rs.RepoType,
-						Vendor:              rs.Vendor,
-						AuthType:            rs.AuthType,
-						Tag:                 rs.Tag,
-						Auth:                "/graphman/secrets/" + rs.Name,
-						SingletonExtraction: gw.Spec.App.SingletonExtraction,
-						StateStoreReference: rs.StateStoreReference,
-						StateStoreKey:       rs.StateStoreKey,
-						Directories:         rs.Directories,
-						InsecureSkipVerify:  rs.InsecureSkipVerify,
-					})
+						initContainerStaticConfig.Repositories = append(initContainerStaticConfig.Repositories, RepositoryConfig{
+							Name:                rs.Name,
+							Endpoint:            rs.Endpoint,
+							Branch:              rs.Branch,
+							RemoteName:          rs.RemoteName,
+							Type:                rs.RepoType,
+							Vendor:              rs.Vendor,
+							AuthType:            rs.AuthType,
+							Tag:                 rs.Tag,
+							Auth:                "/graphman/secrets/" + rs.Name,
+							SingletonExtraction: gw.Spec.App.SingletonExtraction,
+							StateStoreReference: rs.StateStoreReference,
+							StateStoreKey:       rs.StateStoreKey,
+							Directories:         rs.Directories,
+							InsecureSkipVerify:  rs.InsecureSkipVerify,
+						})
 						continue
 					}
 					if opt.StorageSecretExists != nil && !opt.StorageSecretExists(storageName) {

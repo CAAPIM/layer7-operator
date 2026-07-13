@@ -1,6 +1,6 @@
 /*
 *
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -24,7 +24,7 @@
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
 *
-* AI assistance has been used to generate some or all contents of this file.
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package reconcile
 

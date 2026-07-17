@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+// AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
+
 package templategen
 
 type PortalAPI struct {
@@ -19,7 +22,8 @@ type PortalAPI struct {
 	PublishedTs    int    `json:"publishedTs"`
 	CreateTs       int    `json:"createTs"`
 	ModifyTs       int    `json:"modifyTs"`
-	SsgServiceType string `json:"ssgServiceType"`
+	SsgServiceType string   `json:"ssgServiceType"`
+	HttpMethods    []string `json:"httpMethods,omitempty"`
 	//ApplicationUsage  int              `json:"applicationUsage"`
 	//Tags              []string         `json:"tags"`
 	PolicyTemplates []PolicyTemplate `json:"policyEntities"`              // required by qtpl templates

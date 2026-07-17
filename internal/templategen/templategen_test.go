@@ -2,6 +2,7 @@ package templategen
 
 import (
 	b64 "encoding/base64"
+	"strings"
 	"testing"
 	"time"
 )
@@ -45,6 +46,32 @@ func TestBuildTemplate(t *testing.T) {
 
 		if min(duration, timeout) == timeout {
 			t.Errorf("perfTest(portalApi,iterations) = %v, want %v", duration, timeout)
+		}
+	})
+
+	t.Run("HttpMethods Test", func(t *testing.T) {
+		restrictedApi := portalApi
+		restrictedApi.HttpMethods = []string{"GET"}
+
+		got := BuildTemplate(restrictedApi)
+
+		if got == "" {
+			t.Errorf("BuildTemplate() = %v, want %v", got, "xml string")
+		}
+
+		if strings.Count(got, "<l7:Verb>") != 1 {
+			t.Errorf("BuildTemplate() with HttpMethods=[GET] produced %d <l7:Verb> entries, want 1",
+				strings.Count(got, "<l7:Verb>"))
+		}
+
+		if !strings.Contains(got, "<l7:Verb>GET</l7:Verb>") {
+			t.Errorf("BuildTemplate() with HttpMethods=[GET] did not contain <l7:Verb>GET</l7:Verb>")
+		}
+
+		for _, verb := range []string{"POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"} {
+			if strings.Contains(got, "<l7:Verb>"+verb+"</l7:Verb>") {
+				t.Errorf("BuildTemplate() with HttpMethods=[GET] unexpectedly contained <l7:Verb>%s</l7:Verb>", verb)
+			}
 		}
 	})
 }

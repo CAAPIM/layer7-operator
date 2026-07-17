@@ -1,4 +1,6 @@
 ----------------------------------------------
+Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
 
 
 Variables Used:
@@ -10,6 +12,7 @@ Variables Used:
 - portalApi.ApiEnabled
 - portalApi.ModifyTs
 - portalApi.CustomFields
+- portalApi.HttpMethods
 - apiServiceXml
 - apiFragmentXml
 - isSoapAPI
@@ -59,7 +62,11 @@ Variables Used:
               <l7:HttpMapping>
                 <l7:UrlPattern>/{%s portalApi.SsgUrl %}</l7:UrlPattern>
                 <l7:Verbs>
-                  {% if isSoapApi == "true" %}
+                  {% if len(portalApi.HttpMethods) > 0 %}
+                    {% for _, verb := range portalApi.HttpMethods %}
+                    <l7:Verb>{%s verb %}</l7:Verb>
+                    {% endfor %}
+                  {% elseif isSoapApi == "true" %}
                     <l7:Verb>GET</l7:Verb>
                     <l7:Verb>POST</l7:Verb>
                   {% else %}

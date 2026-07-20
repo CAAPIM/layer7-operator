@@ -11,6 +11,7 @@ type SharedStateClientConfigType string
 
 var (
 	SharedStateClientConfigTypeRedis     SharedStateClientConfigType = "redis"
+	SharedStateClientConfigTypeGemfire   SharedStateClientConfigType = "gemfire"
 	SharedStateClientConfigTypeHazelcast SharedStateClientConfigType = "hazelcast"
 )
 
@@ -49,6 +50,36 @@ type RedisConfigBlock struct {
 	Default RedisClientConfig `yaml:"default,omitempty"`
 }
 
+type GemfireLocator struct {
+	Host string `yaml:"host,omitempty"`
+	Port int    `yaml:"port,omitempty"`
+}
+
+type GemfireSsl struct {
+	Enabled            bool   `yaml:"enabled,omitempty"`
+	EnabledComponents  string `yaml:"enabledComponents,omitempty"`
+	Keystore           string `yaml:"keystore,omitempty"`
+	KeystorePassword   string `yaml:"keystorePassword,omitempty"`
+	KeystoreType       string `yaml:"keystoreType,omitempty"`
+	Truststore         string `yaml:"truststore,omitempty"`
+	TruststorePassword string `yaml:"truststorePassword,omitempty"`
+	TruststoreType     string `yaml:"truststoreType,omitempty"`
+}
+
+type GemfireClientConfig struct {
+	TestOnStart             bool              `yaml:"testOnStart"`
+	Locators                []GemfireLocator  `yaml:"locators,omitempty"`
+	Username                string            `yaml:"username,omitempty"`
+	EncodedPassword         string            `yaml:"encodedPassword,omitempty"`
+	Password                string            `yaml:"password,omitempty"`
+	GwKeyValueRegionName    string            `yaml:"gwKeyValueRegionName,omitempty"`
+	GwCounterRegionName     string            `yaml:"gwCounterRegionName,omitempty"`
+	GwRateLimiterRegionName string            `yaml:"gwRateLimiterRegionName,omitempty"`
+	GwSortedSetRegionName   string            `yaml:"gwSortedSetRegionName,omitempty"`
+	DynamicProperties       map[string]string `yaml:"dynamicProperties,omitempty"`
+	Ssl                     GemfireSsl        `yaml:"ssl,omitempty"`
+}
+
 func appendRedisConfig(redisConfigBlock map[string]interface{}, new map[string]RedisClientConfig) interface{} {
 	for k, v := range new {
 		redisConfigBlock[k] = v
@@ -56,8 +87,10 @@ func appendRedisConfig(redisConfigBlock map[string]interface{}, new map[string]R
 	return redisConfigBlock
 }
 
-// Redis is currently the only supported shared state client that supports the new configuration.
-func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClientConfig, hazelcastConfigs interface{}) ([]byte, error) {
+// GenerateSharedStateClientConfig renders the sharedstate_client.yaml contents for the Gateway.
+// Redis and Gemfire configuration can be combined in the same document, each under its own
+// top-level key, since the Gateway loads both from the same file.
+func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClientConfig, hazelcastConfigs interface{}, gemfireConfig *GemfireClientConfig) ([]byte, error) {
 	var b bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&b)
 	yamlEncoder.SetIndent(2)
@@ -65,15 +98,14 @@ func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClie
 	defer yamlEncoder.Close()
 
 	dynamicRedisConfig := map[string]interface{}{}
-	combinedRedisConfig := map[string]interface{}{}
+	combinedConfig := map[string]interface{}{}
 	var newRedisConfigBlock interface{}
 	t := new(bool)
 	f := new(bool)
 	*t = true
 	*f = false
 
-	switch configType {
-	case "redis":
+	if len(redisConfigs) > 0 {
 		if len(redisConfigs) > 1 {
 			for _, rc := range redisConfigs {
 				switch rc.Name {
@@ -99,15 +131,7 @@ func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClie
 				}
 			}
 
-			combinedRedisConfig["redis"] = newRedisConfigBlock
-
-			err := yamlEncoder.Encode(combinedRedisConfig)
-			if err != nil {
-				return nil, err
-			}
-
-			return b.Bytes(), nil
-
+			combinedConfig["redis"] = newRedisConfigBlock
 		} else {
 			redisConfigs[0].Name = ""
 			if redisConfigs[0].Ssl.Enabled {
@@ -116,18 +140,21 @@ func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClie
 				}
 			}
 			dynamicRedisConfig["default"] = redisConfigs[0]
-			combinedRedisConfig["redis"] = dynamicRedisConfig
-			err := yamlEncoder.Encode(combinedRedisConfig)
-			if err != nil {
-				return nil, err
-			}
-			return b.Bytes(), nil
+			combinedConfig["redis"] = dynamicRedisConfig
 		}
+	}
 
-	case "hazelcast":
-		return nil, fmt.Errorf("%s is not a supported shared state client type", configType)
-	default:
+	if gemfireConfig != nil {
+		combinedConfig["gemfire"] = gemfireConfig
+	}
+
+	if len(combinedConfig) == 0 {
 		return nil, fmt.Errorf("%s is not a supported shared state client type", configType)
 	}
 
+	if err := yamlEncoder.Encode(combinedConfig); err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
 }

@@ -88,170 +88,265 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 		commandTimeout := 5000
 		connectTimeout := 10000
 
-		if gw.Spec.App.Redis.Default.Ssl.Enabled {
-			if gw.Spec.App.Redis.Default.Ssl.Crt != "" && gw.Spec.App.Redis.Default.Ssl.ExistingSecretName == "" {
-				data["redis.crt"] = []byte(gw.Spec.App.Redis.Default.Ssl.Crt)
-				gw.Spec.App.Redis.Default.Ssl.Crt = "redis.crt"
-			}
-			if gw.Spec.App.Redis.Default.Ssl.ExistingSecretName != "" {
-				gw.Spec.App.Redis.Default.Ssl.Crt = "redis.crt"
-			}
-		} else {
-			gw.Spec.App.Redis.Default.Ssl = securityv1.RedisSsl{}
-		}
-
 		redisConfigs := []util.RedisClientConfig{}
-		defaultRedisConfig := util.RedisClientConfig{}
+		var gemfireConfig *util.GemfireClientConfig
 
-		gw.Spec.App.Redis.Default.Name = "default"
-		defaultRedisBytes, err := json.Marshal(gw.Spec.App.Redis.Default)
+		if gw.Spec.App.Redis.Enabled && gw.Spec.App.Redis.ExistingSecret == "" {
+			if gw.Spec.App.Redis.Default.Ssl.Enabled {
+				if gw.Spec.App.Redis.Default.Ssl.Crt != "" && gw.Spec.App.Redis.Default.Ssl.ExistingSecretName == "" {
+					data["redis.crt"] = []byte(gw.Spec.App.Redis.Default.Ssl.Crt)
+					gw.Spec.App.Redis.Default.Ssl.Crt = "redis.crt"
+				}
+				if gw.Spec.App.Redis.Default.Ssl.ExistingSecretName != "" {
+					gw.Spec.App.Redis.Default.Ssl.Crt = "redis.crt"
+				}
+			} else {
+				gw.Spec.App.Redis.Default.Ssl = securityv1.RedisSsl{}
+			}
 
-		if err != nil {
-			return nil, err
-		}
+			defaultRedisConfig := util.RedisClientConfig{}
 
-		err = json.Unmarshal(defaultRedisBytes, &defaultRedisConfig)
-		if err != nil {
-			return nil, err
-		}
+			gw.Spec.App.Redis.Default.Name = "default"
+			defaultRedisBytes, err := json.Marshal(gw.Spec.App.Redis.Default)
 
-		defaultRedisConfig.KeyPrefixGroupName = gw.Spec.App.Redis.Default.GroupName
+			if err != nil {
+				return nil, err
+			}
 
-		if defaultRedisConfig.KeyPrefixGroupName == "" {
-			defaultRedisConfig.KeyPrefixGroupName = redisGroupName
-		} else {
+			err = json.Unmarshal(defaultRedisBytes, &defaultRedisConfig)
+			if err != nil {
+				return nil, err
+			}
+
 			defaultRedisConfig.KeyPrefixGroupName = gw.Spec.App.Redis.Default.GroupName
-		}
 
-		if gw.Spec.App.Redis.Default.CommandTimeout == 0 {
-			defaultRedisConfig.CommandTimeout = commandTimeout
-		}
-
-		if gw.Spec.App.Redis.Default.ConnectTimeout == 0 {
-			defaultRedisConfig.ConnectTimeout = connectTimeout
-		}
-
-		if gw.Spec.App.Redis.Default.Auth.Enabled {
-			if gw.Spec.App.Redis.Default.Auth.Username != "" {
-				defaultRedisConfig.Username = gw.Spec.App.Redis.Default.Auth.Username
+			if defaultRedisConfig.KeyPrefixGroupName == "" {
+				defaultRedisConfig.KeyPrefixGroupName = redisGroupName
+			} else {
+				defaultRedisConfig.KeyPrefixGroupName = gw.Spec.App.Redis.Default.GroupName
 			}
 
-			if gw.Spec.App.Redis.Default.Auth.PasswordEncoded != "" && gw.Spec.App.Redis.Default.Auth.PasswordPlainText != "" {
-				return nil, fmt.Errorf("invalid redis configuration for %s provide one password type", gw.Spec.App.Redis.Default.Name)
+			if gw.Spec.App.Redis.Default.CommandTimeout == 0 {
+				defaultRedisConfig.CommandTimeout = commandTimeout
 			}
-			if gw.Spec.App.Redis.Default.Auth.PasswordEncoded != "" {
-				defaultRedisConfig.EncodedPassword = gw.Spec.App.Redis.Default.Auth.PasswordEncoded
+
+			if gw.Spec.App.Redis.Default.ConnectTimeout == 0 {
+				defaultRedisConfig.ConnectTimeout = connectTimeout
 			}
-			if gw.Spec.App.Redis.Default.Auth.PasswordPlainText != "" {
-				defaultRedisConfig.Password = gw.Spec.App.Redis.Default.Auth.PasswordPlainText
+
+			if gw.Spec.App.Redis.Default.Auth.Enabled {
+				if gw.Spec.App.Redis.Default.Auth.Username != "" {
+					defaultRedisConfig.Username = gw.Spec.App.Redis.Default.Auth.Username
+				}
+
+				if gw.Spec.App.Redis.Default.Auth.PasswordEncoded != "" && gw.Spec.App.Redis.Default.Auth.PasswordPlainText != "" {
+					return nil, fmt.Errorf("invalid redis configuration for %s provide one password type", gw.Spec.App.Redis.Default.Name)
+				}
+				if gw.Spec.App.Redis.Default.Auth.PasswordEncoded != "" {
+					defaultRedisConfig.EncodedPassword = gw.Spec.App.Redis.Default.Auth.PasswordEncoded
+				}
+				if gw.Spec.App.Redis.Default.Auth.PasswordPlainText != "" {
+					defaultRedisConfig.Password = gw.Spec.App.Redis.Default.Auth.PasswordPlainText
+				}
 			}
-		}
 
-		if len(gw.Spec.App.Redis.Default.Sentinel.Nodes) > 0 {
-			defaultRedisConfig.Sentinel.Master = gw.Spec.App.Redis.Default.Sentinel.MasterSet
-			if gw.Spec.App.Redis.Default.Sentinel.MasterSet == "" {
-				defaultRedisConfig.Sentinel.Master = sentinelMasterSet
+			if len(gw.Spec.App.Redis.Default.Sentinel.Nodes) > 0 {
+				defaultRedisConfig.Sentinel.Master = gw.Spec.App.Redis.Default.Sentinel.MasterSet
+				if gw.Spec.App.Redis.Default.Sentinel.MasterSet == "" {
+					defaultRedisConfig.Sentinel.Master = sentinelMasterSet
+				}
 			}
-		}
 
-		redisConfigs = append(redisConfigs, defaultRedisConfig)
+			redisConfigs = append(redisConfigs, defaultRedisConfig)
 
-		if len(gw.Spec.App.Redis.AdditionalConfigs) > 0 {
-			for _, rc := range gw.Spec.App.Redis.AdditionalConfigs {
-				if rc.Enabled {
-					if rc.Ssl.Enabled {
-						if rc.Ssl.Crt != "" && rc.Ssl.ExistingSecretName == "" {
-							data[rc.Name+"-redis.crt"] = []byte(rc.Ssl.Crt)
-							rc.Ssl.Crt = rc.Name + "-redis.crt"
+			if len(gw.Spec.App.Redis.AdditionalConfigs) > 0 {
+				for _, rc := range gw.Spec.App.Redis.AdditionalConfigs {
+					if rc.Enabled {
+						if rc.Ssl.Enabled {
+							if rc.Ssl.Crt != "" && rc.Ssl.ExistingSecretName == "" {
+								data[rc.Name+"-redis.crt"] = []byte(rc.Ssl.Crt)
+								rc.Ssl.Crt = rc.Name + "-redis.crt"
+							}
+							if rc.Ssl.ExistingSecretName != "" {
+								rc.Ssl.Crt = rc.Name + "-redis.crt"
+							}
+						} else {
+							rc.Ssl = securityv1.RedisSsl{}
 						}
-						if rc.Ssl.ExistingSecretName != "" {
-							rc.Ssl.Crt = rc.Name + "-redis.crt"
+						redisConfig := util.RedisClientConfig{}
+						redisBytes, err := json.Marshal(rc)
+						if err != nil {
+							return nil, err
 						}
-					} else {
-						rc.Ssl = securityv1.RedisSsl{}
-					}
-					redisConfig := util.RedisClientConfig{}
-					redisBytes, err := json.Marshal(rc)
-					if err != nil {
-						return nil, err
-					}
-					err = json.Unmarshal(redisBytes, &redisConfig)
-					if err != nil {
-						return nil, err
-					}
-
-					redisConfig.KeyPrefixGroupName = rc.GroupName
-					if redisConfig.KeyPrefixGroupName == "" {
-						redisConfig.KeyPrefixGroupName = redisGroupName
-					}
-
-					if rc.CommandTimeout == 0 {
-						redisConfig.CommandTimeout = commandTimeout
-					}
-
-					if rc.ConnectTimeout == 0 {
-						redisConfig.ConnectTimeout = connectTimeout
-					}
-
-					if rc.Auth.Enabled {
-						if rc.Auth.Username != "" {
-							redisConfig.Username = rc.Auth.Username
+						err = json.Unmarshal(redisBytes, &redisConfig)
+						if err != nil {
+							return nil, err
 						}
 
-						if rc.Auth.PasswordEncoded != "" && rc.Auth.PasswordPlainText != "" {
-							return nil, fmt.Errorf("invalid redis configuration for %s provide one password type", rc.Name)
+						redisConfig.KeyPrefixGroupName = rc.GroupName
+						if redisConfig.KeyPrefixGroupName == "" {
+							redisConfig.KeyPrefixGroupName = redisGroupName
 						}
-						if rc.Auth.PasswordEncoded != "" {
-							redisConfig.EncodedPassword = rc.Auth.PasswordEncoded
-						}
-						if rc.Auth.PasswordPlainText != "" {
-							redisConfig.Password = rc.Auth.PasswordPlainText
-						}
-					}
 
-					switch rc.Type {
-					case securityv1.RedisTypeSentinel:
-						if len(rc.Sentinel.Nodes) == 0 {
-							return nil, fmt.Errorf("redis %s sentinel requires an array of nodes that contain host and port", rc.Name)
+						if rc.CommandTimeout == 0 {
+							redisConfig.CommandTimeout = commandTimeout
 						}
-						for i, node := range rc.Sentinel.Nodes {
-							if node.Host == "" || node.Port == 0 {
-								return nil, fmt.Errorf("redis %s sentinel node %d requires host and port to be set", rc.Name, i)
+
+						if rc.ConnectTimeout == 0 {
+							redisConfig.ConnectTimeout = connectTimeout
+						}
+
+						if rc.Auth.Enabled {
+							if rc.Auth.Username != "" {
+								redisConfig.Username = rc.Auth.Username
+							}
+
+							if rc.Auth.PasswordEncoded != "" && rc.Auth.PasswordPlainText != "" {
+								return nil, fmt.Errorf("invalid redis configuration for %s provide one password type", rc.Name)
+							}
+							if rc.Auth.PasswordEncoded != "" {
+								redisConfig.EncodedPassword = rc.Auth.PasswordEncoded
+							}
+							if rc.Auth.PasswordPlainText != "" {
+								redisConfig.Password = rc.Auth.PasswordPlainText
 							}
 						}
-					case securityv1.RedisTypeStandalone:
-						if rc.Standalone.Host == "" || rc.Standalone.Port == 0 {
-							return nil, fmt.Errorf("redis %s standalone requires host and port to be set", rc.Name)
-						}
-					default:
-						return nil, fmt.Errorf("redis %s requires a type, valid options are sentinel or standalone", rc.Name)
-					}
 
-					if len(rc.Sentinel.Nodes) > 0 {
-						redisConfig.Sentinel.Master = rc.Sentinel.MasterSet
-						if rc.Sentinel.MasterSet == "" {
-							redisConfig.Sentinel.Master = sentinelMasterSet
+						switch rc.Type {
+						case securityv1.RedisTypeSentinel:
+							if len(rc.Sentinel.Nodes) == 0 {
+								return nil, fmt.Errorf("redis %s sentinel requires an array of nodes that contain host and port", rc.Name)
+							}
+							for i, node := range rc.Sentinel.Nodes {
+								if node.Host == "" || node.Port == 0 {
+									return nil, fmt.Errorf("redis %s sentinel node %d requires host and port to be set", rc.Name, i)
+								}
+							}
+						case securityv1.RedisTypeStandalone:
+							if rc.Standalone.Host == "" || rc.Standalone.Port == 0 {
+								return nil, fmt.Errorf("redis %s standalone requires host and port to be set", rc.Name)
+							}
+						default:
+							return nil, fmt.Errorf("redis %s requires a type, valid options are sentinel or standalone", rc.Name)
 						}
-					}
 
-					redisConfigs = append(redisConfigs, redisConfig)
+						if len(rc.Sentinel.Nodes) > 0 {
+							redisConfig.Sentinel.Master = rc.Sentinel.MasterSet
+							if rc.Sentinel.MasterSet == "" {
+								redisConfig.Sentinel.Master = sentinelMasterSet
+							}
+						}
+
+						redisConfigs = append(redisConfigs, redisConfig)
+					}
 				}
 			}
 		}
-		sharedStateClientBytes, err := util.GenerateSharedStateClientConfig(string(util.SharedStateClientConfigTypeRedis), redisConfigs, nil)
-		if err != nil {
-			return nil, err
+
+		if gw.Spec.App.Gemfire.Enabled && gw.Spec.App.Gemfire.ExistingSecret == "" {
+			gwKeyValueRegionName := "layer7gw_keyvalue"
+			gwCounterRegionName := "layer7gw_counter"
+			gwRateLimiterRegionName := "layer7gw_ratelimiter"
+			gwSortedSetRegionName := "layer7gw_sortedset"
+
+			if len(gw.Spec.App.Gemfire.Locators) == 0 {
+				return nil, fmt.Errorf("gemfire requires an array of locators that contain host and port")
+			}
+			for i, locator := range gw.Spec.App.Gemfire.Locators {
+				if locator.Host == "" || locator.Port == 0 {
+					return nil, fmt.Errorf("gemfire locator %d requires host and port to be set", i)
+				}
+			}
+
+			gemfireConfig = &util.GemfireClientConfig{
+				TestOnStart:             gw.Spec.App.Gemfire.TestOnStart,
+				GwKeyValueRegionName:    gw.Spec.App.Gemfire.GwKeyValueRegionName,
+				GwCounterRegionName:     gw.Spec.App.Gemfire.GwCounterRegionName,
+				GwRateLimiterRegionName: gw.Spec.App.Gemfire.GwRateLimiterRegionName,
+				GwSortedSetRegionName:   gw.Spec.App.Gemfire.GwSortedSetRegionName,
+				DynamicProperties:       gw.Spec.App.Gemfire.DynamicProperties,
+			}
+
+			if gemfireConfig.GwKeyValueRegionName == "" {
+				gemfireConfig.GwKeyValueRegionName = gwKeyValueRegionName
+			}
+			if gemfireConfig.GwCounterRegionName == "" {
+				gemfireConfig.GwCounterRegionName = gwCounterRegionName
+			}
+			if gemfireConfig.GwRateLimiterRegionName == "" {
+				gemfireConfig.GwRateLimiterRegionName = gwRateLimiterRegionName
+			}
+			if gemfireConfig.GwSortedSetRegionName == "" {
+				gemfireConfig.GwSortedSetRegionName = gwSortedSetRegionName
+			}
+
+			for _, locator := range gw.Spec.App.Gemfire.Locators {
+				gemfireConfig.Locators = append(gemfireConfig.Locators, util.GemfireLocator{Host: locator.Host, Port: locator.Port})
+			}
+
+			if gw.Spec.App.Gemfire.Auth.Enabled {
+				if gw.Spec.App.Gemfire.Auth.Username != "" {
+					gemfireConfig.Username = gw.Spec.App.Gemfire.Auth.Username
+				}
+
+				if gw.Spec.App.Gemfire.Auth.PasswordEncoded != "" && gw.Spec.App.Gemfire.Auth.PasswordPlainText != "" {
+					return nil, fmt.Errorf("invalid gemfire configuration provide one password type")
+				}
+				if gw.Spec.App.Gemfire.Auth.PasswordEncoded != "" {
+					gemfireConfig.EncodedPassword = gw.Spec.App.Gemfire.Auth.PasswordEncoded
+				}
+				if gw.Spec.App.Gemfire.Auth.PasswordPlainText != "" {
+					gemfireConfig.Password = gw.Spec.App.Gemfire.Auth.PasswordPlainText
+				}
+			}
+
+			if gw.Spec.App.Gemfire.Ssl.Enabled {
+				gemfireConfig.Ssl = util.GemfireSsl{
+					Enabled:           true,
+					EnabledComponents: gw.Spec.App.Gemfire.Ssl.EnabledComponents,
+					Keystore:          "keystore.jks",
+					KeystoreType:      gw.Spec.App.Gemfire.Ssl.KeystoreType,
+					Truststore:        "truststore.jks",
+					TruststoreType:    gw.Spec.App.Gemfire.Ssl.TruststoreType,
+				}
+
+				if gw.Spec.App.Gemfire.Ssl.Keystore.PasswordEncoded != "" && gw.Spec.App.Gemfire.Ssl.Keystore.PasswordPlainText != "" {
+					return nil, fmt.Errorf("invalid gemfire keystore configuration provide one password type")
+				}
+				if gw.Spec.App.Gemfire.Ssl.Keystore.PasswordEncoded != "" {
+					gemfireConfig.Ssl.KeystorePassword = gw.Spec.App.Gemfire.Ssl.Keystore.PasswordEncoded
+				}
+				if gw.Spec.App.Gemfire.Ssl.Keystore.PasswordPlainText != "" {
+					gemfireConfig.Ssl.KeystorePassword = gw.Spec.App.Gemfire.Ssl.Keystore.PasswordPlainText
+				}
+
+				if gw.Spec.App.Gemfire.Ssl.Truststore.PasswordEncoded != "" && gw.Spec.App.Gemfire.Ssl.Truststore.PasswordPlainText != "" {
+					return nil, fmt.Errorf("invalid gemfire truststore configuration provide one password type")
+				}
+				if gw.Spec.App.Gemfire.Ssl.Truststore.PasswordEncoded != "" {
+					gemfireConfig.Ssl.TruststorePassword = gw.Spec.App.Gemfire.Ssl.Truststore.PasswordEncoded
+				}
+				if gw.Spec.App.Gemfire.Ssl.Truststore.PasswordPlainText != "" {
+					gemfireConfig.Ssl.TruststorePassword = gw.Spec.App.Gemfire.Ssl.Truststore.PasswordPlainText
+				}
+			}
 		}
 
-		ssc := string(sharedStateClientBytes)
-		re1 := regexp.MustCompile(`(?m)(password:)\s(.*)`)
-		re2 := regexp.MustCompile(`(?m)(encodedPassword:)\s(.*)`)
-		sub1 := "password: \"$2\""
-		sub2 := "encodedPassword: \"$2\""
-		ssc = re1.ReplaceAllString(ssc, sub1)
-		ssc = re2.ReplaceAllString(ssc, sub2)
-		data["sharedstate_client.yaml"] = []byte(ssc)
-		//data["sharedstate_client.yaml"] = sharedStateClientBytes
+		if len(redisConfigs) > 0 || gemfireConfig != nil {
+			sharedStateClientBytes, err := util.GenerateSharedStateClientConfig(string(util.SharedStateClientConfigTypeRedis), redisConfigs, nil, gemfireConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			ssc := string(sharedStateClientBytes)
+			re1 := regexp.MustCompile(`(?m)(password:)\s(.*)`)
+			re2 := regexp.MustCompile(`(?m)(encodedPassword:)\s(.*)`)
+			sub1 := "password: \"$2\""
+			sub2 := "encodedPassword: \"$2\""
+			ssc = re1.ReplaceAllString(ssc, sub1)
+			ssc = re2.ReplaceAllString(ssc, sub2)
+			data["sharedstate_client.yaml"] = []byte(ssc)
+		}
 	}
 
 	if dataCheckSum == "" {

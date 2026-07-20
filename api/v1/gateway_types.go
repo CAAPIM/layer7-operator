@@ -269,6 +269,7 @@ type App struct {
 	ServiceAccount            ServiceAccount                    `json:"serviceAccount,omitempty"`
 	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
 	Redis                     RedisConfigurations               `json:"redis,omitempty"`
+	Gemfire                   GemfireConfigurations             `json:"gemfire,omitempty"`
 	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
 	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
 	PodSecurityContext        corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
@@ -524,6 +525,83 @@ type RedisSsl struct {
 	Crt string `json:"crt,omitempty"`
 	// VerifyPeer
 	VerifyPeer bool `json:"verifyPeer,omitempty"`
+}
+
+type GemfireConfigurations struct {
+	// Enable or disable a Tanzu GemFire integration
+	Enabled bool `json:"enabled,omitempty"`
+	// ExistingSecret mounts an existing secret containing gemfire configuration
+	// to the container gateway.
+	// The secret should contain a key called gemfire.properties
+	ExistingSecret string `json:"existingSecret,omitempty"`
+	// CertSecrets provides a way to mount secrets that contain the keystore/truststore
+	// files for ssl/tls gemfire connections when using an existing secret.
+	CertSecrets []GemfireCerts `json:"certs,omitempty"`
+	// TestOnStart test gemfire connection on startup
+	TestOnStart bool `json:"testOnStart,omitempty"`
+	// Locators for the Tanzu GemFire cluster
+	Locators []GemfireLocator `json:"locators,omitempty"`
+	// GwKeyValueRegionName defaults to layer7gw_keyvalue
+	GwKeyValueRegionName string `json:"gwKeyValueRegionName,omitempty"`
+	// GwCounterRegionName defaults to layer7gw_counter
+	GwCounterRegionName string `json:"gwCounterRegionName,omitempty"`
+	// GwRateLimiterRegionName defaults to layer7gw_ratelimiter
+	GwRateLimiterRegionName string `json:"gwRateLimiterRegionName,omitempty"`
+	// GwSortedSetRegionName defaults to layer7gw_sortedset
+	GwSortedSetRegionName string `json:"gwSortedSetRegionName,omitempty"`
+	// Auth for the Tanzu GemFire cluster
+	Auth GemfireAuth `json:"auth,omitempty"`
+	// DynamicProperties are extra Tanzu GemFire client properties
+	DynamicProperties map[string]string `json:"dynamicProperties,omitempty"`
+	// Ssl configuration for the Tanzu GemFire cluster
+	Ssl GemfireSsl `json:"ssl,omitempty"`
+}
+
+type GemfireLocator struct {
+	Host string `json:"host,omitempty"`
+	Port int    `json:"port,omitempty"`
+}
+
+type GemfireCerts struct {
+	// Enable or disable an additional mount for gemfire keystore/truststore files
+	Enabled    bool   `json:"enabled,omitempty"`
+	SecretName string `json:"secretName,omitempty"`
+	// Key must match the file referenced in gemfire.existingSecret
+	Key string `json:"key,omitempty"`
+}
+
+type GemfireAuth struct {
+	// Enable or disable Gemfire auth
+	Enabled           bool   `json:"enabled,omitempty"`
+	Username          string `json:"username,omitempty"`
+	PasswordEncoded   string `json:"passwordEncoded,omitempty"`
+	PasswordPlainText string `json:"passwordPlaintext,omitempty"`
+}
+
+type GemfireStore struct {
+	// ExistingSecretName references an existing secret containing the keystore/truststore file
+	ExistingSecretName string `json:"existingSecretName,omitempty"`
+	// ExistingSecretKey is the key in the secret containing the keystore/truststore file
+	ExistingSecretKey string `json:"existingSecretKey,omitempty"`
+	// PasswordEncoded for the keystore/truststore
+	PasswordEncoded string `json:"passwordEncoded,omitempty"`
+	// PasswordPlainText for the keystore/truststore
+	PasswordPlainText string `json:"passwordPlaintext,omitempty"`
+}
+
+type GemfireSsl struct {
+	// Enable or disable SSL/TLS for the Gemfire connection
+	Enabled bool `json:"enabled,omitempty"`
+	// EnabledComponents controls which components have SSL enabled, defaults to all
+	EnabledComponents string `json:"enabledComponents,omitempty"`
+	// Keystore configuration
+	Keystore GemfireStore `json:"keystore,omitempty"`
+	// KeystoreType defaults to JKS, also supports PKCS12
+	KeystoreType string `json:"keystoreType,omitempty"`
+	// Truststore configuration
+	Truststore GemfireStore `json:"truststore,omitempty"`
+	// TruststoreType defaults to JKS, also supports PKCS12
+	TruststoreType string `json:"truststoreType,omitempty"`
 }
 
 type OtkDatabase struct {

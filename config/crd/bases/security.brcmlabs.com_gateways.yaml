@@ -1635,6 +1635,132 @@ spec:
                           type: boolean
                       type: object
                     type: array
+                  gemfire:
+                    properties:
+                      auth:
+                        description: Auth for the Tanzu GemFire cluster
+                        properties:
+                          enabled:
+                            description: Enable or disable Gemfire auth
+                            type: boolean
+                          passwordEncoded:
+                            type: string
+                          passwordPlaintext:
+                            type: string
+                          username:
+                            type: string
+                        type: object
+                      certs:
+                        description: CertSecrets provides a way to mount secrets that
+                          contain the...
+                        items:
+                          properties:
+                            enabled:
+                              description: Enable or disable an additional mount for
+                                gemfire keystore/truststore files
+                              type: boolean
+                            key:
+                              description: Key must match the file referenced in gemfire.existingSecret
+                              type: string
+                            secretName:
+                              type: string
+                          type: object
+                        type: array
+                      dynamicProperties:
+                        additionalProperties:
+                          type: string
+                        description: DynamicProperties are extra Tanzu GemFire client
+                          properties
+                        type: object
+                      enabled:
+                        description: Enable or disable a Tanzu GemFire integration
+                        type: boolean
+                      existingSecret:
+                        description: ExistingSecret mounts an existing secret containing
+                          gemfire configuration...
+                        type: string
+                      gwCounterRegionName:
+                        description: GwCounterRegionName defaults to layer7gw_counter
+                        type: string
+                      gwKeyValueRegionName:
+                        description: GwKeyValueRegionName defaults to layer7gw_keyvalue
+                        type: string
+                      gwRateLimiterRegionName:
+                        description: GwRateLimiterRegionName defaults to layer7gw_ratelimiter
+                        type: string
+                      gwSortedSetRegionName:
+                        description: GwSortedSetRegionName defaults to layer7gw_sortedset
+                        type: string
+                      locators:
+                        description: Locators for the Tanzu GemFire cluster
+                        items:
+                          properties:
+                            host:
+                              type: string
+                            port:
+                              type: integer
+                          type: object
+                        type: array
+                      ssl:
+                        description: Ssl configuration for the Tanzu GemFire cluster
+                        properties:
+                          enabled:
+                            description: Enable or disable SSL/TLS for the Gemfire
+                              connection
+                            type: boolean
+                          enabledComponents:
+                            description: EnabledComponents controls which components
+                              have SSL enabled, defaults to...
+                            type: string
+                          keystore:
+                            description: Keystore configuration
+                            properties:
+                              existingSecretKey:
+                                description: ExistingSecretKey is the key in the secret
+                                  containing the...
+                                type: string
+                              existingSecretName:
+                                description: ExistingSecretName references an existing
+                                  secret containing the...
+                                type: string
+                              passwordEncoded:
+                                description: PasswordEncoded for the keystore/truststore
+                                type: string
+                              passwordPlaintext:
+                                description: PasswordPlainText for the keystore/truststore
+                                type: string
+                            type: object
+                          keystoreType:
+                            description: KeystoreType defaults to JKS, also supports
+                              PKCS12
+                            type: string
+                          truststore:
+                            description: Truststore configuration
+                            properties:
+                              existingSecretKey:
+                                description: ExistingSecretKey is the key in the secret
+                                  containing the...
+                                type: string
+                              existingSecretName:
+                                description: ExistingSecretName references an existing
+                                  secret containing the...
+                                type: string
+                              passwordEncoded:
+                                description: PasswordEncoded for the keystore/truststore
+                                type: string
+                              passwordPlaintext:
+                                description: PasswordPlainText for the keystore/truststore
+                                type: string
+                            type: object
+                          truststoreType:
+                            description: TruststoreType defaults to JKS, also supports
+                              PKCS12
+                            type: string
+                        type: object
+                      testOnStart:
+                        description: TestOnStart test gemfire connection on startup
+                        type: boolean
+                    type: object
                   hazelcast:
                     properties:
                       endpoint:

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -85,6 +85,7 @@ type Bundle struct {
 	Keys                                []*KeyInput                               `json:"keys,omitempty"`
 	CassandraConnections                []*CassandraConnectionInput               `json:"cassandraConnections,omitempty"`
 	JmsDestinations                     []*JmsDestinationInput                    `json:"jmsDestinations,omitempty"`
+	KerberosConfigs                     []*KerberosConfigInput                    `json:"kerberosConfigs,omitempty"`
 	GlobalPolicies                      []*GlobalPolicyInput                      `json:"globalPolicies,omitempty"`
 	BackgroundTasks                     []*BackgroundTaskPolicyInput              `json:"backgroundTaskPolicies,omitempty"`
 	ScheduledTasks                      []*ScheduledTaskInput                     `json:"scheduledTasks,omitempty"`
@@ -113,7 +114,10 @@ type Bundle struct {
 	Roles                               []*RoleInput                              `json:"roles,omitempty"`
 	GenericEntities                     []*GenericEntityInput                     `json:"genericEntities,omitempty"`
 	AuditConfigurations                 []*AuditConfigurationInput                `json:"auditConfigurations,omitempty"`
-	KerberosConfigs                     []*KerberosConfigInput                    `json:"kerberosConfigs,omitempty"`
+	PolicyBackedServices                []*PolicyBackedServiceInput               `json:"policyBackedServices,omitempty"`
+	PolicyAliases                       []*L7PolicyAliasInput                     `json:"policyAliases,omitempty"`
+	ServiceAliases                      []*L7ServiceAliasInput                    `json:"serviceAliases,omitempty"`
+	SampleMessages                      []*SampleMessageInput                     `json:"sampleMessages,omitempty"`
 	Properties                          *BundleProperties                         `json:"properties,omitempty"`
 }
 
@@ -162,6 +166,7 @@ type BundleMappings struct {
 	Keys                                []*MappingInstructionInput `json:"keys,omitempty"`
 	CassandraConnections                []*MappingInstructionInput `json:"cassandraConnections,omitempty"`
 	JmsDestinations                     []*MappingInstructionInput `json:"jmsDestinations,omitempty"`
+	KerberosConfigs                     []*MappingInstructionInput `json:"kerberosConfigs,omitempty"`
 	GlobalPolicies                      []*MappingInstructionInput `json:"globalPolicies,omitempty"`
 	BackgroundTasks                     []*MappingInstructionInput `json:"backgroundTaskPolicies,omitempty"`
 	ScheduledTasks                      []*MappingInstructionInput `json:"scheduledTasks,omitempty"`
@@ -190,6 +195,10 @@ type BundleMappings struct {
 	Roles                               []*MappingInstructionInput `json:"roles,omitempty"`
 	GenericEntities                     []*MappingInstructionInput `json:"genericEntities,omitempty"`
 	AuditConfigurations                 []*MappingInstructionInput `json:"auditConfigurations,omitempty"`
+	PolicyBackedServices                []*MappingInstructionInput `json:"policyBackedServices,omitempty"`
+	PolicyAliases                       []*MappingInstructionInput `json:"policyAliases,omitempty"`
+	ServiceAliases                      []*MappingInstructionInput `json:"serviceAliases,omitempty"`
+	SampleMessages                      []*MappingInstructionInput `json:"sampleMessages,omitempty"`
 }
 
 type MutationDetailedStatus struct {
@@ -226,6 +235,7 @@ type BundleResponseDetailedStatus struct {
 	Keys                                *MutationDetailedStatus `json:"setKeys,omitempty"`
 	CassandraConnections                *MutationDetailedStatus `json:"setCassandraConnections,omitempty"`
 	JmsDestinations                     *MutationDetailedStatus `json:"setJmsDestinations,omitempty"`
+	KerberosConfigs                     *MutationDetailedStatus `json:"setKerberosConfigs,omitempty"`
 	GlobalPolicies                      *MutationDetailedStatus `json:"setGlobalPolicies,omitempty"`
 	BackgroundTasks                     *MutationDetailedStatus `json:"setBackgroundTaskPolicies,omitempty"`
 	ScheduledTasks                      *MutationDetailedStatus `json:"setScheduledTasks,omitempty"`
@@ -254,7 +264,10 @@ type BundleResponseDetailedStatus struct {
 	Roles                               *MutationDetailedStatus `json:"setRoles,omitempty"`
 	GenericEntities                     *MutationDetailedStatus `json:"setGenericEntities,omitempty"`
 	AuditConfigurations                 *MutationDetailedStatus `json:"setAuditConfigurations,omitempty"`
-	KerberosConfigs                     *MutationDetailedStatus `json:"setKerberosConfigs,omitempty"`
+	PolicyBackedServices                *MutationDetailedStatus `json:"setPolicyBackedServices,omitempty"`
+	PolicyAliases                       *MutationDetailedStatus `json:"setPolicyAliases,omitempty"`
+	ServiceAliases                      *MutationDetailedStatus `json:"setServiceAliases,omitempty"`
+	SampleMessages                      *MutationDetailedStatus `json:"setSampleMessages,omitempty"`
 }
 
 type MutationError struct {
@@ -302,6 +315,7 @@ var entities = []string{
 	"fipUsers",
 	"scheduledTasks",
 	"jmsDestinations",
+	"kerberosConfigs",
 	"secrets",
 	"keys",
 	"listenPorts",
@@ -336,7 +350,10 @@ var entities = []string{
 	"roles",
 	"genericEntities",
 	"auditConfigurations",
-	"kerberosConfigs",
+	"policyAliases",
+	"serviceAliases",
+	"policyBackedServices",
+	"sampleMessages",
 }
 
 var entityFolderList = []string{
@@ -355,6 +372,7 @@ var entityFolderList = []string{
 	"fipUsers",
 	"scheduledTasks",
 	"jmsDestinations",
+	"kerberosConfigs",
 	"secrets",
 	"keys",
 	"listenPorts",
@@ -380,7 +398,8 @@ var entityFolderList = []string{
 	"roles",
 	"genericEntities",
 	"auditConfigurations",
-	"kerberosConfigs",
+	"policyBackedServices",
+	"sampleMessages",
 	"tree",
 }
 
@@ -480,7 +499,12 @@ func parseCacString(entityType string, configFile string, f interface{}) (string
 	match := matchOptionsLevelFormat(v.String())
 	if match != "" {
 		dir, _ := filepath.Split(configFile)
-		fBytes, err := os.ReadFile(dir + match)
+		cleanDir := filepath.Clean(dir)
+		target := filepath.Clean(filepath.Join(dir, match))
+		if !strings.HasPrefix(target, cleanDir+string(os.PathSeparator)) {
+			return "", fmt.Errorf("bundle reference %q escapes repository directory", match)
+		}
+		fBytes, err := os.ReadFile(target)
 		if err != nil {
 			return "", err
 		}
@@ -528,21 +552,69 @@ func parsePacCode(p *PolicyInput, file string) (PolicyInput, error) {
 }
 
 // parseEntity determines which entity the file from a Graphman directory belongs to
-// this works with a static list of globally defined entities
-func parseEntity(path string) (string, bool) {
+// this works with a static list of globally defined entities.
+// repoRoot must be the graphman repository root (the path passed to Implode / BuildAndValidateBundle).
+//
+// WalkDir passes absolute paths. The checkout prefix (e.g. /tmp/<name>-<ns>-<branch>/ from this operator,
+// or any other host/volume layout) is not part of graphman semantics. Matching entity folder names with
+// strings.Contains on the full path can false-positive when that prefix contains the substring "/folders/"
+// (same characters as the graphman "folders" entity) without any graphman folders/ directory under the
+// repo. Matching on "/" + Rel(repoRoot, fullPath) + "/" applies entity names only under repoRoot.
+func parseEntity(fullPath, repoRoot string) (string, bool) {
+	repoRoot = filepath.Clean(repoRoot)
+	fullPath = filepath.Clean(fullPath)
+	rel, err := filepath.Rel(repoRoot, fullPath)
+	if err != nil {
+		return "", false
+	}
+	relSlash := filepath.ToSlash(rel)
+	pathForMatch := "/" + relSlash + "/"
 	for _, e := range entities {
-		entityName := e
-		filePath := path
-		if !strings.HasPrefix(e, ".") {
-			entityName = fmt.Sprintf("/%s/", e)
-		} else {
-			filePath = strings.Split(path, "/")[len(strings.Split(path, "/"))-1]
+		if strings.HasPrefix(e, ".") {
+			base := filepath.Base(fullPath)
+			if strings.Contains(base, e) {
+				return e, true
+			}
+			continue
 		}
-		if strings.Contains(filePath, entityName) {
+		entityName := "/" + e + "/"
+		if strings.Contains(pathForMatch, entityName) {
 			return e, true
 		}
 	}
 	return "", false
+}
+
+// ParseEntityPath returns the entity type if path matches the same rules as implodeBundle (parseEntity).
+// Callers use this to skip files in a second pass that were already merged by Implode.
+// repoRoot must be the same root passed to WalkDir (the graphman clone or bundle directory).
+func ParseEntityPath(fullPath, repoRoot string) (entityType string, matched bool) {
+	return parseEntity(fullPath, repoRoot)
+}
+
+// BundleJSONFromPolicyOrServiceAlias returns a minimal bundle JSON if data is a single policy or
+// service alias document (aliasedPolicyName / aliasedServiceName); otherwise ok is false.
+func BundleJSONFromPolicyOrServiceAlias(data []byte) (bundleJSON []byte, ok bool, err error) {
+	var pa L7PolicyAliasInput
+	if err := json.Unmarshal(data, &pa); err == nil && strings.TrimSpace(pa.AliasedPolicyName) != "" {
+		b := Bundle{PolicyAliases: []*L7PolicyAliasInput{&pa}}
+		out, err := json.Marshal(b)
+		return out, true, err
+	}
+	var sa L7ServiceAliasInput
+	if err := json.Unmarshal(data, &sa); err == nil && strings.TrimSpace(sa.AliasedServiceName) != "" {
+		b := Bundle{ServiceAliases: []*L7ServiceAliasInput{&sa}}
+		out, err := json.Marshal(b)
+		return out, true, err
+	}
+	return nil, false, nil
+}
+
+// entityJSONUnmarshalError wraps readBundle failures for exploded entity files so logs include path and entity kind.
+// Most callers pass json.Unmarshal errors; some pass adjunct parse errors (e.g. parsePacCode, parseCacString) for the same path.
+// Paths under entity folders are not filtered by IsFullGraphmanBundleJSON; failures should surface with context.
+func entityJSONUnmarshalError(entityType, file string, err error) error {
+	return fmt.Errorf("graphman entity JSON in %q (entity %q): %w", file, entityType, err)
 }
 
 // readBundle unmarshals a JSON file in the specified Graphman directory into the working Bundle object.
@@ -551,53 +623,56 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 	if ext != "json" {
 		return *bundle, nil
 	}
-	f, _ := os.ReadFile(file)
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return *bundle, fmt.Errorf("read graphman entity file %q: %w", file, err)
+	}
 
 	switch entityType {
 	case ".webapi":
 		webApiService := WebApiServiceInput{}
 		err := json.Unmarshal(f, &webApiService)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.WebApiServices = append(bundle.WebApiServices, &webApiService)
 	case ".internalwebapi":
 		internalWebApiService := WebApiServiceInput{}
 		err := json.Unmarshal(f, &internalWebApiService)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.InternalWebApiServices = append(bundle.InternalWebApiServices, &internalWebApiService)
 	case ".soap":
 		soapService := SoapServiceInput{}
 		err := json.Unmarshal(f, &soapService)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.SoapServices = append(bundle.SoapServices, &soapService)
 	case ".internalsoap":
 		internalSoapService := SoapServiceInput{}
 		err := json.Unmarshal(f, &internalSoapService)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.InternalSoapServices = append(bundle.InternalSoapServices, &internalSoapService)
 	case ".global":
 		globalPolicy := GlobalPolicyInput{}
 		err := json.Unmarshal(f, &globalPolicy)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.GlobalPolicies = append(bundle.GlobalPolicies, &globalPolicy)
 	case ".policy":
 		policyFragment := L7PolicyInput{}
 		err := json.Unmarshal(f, &policyFragment)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		policy, err := parsePacCode(policyFragment.Policy, file)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		policyFragment.Policy = &policy
 
@@ -606,12 +681,12 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		service := L7ServiceInput{}
 		err := json.Unmarshal(f, &service)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		if service.ServiceType == "SOAP" {
 			wsdl, err := parseCacString(entityType, file, service.Wsdl)
 			if err != nil {
-				return *bundle, nil
+				return *bundle, entityJSONUnmarshalError(entityType, file, err)
 			}
 			if wsdl != "" {
 				service.Wsdl = wsdl
@@ -619,7 +694,7 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		}
 		policy, err := parsePacCode(service.Policy, file)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		service.Policy = &policy
 		bundle.Services = append(bundle.Services, &service)
@@ -627,39 +702,39 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		clusterProperty := ClusterPropertyInput{}
 		err := json.Unmarshal(f, &clusterProperty)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.ClusterProperties = append(bundle.ClusterProperties, &clusterProperty)
 	case "scheduledTasks":
 		scheduledTask := ScheduledTaskInput{}
 		err := json.Unmarshal(f, &scheduledTask)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.ScheduledTasks = append(bundle.ScheduledTasks, &scheduledTask)
 	case "encassConfigs":
 		encassConfig := EncassConfigInput{}
 		err := json.Unmarshal(f, &encassConfig)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.EncassConfigs = append(bundle.EncassConfigs, &encassConfig)
 	case "jdbcConnections":
 		jdbcConnection := JdbcConnectionInput{}
 		err := json.Unmarshal(f, &jdbcConnection)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.JdbcConnections = append(bundle.JdbcConnections, &jdbcConnection)
 	case "trustedCerts":
 		trustedCert := TrustedCertInput{}
 		err := json.Unmarshal(f, &trustedCert)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		cert, err := parseCacString(entityType, file, trustedCert.CertBase64)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		if cert != "" {
 			trustedCert.CertBase64 = cert
@@ -669,74 +744,74 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		schema := SchemaInput{}
 		err := json.Unmarshal(f, &schema)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Schemas = append(bundle.Schemas, &schema)
 	case "dtds":
 		dtd := DtdInput{}
 		err := json.Unmarshal(f, &dtd)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Dtds = append(bundle.Dtds, &dtd)
 	case "fips":
 		fip := FipInput{}
 		err := json.Unmarshal(f, &fip)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Fips = append(bundle.Fips, &fip)
 	case "ldaps":
 		ldap := LdapInput{}
 		err := json.Unmarshal(f, &ldap)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Ldaps = append(bundle.Ldaps, &ldap)
 	case "internalGroups":
 		internalGroup := InternalGroupInput{}
 		err := json.Unmarshal(f, &internalGroup)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.InternalGroups = append(bundle.InternalGroups, &internalGroup)
 	case "fipGroups":
 		fipsGroup := FipGroupInput{}
 		err := json.Unmarshal(f, &fipsGroup)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.FipGroups = append(bundle.FipGroups, &fipsGroup)
 	case "internalUsers":
 		internalUser := InternalUserInput{}
 		err := json.Unmarshal(f, &internalUser)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.InternalUsers = append(bundle.InternalUsers, &internalUser)
 	case "fipUsers":
 		fipsUser := FipUserInput{}
 		err := json.Unmarshal(f, &fipsUser)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.FipUsers = append(bundle.FipUsers, &fipsUser)
 	case "secrets":
 		secret := SecretInput{}
 		err := json.Unmarshal(f, &secret)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Secrets = append(bundle.Secrets, &secret)
 	case "keys":
 		key := KeyInput{}
 		err := json.Unmarshal(f, &key)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		certChainString, err := parseCacString(entityType+"-crt", file, key.CertChain)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		keyField := key.Pem
 		if key.P12 != "" {
@@ -744,7 +819,7 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		}
 		privKey, err := parseCacString(entityType+"-key", file, keyField)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		if certChainString != "" {
 			certsChain := []string{}
@@ -768,42 +843,42 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		jmsDestination := JmsDestinationInput{}
 		err := json.Unmarshal(f, &jmsDestination)
 		if err != nil {
-			return *bundle, err
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.JmsDestinations = append(bundle.JmsDestinations, &jmsDestination)
 	case "activeConnectors":
 		activeConnector := ActiveConnectorInput{}
 		err := json.Unmarshal(f, &activeConnector)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.ActiveConnectors = append(bundle.ActiveConnectors, &activeConnector)
 	case "listenPorts":
 		listenPort := ListenPortInput{}
 		err := json.Unmarshal(f, &listenPort)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.ListenPorts = append(bundle.ListenPorts, &listenPort)
 	case "emailListeners":
 		emailListener := EmailListenerInput{}
 		err := json.Unmarshal(f, &emailListener)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.EmailListeners = append(bundle.EmailListeners, &emailListener)
 	case "serverModuleFiles":
 		serverModuleFile := ServerModuleFileInput{}
 		err := json.Unmarshal(f, &serverModuleFile)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.ServerModuleFiles = append(bundle.ServerModuleFiles, &serverModuleFile)
 	case "smConfigs":
 		smConfig := SMConfigInput{}
 		err := json.Unmarshal(f, &smConfig)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.SiteMinderConfigs = append(bundle.SiteMinderConfigs, &smConfig)
 
@@ -811,142 +886,156 @@ func readBundle(entityType string, file string, bundle *Bundle) (Bundle, error) 
 		administrativeUserAccountProperty := AdministrativeUserAccountPropertyInput{}
 		err := json.Unmarshal(f, &administrativeUserAccountProperty)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.AdministrativeUserAccountProperties = append(bundle.AdministrativeUserAccountProperties, &administrativeUserAccountProperty)
 	case "passwordPolicies":
 		passwordPolicy := PasswordPolicyInput{}
 		err := json.Unmarshal(f, &passwordPolicy)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.PasswordPolicies = append(bundle.PasswordPolicies, &passwordPolicy)
 	case "revocationCheckPolicies":
 		revocationCheckPolicy := RevocationCheckPolicyInput{}
 		err := json.Unmarshal(f, &revocationCheckPolicy)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.RevocationCheckPolicies = append(bundle.RevocationCheckPolicies, &revocationCheckPolicy)
 	case "logSinks":
 		logSink := LogSinkInput{}
 		err := json.Unmarshal(f, &logSink)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.LogSinks = append(bundle.LogSinks, &logSink)
 	case "httpConfigurations":
 		httpConfiguration := HttpConfigurationInput{}
 		err := json.Unmarshal(f, &httpConfiguration)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.HttpConfigurations = append(bundle.HttpConfigurations, &httpConfiguration)
 	case "customKeyValues":
 		customKeyValue := CustomKeyValueInput{}
 		err := json.Unmarshal(f, &customKeyValue)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.CustomKeyValues = append(bundle.CustomKeyValues, &customKeyValue)
 	case "serviceResolutionConfigs":
 		serviceResolutionConfig := ServiceResolutionConfigInput{}
 		err := json.Unmarshal(f, &serviceResolutionConfig)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.ServiceResolutionConfigs = append(bundle.ServiceResolutionConfigs, &serviceResolutionConfig)
 	case "folders":
 		folder := FolderInput{}
 		err := json.Unmarshal(f, &folder)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Folders = append(bundle.Folders, &folder)
 	case "federatedIdps":
 		federatedIdp := FederatedIdpInput{}
 		err := json.Unmarshal(f, &federatedIdp)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.FederatedIdps = append(bundle.FederatedIdps, &federatedIdp)
 	case "federatedGroups":
 		federatedGroup := FederatedGroupInput{}
 		err := json.Unmarshal(f, &federatedGroup)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.FederatedGroups = append(bundle.FederatedGroups, &federatedGroup)
 	case "federatedUsers":
 		federatedUser := FederatedUserInput{}
 		err := json.Unmarshal(f, &federatedUser)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.FederatedUsers = append(bundle.FederatedUsers, &federatedUser)
 	case "internalIdps":
 		internalIdp := InternalIdpInput{}
 		err := json.Unmarshal(f, &internalIdp)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.InternalIdps = append(bundle.InternalIdps, &internalIdp)
 	case "ldapIdps":
 		ldapIdp := LdapIdpInput{}
 		err := json.Unmarshal(f, &ldapIdp)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.LdapIdps = append(bundle.LdapIdps, &ldapIdp)
 	case "simpleLdapIdps":
 		simpleLdapIdp := SimpleLdapIdpInput{}
 		err := json.Unmarshal(f, &simpleLdapIdp)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.SimpleLdapIdps = append(bundle.SimpleLdapIdps, &simpleLdapIdp)
 	case "policyBackedIdps":
 		policyBackedIdp := PolicyBackedIdpInput{}
 		err := json.Unmarshal(f, &policyBackedIdp)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.PolicyBackedIdps = append(bundle.PolicyBackedIdps, &policyBackedIdp)
 	case "policies":
 		policy := L7PolicyInput{}
 		err := json.Unmarshal(f, &policy)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Policies = append(bundle.Policies, &policy)
 	case "services":
 		service := L7ServiceInput{}
 		err := json.Unmarshal(f, &service)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Services = append(bundle.Services, &service)
 	case "roles":
 		role := RoleInput{}
 		err := json.Unmarshal(f, &role)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.Roles = append(bundle.Roles, &role)
 	case "genericEntities":
 		genericEntity := GenericEntityInput{}
 		err := json.Unmarshal(f, &genericEntity)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.GenericEntities = append(bundle.GenericEntities, &genericEntity)
 	case "auditConfigurations":
 		auditConfiguration := AuditConfigurationInput{}
 		err := json.Unmarshal(f, &auditConfiguration)
 		if err != nil {
-			return *bundle, nil
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
 		}
 		bundle.AuditConfigurations = append(bundle.AuditConfigurations, &auditConfiguration)
+	case "policyAliases":
+		policyAlias := L7PolicyAliasInput{}
+		err := json.Unmarshal(f, &policyAlias)
+		if err != nil {
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
+		}
+		bundle.PolicyAliases = append(bundle.PolicyAliases, &policyAlias)
+	case "serviceAliases":
+		serviceAlias := L7ServiceAliasInput{}
+		err := json.Unmarshal(f, &serviceAlias)
+		if err != nil {
+			return *bundle, entityJSONUnmarshalError(entityType, file, err)
+		}
+		bundle.ServiceAliases = append(bundle.ServiceAliases, &serviceAlias)
 	}
 	return *bundle, nil
 }
@@ -981,7 +1070,7 @@ func implodeBundle(path string, processNestedRepos bool) (Bundle, error) {
 		}
 
 		if !d.IsDir() {
-			name, isEntity := parseEntity(path)
+			name, isEntity := parseEntity(path, startPath)
 			if isEntity {
 				bundle, err = readBundle(name, path, &bundle)
 				if err != nil {
@@ -1056,6 +1145,15 @@ func ResetDelta(src []byte) (dst []byte, err error) {
 	return nil, nil
 }
 
+// The query or mutation executed by installBundleGeneric.
+const installBundleGeneric_Operation = `
+mutation installBundleGeneric {
+	installBundleEntities {
+		summary
+	}
+}
+`
+
 func installGenericBundle(
 	ctx_ context.Context,
 	client_ graphql.Client,
@@ -1078,6 +1176,15 @@ func installGenericBundle(
 	)
 	return &data_, err_
 }
+
+// The query or mutation executed by deleteBundleGeneric.
+const deleteBundleGeneric_Operation = `
+mutation deleteBundleGeneric {
+	deleteBundleEntities {
+		summary
+	}
+}
+`
 
 func deleteGenericBundle(
 	ctx_ context.Context,

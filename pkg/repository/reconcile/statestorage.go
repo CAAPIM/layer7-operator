@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -52,7 +52,7 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		return err
 	}
 
-	tmpPath := "/tmp/statestore/" + params.Instance.Name
+	tmpPath := util.StateStoreCacheDir(params.Instance.Name, params.Instance.Namespace)
 	commitTracker := commit + ".txt"
 	fileName := "latest.json"
 	_, dErr := os.Stat(tmpPath)
@@ -80,6 +80,7 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 	if err != nil {
 		return fmt.Errorf("failed to connect to state store: %w", err)
 	}
+	defer rc.Close()
 
 	projects, err := util.DetectGraphmanFolders(repositoryPath)
 	if err != nil {
@@ -89,7 +90,7 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 	bundles := map[string][]byte{}
 	compressedBundle := map[string][]byte{}
 	for _, p := range projects {
-		bundle, err := util.BuildAndValidateBundle(p, false)
+		bundle, err := util.BuildAndValidateBundle(p, false, params.Log)
 		if err != nil {
 			return err
 		}
@@ -121,11 +122,13 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		return err
 	}
 
+	redisKey := statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":repository:" + params.Instance.Namespace + ":" + storageSecretName + ":latest"
+
 	// check for previous version - statestore may be empty
-	stateStoreBundleMapString, err := rc.Get(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest").Result()
+	stateStoreBundleMapString, err := rc.Get(ctx, redisKey).Result()
 	if err != nil {
 		// if the previous version can't be retrieved, write the current version
-		rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", compressedBundleBytes, 0)
+		rs := rc.Set(ctx, redisKey, compressedBundleBytes, 0)
 		if rs.Err() != nil {
 			return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
 		}
@@ -273,7 +276,7 @@ func StateStorage(ctx context.Context, params Params, statestore securityv1alpha
 		return err
 	}
 
-	rs := rc.Set(ctx, statestore.Spec.Redis.GroupName+":"+statestore.Spec.Redis.StoreId+":"+"repository"+":"+storageSecretName+":latest", compressedBundleBytes, 0)
+	rs := rc.Set(ctx, redisKey, compressedBundleBytes, 0)
 	if rs.Err() != nil {
 		return fmt.Errorf("failed to reconcile state storage: %w", rs.Err())
 	}
@@ -309,6 +312,7 @@ func GetStateStoreChecksum(ctx context.Context, params Params, statestore securi
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to state store: %w", err)
 	}
+	defer rc.Close()
 
 	bundle, err := rc.Get(ctx, params.Instance.Spec.StateStoreKey).Result()
 	if err != nil {
@@ -320,6 +324,136 @@ func GetStateStoreChecksum(ctx context.Context, params Params, statestore securi
 
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 
+}
+
+// parseStateStoreKeyPayload returns bundle JSON bytes from the Redis value: UTF-8 JSON object or gzip-compressed JSON object.
+// The document must be a top-level JSON object ({...}), not an array.
+func parseStateStoreKeyPayload(blob []byte) ([]byte, error) {
+	blob = bytes.TrimSpace(blob)
+	if len(blob) == 0 {
+		return nil, fmt.Errorf("empty state store payload")
+	}
+	if len(blob) >= 2 && blob[0] == 0x1f && blob[1] == 0x8b {
+		raw, err := util.GzipDecompress(blob)
+		if err != nil {
+			return nil, fmt.Errorf("gzip decompress state store payload: %w", err)
+		}
+		blob = bytes.TrimSpace(raw)
+		if len(blob) == 0 {
+			return nil, fmt.Errorf("empty state store payload after decompress")
+		}
+	}
+	if blob[0] != '{' {
+		return nil, fmt.Errorf("state store payload must be a top-level JSON object")
+	}
+	return blob, nil
+}
+
+// stateStorePayloadToLatestJSON builds the JSON bytes for latest.json (map[string][]byte with one *.gz key).
+func stateStorePayloadToLatestJSON(repoName string, blob []byte) ([]byte, error) {
+	bundleJSON, err := parseStateStoreKeyPayload(blob)
+	if err != nil {
+		return nil, err
+	}
+	gz, err := util.GzipCompress(bundleJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress bundle: %w", err)
+	}
+	return json.Marshal(map[string][]byte{repoName + ".gz": gz})
+}
+
+// BuildStateStoreRepositoryCache writes util.StateStoreCacheDir/latest.json for RepositoryTypeStateStore: GET spec.stateStoreKey
+// (read-only), single entry {name}.gz with gzip of bundle JSON. Does not write repository data back to Redis.
+func BuildStateStoreRepositoryCache(ctx context.Context, params Params, statestore securityv1alpha1.L7StateStore, commit string) error {
+	tmpPath := util.StateStoreCacheDir(params.Instance.Name, params.Instance.Namespace)
+	commitTracker := commit + ".txt"
+	fileName := "latest.json"
+	if _, err := os.Stat(tmpPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(tmpPath, 0755); err != nil {
+			return err
+		}
+	}
+
+	latestFullPath := tmpPath + "/" + fileName
+	if _, err := os.Stat(tmpPath + "/" + commitTracker); err == nil {
+		if _, err := os.Stat(latestFullPath); err == nil {
+			return nil
+		}
+	}
+
+	if statestore.Spec.Redis.ExistingSecret != "" {
+		stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, statestore, params)
+		if err != nil {
+			return err
+		}
+		statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
+		statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
+	}
+
+	rc, err := util.RedisClient(&statestore.Spec.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to connect to state store: %w", err)
+	}
+	defer rc.Close()
+
+	currentStr, err := rc.Get(ctx, params.Instance.Spec.StateStoreKey).Result()
+	if err != nil {
+		return fmt.Errorf("failed to read stateStoreKey from redis: %w", err)
+	}
+
+	compressedBundleBytes, err := stateStorePayloadToLatestJSON(params.Instance.Name, []byte(currentStr))
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(latestFullPath, compressedBundleBytes, 0755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(tmpPath+"/"+commitTracker, []byte{}, 0755); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RebuildCacheFromStateStore rebuilds the local filesystem bundle cache for a git/http repository
+// that has a StateStoreReference, by reading the last-known-good bundle from Redis and writing it
+// to util.StateStoreCacheDir/latest.json. This is the fallback path invoked when git (or the HTTP
+// endpoint) is unavailable after an operator pod restart wiped the ephemeral filesystem.
+// It returns an error when Redis is unreachable or no prior successful sync exists for this repository.
+func RebuildCacheFromStateStore(ctx context.Context, params Params, statestore securityv1alpha1.L7StateStore) error {
+	storageSecretName, _, _, err := localRepoStorageInfo(params)
+	if err != nil {
+		return fmt.Errorf("could not determine storage secret name: %w", err)
+	}
+
+	if statestore.Spec.Redis.ExistingSecret != "" {
+		stateStoreSecret, err := getStateStoreSecret(ctx, statestore.Spec.Redis.ExistingSecret, statestore, params)
+		if err != nil {
+			return err
+		}
+		statestore.Spec.Redis.Username = string(stateStoreSecret.Data["username"])
+		statestore.Spec.Redis.MasterPassword = string(stateStoreSecret.Data["masterPassword"])
+	}
+
+	rc, err := util.RedisClient(&statestore.Spec.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to connect to state store: %w", err)
+	}
+	defer rc.Close()
+
+	key := statestore.Spec.Redis.GroupName + ":" + statestore.Spec.Redis.StoreId + ":repository:" + params.Instance.Namespace + ":" + storageSecretName + ":latest"
+	bundleMapStr, err := rc.Get(ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("no cached state in state store for key %s: %w", key, err)
+	}
+
+	tmpPath := util.StateStoreCacheDir(params.Instance.Name, params.Instance.Namespace)
+	if err := os.MkdirAll(tmpPath, 0755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(tmpPath+"/latest.json", []byte(bundleMapStr), 0755)
 }
 
 func localRepoStorageInfo(params Params) (storageSecretName string, repositoryPath string, ext string, err error) {
@@ -345,6 +479,10 @@ func localRepoStorageInfo(params Params) (storageSecretName string, repositoryPa
 		ext = folderName
 		return storageSecretName, "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext, ext, nil
 	case "git":
+		// Flatten any '/' in the ref so the storage-secret name is valid and the
+		// returned checkout path matches the directory CloneRepository created
+		// (both apply SafeRef to the same ref).
+		ext = util.SafeRef(ext)
 		storageSecretName = params.Instance.Name + "-repository-" + ext
 		return storageSecretName, "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext, ext, nil
 	default:

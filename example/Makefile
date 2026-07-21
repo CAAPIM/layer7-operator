@@ -23,7 +23,7 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
@@ -43,7 +43,7 @@ otk-single:
 	kubectl apply -f ./gateway/otk/otk-single.yaml
 
 portal-example: redis
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml -n ${NAMESPACE}
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml -n ${NAMESPACE}
 	@$(MAKE) --silent t=15 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 	kubectl apply -k ./base -n ${NAMESPACE}
@@ -78,7 +78,7 @@ default-redis:
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis
 
 grafana-stack:
-	helm repo add grafana https://grafana-community.github.io/helm-charts
+	helm repo add grafana https://grafana.github.io/helm-charts
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/loki-overrides.yaml loki grafana/loki -n grafana-loki --create-namespace
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/promtail-overrides.yaml promtail grafana/promtail -n grafana-loki
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/tempo-overrides.yaml tempo grafana/tempo -n grafana-loki
@@ -250,7 +250,7 @@ pki-otk-dmz: pki-otk
 	-kubectl create secret tls otk-dmz-mtls-secret \
 	  --cert=/tmp/otk-dmz-mtls.crt --key=/tmp/otk-dmz-mtls.key \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	-kubectl create secret generic otk-internal-ca-cert \
+	-kubectl create configmap otk-internal-ca-cert \
 	  --from-file=ca.crt=/tmp/otk-internal-tls.crt \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
@@ -258,8 +258,11 @@ pki-otk-internal: pki-otk
 	-kubectl create secret tls otk-internal-secret \
 	  --cert=/tmp/otk-internal-tls.crt --key=/tmp/otk-internal-tls.key \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	-kubectl create secret generic otk-dmz-mtls-public-cert \
+	-kubectl create configmap otk-dmz-mtls-public-cert \
 	  --from-file=dmz-gateway.crt=/tmp/otk-dmz-mtls.crt \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	-kubectl create configmap otk-dmz-mtls-ca-cert \
+	  --from-file=dmz-gateway-mtls-ca.crt=/tmp/otk-dmz-mtls-ca.crt \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 cassandra:
@@ -288,7 +291,7 @@ uninstall:
 	-kubectl delete -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.65.0/jaeger-operator.yaml -n observability
 	-kubectl delete ns observability
 	-kubectl delete ns monitoring
-	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml
+	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml
 	-helm uninstall mysql
 	-helm uninstall cassandra
 	-helm uninstall contour -n projectcontour

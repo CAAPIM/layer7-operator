@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -24,7 +25,6 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -34,8 +34,7 @@ import (
 //var gatewaylog = logf.Log.WithName("gateway-resource")
 
 func (r *Gateway) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+	return ctrl.NewWebhookManagedBy(mgr, r).
 		WithDefaulter(r).
 		WithValidator(r).
 		Complete()
@@ -43,43 +42,31 @@ func (r *Gateway) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-security-brcmlabs-com-v1-gateway,mutating=true,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=gateways,verbs=create;update,versions=v1,name=mgateway.kb.io,admissionReviewVersions=v1
 
-var _ admission.CustomDefaulter = &Gateway{}
+var _ admission.Defaulter[*Gateway] = &Gateway{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *Gateway) Default(ctx context.Context, obj runtime.Object) error {
+// Default implements admission.Defaulter for *Gateway.
+func (r *Gateway) Default(ctx context.Context, obj *Gateway) error {
 	return nil
 }
 
 //+kubebuilder:webhook:path=/validate-security-brcmlabs-com-v1-gateway,mutating=false,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=gateways,verbs=create;update,versions=v1,name=vgateway.kb.io,admissionReviewVersions=v1
 
-var _ admission.CustomValidator = &Gateway{}
+var _ admission.Validator[*Gateway] = &Gateway{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Gateway) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	gateway, ok := obj.(*Gateway)
-	if !ok {
-		return nil, fmt.Errorf("expected a Gateway, received %T", obj)
-	}
-	return validateGateway(gateway)
+// ValidateCreate implements admission.Validator for *Gateway.
+func (r *Gateway) ValidateCreate(ctx context.Context, obj *Gateway) (admission.Warnings, error) {
+	return validateGateway(obj)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Gateway) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	_, ok := oldObj.(*Gateway)
-	if !ok {
-		return nil, fmt.Errorf("expected a Gateway for oldObj, received %T", oldObj)
-	}
-	gateway, ok := newObj.(*Gateway)
-	if !ok {
-		return nil, fmt.Errorf("expected a Gateway for newObj, received %T", newObj)
-	}
-	return validateGateway(gateway)
+// ValidateUpdate implements admission.Validator for *Gateway.
+func (r *Gateway) ValidateUpdate(ctx context.Context, oldObj, newObj *Gateway) (admission.Warnings, error) {
+	return validateGateway(newObj)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Gateway) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+// ValidateDelete implements admission.Validator for *Gateway.
+func (r *Gateway) ValidateDelete(ctx context.Context, obj *Gateway) (admission.Warnings, error) {
 	//gatewaylog.Info("validate delete", "name", r.Name)
-	return []string{}, nil
+	return nil, nil
 }
 
 func validateGateway(r *Gateway) (admission.Warnings, error) {
@@ -169,6 +156,12 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 		}
 	}
 
+	for i, ec := range r.Spec.App.ExternalCerts {
+		if ec.Enabled && ec.Type != "" && strings.ToLower(ec.Type) != "secret" && strings.ToLower(ec.Type) != "configmap" {
+			return warnings, fmt.Errorf("please specify a valid external cert type, valid types are secret (default) or configmap. name: %s index: %d", ec.Name, i)
+		}
+	}
+
 	if r.Spec.App.Hazelcast.External {
 		if r.Spec.App.Hazelcast.Endpoint == "" {
 			return warnings, fmt.Errorf("please specify the endpoint for your external Hazelcast server")
@@ -199,6 +192,11 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 			return warnings, fmt.Errorf("please specify a jdbcUrl for the gateway database")
 
 		}
+	}
+
+	if r.Spec.App.Management.Database.MigrationJob.Enabled &&
+		!r.Spec.App.Management.Database.Enabled {
+		return warnings, fmt.Errorf("migrationJob.enabled requires database.enabled: true")
 	}
 
 	if r.Spec.App.Management.Service.Enabled {

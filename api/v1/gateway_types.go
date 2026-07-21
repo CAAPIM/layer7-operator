@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -12,6 +13,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
 */
 
 package v1
@@ -62,6 +64,20 @@ type GatewayList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Gateway `json:"items"`
+}
+
+// MigrationStatus tracks the state of the pre-upgrade database migration job.
+// It is persisted in Gateway.Status so that completed migrations survive job
+// deletion and are not re-run on daily reconciles or operator restarts.
+type MigrationStatus struct {
+	// SpecHash is a short hash of the migration-relevant spec fields (image,
+	// effective jdbcUrl, clearLocks). When any of these change the hash changes
+	// and a fresh migration job is triggered.
+	SpecHash string `json:"specHash,omitempty"`
+	// Complete indicates that the migration job succeeded for the current SpecHash.
+	// Once true, GatewayMigrationJob skips job management entirely and the
+	// Deployment step is unblocked — regardless of whether the Job still exists.
+	Complete bool `json:"complete,omitempty"`
 }
 
 // GatewayStatus defines the observed state of Gateways
@@ -119,6 +135,8 @@ type GatewayStatus struct {
 	LastAppliedExternalCerts map[string][]string `json:"lastAppliedExternalCerts,omitempty"`
 	// LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates have been applied
 	LastAppliedOtkFipsCerts map[string][]string `json:"lastAppliedOtkFipsCerts,omitempty"`
+	// MigrationStatus tracks the state of the pre-upgrade database migration job.
+	MigrationStatus MigrationStatus `json:"migrationStatus,omitempty"`
 }
 
 // GatewayState tracks the status of Gateway Resources
@@ -171,6 +189,9 @@ type GatewayRepositoryStatus struct {
 	Conditions []RepositoryCondition `json:"conditions,omitempty"`
 	// Directories
 	Directories []string `json:"directories,omitempty"`
+	// InsecureSkipVerify disables TLS certificate verification for http and git
+	// repository types. Propagated from Repository.Spec.InsecureSkipVerify.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
 type RepositoryCondition struct {
@@ -259,6 +280,7 @@ type App struct {
 	ExternalSecrets           []ExternalSecret                  `json:"externalSecrets,omitempty"`
 	ExternalKeys              []ExternalKey                     `json:"externalKeys,omitempty"`
 	ExternalCerts             []ExternalCert                    `json:"externalCerts,omitempty"`
+	StartupProbe              corev1.Probe                      `json:"startupProbe,omitempty"`
 	LivenessProbe             corev1.Probe                      `json:"livenessProbe,omitempty"`
 	ReadinessProbe            corev1.Probe                      `json:"readinessProbe,omitempty"`
 	CustomConfig              CustomConfig                      `json:"customConfig,omitempty"`
@@ -344,9 +366,6 @@ type PortalReference struct {
 type Otk struct {
 	// Enable or disable the OTK initContainer
 	Enabled bool `json:"enabled,omitempty"`
-	// ManageCrossNamespace allows a cluster-wide layer7 operator to manage internal/dmz gateways across namespaces
-	// this is limited to a single kubernetes cluster.
-	ManageCrossNamespace bool `json:"manageCrossNamespace,omitempty"`
 	// InitContainerImage for the initContainer
 	InitContainerImage string `json:"initContainerImage,omitempty"`
 	// InitContainerImagePullPolicy
@@ -392,16 +411,9 @@ type OtkMaintenanceTasks struct {
 }
 
 type GatewayReference struct {
-	// Name of the gateway
-	// if managing otk gateways across namespaces this must match the referenced gateway CR
-	Name string `json:"name,omitempty"`
-	// Namespace of the referenced gateway if managing gateways cross namespace (optional)
-	Namespace string `json:"namespace,omitempty"`
 	// Url of the target gateway
 	// used for post-installation gateway policy configuration
 	Url string `json:"url,omitempty"`
-	// Port of the target gateway
-	Port int `json:"port,omitempty"`
 }
 
 type OtkOverrides struct {
@@ -694,6 +706,27 @@ type Database struct {
 	Password string `json:"password,omitempty"`
 	// LiquibaseLogLevel
 	LiquibaseLogLevel LiquibaseLogLevel `json:"liquibaseLogLevel,omitempty"`
+	// MigrationJob for pre-upgrade schema updates
+	MigrationJob MigrationJob `json:"migrationJob,omitempty"`
+}
+
+// MigrationJob configures the pre-upgrade database migration job
+type MigrationJob struct {
+	// Enabled or disabled
+	Enabled bool `json:"enabled,omitempty"`
+	// JDBCUrl overrides the main database.jdbcUrl for the migration job (e.g. to bypass a proxy).
+	// Only applies in diskless mode (disklessConfig.disabled: false, the default).
+	// In non-diskless mode the entrypoint reads the JDBC URL from the mounted node.properties
+	// file and this field has no effect — node.properties always wins, consistent with Helm behavior.
+	JDBCUrl string `json:"jdbcUrl,omitempty"`
+	// ClearLocks forces release of any stuck Liquibase locks before applying
+	// schema updates. Use with caution: forcefully releasing a lock while
+	// another process is actively updating the schema can corrupt the database.
+	ClearLocks bool `json:"clearLocks,omitempty"`
+	// ActiveDeadlineSeconds is the max duration each pod attempt is allowed to run.
+	// The job may retry once (backoffLimit=1), so total elapsed time can be up to
+	// 2× this value. Defaults to 300 seconds (5 minutes) per attempt.
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 }
 
 // Restman is a Gateway Management interface that can be automatically provisioned.
@@ -720,7 +753,7 @@ type Graphman struct {
 // Service
 type Service struct {
 	// Enabled or disabled
-	Enabled bool ` json:"enabled,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
 	// Annotations for the service
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Type ClusterIP, NodePort, LoadBalancer
@@ -885,15 +918,17 @@ const (
 	RevocationCheckPolicyTypeSpecified RevocationCheckPolicyType = "SPECIFIED"
 )
 
-// ExternalCert is a reference to an existing TLS or Opaque Secret in Kubernetes
-// The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+// ExternalCert is a reference to an existing TLS or Opaque Secret or ConfigMap in Kubernetes
+// The Layer7 Operator will attempt to convert this to a Graphman bundle that can be applied
 // dynamically keeping any referenced trusted certs up-to-date.
-// You can bring in external secrets using tools like cert-manager
+// You can bring in external certs using tools like cert-manager
 type ExternalCert struct {
 	// Enabled or disabled
 	Enabled bool `json:"enabled,omitempty"`
-	// Name of the Secret which already exists in Kubernetes
-	Name                      string                    `json:"name,omitempty"`
+	// Name of the Secret or ConfigMap which already exists in Kubernetes
+	Name string `json:"name,omitempty"`
+	// Type of the referenced resource: "secret" (default) or "configmap"
+	Type                      string                    `json:"type,omitempty"`
 	VerifyHostname            bool                      `json:"verifyHostname,omitempty"`
 	TrustedFor                []TrustedFor              `json:"trustedFor,omitempty"`
 	TrustAnchor               bool                      `json:"trustAnchor,omitempty"`

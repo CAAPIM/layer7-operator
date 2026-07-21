@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -288,6 +288,46 @@ func TestCombineWithOverwrite_CustomKeyValuesByKey(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("Could not find custom.key1")
+	}
+}
+
+func TestCombineWithOverwrite_ServiceResolutionConfigsByGoid(t *testing.T) {
+	goidA := "0000000000000000fffffffffffffffe"
+	goidB := "0000000000000000fffffffffffffffd"
+
+	bundle1 := Bundle{
+		ServiceResolutionConfigs: []*ServiceResolutionConfigInput{
+			{Goid: goidA, ResolutionPathRequired: false},
+			{Goid: goidB, ResolutionPathRequired: false},
+		},
+	}
+
+	bundle2 := Bundle{
+		ServiceResolutionConfigs: []*ServiceResolutionConfigInput{
+			{Goid: goidA, ResolutionPathRequired: true}, // same Goid overwrites
+		},
+	}
+
+	result, err := CombineWithOverwrite(bundle2, bundle1)
+	if err != nil {
+		t.Fatalf("CombineWithOverwrite failed: %v", err)
+	}
+
+	if len(result.ServiceResolutionConfigs) != 2 {
+		t.Fatalf("Expected 2 service resolution configs, got %d", len(result.ServiceResolutionConfigs))
+	}
+
+	for _, c := range result.ServiceResolutionConfigs {
+		switch c.Goid {
+		case goidA:
+			if !c.ResolutionPathRequired {
+				t.Errorf("expected goid A ResolutionPathRequired true after overwrite")
+			}
+		case goidB:
+			if c.ResolutionPathRequired {
+				t.Errorf("expected goid B unchanged (ResolutionPathRequired false)")
+			}
+		}
 	}
 }
 

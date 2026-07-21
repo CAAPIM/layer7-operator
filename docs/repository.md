@@ -121,6 +121,16 @@ if branch and tag are both missing the entire repository will be cloned<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>insecureSkipVerify</b></td>
+        <td>boolean</td>
+        <td>
+          InsecureSkipVerify disables TLS certificate verification for all repository
+types (http, git). For git repositories this is OR-combined with the legacy
+-insecure vendor flag: either condition set to true enables insecure mode.
+Should only be set to true for internal repositories using self-signed certificates.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>

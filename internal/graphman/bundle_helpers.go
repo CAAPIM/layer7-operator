@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -96,6 +96,9 @@ func CombineWithOverwrite(src Bundle, dest Bundle) (Bundle, error) {
 			case "CustomKeyValues":
 				// Custom KV: Match on Key
 				primaryFields = []string{"Key"}
+			case "ServiceResolutionConfigs":
+				// Global service resolution config: no Name; match on Goid
+				primaryFields = []string{"Goid"}
 			default:
 				// Default: Match on Name
 				primaryFields = []string{"Name"}
@@ -246,6 +249,9 @@ func CombineWithOverwritePreservingDeleteMappings(src Bundle, dest Bundle) (Bund
 			case "CustomKeyValues":
 				// Custom KV: Match on Key
 				primaryFields = []string{"Key"}
+			case "ServiceResolutionConfigs":
+				// Global service resolution config: no Name; match on Goid
+				primaryFields = []string{"Goid"}
 			default:
 				// Default: Match on Name
 				primaryFields = []string{"Name"}
@@ -414,6 +420,8 @@ func CleanDeleteMappingsForEntities(bundle *Bundle, source Bundle) error {
 					primaryFields = []string{"SystemId"}
 				case "CustomKeyValues":
 					primaryFields = []string{"Key"}
+				case "ServiceResolutionConfigs":
+					primaryFields = []string{"Goid"}
 				default:
 					primaryFields = []string{"Name"}
 				}

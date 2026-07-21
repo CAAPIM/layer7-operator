@@ -1,4 +1,29 @@
-// Copyright (c) 2025 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+/*
+* Copyright (c) 2026 Broadcom. All rights reserved.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+* All trademarks, trade names, service marks, and logos referenced
+* herein belong to their respective companies.
+*
+* This software and all information contained therein is confidential
+* and proprietary and shall not be duplicated, used, disclosed or
+* disseminated in any way except as authorized by the applicable
+* license agreement, without the express written permission of Broadcom.
+* All authorized reproductions must be marked with this language.
+*
+* EXCEPT AS SET FORTH IN THE APPLICABLE LICENSE AGREEMENT, TO THE
+* EXTENT PERMITTED BY APPLICABLE LAW OR AS AGREED BY BROADCOM IN ITS
+* APPLICABLE LICENSE AGREEMENT, BROADCOM PROVIDES THIS DOCUMENTATION
+* "AS IS" WITHOUT WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION,
+* ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+* PURPOSE, OR. NONINFRINGEMENT. IN NO EVENT WILL BROADCOM BE LIABLE TO
+* THE END USER OR ANY THIRD PARTY FOR ANY LOSS OR DAMAGE, DIRECT OR
+* INDIRECT, FROM THE USE OF THIS DOCUMENTATION, INCLUDING WITHOUT LIMITATION,
+* LOST PROFITS, LOST INVESTMENT, BUSINESS INTERRUPTION, GOODWILL, OR
+* LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
+* POSSIBILITY OF SUCH LOSS OR DAMAGE.
+*
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
+ */
 package reconcile
 
 import (
@@ -202,7 +227,8 @@ func deployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gatewa
 				}
 
 				params.Log.V(2).Info("applying api", "api", params.Instance.Name, "pod", pod.Name, "namespace", params.Instance.Namespace)
-				err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "", graphmanBundleBytes)
+				// Endpoint is always a pod IP; TLS certs are hostname-based so verification always fails against a raw IP.
+				err = util.ApplyGraphmanBundle(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "", graphmanBundleBytes, true)
 				if err != nil {
 					status = FAILURE
 					errorMessage = err.Error()
@@ -278,7 +304,8 @@ func undeployL7ApiToGateway(ctx context.Context, params Params, gateway *v1.Gate
 
 				params.Log.V(2).Info("removing api", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
 				var errorMessage string
-				err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl, params.Instance.Spec.PortalMeta.Name+"-fragment", secretNames)
+				// Endpoint is always a pod IP; TLS certs are hostname-based so verification always fails against a raw IP.
+				err = util.RemoveL7API(string(gwSecret.Data["SSG_ADMIN_USERNAME"]), string(gwSecret.Data["SSG_ADMIN_PASSWORD"]), endpoint, "/"+params.Instance.Spec.PortalMeta.SsgUrl, params.Instance.Spec.PortalMeta.Name+"-fragment", secretNames, true)
 				if err != nil {
 					status = FAILURE
 					errorMessage = err.Error()
@@ -330,6 +357,11 @@ func updateL7ApiDeploymentStatusOnPod(tag string, podName string, checksum strin
 // primarily used for bootstrapping portal apis to target container gateway deployments.
 // this mechanism will be updated in the future.
 func WriteTempStorage(ctx context.Context, params Params) error {
+	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
+		if strings.ContainsAny(params.Instance.Spec.L7Portal, "/\\.") {
+			return fmt.Errorf("L7Portal name %q is invalid", params.Instance.Spec.L7Portal)
+		}
+	}
 	apiPath := portalTempDirectory + params.Instance.Spec.L7Portal + "/"
 	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
 		portalMeta := templategen.PortalAPI{}

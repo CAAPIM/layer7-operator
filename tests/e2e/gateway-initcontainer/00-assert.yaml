@@ -21,7 +21,7 @@ spec:
             name: ssg-initcontainer-test
         - secretRef:
             name: ssg-initcontainer-test
-        image: docker.io/caapim/gateway:11.1.3
+        image: docker.io/caapim/gateway:11.2.1
         imagePullPolicy: IfNotPresent
         lifecycle: {}
         name: gateway
@@ -54,7 +54,7 @@ spec:
           value: /graphman/statestore-config/
         - name: STATESTORE_SECRET
           value: /graphman/statestore-secret/
-        image: docker.io/caapim/graphman-static-init:1.0.4
+        image: docker.io/caapim/graphman-static-init:1.0.5
         imagePullPolicy: IfNotPresent
         name: graphman-static-init
       restartPolicy: Always

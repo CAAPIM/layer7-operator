@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -97,6 +97,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	if gw.Spec.App.ReadinessProbe != (corev1.Probe{}) {
 		readinessProbe = gw.Spec.App.ReadinessProbe
+	}
+
+	var startupProbe *corev1.Probe
+	if gw.Spec.App.StartupProbe != (corev1.Probe{}) {
+		sp := gw.Spec.App.StartupProbe
+		startupProbe = &sp
 	}
 
 	terminationGracePeriodSeconds := int64(30)
@@ -664,7 +670,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
 
-	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.4"
+	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.5"
 	graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
 	graphmanInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -780,7 +786,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	otkDbInitContainer := false
 	otkBootstrapDirectory := "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK"
 	otkInitContainerVolumeMounts := []corev1.VolumeMount{}
-	otkInitContainerImage := "docker.io/caapim/otk-install:4.6.2_202402"
+	otkInitContainerImage := "docker.io/caapim/otk-install:4.7.0"
 	otkInitContainerImagePullPolicy := corev1.PullIfNotPresent
 	otkInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -881,12 +887,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			})
 		}
 		initContainers = append(initContainers, corev1.Container{
-			Name:            "otk-install-init",
-			Image:           otkInitContainerImage,
-			ImagePullPolicy: otkInitContainerImagePullPolicy,
-			SecurityContext: &otkInitContainerSecurityContext,
-			VolumeMounts:    otkInitContainerVolumeMounts,
-			EnvFrom:         otkInstallEnvFrom,
+			Name:                     "otk-install-init",
+			Image:                    otkInitContainerImage,
+			ImagePullPolicy:          otkInitContainerImagePullPolicy,
+			SecurityContext:          &otkInitContainerSecurityContext,
+			VolumeMounts:             otkInitContainerVolumeMounts,
+			EnvFrom:                  otkInstallEnvFrom,
 			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		})
@@ -932,16 +938,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		imagePullPolicy = gw.Spec.App.ImagePullPolicy
 	}
 
-	gatewayContainerSecurityContext := corev1.SecurityContext{}
-	podSecurityContext := corev1.PodSecurityContext{}
-
-	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
-		gatewayContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
-	}
-
-	if !reflect.DeepEqual(gw.Spec.App.PodSecurityContext, corev1.PodSecurityContext{}) {
-		podSecurityContext = gw.Spec.App.PodSecurityContext
-	}
+	gatewayContainerSecurityContext, podSecurityContext := gatewaySecurityContexts(gw)
 	gatewaySecretName := gw.Name
 	if gw.Spec.App.Management.DisklessConfig.Disabled {
 		gatewaySecretName = gw.Name + "-node-properties"
@@ -966,12 +963,18 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		Ports:          ports,
 		LivenessProbe:  &livenessProbe,
 		ReadinessProbe: &readinessProbe,
+		StartupProbe:   startupProbe,
 		Resources:      resources,
 		Lifecycle:      &lifecycleHooks,
 	}
 
 	if gw.Spec.App.Otel.OtelSDKOnly.Enabled {
-		resourceAttributes := "k8s.container.name=$(CONTAINER_NAME),k8s.deployment.name=$(OTEL_SERVICE_NAME),service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(NAMESPACE),k8s.node.name=$(NODE_NAME),k8s.pod.name=$(POD_NAME),service.version='" + strings.Split(gw.Spec.App.Image, ":")[1] + "'"
+		imageParts := strings.SplitN(gw.Spec.App.Image, ":", 2)
+		imageTag := "unknown"
+		if len(imageParts) == 2 {
+			imageTag = imageParts[1]
+		}
+		resourceAttributes := "k8s.container.name=$(CONTAINER_NAME),k8s.deployment.name=$(OTEL_SERVICE_NAME),service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(NAMESPACE),k8s.node.name=$(NODE_NAME),k8s.pod.name=$(POD_NAME),service.version='" + imageTag + "'"
 		if len(gw.Spec.App.Otel.AdditionalResourceAttritbutes) > 0 {
 			additionalResourceAttributes := []string{}
 			for _, attr := range gw.Spec.App.Otel.AdditionalResourceAttritbutes {

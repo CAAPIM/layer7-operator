@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -44,11 +44,13 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	graphman "github.com/caapim/layer7-operator/internal/graphman"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -89,7 +91,7 @@ type GraphmanOtkConfig struct {
 	InternalGatewayReference string `json:"internalGatewayReference,omitempty"`
 }
 
-func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, password string, target string, encpass string, delete bool) error {
+func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, password string, target string, encpass string, delete bool, insecureSkipVerify bool) error {
 	bundle := graphman.Bundle{}
 	var err error
 
@@ -124,21 +126,17 @@ func ApplyToGraphmanTarget(bundleBytes []byte, singleton bool, username string, 
 	}
 
 	if !delete {
-		_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+		_, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes, insecureSkipVerify)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, err = graphman.DeleteDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
+		_, err = graphman.DeleteDynamicBundle(username, password, "https://"+target, encpass, bundleBytes, insecureSkipVerify)
 		if err != nil {
 			return err
 		}
 	}
 
-	// _, err = graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundleBytes)
-	// if err != nil {
-	// 	return err
-	// }
 	return nil
 }
 
@@ -152,6 +150,9 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 		certsChain := []string{}
 		for crt := range crtStrings {
 			b, _ := pem.Decode([]byte(crtStrings[crt]))
+			if b == nil {
+				continue
+			}
 			crtX509, _ := x509.ParseCertificate(b.Bytes)
 			crtsX509 = append(crtsX509, *crtX509)
 			certsChain = append(certsChain, crtStrings[crt])
@@ -168,9 +169,8 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 			KeystoreId: "00000000000000000000000000000002",
 			Pem:        key.Key,
 			Alias:      key.Name,
-			//KeyType:    "RSA",
-			SubjectDn: "CN=" + certDN,
-			CertChain: certsChain,
+			SubjectDn:  "CN=" + certDN,
+			CertChain:  certsChain,
 		}
 
 		if key.Alias != "" {
@@ -191,10 +191,9 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 			return nil, err
 		}
 		bundle.Keys = append(bundle.Keys, &graphman.KeyInput{
-			Alias:     nf,
-			Pem:       key,
-			CertChain: cert,
-			//UsageTypes: []graphman.KeyUsageType{graphman.KeyUsageTypeSsl},
+			Alias:      nf,
+			Pem:        key,
+			CertChain:  cert,
 			KeystoreId: "00000000000000000000000000000002",
 		})
 		mappingSource := graphman.MappingSource{Alias: nf, KeystoreId: "00000000000000000000000000000002"}
@@ -216,6 +215,9 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 
 	for _, cert := range certs {
 		b, _ := pem.Decode([]byte(cert.Crt))
+		if b == nil {
+			continue
+		}
 		crtX509, _ := x509.ParseCertificate(b.Bytes)
 
 		tf := []graphman.TrustedForType{}
@@ -223,7 +225,7 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 			tf = append(tf, graphman.TrustedForType(v))
 		}
 		revocationCheckPolicyType := graphman.PolicyUsageTypeUseDefault
-		if cert.RevocationCheckPolicyType == "" {
+		if cert.RevocationCheckPolicyType != "" {
 			revocationCheckPolicyType = graphman.PolicyUsageType(cert.RevocationCheckPolicyType)
 		}
 
@@ -336,8 +338,8 @@ func ConvertOpaqueMapToGraphmanBundle(secrets []GraphmanSecret, notFound []strin
 	return bundleBytes, nil
 }
 
-func ApplyGraphmanBundle(username string, password string, target string, encpass string, bundle []byte) error {
-	_, err := graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundle)
+func ApplyGraphmanBundle(username string, password string, target string, encpass string, bundle []byte, insecureSkipVerify bool) error {
+	_, err := graphman.ApplyDynamicBundle(username, password, "https://"+target, encpass, bundle, insecureSkipVerify)
 
 	if err != nil {
 		return err
@@ -345,8 +347,8 @@ func ApplyGraphmanBundle(username string, password string, target string, encpas
 	return nil
 }
 
-func RemoveL7API(username string, password string, target string, apiName string, policyFragmentName string, secretNames []string) error {
-	_, err := graphman.RemoveL7PortalApi(username, password, "https://"+target, apiName, policyFragmentName, secretNames)
+func RemoveL7API(username string, password string, target string, apiName string, policyFragmentName string, secretNames []string, insecureSkipVerify bool) error {
+	_, err := graphman.RemoveL7PortalApi(username, password, "https://"+target, apiName, policyFragmentName, secretNames, insecureSkipVerify)
 	if err != nil {
 		return err
 	}
@@ -372,8 +374,8 @@ func DeleteBundle(src []byte) (bundle []byte, err error) {
 	return bundle, nil
 }
 
-func CompressGraphmanBundle(path string, statestore bool) ([]byte, error) {
-	bundleBytes, err := BuildAndValidateBundle(path, false)
+func CompressGraphmanBundle(path string, statestore bool, log logr.Logger) ([]byte, error) {
+	bundleBytes, err := BuildAndValidateBundle(path, false, log)
 	if err != nil {
 		return nil, err
 	}
@@ -494,7 +496,59 @@ func ConcatBundlesPreservingMappings(bundleMap map[string][]byte) (combinedBundl
 
 }
 
-func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes []byte, err error) {
+// GraphmanBundleBytesHaveNoEntities reports whether bundle JSON has no Graphman entity collections
+// and no mapping instructions. Trivially small payloads (len <= 40) match BuildAndValidateBundle's
+// "no valid graphman bundles" threshold. Invalid JSON returns false so callers do not treat parse
+// failures as an empty repository bundle.
+func GraphmanBundleBytesHaveNoEntities(b []byte) bool {
+	if len(b) <= 40 {
+		return true
+	}
+	var bundle graphman.Bundle
+	if err := json.Unmarshal(b, &bundle); err != nil {
+		return false
+	}
+	if graphmanBundleHasEntitySlices(bundle) {
+		return false
+	}
+	if bundle.Properties != nil {
+		if bundle.Properties.DefaultAction != "" {
+			return false
+		}
+		if graphmanBundleMappingsHaveInstructions(bundle.Properties.Mappings) {
+			return false
+		}
+	}
+	return true
+}
+
+func graphmanBundleHasEntitySlices(b graphman.Bundle) bool {
+	v := reflect.ValueOf(b)
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		if t.Field(i).Name == "Properties" {
+			continue
+		}
+		f := v.Field(i)
+		if f.Kind() == reflect.Slice && f.Len() > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func graphmanBundleMappingsHaveInstructions(m graphman.BundleMappings) bool {
+	mv := reflect.ValueOf(m)
+	for i := 0; i < mv.NumField(); i++ {
+		f := mv.Field(i)
+		if f.Kind() == reflect.Slice && f.Len() > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func BuildAndValidateBundle(path string, processNestedRepos bool, log logr.Logger) (bundleBytes []byte, err error) {
 	if path == "" {
 		return nil, nil
 	}
@@ -508,47 +562,74 @@ func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes [
 		return nil, err
 	}
 
-	_ = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(path, func(filePath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if strings.Contains(path, ".git") {
+		if strings.Contains(filePath, ".git") {
 			return nil
 		}
 		if !d.IsDir() {
 			segments := strings.Split(d.Name(), ".")
 			ext := segments[len(segments)-1]
 			if ext == "json" && !strings.Contains(strings.ToLower(d.Name()), "sourcesummary.json") && !strings.Contains(strings.ToLower(d.Name()), "bundle-properties.json") {
-				srcBundleBytes, err := os.ReadFile(path)
+				// Already merged by graphman.Implode (same parseEntity rules); do not read again.
+				if _, matched := graphman.ParseEntityPath(filePath, path); matched {
+					return nil
+				}
+
+				srcBundleBytes, err := os.ReadFile(filePath)
 				if err != nil {
 					return err
 				}
 
-				tb := graphman.Bundle{}
-				r := bytes.NewReader(srcBundleBytes)
-				d := json.NewDecoder(r)
-				d.DisallowUnknownFields()
-				_ = json.Unmarshal(srcBundleBytes, &tb)
-				err = d.Decode(&tb)
-				if err != nil {
+				// Policy/service alias standalone docs are not full-bundle shaped; handle first.
+				aliasJSON, ok, err2 := graphman.BundleJSONFromPolicyOrServiceAlias(srcBundleBytes)
+				if err2 != nil {
+					return err2
+				}
+				if ok && len(aliasJSON) > 40 {
+					sbb, err := graphman.ConcatBundle(aliasJSON, bundleBytes)
+					if err != nil {
+						return err
+					}
+					bundleBytes = sbb
 					return nil
+				}
+
+				// Not graphman bundle JSON (e.g. unrelated repo settings): ignore without failing the build.
+				if !graphman.IsFullGraphmanBundleJSON(srcBundleBytes) {
+					log.V(2).Info("ignoring JSON file (not a valid graphman bundle)", "path", filePath)
+					return nil
+				}
+
+				// Bundle-shaped document: any parse/validation error fails the whole build.
+				tb := graphman.Bundle{}
+				dec := json.NewDecoder(bytes.NewReader(srcBundleBytes))
+				dec.DisallowUnknownFields()
+				if err := dec.Decode(&tb); err != nil {
+					return fmt.Errorf("graphman bundle JSON in %q could not be parsed or validated: %w", filePath, err)
 				}
 				tbb, err := json.Marshal(tb)
 				if err != nil {
-					return nil
+					return fmt.Errorf("graphman bundle JSON in %q: %w", filePath, err)
 				}
 
 				if len(tbb) > 40 {
 					sbb, err := graphman.ConcatBundle(srcBundleBytes, bundleBytes)
 					if err != nil {
-						return nil
+						return err
 					}
 					bundleBytes = sbb
 				}
+				return nil
 			}
 		}
 		return nil
 	})
+	if walkErr != nil {
+		return nil, walkErr
+	}
 
 	// if the bundle is still empty after parsing all of the directory files
 	// return an error
@@ -559,7 +640,9 @@ func BuildAndValidateBundle(path string, processNestedRepos bool) (bundleBytes [
 	r := bytes.NewReader(bundleBytes)
 	d := json.NewDecoder(r)
 	d.DisallowUnknownFields()
-	_ = json.Unmarshal(bundleBytes, &bundle)
+	if err := json.Unmarshal(bundleBytes, &bundle); err != nil {
+		return nil, fmt.Errorf("merged graphman bundle at %q: %w", path, err)
+	}
 
 	err = d.Decode(&bundle)
 	if err != nil {

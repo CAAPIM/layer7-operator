@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -75,34 +75,6 @@ func getOpenShiftUIDRange(ctx context.Context, k8sClient client.Client, namespac
 
 	// Use the same value for GID (OpenShift typically assigns matching ranges)
 	return &minUID, &minUID, nil
-}
-
-// applyDefaultCapabilities ensures all init containers and sidecars drop ALL capabilities by default
-// This is a security best practice unless explicitly overridden by the user
-func applyDefaultCapabilities(dep *appsv1.Deployment) {
-	// Apply to all init containers
-	for i := range dep.Spec.Template.Spec.InitContainers {
-		if dep.Spec.Template.Spec.InitContainers[i].SecurityContext == nil {
-			dep.Spec.Template.Spec.InitContainers[i].SecurityContext = &corev1.SecurityContext{}
-		}
-		if dep.Spec.Template.Spec.InitContainers[i].SecurityContext.Capabilities == nil {
-			dep.Spec.Template.Spec.InitContainers[i].SecurityContext.Capabilities = &corev1.Capabilities{
-				Drop: []corev1.Capability{"ALL"},
-			}
-		}
-	}
-
-	// Apply to main container (gateway)
-	for i := range dep.Spec.Template.Spec.Containers {
-		if dep.Spec.Template.Spec.Containers[i].SecurityContext == nil {
-			dep.Spec.Template.Spec.Containers[i].SecurityContext = &corev1.SecurityContext{}
-		}
-		if dep.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities == nil {
-			dep.Spec.Template.Spec.Containers[i].SecurityContext.Capabilities = &corev1.Capabilities{
-				Drop: []corev1.Capability{"ALL"},
-			}
-		}
-	}
 }
 
 // applyOpenShiftSecurityDefaults applies OpenShift-specific security context defaults
@@ -193,6 +165,15 @@ func applyOpenShiftSecurityDefaults(ctx context.Context, params Params) {
 }
 
 func Deployment(ctx context.Context, params Params) error {
+	// Gate on migration status rather than relying on GatewayMigrationJob to
+	// short-circuit the reconcile loop. This lets unrelated ops (ConfigMaps,
+	// Secrets, status, etc.) keep reconciling while a migration is in progress,
+	// and only the Deployment step itself waits for Status.MigrationStatus.
+	if !migrationComplete(params.Instance) {
+		params.Log.V(2).Info("migration job has not completed for the current spec, skipping deployment reconciliation")
+		return nil
+	}
+
 	// Auto-detect and set OpenShift UID/GID if on OpenShift platform
 	// and user hasn't explicitly set RunAsUser
 	if params.Platform == "openshift" {
@@ -448,6 +429,25 @@ func setStateStoreConfig(ctx context.Context, params Params, dep *appsv1.Deploym
 	return dep, nil
 }
 
+// storageSecretAvailable returns whether the repository bundle-cache Secret exists in the namespace.
+// When it does not exist yet, omit the volume so the pod does not fail mounting a missing Secret.
+func storageSecretAvailable(ctx context.Context, params Params, name string) (bool, error) {
+	if name == "" || name == "_" {
+		return false, nil
+	}
+	var secret corev1.Secret
+	err := params.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: params.Instance.Namespace}, &secret)
+	if k8serrors.IsNotFound(err) {
+		params.Log.V(2).Info("storage secret not found, omitting volume mount until it exists",
+			"secret", name, "namespace", params.Instance.Namespace)
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("get storage secret %s/%s: %w", params.Instance.Namespace, name, err)
+	}
+	return true, nil
+}
+
 func setGmanInitContainerVolumeMounts(ctx context.Context, params Params, dep *appsv1.Deployment) (*appsv1.Deployment, error) {
 
 	var (
@@ -466,29 +466,35 @@ func setGmanInitContainerVolumeMounts(ctx context.Context, params Params, dep *a
 			// these secrets are managed by the Repository controller.
 			// if the storageSecret is available we don't need to mount the secrets.
 			if repoRef.StorageSecretName != "" && repoRef.StorageSecretName != "_" {
-				gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-					Name:      repoRef.StorageSecretName,
-					MountPath: "/graphman/localref/" + repoRef.StorageSecretName,
-				})
+				ok, err := storageSecretAvailable(ctx, params, repoRef.StorageSecretName)
+				if err != nil {
+					return nil, err
+				}
+				if ok {
+					gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+						Name:      repoRef.StorageSecretName,
+						MountPath: "/graphman/localref/" + repoRef.StorageSecretName,
+					})
 
-				existingVolume := false
-				for _, v := range dep.Spec.Template.Spec.Volumes {
-					if v.Name == repoRef.StorageSecretName {
-						existingVolume = true
+					existingVolume := false
+					for _, v := range dep.Spec.Template.Spec.Volumes {
+						if v.Name == repoRef.StorageSecretName {
+							existingVolume = true
+						}
+					}
+
+					if !existingVolume {
+						dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
+							Name: repoRef.StorageSecretName,
+							VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+								SecretName:  repoRef.StorageSecretName,
+								DefaultMode: &defaultMode,
+								Optional:    &optional,
+							}},
+						})
 					}
 				}
-
-				if !existingVolume {
-					dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
-						Name: repoRef.StorageSecretName,
-						VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
-							SecretName:  repoRef.StorageSecretName,
-							DefaultMode: &defaultMode,
-							Optional:    &optional,
-						}},
-					})
-				}
-			} else {
+			} else if repoRef.StorageSecretName == "_" {
 				if repoRef.SecretName != "" {
 					gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
 						Name:      repoRef.SecretName,
@@ -513,6 +519,7 @@ func setGmanInitContainerVolumeMounts(ctx context.Context, params Params, dep *a
 					}
 				}
 			}
+			// StorageSecretName == "": empty repository — nothing in config.json; skip mounts.
 		}
 	}
 
@@ -538,30 +545,36 @@ func setGmanInitContainerVolumeMounts(ctx context.Context, params Params, dep *a
 				// available as an existing Kubernetes secret which reduces reliance on an external Git repository for Gateway boot.
 				// these secrets are managed by the Repository controller.
 				// if the storageSecret is available we don't need to mount the secrets.
-				if repo.Status.StorageSecretName != "_" {
-					gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
-						Name:      repo.Status.StorageSecretName,
-						MountPath: "/graphman/localref/" + repo.Status.StorageSecretName,
-					})
+				if repo.Status.StorageSecretName != "" && repo.Status.StorageSecretName != "_" {
+					ok, err := storageSecretAvailable(ctx, params, repo.Status.StorageSecretName)
+					if err != nil {
+						return nil, err
+					}
+					if ok {
+						gmanInitContainerVolumeMounts = append(gmanInitContainerVolumeMounts, corev1.VolumeMount{
+							Name:      repo.Status.StorageSecretName,
+							MountPath: "/graphman/localref/" + repo.Status.StorageSecretName,
+						})
 
-					existingVolume := false
-					for _, v := range dep.Spec.Template.Spec.Volumes {
-						if v.Name == repo.Status.StorageSecretName {
-							existingVolume = true
+						existingVolume := false
+						for _, v := range dep.Spec.Template.Spec.Volumes {
+							if v.Name == repo.Status.StorageSecretName {
+								existingVolume = true
+							}
+						}
+
+						if !existingVolume {
+							dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
+								Name: repo.Status.StorageSecretName,
+								VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+									SecretName:  repo.Status.StorageSecretName,
+									DefaultMode: &defaultMode,
+									Optional:    &optional,
+								}},
+							})
 						}
 					}
-
-					if !existingVolume {
-						dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, corev1.Volume{
-							Name: repo.Status.StorageSecretName,
-							VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
-								SecretName:  repo.Status.StorageSecretName,
-								DefaultMode: &defaultMode,
-								Optional:    &optional,
-							}},
-						})
-					}
-				} else {
+				} else if repo.Status.StorageSecretName == "_" {
 
 					secretName := repo.Name
 					if repo.Spec.Auth.ExistingSecretName != "" {

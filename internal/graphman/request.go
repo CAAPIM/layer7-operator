@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package graphman
 
@@ -52,10 +53,18 @@ func (ct *CustomTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return ct.r.RoundTrip(r)
 }
 
-func gqlClient(username string, password string, target string, encpass string) graphql.Client {
+func gqlClient(username string, password string, target string, encpass string, insecureSkipVerify bool) graphql.Client {
 	httpClient := &http.Client{
-		Timeout:   time.Second * 60,
-		Transport: &CustomTransport{username: username, password: password, encpass: encpass, r: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, DialContext: dialTimeout}},
+		Timeout: time.Second * 60,
+		Transport: &CustomTransport{
+			username: username,
+			password: password,
+			encpass:  encpass,
+			r: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify}, //nolint:gosec
+				DialContext:     dialTimeout,
+			},
+		},
 	}
 	return graphql.NewClient(target, httpClient)
 }

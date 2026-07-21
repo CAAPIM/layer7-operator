@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package util
 
@@ -99,6 +100,32 @@ func Unzip(src string, dest string) error {
 	return nil
 }
 
+// These are vars (not consts) only so tests can lower them; treat them as
+// constants in production code.
+var (
+	// maxDecompressedSize is the maximum total number of decompressed bytes
+	// accepted from an archive — cumulative across all tar entries, or the size
+	// of a single gzip payload. 500 MiB prevents decompression bombs from
+	// exhausting memory or disk. Exceeding it is a hard error, not a truncation.
+	maxDecompressedSize int64 = 500 << 20 // 500 MiB
+
+	// maxArchiveEntries is the maximum number of entries accepted from a tar
+	// archive. Many tiny files can be used as a zip-bomb variant; this cap
+	// prevents that class of attack.
+	maxArchiveEntries = 10_000
+)
+
+// safeJoin joins base and name and verifies the result is contained within base.
+// It returns an error when name contains path traversal sequences that would
+// escape the intended target directory (TarSlip / ZipSlip protection).
+func safeJoin(base, name string) (string, error) {
+	p := filepath.Clean(filepath.Join(base, name))
+	if !strings.HasPrefix(p, filepath.Clean(base)+string(os.PathSeparator)) {
+		return "", fmt.Errorf("archive entry %q escapes target directory", name)
+	}
+	return p, nil
+}
+
 func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) error {
 	folderExists, _ := os.Stat(folderName)
 	if folderExists != nil {
@@ -118,6 +145,8 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 	// Create the folder up front and return an error if it doesn't exist while iterating over tar entries
 	_ = os.Mkdir(folderName, 0755)
 
+	entryCount := 0
+	var totalWritten int64
 	for {
 		header, err := tarReader.Next()
 
@@ -129,18 +158,23 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 			return err
 		}
 
+		entryCount++
+		if entryCount > maxArchiveEntries {
+			return fmt.Errorf("archive exceeds maximum entry count of %d", maxArchiveEntries)
+		}
+
 		switch header.Typeflag {
 		case tar.TypeXGlobalHeader:
 			continue
 		case tar.TypeDir:
-			path := "/tmp/" + repoName + "-" + header.Name
 			if header.Name == "./" {
 				continue
 			}
 
-			if strings.HasPrefix(header.Name, "./") {
-				header.Name = strings.Replace(header.Name, "./", "", 1)
-				path = folderName + "/" + header.Name
+			entryName := strings.TrimPrefix(header.Name, "./")
+			path, err := safeJoin(folderName, entryName)
+			if err != nil {
+				return err
 			}
 
 			if err := os.Mkdir(path, 0755); err != nil {
@@ -149,27 +183,37 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 				}
 			}
 		case tar.TypeReg:
-			// this should ignore the extra info added to compressed files on MacOSX (BSD Tar)
+			// Ignore BSD Tar macOS metadata entries
 			if strings.HasPrefix(header.Name, "./._") || strings.HasPrefix(header.Name, "._") || strings.Contains(header.Name, "/._") {
 				continue
 			}
-			// this allows files in the root of a compressed file to be written to a different path
-			// default would be ./filename.ext
-			//path := "/tmp/" + repoName + "-" + header.Name
-			path := folderName + "/" + header.Name
 
-			if strings.HasPrefix(header.Name, "./") {
-				header.Name = strings.Replace(header.Name, "./", "", 1)
-				path = folderName + "/" + header.Name
+			entryName := strings.TrimPrefix(header.Name, "./")
+			path, err := safeJoin(folderName, entryName)
+			if err != nil {
+				return err
 			}
+
 			outFile, err := os.Create(path)
 			if err != nil {
 				return fmt.Errorf("failed to create file %s", header.Name)
 			}
-			defer outFile.Close()
-			if _, err := io.Copy(outFile, tarReader); err != nil {
+			// Enforce a cumulative decompressed-size budget across all entries so
+			// that many individually-small files can't sum past the cap. Read one
+			// byte past the remaining budget so an overflow is detected and
+			// surfaced as an error rather than silently truncated. Close the file
+			// each iteration instead of deferring to avoid holding up to
+			// maxArchiveEntries file descriptors open until Untar returns.
+			remaining := maxDecompressedSize - totalWritten
+			written, err := io.Copy(outFile, io.LimitReader(tarReader, remaining+1))
+			outFile.Close()
+			if err != nil {
 				return fmt.Errorf("copy failed: %s", err)
 			}
+			if written > remaining {
+				return fmt.Errorf("archive exceeds maximum decompressed size of %d bytes", maxDecompressedSize)
+			}
+			totalWritten += written
 		default:
 			return fmt.Errorf("uknown type: %d in %s", header.Typeflag, header.Name)
 		}
@@ -184,9 +228,14 @@ func GzipDecompress(gzipBundle []byte) (bundleBytes []byte, err error) {
 		return nil, err
 	}
 
-	bundleBytes, err = io.ReadAll(gzr)
+	// Read one byte past the cap so an oversized payload is surfaced as an error
+	// rather than silently truncated.
+	bundleBytes, err = io.ReadAll(io.LimitReader(gzr, maxDecompressedSize+1))
 	if err != nil {
 		return nil, err
+	}
+	if int64(len(bundleBytes)) > maxDecompressedSize {
+		return nil, fmt.Errorf("gzip payload exceeds maximum decompressed size of %d bytes", maxDecompressedSize)
 	}
 
 	return bundleBytes, nil

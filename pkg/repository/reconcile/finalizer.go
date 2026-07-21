@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	v1 "github.com/caapim/layer7-operator/api/v1"
+	"github.com/caapim/layer7-operator/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -71,7 +72,11 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 				ref = params.Instance.Spec.Branch
 			}
 
-			err = os.RemoveAll("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ref)
+			if err = util.ValidateRef(ref); err != nil {
+				return err
+			}
+
+			err = os.RemoveAll("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + util.SafeRef(ref))
 
 			if err != nil {
 				return err
@@ -81,9 +86,10 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 			path := fileURL.Path
 			segments := strings.Split(path, "/")
 			fileName := segments[len(segments)-1]
-			ext := strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-1]
+			parts := strings.Split(fileName, ".")
+			ext := parts[len(parts)-1]
 			folderName := strings.ReplaceAll(fileName, "."+ext, "")
-			if ext == "gz" && strings.Split(fileName, ".")[len(strings.Split(fileName, "."))-2] == "tar" {
+			if ext == "gz" && len(parts) >= 2 && parts[len(parts)-2] == "tar" {
 				folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 			}
 
@@ -104,13 +110,13 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 		}
 
 		// Clean up cache directory
-		cachePath := "/tmp/repo-cache/" + params.Instance.Name
+		cachePath := util.RepoCacheDir(params.Instance.Name, params.Instance.Namespace)
 		if err := os.RemoveAll(cachePath); err != nil {
 			params.Log.V(2).Info("failed to remove cache directory", "path", cachePath, "error", err.Error())
 		}
 
 		// Clean up statestore cache if it exists
-		stateStorePath := "/tmp/statestore/" + params.Instance.Name
+		stateStorePath := util.StateStoreCacheDir(params.Instance.Name, params.Instance.Namespace)
 		if err := os.RemoveAll(stateStorePath); err != nil {
 			params.Log.V(2).Info("failed to remove statestore cache directory", "path", stateStorePath, "error", err.Error())
 		}

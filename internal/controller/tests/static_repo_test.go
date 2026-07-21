@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -12,6 +13,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
 */
 
 package tests
@@ -37,8 +39,8 @@ var _ = Describe("Gateway controller", func() {
 			repoSecretName      = "test-static-repository-secret"
 			namespace           = "l7operator"
 			gatewayName         = "static-repo-ssg"
-			version             = "11.1.3"
-			image               = "docker.io/caapim/gateway:11.1.3"
+			version             = "11.2.1"
+			image               = "docker.io/caapim/gateway:11.2.1"
 			repoName            = "local-repo"
 			repoType            = securityv1.RepositoryTypeLocal
 			staticChecksum      = ""
@@ -159,7 +161,7 @@ var _ = Describe("Gateway controller", func() {
 							},
 							Graphman: securityv1.Graphman{
 								Enabled:            true,
-								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.4",
+								InitContainerImage: "docker.io/caapim/graphman-static-init:1.0.5",
 							},
 							Username: "admin",
 							Password: "7layer",

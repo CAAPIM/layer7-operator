@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package util
 
@@ -521,6 +522,41 @@ func BuildDefaultListenPortBundle(refreshOnKeyChanges bool) ([]byte, string, err
 	sha1Sum := fmt.Sprintf("%x", h.Sum(nil))
 
 	return bundleBytes, sha1Sum, nil
+}
+
+// ListenPortNamesExcludedFromGraphmanSync returns listen port names whose TCP port matches
+// graphmanPort. Those entries must not be sent in dynamic Graphman bundles while the controller
+// uses that port for Graphman, so the active connection is not disrupted.
+func ListenPortNamesExcludedFromGraphmanSync(gw *securityv1.Gateway, graphmanPort int) map[string]struct{} {
+	excluded := make(map[string]struct{})
+	if gw == nil || graphmanPort == 0 {
+		return excluded
+	}
+	for _, p := range gw.Spec.App.ListenPorts.Ports {
+		if p.Port == graphmanPort {
+			excluded[p.Name] = struct{}{}
+		}
+	}
+	return excluded
+}
+
+// FilterListenPortBundleForGraphmanSync removes listen ports that use graphmanPort from the
+// bundle. Bootstrap/configmap bundles should still use the full Build*ListenPortBundle output.
+func FilterListenPortBundleForGraphmanSync(bundle *graphman.Bundle, graphmanPort int) {
+	if bundle == nil || graphmanPort == 0 || len(bundle.ListenPorts) == 0 {
+		return
+	}
+	out := make([]*graphman.ListenPortInput, 0, len(bundle.ListenPorts))
+	for _, lp := range bundle.ListenPorts {
+		if lp == nil {
+			continue
+		}
+		if lp.Port == graphmanPort {
+			continue
+		}
+		out = append(out, lp)
+	}
+	bundle.ListenPorts = out
 }
 
 func BuildCustomListenPortBundle(gw *securityv1.Gateway, refreshOnKeyChanges bool) ([]byte, string, error) {

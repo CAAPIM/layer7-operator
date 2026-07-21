@@ -1,0 +1,45 @@
+# Test: clearLocks=true — Job uses liquibase-only-with-unlock mode
+#
+# Scenario: a previous migration was interrupted and left the Liquibase
+# DATABASECHANGELOGLOCK table locked. The operator re-running normal
+# liquibase-only mode would stall immediately waiting for the lock. Setting
+# clearLocks=true makes the migration Job forcibly release the lock before
+# applying changesets, unblocking the upgrade.
+#
+# Expected behaviour:
+#   EXTRA_JAVA_ARGS is set to "-Dgateway.db.schema-update.mode=liquibase-only-with-unlock"
+#   instead of the default "liquibase-only".
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg-migration-clearlocks
+spec:
+  version: "11.2.1"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:11.2.1
+    imagePullPolicy: IfNotPresent
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
+      username: admin
+      password: 7layer
+      database:
+        enabled: true
+        jdbcUrl: jdbc:mysql://no-mysql.local:3306/ssg
+        migrationJob:
+          enabled: true
+          clearLocks: true   # ← force lock release before running changesets
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+        - name: management
+          port: 9443
+          targetPort: 9443

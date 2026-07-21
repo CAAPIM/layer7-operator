@@ -1,0 +1,12 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+# Assert: enabling migrationJob creates the Job. Only the name/existence is
+# checked here — the Job's spec fields are already covered in detail by
+# tests/e2e/gateway-migration-job. This step only needs a real Job to exist
+# so step 02 can prove it gets cleaned up.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ssg-migration-disabled-db-migration

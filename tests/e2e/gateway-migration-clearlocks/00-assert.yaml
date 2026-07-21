@@ -1,0 +1,35 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+# Assert: when clearLocks=true, EXTRA_JAVA_ARGS uses "liquibase-only-with-unlock"
+# instead of the default "liquibase-only".
+#
+# The distinction matters: "liquibase-only-with-unlock" calls
+#   LiquibaseUtil.forceReleaseLocks()
+# before applying changesets. Without this flag a stuck
+# DATABASECHANGELOGLOCK causes the migration Job to hang until
+# activeDeadlineSeconds is reached, blocking the Gateway upgrade.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ssg-migration-clearlocks-db-migration
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-migration
+        image: docker.io/caapim/gateway:11.2.1
+        envFrom:
+        - configMapRef:
+            name: ssg-migration-clearlocks
+        - secretRef:
+            name: ssg-migration-clearlocks
+        env:
+        - name: EXTRA_JAVA_ARGS
+          # liquibase-only-with-unlock — lock is forcibly released before changesets run.
+          # Contrast with the gateway-migration-job test which asserts "liquibase-only"
+          # (no lock release) when clearLocks=false.
+          value: "-Dgateway.db.schema-update.mode=liquibase-only-with-unlock"

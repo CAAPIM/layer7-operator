@@ -2427,6 +2427,19 @@ func updateRepoRefStatus(ctx context.Context, params Params, repository security
 		nrs.RemoteName = repository.Spec.RemoteName
 	}
 
+	// On apply failure, do not advance the recorded directories. Advancing them
+	// would make the next reconcile see previous == current (no directoryChange)
+	// and silently skip re-applying the failed change. Preserving the old value
+	// keeps directoryChanged=true so the change is retried.
+	if applyError != nil {
+		for _, ors := range gatewayStatus.RepositoryStatus {
+			if ors.Name == repoRef.Name {
+				nrs.Directories = ors.Directories
+				break
+			}
+		}
+	}
+
 	// cleanup old conditions
 	for _, ors := range gatewayStatus.RepositoryStatus {
 		if ors.Name == repository.Name {

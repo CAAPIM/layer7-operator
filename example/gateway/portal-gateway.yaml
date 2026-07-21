@@ -64,6 +64,16 @@ spec:
           port: 6379
         ssl:
           enabled: false
+    gemfire:
+      enabled: true
+      testOnStart: true
+      locators:
+      - host: cluster1-locator-clusterip
+        port: 10334
+      auth:
+        enabled: false
+      ssl:
+        enabled: false
     bundle: []
     repositoryReferences: []
     externalCerts: []
@@ -238,8 +248,12 @@ spec:
         com.l7tech.server.extension.sharedKeyValueStoreProvider=redis
         com.l7tech.server.extension.sharedCounterProvider=redis
         com.l7tech.server.extension.sharedRateLimiterProvider=redis
-        com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
+        #com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
         com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
+        # Gemfire configuration
+        com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=externalgemfire
+        com.l7tech.external.assertions.keyvaluestore.GW_STORE_ID.maxEntries=10000
+        com.l7tech.external.assertions.gemfireprovider.requireAuth=false
     service:
       annotations:
         projectcontour.io/upstream-protocol.tls: "8443,9443"

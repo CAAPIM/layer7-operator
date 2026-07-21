@@ -2,8 +2,11 @@
 #SHELL := /bin/bash
 
 NAMESPACE ?= default
+ARTIFACTORY_USER ?=
+ARTIFACTORY_TOKEN ?=
+GEMFIRE_REGISTRY := apim-docker-dev-local.usw1.packages.broadcom.com
 
-.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk
+.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk gemfire-operator gemfire-cluster gemfire-configure
 
 wait:
 ifeq ($(OS),Windows_NT)
@@ -62,7 +65,7 @@ portal-example: redis
 	./portal-integration/create-tenant.sh -d ./portal-integration/enroll-payload.json -n ${NAMESPACE}
 
 g2c-agent:
-#sed -e 's/ip:.*/ip: "$(shell kubectl get svc ingress-nginx-controller -n ingress-nginx -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
+	#sed -e 's/ip:.*/ip: "$(shell kubectl get svc ingress-nginx-controller -n ingress-nginx -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
 	kubectl apply -k ./portal-integration/g2c-agent
 	echo "deploy g2cagent"
 
@@ -76,6 +79,31 @@ default-redis:
 	helm upgrade -i standalone -f ./portal-integration/redis/redis-values.yaml oci://registry-1.docker.io/bitnamicharts/redis
 	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis
+
+gemfire-operator: cert-manager
+	kubectl create secret docker-registry image-pull-secret --namespace=${NAMESPACE} \
+	  --docker-server=$(GEMFIRE_REGISTRY) --docker-username='$(ARTIFACTORY_USER)' --docker-password='$(ARTIFACTORY_TOKEN)' \
+	  --dry-run=client -o yaml | kubectl apply -f -
+	helm registry login -u '$(ARTIFACTORY_USER)' --password '$(ARTIFACTORY_TOKEN)' $(GEMFIRE_REGISTRY)
+	helm upgrade -i gemfire-crd oci://$(GEMFIRE_REGISTRY)/gemfire/gemfire-crd --version 2.5.0 \
+	  --namespace ${NAMESPACE} --set operatorReleaseName=gemfire-operator
+	helm upgrade -i gemfire-operator oci://$(GEMFIRE_REGISTRY)/gemfire/gemfire-operator --version 2.5.0 \
+	  --namespace ${NAMESPACE} --set controllerImage=$(GEMFIRE_REGISTRY)/gemfire/gemfire-controller:2.5.0 \
+	  --set imagePullSecretName=image-pull-secret
+	@$(MAKE) --silent t=15 wait
+	kubectl -n ${NAMESPACE} wait --for=condition=available --timeout=600s deployment/gemfire-operator-controller-manager
+
+gemfire-cluster: gemfire-operator
+	kubectl apply -n ${NAMESPACE} -f ./gemfire/cluster1.yaml
+	@$(MAKE) --silent t=30 wait
+	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod --all
+
+# Deploys the Layer7 GemFire function/security jars and creates the regions the Gateway's
+# shared-state client expects. Requires FUNCTIONS_JAR and SECURITY_JAR to be set to local
+# paths for the layer7-gemfire-functions and layer7-gemfire-security jars, e.g.:
+#   make gemfire-configure FUNCTIONS_JAR=/path/to/layer7-gemfire-functions-*.jar SECURITY_JAR=/path/to/layer7-gemfire-security-*.jar
+gemfire-configure: gemfire-cluster
+	NAMESPACE=${NAMESPACE} FUNCTIONS_JAR=$(FUNCTIONS_JAR) SECURITY_JAR=$(SECURITY_JAR) ./gemfire/configure-cluster.sh
 
 grafana-stack:
 	helm repo add grafana https://grafana.github.io/helm-charts
@@ -295,6 +323,10 @@ uninstall:
 	-helm uninstall mysql
 	-helm uninstall cassandra
 	-helm uninstall contour -n projectcontour
+	-kubectl delete -n ${NAMESPACE} -f ./gemfire/cluster1.yaml
+	-helm uninstall gemfire-operator -n ${NAMESPACE}
+	-helm uninstall gemfire-crd -n ${NAMESPACE}
+	-kubectl delete secret image-pull-secret -n ${NAMESPACE}
 
 uninstall-kind:
 	kind delete cluster --name layer7

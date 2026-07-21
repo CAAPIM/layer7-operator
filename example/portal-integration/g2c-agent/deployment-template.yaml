@@ -1,48 +1,1 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: portal-g2c-agent
-  labels:
-    app: portal-g2c-agent
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: portal-g2c-agent
-  template:
-    metadata:
-      labels:
-        app: portal-g2c-agent
-    spec:
-      serviceAccountName: portal-g2c-agent
-      hostAliases:
-      - ip: "10.96.228.133"
-        hostnames:
-        - "dev-portal-enroll.brcmlabs.com"
-        - "dev-portal-broker.brcmlabs.com"
-        - "dev-portal-ssg.brcmlabs.com"
-      containers:
-      - name: portal-g2c-agent
-        image: caapim/portal-g2c-agent:5.3.3
-        imagePullPolicy: Always
-        resources:
-          requests:
-            cpu: 100m
-            memory: 20Mi
-          limits:
-            cpu: 200m
-            memory: 50Mi
-        envFrom:
-        - configMapRef:
-            name: g2c-agent-configmap
-        env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        volumeMounts:
-          - name: tmp-dir
-            mountPath: /tmp/agent
-      volumes:
-      - name: tmp-dir
-        emptyDir: {}
+apiVersion: apps/v1kind: Deploymentmetadata:  name: portal-g2c-agent  labels:    app: portal-g2c-agentspec:  replicas: 1  selector:    matchLabels:      app: portal-g2c-agent  template:    metadata:      labels:        app: portal-g2c-agent    spec:      serviceAccountName: portal-g2c-agent      hostAliases:      - ip: "10.96.228.133"        hostnames:        - "dev-portal-enroll.brcmlabs.com"        - "dev-portal-broker.brcmlabs.com"        - "dev-portal-ssg.brcmlabs.com"      containers:        - name: portal-g2c-agent          image: apim-docker-dev-local.usw1.packages.broadcom.com/apim-portal/portal-g2c-agent:gf-support          imagePullPolicy: Always          resources:            requests:              cpu: 100m              memory: 100Mi            limits:              cpu: 500m              memory: 500Mi          envFrom:            - configMapRef:                name: g2c-agent-configmap          env:            - name: POD_NAMESPACE              valueFrom:                fieldRef:                  fieldPath: metadata.namespace          volumeMounts:            - name: tmp-dir              mountPath: /tmp/agent        - name: gemfire-sidecar          image: apim-docker-dev-local.usw1.packages.broadcom.com/apim-portal/gemfire-sidecar:gf-support          imagePullPolicy: Always          ports:            - containerPort: 8080          resources:            requests:              cpu: 200m              memory: 500Mi          envFrom:            - configMapRef:                name: gemfire-sidecar-configmap      volumes:        - name: tmp-dir          emptyDir: {}

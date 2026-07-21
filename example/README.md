@@ -40,3 +40,23 @@ Other examples
 
 Repositories (used in most of the examples)
 - [Repositories](./repositories/)
+
+GemFire Shared State Example
+- [GemFire](./gemfire/)
+
+To try out the Gateway's GemFire shared-state client, stand up the example GemFire cluster and bootstrap it
+in three steps:
+```
+make gemfire-operator
+make gemfire-cluster
+make gemfire-configure FUNCTIONS_JAR=/path/to/layer7-gemfire-functions-*.jar SECURITY_JAR=/path/to/layer7-gemfire-security-*.jar
+```
+- `gemfire-operator` installs VMware's GemFire operator via Helm.
+- `gemfire-cluster` applies [`./gemfire/cluster1.yaml`](./gemfire/cluster1.yaml), a 2 locator/2 server `GemFireCluster`.
+- `gemfire-configure` runs a one-time `gfsh` bootstrap ([`./gemfire/configure-cluster.sh`](./gemfire/configure-cluster.sh))
+  that deploys the Layer7 function and security jars and creates the regions
+  (`layer7gw_keyvalue`, `layer7gw_session`, `layer7gw_sortedset`, `layer7gw_ratelimiter`, `layer7gw_counter`) the
+  Gateway's GemFire shared-state client expects. `FUNCTIONS_JAR` and `SECURITY_JAR` must point to local paths for
+  the two jars — there is no default, and the script fails with a clear error if either is unset or not found.
+
+Point a Gateway CR's `spec.app.gemfire` config at `cluster1-locator-clusterip:10334` once this is done.

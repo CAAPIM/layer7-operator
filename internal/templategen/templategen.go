@@ -19,9 +19,9 @@ type PortalAPI struct {
 	LocationUrl  string `json:"locationUrl"`   // backend full URL
 	//Version      string `json:"version"`
 	//ApiEulaUuid       string           `json:"apiEulaUuid"`
-	PublishedTs    int    `json:"publishedTs"`
-	CreateTs       int    `json:"createTs"`
-	ModifyTs       int    `json:"modifyTs"`
+	PublishedTs    int      `json:"publishedTs"`
+	CreateTs       int      `json:"createTs"`
+	ModifyTs       int      `json:"modifyTs"`
 	SsgServiceType string   `json:"ssgServiceType"`
 	HttpMethods    []string `json:"httpMethods,omitempty"`
 	//ApplicationUsage  int              `json:"applicationUsage"`

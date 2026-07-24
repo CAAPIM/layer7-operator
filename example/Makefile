@@ -1,9 +1,12 @@
+# Copyright © 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+# AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
+
 # This Makefile drives the quickstart sections of all examples.
 #SHELL := /bin/bash
 
 NAMESPACE ?= default
-ARTIFACTORY_USER ?=
-ARTIFACTORY_TOKEN ?=
+ARTIFACTORY_USER ?= $(or $(ARTIFACTORY_CREDS_USR),$(ARTIFACTORY_USERNAME),$(REG_USER))
+ARTIFACTORY_TOKEN ?= $(or $(ARTIFACTORY_CREDS_PSW),$(ARTIFACTORY_PASSWORD),$(REG_PASSWORD))
 GEMFIRE_REGISTRY := apim-docker-dev-local.usw1.packages.broadcom.com
 
 .PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk gemfire-operator gemfire-cluster gemfire-configure

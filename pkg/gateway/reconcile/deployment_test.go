@@ -77,4 +77,49 @@ func TestNewDeployment(t *testing.T) {
 			t.Errorf("Expected %s, Actual %s", "modified", got.Spec.Template.Spec.ServiceAccountName)
 		}
 	})
+
+	// Guards the full-Spec-replace behaviour in updateDeployment: the pod template
+	// Spec is replaced wholesale with the desired one and patched via MergeFrom, so a
+	// PodLabel removed from the CR must be dropped from the live template (emitted as
+	// an explicit null in the merge patch), not left behind by an additive merge.
+	t.Run("should remove a PodLabel from the pod template on update", func(t *testing.T) {
+		params := newParams()
+		ctx := context.Background()
+
+		// Create with two PodLabels present.
+		params.Instance.Spec.App.PodLabels = map[string]string{"team": "payments", "tier": "backend"}
+		if err := Deployment(ctx, params); err != nil {
+			t.Fatal(err)
+		}
+
+		nns := types.NamespacedName{Namespace: "default", Name: "test"}
+		got := &appsv1.Deployment{}
+		if err := k8sClient.Get(ctx, nns, got); err != nil {
+			t.Fatal(err)
+		}
+		if got.Spec.Template.Labels["team"] != "payments" || got.Spec.Template.Labels["tier"] != "backend" {
+			t.Fatalf("expected both PodLabels on template, got %+v", got.Spec.Template.Labels)
+		}
+
+		// Remove "tier" from the CR and reconcile again.
+		params.Instance.Spec.App.PodLabels = map[string]string{"team": "payments"}
+		if err := Deployment(ctx, params); err != nil {
+			t.Fatal(err)
+		}
+
+		got = &appsv1.Deployment{}
+		if err := k8sClient.Get(ctx, nns, got); err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := got.Spec.Template.Labels["tier"]; ok {
+			t.Errorf("removed PodLabel %q still present on template: %+v", "tier", got.Spec.Template.Labels)
+		}
+		if got.Spec.Template.Labels["team"] != "payments" {
+			t.Errorf("retained PodLabel %q missing: %+v", "team", got.Spec.Template.Labels)
+		}
+		// Default selector label must survive the removal round-trip.
+		if got.Spec.Template.Labels["app.kubernetes.io/name"] != "test" {
+			t.Errorf("default label lost after PodLabel removal: %+v", got.Spec.Template.Labels)
+		}
+	})
 }

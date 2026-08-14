@@ -1107,7 +1107,8 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: gw.Spec.App.PodAnnotations,
-					Labels:      gw.Spec.App.PodLabels,
+					// Labels are set below (dep.Spec.Template.Labels) so default,
+					// App and Pod labels are merged rather than overwritten.
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            serviceAccountName,
@@ -1142,7 +1143,21 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	dep.Spec.Template.Spec.ImagePullSecrets = append(dep.Spec.Template.Spec.ImagePullSecrets, gw.Spec.App.ImagePullSecrets...)
-	dep.Spec.Template.Labels = ls
+
+	// Pod template labels: user PodLabels first, then the operator-managed default
+	// and App labels overlaid on top so the defaults always win. PodLabels must
+	// reach the Pods, but they must not override the default labels
+	// which are also the Deployment selector, so a PodLabel overriding one of those keys
+	// would stop the template matching the selector and the API server would
+	// reject the Deployment.
+	podLabels := map[string]string{}
+	for k, v := range gw.Spec.App.PodLabels {
+		podLabels[k] = v
+	}
+	for k, v := range util.DefaultLabels(gw.Name, gw.Spec.App.Labels) {
+		podLabels[k] = v
+	}
+	dep.Spec.Template.Labels = podLabels
 
 	if !gw.Spec.App.Autoscaling.Enabled {
 		dep.Spec.Replicas = &gw.Spec.App.Replicas

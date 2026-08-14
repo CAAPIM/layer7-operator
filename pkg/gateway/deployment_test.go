@@ -31,6 +31,7 @@ import (
 	"testing"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	"github.com/caapim/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -153,5 +154,56 @@ func TestDeploymentWithPorts(t *testing.T) {
 	}
 	if dep.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort != 9443 {
 		t.Errorf("expected %d, actual %d", 9443, dep.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort)
+	}
+}
+
+func TestDeploymentPodLabels(t *testing.T) {
+	gw := gatewayForDeploymentProbeTest()
+	gw.Spec.App.Labels = map[string]string{"appLabel": "appValue"}
+	// "team"/"tier" are plain PodLabels; the app.kubernetes.io/name entry collides
+	// with a default label and must NOT win (defaults are the selector).
+	gw.Spec.App.PodLabels = map[string]string{
+		"team":                   "payments",
+		"tier":                   "backend",
+		"app.kubernetes.io/name": "somethingelse",
+	}
+
+	dep := NewDeployment(&gw, "kubernetes")
+
+	// Non-conflicting PodLabels must reach the Pod template (previously clobbered by
+	// the ls reassignment).
+	got := dep.Spec.Template.Labels
+	for _, k := range []string{"team", "tier"} {
+		if got[k] != gw.Spec.App.PodLabels[k] {
+			t.Errorf("pod template missing PodLabel %q: want %q, got %q", k, gw.Spec.App.PodLabels[k], got[k])
+		}
+	}
+
+	// Defaults win: a PodLabel must not override an operator default label.
+	if got["app.kubernetes.io/name"] != gw.Name {
+		t.Errorf("default label overridden by PodLabel: want %q, got %q", gw.Name, got["app.kubernetes.io/name"])
+	}
+
+	// App-level labels and the default labels must still be present on the template.
+	if got["appLabel"] != "appValue" {
+		t.Errorf("pod template missing App label appLabel: want %q, got %q", "appValue", got["appLabel"])
+	}
+	for k, v := range util.DefaultLabels(gw.Name, nil) {
+		if got[k] != v {
+			t.Errorf("pod template missing default label %q: want %q, got %q", k, v, got[k])
+		}
+	}
+
+	// The selector must remain the stable default labels only — PodLabels/App labels
+	// must not leak into it or a spec update would be rejected by the API server.
+	selector := dep.Spec.Selector.MatchLabels
+	if !reflect.DeepEqual(selector, util.DefaultLabels(gw.Name, nil)) {
+		t.Errorf("selector must equal default labels, got %+v", selector)
+	}
+	if _, ok := selector["team"]; ok {
+		t.Error("PodLabel leaked into the deployment selector")
+	}
+	if _, ok := selector["appLabel"]; ok {
+		t.Error("App label leaked into the deployment selector")
 	}
 }

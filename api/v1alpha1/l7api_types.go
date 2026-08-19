@@ -1,4 +1,5 @@
-// Copyright (c) 2025 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+// AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
 
 package v1alpha1
 
@@ -74,12 +75,26 @@ type PortalMeta struct {
 	CreateTs                         int              `json:"createTs,omitempty"`
 	ModifyTs                         int              `json:"modifyTs,omitempty"`
 	SsgServiceType                   string           `json:"ssgServiceType,omitempty"`
+	HttpMethods                      []HttpMethod     `json:"httpMethods,omitempty"`
 	PolicyTemplates                  []PolicyTemplate `json:"policyEntities,omitempty"`
 	CustomFields                     []CustomField    `json:"customFieldValues,omitempty"`
 	SecurePasswords                  []SecurePassword `json:"securePasswords,omitempty"`
 	SecurePasswordIdsForUndeployment []string         `json:"securePasswordIdsForUndeployment,omitempty"`
 	Checksum                         string           `json:"checksum,omitempty"`
 }
+
+type HttpMethod string
+
+const (
+	HttpMethodGet     HttpMethod = "GET"
+	HttpMethodPost    HttpMethod = "POST"
+	HttpMethodPut     HttpMethod = "PUT"
+	HttpMethodPatch   HttpMethod = "PATCH"
+	HttpMethodDelete  HttpMethod = "DELETE"
+	HttpMethodHead    HttpMethod = "HEAD"
+	HttpMethodOptions HttpMethod = "OPTIONS"
+	HttpMethodOther   HttpMethod = "OTHER"
+)
 
 type PolicyTemplate struct {
 	Uuid                       string              `json:"policyEntityUuid"`

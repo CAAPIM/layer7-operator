@@ -1,11 +1,51 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+// AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
+
 package templategen
 
 import (
 	b64 "encoding/base64"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 )
+
+// allVerbs is the hardcoded fallback list emitted when HttpMethods is unset for a REST API.
+var allVerbs = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"}
+
+// buildRestman renders the restman template with an explicit isSoapApi value. BuildTemplate
+// hardcodes isSoapApi to "false", so the SOAP branch of the <l7:Verbs> conditional is only
+// reachable this way.
+func buildRestman(portalApi PortalAPI, isSoapApi string) string {
+	fragment := FromApiFragmentTemplate(portalApi)
+	service := FromApiServiceTemplate(portalApi)
+	return FromRestmamTemplate(portalApi, service, fragment, isSoapApi, "")
+}
+
+// assertVerbs checks the rendered output contains exactly the expected verbs and nothing else.
+func assertVerbs(t *testing.T, got string, want []string, context string) {
+	t.Helper()
+
+	if count := strings.Count(got, "<l7:Verb>"); count != len(want) {
+		t.Errorf("%s produced %d <l7:Verb> entries, want %d", context, count, len(want))
+	}
+
+	for _, verb := range want {
+		if !strings.Contains(got, "<l7:Verb>"+verb+"</l7:Verb>") {
+			t.Errorf("%s did not contain <l7:Verb>%s</l7:Verb>", context, verb)
+		}
+	}
+
+	for _, verb := range allVerbs {
+		if slices.Contains(want, verb) {
+			continue
+		}
+		if strings.Contains(got, "<l7:Verb>"+verb+"</l7:Verb>") {
+			t.Errorf("%s unexpectedly contained <l7:Verb>%s</l7:Verb>", context, verb)
+		}
+	}
+}
 
 func TestBuildTemplate(t *testing.T) {
 
@@ -73,6 +113,66 @@ func TestBuildTemplate(t *testing.T) {
 				t.Errorf("BuildTemplate() with HttpMethods=[GET] unexpectedly contained <l7:Verb>%s</l7:Verb>", verb)
 			}
 		}
+	})
+
+	// Backward-compatibility guard: every pre-existing Portal API leaves HttpMethods unset and
+	// must keep getting the full 7-verb list. Without this, a change to the shared <l7:Verbs>
+	// conditional could silently restrict every existing API.
+	t.Run("HttpMethods Unset Falls Back To All Verbs", func(t *testing.T) {
+		assertVerbs(t, BuildTemplate(portalApi), allVerbs, "BuildTemplate() with HttpMethods unset")
+	})
+
+	// An explicitly empty list must behave identically to unset. This matters because Portal
+	// serializes PortalMeta with @JsonInclude(NON_NULL), so an API with no methods selected
+	// ships "httpMethods": [] (not an omitted field) in its L7Api CR. Both paths rely on the
+	// template's len(...) > 0 check, so lock that equivalence in.
+	t.Run("HttpMethods Empty Falls Back To All Verbs", func(t *testing.T) {
+		emptyApi := portalApi
+		emptyApi.HttpMethods = []string{}
+
+		assertVerbs(t, BuildTemplate(emptyApi), allVerbs, "BuildTemplate() with HttpMethods=[]")
+	})
+
+	t.Run("HttpMethods Multiple Verbs", func(t *testing.T) {
+		restrictedApi := portalApi
+		restrictedApi.HttpMethods = []string{"GET", "POST"}
+
+		assertVerbs(t, BuildTemplate(restrictedApi), []string{"GET", "POST"},
+			"BuildTemplate() with HttpMethods=[GET,POST]")
+	})
+
+	// OTHER is a Gateway-native value in Graphman's HttpMethod enum and is deliberately not
+	// filtered out before emission, so it must survive into the bundle verbatim.
+	t.Run("HttpMethods Passes Through OTHER", func(t *testing.T) {
+		otherApi := portalApi
+		otherApi.HttpMethods = []string{"OTHER"}
+
+		got := BuildTemplate(otherApi)
+
+		if count := strings.Count(got, "<l7:Verb>"); count != 1 {
+			t.Errorf("BuildTemplate() with HttpMethods=[OTHER] produced %d <l7:Verb> entries, want 1", count)
+		}
+
+		if !strings.Contains(got, "<l7:Verb>OTHER</l7:Verb>") {
+			t.Errorf("BuildTemplate() with HttpMethods=[OTHER] did not contain <l7:Verb>OTHER</l7:Verb>")
+		}
+	})
+
+	// The SOAP branch is currently unreachable in production (BuildTemplate hardcodes
+	// isSoapApi to "false"), but the <l7:Verbs> conditional still routes through it, so pin
+	// its behaviour to catch an accidental regression of the shared conditional.
+	t.Run("Soap Unset Falls Back To Get And Post", func(t *testing.T) {
+		assertVerbs(t, buildRestman(portalApi, "true"), []string{"GET", "POST"},
+			"FromRestmamTemplate() with isSoapApi=true and HttpMethods unset")
+	})
+
+	// Branch ordering is intentional: HttpMethods takes priority over the SOAP fallback.
+	t.Run("HttpMethods Overrides Soap Fallback", func(t *testing.T) {
+		restrictedApi := portalApi
+		restrictedApi.HttpMethods = []string{"GET"}
+
+		assertVerbs(t, buildRestman(restrictedApi, "true"), []string{"GET"},
+			"FromRestmamTemplate() with isSoapApi=true and HttpMethods=[GET]")
 	})
 }
 

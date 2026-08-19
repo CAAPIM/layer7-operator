@@ -10,6 +10,8 @@ portal:
   domain: brcmlabs.com
   analytics:
     enabled: false
+  seaweedFs:
+    enabled: false
   internalSSG:
     secretName: ssg-secret
   papi:
@@ -30,17 +32,17 @@ ingress:
     - portal
 
 image:
-  dispatcher: dispatcher:5.3.3
-  apim: ingress:5.3.3
-  enterprise: portal-enterprise:5.3.3
-  data: portal-data:5.3.3
-  tps: tenant-provisioning-service:5.3.3
-  analytics: analytics-server:5.3.3
-  authenticator: authenticator:5.3.3
-  dbUpgrade: db-upgrade-portal:5.3.3
-  rbacUpgrade: db-upgrade-rbac:5.3.3
-  upgradeVerify: upgrade-verify:5.3.3
-  tlsManager: tls-automator:5.3.3
+  dispatcher: dispatcher:5.4.2.2
+  apim: ingress:5.4.2.2
+  enterprise: portal-enterprise:5.4.2.2
+  data: portal-data:5.4.2.2
+  tps: tenant-provisioning-service:5.4.2.2
+  analytics: analytics-server:5.4.2.2
+  authenticator: authenticator:5.4.2.2
+  dbUpgrade: db-upgrade-portal:5.4.2.1
+  rbacUpgrade: db-upgrade-rbac:5.4.2
+  upgradeVerify: upgrade-verify:5.4.2
+  tlsManager: tls-automator:5.4.2
 
 rabbitmq:
   enabled: true
@@ -49,7 +51,7 @@ rabbitmq:
   image:
     registry: caapim
     repository: message-broker
-    tag: "5.3.3"
+    tag: "5.4.2"
     pullSecrets:
       - broadcom-apim
   pdb:
@@ -109,54 +111,11 @@ rabbitmq:
 
 mysql:
   image:
-    registry: docker.io
-    repository: bitnamilegacy/mysql
-    tag: "8.0.36-debian-11-r4"
-  auth:
-    username: portal
-    existingSecret: database-secret
+    repository: docker.io/mysql
+    tag: "8.4.4"
   initdbScripts:
     elevate-admin.sql: |
       GRANT ALL PRIVILEGES ON *.* TO 'portal'@'%'; FLUSH PRIVILEGES;
-  primary:
-    configuration: |-
-      [client]
-      port=3306
-      socket=/opt/bitnami/mysql/tmp/mysql.sock
-      default-character-set=utf8mb4
-      plugin_dir=/opt/bitnami/mysql/plugin
-      [mysqld]
-      default_authentication_plugin=mysql_native_password
-      skip-name-resolve
-      explicit_defaults_for_timestamp
-      basedir=/opt/bitnami/mysql
-      plugin_dir=/opt/bitnami/mysql/plugin
-      port=3306
-      socket=/opt/bitnami/mysql/tmp/mysql.sock
-      datadir=/bitnami/mysql/data
-      tmpdir=/opt/bitnami/mysql/tmp
-      collation-server=utf8mb4_0900_ai_ci
-      character-set-server=utf8mb4
-      innodb_log_buffer_size=32M
-      innodb_log_file_size=80M
-      max_allowed_packet=8M
-      group_concat_max_len=512000
-      sql_mode = "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
-      bind-address=0.0.0.0
-      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
-      log-error=/opt/bitnami/mysql/logs/mysqld.log
-      [manager]
-      port=3306
-      socket=/opt/bitnami/mysql/tmp/mysql.sock
-      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
-    pdb:
-      create: false
-      maxUnavailable: ""
-      minAvailable: ""
-    persistence:
-      annotations:
-        helm.sh/hook: pre-install
-        helm.sh/hook-weight: "-10"
   commonAnnotations:
     helm.sh/hook: pre-install
     helm.sh/hook-weight: "-10"

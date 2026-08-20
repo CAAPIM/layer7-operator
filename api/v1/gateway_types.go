@@ -454,7 +454,8 @@ type RedisConfigurations struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// ExistingSecret mounts an existing secret containing redis configuration
 	// to the container gateway.
-	// The secret should contain a key called redis.properties and redis.crt if tls is enabled
+	// The secret should contain a key called sharedstate_client.yaml. If gemfire is
+	// also enabled, this must reference the same secret as gemfire.existingSecret.
 	ExistingSecret string `json:"existingSecret,omitempty"`
 	// CertSecrets provides a way to mount secrets that contains certificates for ssl/tls redis connections when using an existing secret.
 	CertSecrets       []RedisCerts         `json:"certs,omitempty"`
@@ -532,7 +533,8 @@ type GemfireConfigurations struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// ExistingSecret mounts an existing secret containing gemfire configuration
 	// to the container gateway.
-	// The secret should contain a key called gemfire.properties
+	// The secret should contain a key called sharedstate_client.yaml. If redis is
+	// also enabled, this must reference the same secret as redis.existingSecret.
 	ExistingSecret string `json:"existingSecret,omitempty"`
 	// CertSecrets provides a way to mount secrets that contain the keystore/truststore
 	// files for ssl/tls gemfire connections when using an existing secret.
@@ -581,7 +583,8 @@ type GemfireAuth struct {
 type GemfireStore struct {
 	// ExistingSecretName references an existing secret containing the keystore/truststore file
 	ExistingSecretName string `json:"existingSecretName,omitempty"`
-	// ExistingSecretKey is the key in the secret containing the keystore/truststore file
+	// ExistingSecretKey is the key in the secret containing the keystore/truststore file.
+	// Defaults to keystore.jks or truststore.jks depending on which store this is.
 	ExistingSecretKey string `json:"existingSecretKey,omitempty"`
 	// PasswordEncoded for the keystore/truststore
 	PasswordEncoded string `json:"passwordEncoded,omitempty"`

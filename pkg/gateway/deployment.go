@@ -224,11 +224,13 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		})
 	}
 
+	// Redis and Gemfire share a single sharedstate_client.yaml secret. Validation (webhook and
+	// NewSecret) guarantees existingSecret is either empty on both or identical on both, so
+	// either one can be consulted here.
 	sharedStateSecretName := gw.Name + "-shared-state-config"
 	if gw.Spec.App.Redis.Enabled && gw.Spec.App.Redis.ExistingSecret != "" {
 		sharedStateSecretName = gw.Spec.App.Redis.ExistingSecret
-	}
-	if gw.Spec.App.Gemfire.Enabled && gw.Spec.App.Gemfire.ExistingSecret != "" {
+	} else if gw.Spec.App.Gemfire.Enabled && gw.Spec.App.Gemfire.ExistingSecret != "" {
 		sharedStateSecretName = gw.Spec.App.Gemfire.ExistingSecret
 	}
 
@@ -350,6 +352,10 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		if gw.Spec.App.Gemfire.ExistingSecret == "" {
 			if gw.Spec.App.Gemfire.Ssl.Enabled {
 				if gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretName != "" {
+					keystoreKey := gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretKey
+					if keystoreKey == "" {
+						keystoreKey = "keystore.jks"
+					}
 					volumes = append(volumes, corev1.Volume{
 						Name: "gemfire-keystore",
 						VolumeSource: corev1.VolumeSource{
@@ -357,7 +363,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 								SecretName: gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretName,
 								Optional:   &optional,
 								Items: []corev1.KeyToPath{{
-									Key:  gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretKey,
+									Key:  keystoreKey,
 									Path: "keystore.jks",
 								}},
 							},
@@ -371,6 +377,10 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 				}
 
 				if gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretName != "" {
+					truststoreKey := gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretKey
+					if truststoreKey == "" {
+						truststoreKey = "truststore.jks"
+					}
 					volumes = append(volumes, corev1.Volume{
 						Name: "gemfire-truststore",
 						VolumeSource: corev1.VolumeSource{
@@ -378,7 +388,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 								SecretName: gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretName,
 								Optional:   &optional,
 								Items: []corev1.KeyToPath{{
-									Key:  gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretKey,
+									Key:  truststoreKey,
 									Path: "truststore.jks",
 								}},
 							},

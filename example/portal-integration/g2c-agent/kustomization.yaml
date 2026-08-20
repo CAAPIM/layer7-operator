@@ -10,5 +10,3 @@ generatorOptions:
 configMapGenerator:
   - name: g2c-agent-configmap
     env: ./agent.env
-  - name: gemfire-sidecar-configmap
-    env: ./gemfire.env

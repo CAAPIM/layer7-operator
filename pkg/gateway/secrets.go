@@ -39,6 +39,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// gemfireProvidersDir must match the keystore/truststore volume mount paths in
+// pkg/gateway/deployment.go.
+const gemfireProvidersDir = "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/"
+
 // NewSecret
 func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 
@@ -83,6 +87,11 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 		}
 
 	case gw.Name + "-shared-state-config":
+		if gw.Spec.App.Redis.Enabled && gw.Spec.App.Gemfire.Enabled &&
+			gw.Spec.App.Redis.ExistingSecret != gw.Spec.App.Gemfire.ExistingSecret {
+			return nil, fmt.Errorf("redis and gemfire share a single sharedstate_client.yaml secret; existingSecret must be left empty on both (operator-managed) or set to the same secret name on both")
+		}
+
 		redisGroupName := "l7GW"
 		sentinelMasterSet := "mymaster"
 		commandTimeout := 5000
@@ -301,13 +310,27 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 			}
 
 			if gw.Spec.App.Gemfire.Ssl.Enabled {
+				if gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretName == "" && gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretName == "" {
+					return nil, fmt.Errorf("gemfire ssl is enabled but neither keystore.existingSecretName nor truststore.existingSecretName is set")
+				}
+
 				gemfireConfig.Ssl = util.GemfireSsl{
 					Enabled:           true,
 					EnabledComponents: gw.Spec.App.Gemfire.Ssl.EnabledComponents,
-					Keystore:          "keystore.jks",
 					KeystoreType:      gw.Spec.App.Gemfire.Ssl.KeystoreType,
-					Truststore:        "truststore.jks",
 					TruststoreType:    gw.Spec.App.Gemfire.Ssl.TruststoreType,
+				}
+
+				// Apache Geode's FileWatchingX509ExtendedKeyManager opens this path with a
+				// plain FileInputStream resolved against the JVM's working directory, not
+				// the bootstrap/providers directory the file is mounted into - so a bare
+				// filename here fails with FileNotFoundException at gateway startup. The
+				// full path must match the volume mount path in deployment.go.
+				if gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretName != "" {
+					gemfireConfig.Ssl.Keystore = gemfireProvidersDir + "keystore.jks"
+				}
+				if gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretName != "" {
+					gemfireConfig.Ssl.Truststore = gemfireProvidersDir + "truststore.jks"
 				}
 
 				if gw.Spec.App.Gemfire.Ssl.Keystore.PasswordEncoded != "" && gw.Spec.App.Gemfire.Ssl.Keystore.PasswordPlainText != "" {
@@ -339,12 +362,21 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 			}
 
 			ssc := string(sharedStateClientBytes)
-			re1 := regexp.MustCompile(`(?m)(password:)\s(.*)`)
-			re2 := regexp.MustCompile(`(?m)(encodedPassword:)\s(.*)`)
-			sub1 := "password: \"$2\""
-			sub2 := "encodedPassword: \"$2\""
-			ssc = re1.ReplaceAllString(ssc, sub1)
-			ssc = re2.ReplaceAllString(ssc, sub2)
+			// Quote every *password/*Password value (password, encodedPassword,
+			// keystorePassword, truststorePassword, ...) so values containing
+			// YAML-significant characters (":", "#", leading/trailing whitespace, etc.)
+			// don't corrupt the document. The yaml encoder already quotes values it
+			// considers ambiguous, so skip lines that are already quoted to avoid
+			// double-quoting (which would bake literal quote characters into the value).
+			rePassword := regexp.MustCompile(`(?m)^(\s*\w*[Pp]assword:)\s(.*)$`)
+			ssc = rePassword.ReplaceAllStringFunc(ssc, func(line string) string {
+				m := rePassword.FindStringSubmatch(line)
+				prefix, value := m[1], m[2]
+				if len(value) >= 2 && (value[0] == '\'' || value[0] == '"') {
+					return line
+				}
+				return prefix + ` "` + value + `"`
+			})
 			data["sharedstate_client.yaml"] = []byte(ssc)
 		}
 	}

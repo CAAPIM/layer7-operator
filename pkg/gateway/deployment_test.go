@@ -155,3 +155,233 @@ func TestDeploymentWithPorts(t *testing.T) {
 		t.Errorf("expected %d, actual %d", 9443, dep.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort)
 	}
 }
+
+func hasVolume(volumes []corev1.Volume, name string) bool {
+	for _, v := range volumes {
+		if v.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func hasVolumeMount(mounts []corev1.VolumeMount, name string) bool {
+	for _, m := range mounts {
+		if m.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func countVolumeOccurrences(volumes []corev1.Volume, name string) int {
+	count := 0
+	for _, v := range volumes {
+		if v.Name == name {
+			count++
+		}
+	}
+	return count
+}
+
+func gemfireDeploymentGateway() securityv1.Gateway {
+	gw := gatewayForDeploymentProbeTest()
+	gw.Spec.App.Gemfire = securityv1.GemfireConfigurations{
+		Enabled: true,
+		Locators: []securityv1.GemfireLocator{
+			{Host: "locator-0", Port: 10334},
+		},
+	}
+	return gw
+}
+
+func TestDeploymentGemfireVolumes(t *testing.T) {
+	t.Run("operator-managed secret, ssl disabled: no keystore/truststore volumes, one shared-state volume", func(t *testing.T) {
+		gw := gemfireDeploymentGateway()
+		dep := NewDeployment(&gw, "kubernetes")
+		volumes := dep.Spec.Template.Spec.Volumes
+		mounts := dep.Spec.Template.Spec.Containers[0].VolumeMounts
+
+		if hasVolume(volumes, "gemfire-keystore") || hasVolume(volumes, "gemfire-truststore") {
+			t.Errorf("did not expect keystore/truststore volumes when ssl is disabled, got: %+v", volumes)
+		}
+		if countVolumeOccurrences(volumes, "sharedstate-client-config") != 1 {
+			t.Errorf("expected exactly one sharedstate-client-config volume, got %d: %+v", countVolumeOccurrences(volumes, "sharedstate-client-config"), volumes)
+		}
+		if !hasVolumeMount(mounts, "sharedstate-client-config") {
+			t.Errorf("expected a sharedstate-client-config volume mount, got: %+v", mounts)
+		}
+
+		var sscVolume *corev1.Volume
+		for i := range volumes {
+			if volumes[i].Name == "sharedstate-client-config" {
+				sscVolume = &volumes[i]
+			}
+		}
+		if sscVolume == nil || sscVolume.Secret == nil || sscVolume.Secret.SecretName != gw.Name+"-shared-state-config" {
+			t.Errorf("expected sharedstate-client-config volume to reference %s-shared-state-config, got: %+v", gw.Name, sscVolume)
+		}
+	})
+
+	t.Run("operator-managed secret, ssl enabled with both stores: mounts both with default key names", func(t *testing.T) {
+		gw := gemfireDeploymentGateway()
+		gw.Spec.App.Gemfire.Ssl = securityv1.GemfireSsl{
+			Enabled: true,
+			Keystore: securityv1.GemfireStore{
+				ExistingSecretName: "gemfire-keystore-secret",
+			},
+			Truststore: securityv1.GemfireStore{
+				ExistingSecretName: "gemfire-truststore-secret",
+			},
+		}
+		dep := NewDeployment(&gw, "kubernetes")
+		volumes := dep.Spec.Template.Spec.Volumes
+		mounts := dep.Spec.Template.Spec.Containers[0].VolumeMounts
+
+		if !hasVolume(volumes, "gemfire-keystore") || !hasVolume(volumes, "gemfire-truststore") {
+			t.Fatalf("expected both gemfire-keystore and gemfire-truststore volumes, got: %+v", volumes)
+		}
+		if !hasVolumeMount(mounts, "gemfire-keystore") || !hasVolumeMount(mounts, "gemfire-truststore") {
+			t.Fatalf("expected both gemfire-keystore and gemfire-truststore mounts, got: %+v", mounts)
+		}
+
+		for _, v := range volumes {
+			switch v.Name {
+			case "gemfire-keystore":
+				if v.Secret.Items[0].Key != "keystore.jks" {
+					t.Errorf("expected default keystore key 'keystore.jks', got %q", v.Secret.Items[0].Key)
+				}
+			case "gemfire-truststore":
+				if v.Secret.Items[0].Key != "truststore.jks" {
+					t.Errorf("expected default truststore key 'truststore.jks', got %q", v.Secret.Items[0].Key)
+				}
+			}
+		}
+	})
+
+	t.Run("operator-managed secret, ssl enabled with keystore only: no truststore volume", func(t *testing.T) {
+		gw := gemfireDeploymentGateway()
+		gw.Spec.App.Gemfire.Ssl = securityv1.GemfireSsl{
+			Enabled: true,
+			Keystore: securityv1.GemfireStore{
+				ExistingSecretName: "gemfire-keystore-secret",
+				ExistingSecretKey:  "custom-keystore-key",
+			},
+		}
+		dep := NewDeployment(&gw, "kubernetes")
+		volumes := dep.Spec.Template.Spec.Volumes
+
+		if !hasVolume(volumes, "gemfire-keystore") {
+			t.Fatalf("expected gemfire-keystore volume, got: %+v", volumes)
+		}
+		if hasVolume(volumes, "gemfire-truststore") {
+			t.Errorf("did not expect gemfire-truststore volume, got: %+v", volumes)
+		}
+		for _, v := range volumes {
+			if v.Name == "gemfire-keystore" && v.Secret.Items[0].Key != "custom-keystore-key" {
+				t.Errorf("expected custom keystore key to be respected, got %q", v.Secret.Items[0].Key)
+			}
+		}
+	})
+
+	t.Run("existing full secret: only enabled cert secrets get volumes", func(t *testing.T) {
+		gw := gemfireDeploymentGateway()
+		gw.Spec.App.Gemfire.ExistingSecret = "customer-managed-secret"
+		gw.Spec.App.Gemfire.CertSecrets = []securityv1.GemfireCerts{
+			{Enabled: false, SecretName: "skip-me", Key: "skip.jks"},
+			{Enabled: true, SecretName: "gemfire-extra-secret", Key: "extra.jks"},
+		}
+		dep := NewDeployment(&gw, "kubernetes")
+		volumes := dep.Spec.Template.Spec.Volumes
+		mounts := dep.Spec.Template.Spec.Containers[0].VolumeMounts
+
+		if hasVolume(volumes, "gemfire-ssl-0") {
+			t.Errorf("did not expect a volume for a disabled cert secret, got: %+v", volumes)
+		}
+		if !hasVolume(volumes, "gemfire-ssl-1") {
+			t.Errorf("expected a volume for the enabled cert secret at index 1, got: %+v", volumes)
+		}
+		if !hasVolumeMount(mounts, "gemfire-ssl-1") {
+			t.Errorf("expected a volume mount for the enabled cert secret at index 1, got: %+v", mounts)
+		}
+		// The existing secret must itself contain a sharedstate_client.yaml key (per the
+		// ExistingSecret field docs), so the sharedstate-client-config volume is still
+		// mounted, just pointed at the customer-supplied secret instead of the
+		// operator-managed one. CertSecrets only adds the extra keystore/truststore mounts.
+		var sscVolume *corev1.Volume
+		for i := range volumes {
+			if volumes[i].Name == "sharedstate-client-config" {
+				sscVolume = &volumes[i]
+			}
+		}
+		if sscVolume == nil {
+			t.Fatalf("expected a sharedstate-client-config volume pointing at the existing secret, got: %+v", volumes)
+		}
+		if sscVolume.Secret.SecretName != "customer-managed-secret" {
+			t.Errorf("expected sharedstate-client-config volume to reference the existing secret, got %q", sscVolume.Secret.SecretName)
+		}
+	})
+
+	t.Run("gemfire and redis both enabled: shared-state volume is not duplicated", func(t *testing.T) {
+		gw := gemfireDeploymentGateway()
+		gw.Spec.App.Redis = securityv1.RedisConfigurations{
+			Enabled: true,
+			Default: securityv1.RedisConfiguration{
+				Type: securityv1.RedisTypeStandalone,
+				Standalone: securityv1.RedisNode{
+					Host: "redis-standalone",
+					Port: 6379,
+				},
+			},
+		}
+		dep := NewDeployment(&gw, "kubernetes")
+		volumes := dep.Spec.Template.Spec.Volumes
+
+		if count := countVolumeOccurrences(volumes, "sharedstate-client-config"); count != 1 {
+			t.Errorf("expected exactly one sharedstate-client-config volume when both redis and gemfire are enabled, got %d: %+v", count, volumes)
+		}
+	})
+
+	t.Run("existingSecret precedence: redis existingSecret wins when both set", func(t *testing.T) {
+		gw := gemfireDeploymentGateway()
+		gw.Spec.App.Redis = securityv1.RedisConfigurations{
+			Enabled:        true,
+			ExistingSecret: "shared-secret",
+			Default: securityv1.RedisConfiguration{
+				Type:       securityv1.RedisTypeStandalone,
+				Standalone: securityv1.RedisNode{Host: "redis-standalone", Port: 6379},
+			},
+		}
+		gw.Spec.App.Gemfire.ExistingSecret = "shared-secret"
+		dep := NewDeployment(&gw, "kubernetes")
+		volumes := dep.Spec.Template.Spec.Volumes
+
+		var sscVolume *corev1.Volume
+		for i := range volumes {
+			if volumes[i].Name == "sharedstate-client-config" {
+				sscVolume = &volumes[i]
+			}
+		}
+		if sscVolume == nil {
+			t.Fatalf("expected a sharedstate-client-config volume, got: %+v", volumes)
+		}
+		if sscVolume.Secret.SecretName != "shared-secret" {
+			t.Errorf("expected secret name 'shared-secret', got %q", sscVolume.Secret.SecretName)
+		}
+	})
+
+	t.Run("only gemfire existingSecret set: it is used for the shared volume name", func(t *testing.T) {
+		gw := gemfireDeploymentGateway()
+		gw.Spec.App.Gemfire.ExistingSecret = "gemfire-only-secret"
+		gw.Spec.App.Gemfire.CertSecrets = []securityv1.GemfireCerts{
+			{Enabled: true, SecretName: "extra", Key: "extra.jks"},
+		}
+		dep := NewDeployment(&gw, "kubernetes")
+
+		for _, v := range dep.Spec.Template.Spec.Volumes {
+			if v.Name == "gemfire-ssl-0" && v.Secret.SecretName != "extra" {
+				t.Errorf("expected cert secret volume to reference 'extra', got %q", v.Secret.SecretName)
+			}
+		}
+	})
+}

@@ -13,7 +13,7 @@ GEMFIRE_REGISTRY := registry.packages.broadcom.com
 GEMFIRE_CHART_REPO ?= tanzu-gemfire-for-kubernetes
 GEMFIRE_CONTROLLER_IMAGE_REPO ?= tanzu-gemfire-for-kubernetes/gemfire-controller
 GEMFIRE_CHART_VERSION ?= 2.5.0
-GEMFIRE_CLUSTER_IMAGE ?= $(GEMFIRE_REGISTRY)/pivotal-gemfire/vmware-gemfire:10.1.0
+GEMFIRE_CLUSTER_IMAGE ?= $(GEMFIRE_REGISTRY)/pivotal-gemfire/vmware-gemfire:10.2.1-jdk21
 
 REGISTRY_USER := $(or $(ARTIFACTORY_CREDS_USR),$(ARTIFACTORY_USERNAME),$(REG_USER))
 REGISTRY_TOKEN := $(or $(ARTIFACTORY_CREDS_PSW),$(ARTIFACTORY_PASSWORD),$(REG_PASSWORD))
@@ -22,7 +22,7 @@ define require_var
 $(if $($(1)),,$(error $(1) is not set - GemFire registry access requires a Broadcom Support Portal registry token or an internal Artifactory mirror; see the GemFire section of README.md for both configs))
 endef
 
-.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk gemfire-operator gemfire-cluster gemfire-configure check-gemfire-vars
+.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk gemfire-operator gemfire-cluster gemfire-configure gemfire-clean check-gemfire-vars
 
 wait:
 ifeq ($(OS),Windows_NT)
@@ -111,13 +111,15 @@ gemfire-operator: check-gemfire-vars cert-manager
 	helm upgrade -i gemfire-operator oci://$(GEMFIRE_REGISTRY)/$(GEMFIRE_CHART_REPO)/gemfire-operator --version $(GEMFIRE_CHART_VERSION) \
 	  --namespace ${NAMESPACE} --set controllerImage=$(GEMFIRE_REGISTRY)/$(GEMFIRE_CONTROLLER_IMAGE_REPO):$(GEMFIRE_CHART_VERSION) \
 	  --set imagePullSecretName=image-pull-secret
-	@$(MAKE) --silent t=15 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=available --timeout=600s deployment/gemfire-operator-controller-manager
 
 gemfire-cluster: gemfire-operator
-	sed -e 's#__GEMFIRE_CLUSTER_IMAGE__#$(GEMFIRE_CLUSTER_IMAGE)#' ./gemfire/cluster1.yaml | kubectl apply -n ${NAMESPACE} -f -
-	@$(MAKE) --silent t=30 wait
-	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod --all
+	kubectl -n ${NAMESPACE} wait --for=jsonpath='{.subsets[0].addresses}' --timeout=600s endpoints/gemfire-operator-webhook-service
+	sed -e 's#__GEMFIRE_CLUSTER_IMAGE__#$(GEMFIRE_CLUSTER_IMAGE)#' ./gemfire/cluster1.yaml > /tmp/cluster1.rendered.yaml
+	kubectl apply -n ${NAMESPACE} -f /tmp/cluster1.rendered.yaml
+	kubectl -n ${NAMESPACE} wait --for=create --timeout=600s statefulset/cluster1-server
+	kubectl -n ${NAMESPACE} rollout status statefulset/cluster1-locator --timeout=600s
+	kubectl -n ${NAMESPACE} rollout status statefulset/cluster1-server --timeout=600s
 
 # Deploys the Layer7 GemFire function/security jars and creates the regions the Gateway's
 # shared-state client expects. Requires FUNCTIONS_JAR and SECURITY_JAR to be set to local
@@ -125,6 +127,15 @@ gemfire-cluster: gemfire-operator
 #   make gemfire-configure FUNCTIONS_JAR=/path/to/layer7-gemfire-functions-*.jar SECURITY_JAR=/path/to/layer7-gemfire-security-*.jar
 gemfire-configure: gemfire-cluster
 	NAMESPACE=${NAMESPACE} FUNCTIONS_JAR=$(FUNCTIONS_JAR) SECURITY_JAR=$(SECURITY_JAR) ./gemfire/configure-cluster.sh
+
+# Removes only the GemFire pieces (cluster, operator, CRD chart, image-pull-secret) so
+# gemfire-operator/gemfire-cluster/gemfire-configure can be re-run from a clean slate
+# without touching anything else in ${NAMESPACE}.
+gemfire-clean:
+	-kubectl delete -n ${NAMESPACE} -f ./gemfire/cluster1.yaml --ignore-not-found
+	-helm uninstall gemfire-operator -n ${NAMESPACE}
+	-helm uninstall gemfire-crd -n ${NAMESPACE}
+	-kubectl delete secret image-pull-secret -n ${NAMESPACE} --ignore-not-found
 
 grafana-stack:
 	helm repo add grafana https://grafana.github.io/helm-charts

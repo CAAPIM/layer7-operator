@@ -3,7 +3,7 @@ kind: GemFireCluster
 metadata:
   name: cluster1
 spec:
-  image: apim-docker-dev-local.usw1.packages.broadcom.com/gemfire/gemfire:10.1.3-jdk21
+  image: __GEMFIRE_CLUSTER_IMAGE__
   security:
     tls: {}
   locators:

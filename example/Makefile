@@ -5,11 +5,24 @@
 #SHELL := /bin/bash
 
 NAMESPACE ?= default
-ARTIFACTORY_USER ?= $(or $(ARTIFACTORY_CREDS_USR),$(ARTIFACTORY_USERNAME),$(REG_USER))
-ARTIFACTORY_TOKEN ?= $(or $(ARTIFACTORY_CREDS_PSW),$(ARTIFACTORY_PASSWORD),$(REG_PASSWORD))
-GEMFIRE_REGISTRY := apim-docker-dev-local.usw1.packages.broadcom.com
 
-.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk gemfire-operator gemfire-cluster gemfire-configure
+# GemFire is licensed Broadcom/VMware software - Set GEMFIRE_REGISTRY (and credentials) for Broadcom's Support
+# Portal registry (registry.packages.broadcom.com) gemfire-operator/gemfire-cluster fail fast via
+# check-gemfire-vars if a required var is unset.
+GEMFIRE_REGISTRY := registry.packages.broadcom.com
+GEMFIRE_CHART_REPO ?= tanzu-gemfire-for-kubernetes
+GEMFIRE_CONTROLLER_IMAGE_REPO ?= tanzu-gemfire-for-kubernetes/gemfire-controller
+GEMFIRE_CHART_VERSION ?= 2.5.0
+GEMFIRE_CLUSTER_IMAGE ?= $(GEMFIRE_REGISTRY)/pivotal-gemfire/vmware-gemfire:10.1.0
+
+REGISTRY_USER := $(or $(ARTIFACTORY_CREDS_USR),$(ARTIFACTORY_USERNAME),$(REG_USER))
+REGISTRY_TOKEN := $(or $(ARTIFACTORY_CREDS_PSW),$(ARTIFACTORY_PASSWORD),$(REG_PASSWORD))
+
+define require_var
+$(if $($(1)),,$(error $(1) is not set - GemFire registry access requires a Broadcom Support Portal registry token or an internal Artifactory mirror; see the GemFire section of README.md for both configs))
+endef
+
+.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk gemfire-operator gemfire-cluster gemfire-configure check-gemfire-vars
 
 wait:
 ifeq ($(OS),Windows_NT)
@@ -83,21 +96,26 @@ default-redis:
 	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis
 
-gemfire-operator: cert-manager
+check-gemfire-vars:
+	@:$(call require_var,GEMFIRE_REGISTRY)
+	@:$(call require_var,REGISTRY_USER)
+	@:$(call require_var,REGISTRY_TOKEN)
+
+gemfire-operator: check-gemfire-vars cert-manager
 	kubectl create secret docker-registry image-pull-secret --namespace=${NAMESPACE} \
-	  --docker-server=$(GEMFIRE_REGISTRY) --docker-username='$(ARTIFACTORY_USER)' --docker-password='$(ARTIFACTORY_TOKEN)' \
+	  --docker-server=$(GEMFIRE_REGISTRY) --docker-username='$(REGISTRY_USER)' --docker-password='$(REGISTRY_TOKEN)' \
 	  --dry-run=client -o yaml | kubectl apply -f -
-	helm registry login -u '$(ARTIFACTORY_USER)' --password '$(ARTIFACTORY_TOKEN)' $(GEMFIRE_REGISTRY)
-	helm upgrade -i gemfire-crd oci://$(GEMFIRE_REGISTRY)/gemfire/gemfire-crd --version 2.5.0 \
+	helm registry login -u '$(REGISTRY_USER)' --password '$(REGISTRY_TOKEN)' $(GEMFIRE_REGISTRY)
+	helm upgrade -i gemfire-crd oci://$(GEMFIRE_REGISTRY)/$(GEMFIRE_CHART_REPO)/gemfire-crd --version $(GEMFIRE_CHART_VERSION) \
 	  --namespace ${NAMESPACE} --set operatorReleaseName=gemfire-operator
-	helm upgrade -i gemfire-operator oci://$(GEMFIRE_REGISTRY)/gemfire/gemfire-operator --version 2.5.0 \
-	  --namespace ${NAMESPACE} --set controllerImage=$(GEMFIRE_REGISTRY)/gemfire/gemfire-controller:2.5.0 \
+	helm upgrade -i gemfire-operator oci://$(GEMFIRE_REGISTRY)/$(GEMFIRE_CHART_REPO)/gemfire-operator --version $(GEMFIRE_CHART_VERSION) \
+	  --namespace ${NAMESPACE} --set controllerImage=$(GEMFIRE_REGISTRY)/$(GEMFIRE_CONTROLLER_IMAGE_REPO):$(GEMFIRE_CHART_VERSION) \
 	  --set imagePullSecretName=image-pull-secret
 	@$(MAKE) --silent t=15 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=available --timeout=600s deployment/gemfire-operator-controller-manager
 
 gemfire-cluster: gemfire-operator
-	kubectl apply -n ${NAMESPACE} -f ./gemfire/cluster1.yaml
+	sed -e 's#__GEMFIRE_CLUSTER_IMAGE__#$(GEMFIRE_CLUSTER_IMAGE)#' ./gemfire/cluster1.yaml | kubectl apply -n ${NAMESPACE} -f -
 	@$(MAKE) --silent t=30 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod --all
 

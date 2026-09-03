@@ -44,8 +44,27 @@ Repositories (used in most of the examples)
 GemFire Shared State Example
 - [GemFire](./gemfire/)
 
-To try out the Gateway's GemFire shared-state client, stand up the example GemFire cluster and bootstrap it
-in three steps:
+GemFire is licensed Broadcom/VMware software — there is no public registry for it. You need
+access to Broadcom's Support Portal registry and must
+tell the Makefile which one to use: `GEMFIRE_REGISTRY`, `REGISTRY_USER`, and `REGISTRY_TOKEN` have
+no defaults, and `make gemfire-operator`/`gemfire-cluster` fail fast with a named-variable error
+if any of them are unset.
+
+**Broadcom Support Portal registry** (`GEMFIRE_CHART_REPO`/`GEMFIRE_CONTROLLER_IMAGE_REPO`/
+`GEMFIRE_CLUSTER_IMAGE` default to this registry's path layout, so only the registry and
+credentials need to be set):
+```
+GEMFIRE_REGISTRY=registry.packages.broadcom.com \
+REGISTRY_USER=<support-portal-email> \
+REGISTRY_TOKEN=<registry-token> \
+make gemfire-operator
+```
+Generate a Registry Token from the Support Portal: log in at [support.broadcom.com](https://support.broadcom.com),
+go to **My Downloads**, click **Registry Tokens** (only visible if your account has an active
+GemFire/Tanzu entitlement), then **Generate Token**. Your username is the email you sign in with.
+
+Once the registry variables above are set (export them, or prefix every `make` call below), stand
+up the example GemFire cluster and bootstrap it in three steps:
 ```
 make gemfire-operator
 make gemfire-cluster
@@ -58,5 +77,11 @@ make gemfire-configure FUNCTIONS_JAR=/path/to/layer7-gemfire-functions-*.jar SEC
   (`layer7gw_keyvalue`, `layer7gw_session`, `layer7gw_sortedset`, `layer7gw_ratelimiter`, `layer7gw_counter`) the
   Gateway's GemFire shared-state client expects. `FUNCTIONS_JAR` and `SECURITY_JAR` must point to local paths for
   the two jars — there is no default, and the script fails with a clear error if either is unset or not found.
+  Both jars ship together inside `Layer7_API_Gateway_Gemfire_Extension_11.#.#.zip`, available from the
+  [Broadcom Support Download Center](https://techdocs.broadcom.com/us/en/ca-enterprise-software/layer7-api-management/api-gateway/11-2/release-notes/list-of-update-files.html)
+  (the Gateway release's "List of Update Files" page) — unzip it and point `FUNCTIONS_JAR`/`SECURITY_JAR` at the
+  extracted `layer7-gemfire-functions-xxx.jar`/`layer7-gemfire-security-xxx.jar`. See
+  [Connect to an External GemFire Datastore](https://techdocs.broadcom.com/us/en/ca-enterprise-software/layer7-api-management/api-gateway/11-2/install-configure-upgrade/connect-to-a-gemfire-datastore/connect-to-an-external-gemfire-datastore.html)
+  for full background.
 
 Point a Gateway CR's `spec.app.gemfire` config at `cluster1-locator-clusterip:10334` once this is done.

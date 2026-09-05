@@ -111,15 +111,14 @@ gemfire-operator: check-gemfire-vars cert-manager
 	helm upgrade -i gemfire-operator oci://$(GEMFIRE_REGISTRY)/$(GEMFIRE_CHART_REPO)/gemfire-operator --version $(GEMFIRE_CHART_VERSION) \
 	  --namespace ${NAMESPACE} --set controllerImage=$(GEMFIRE_REGISTRY)/$(GEMFIRE_CONTROLLER_IMAGE_REPO):$(GEMFIRE_CHART_VERSION) \
 	  --set imagePullSecretName=image-pull-secret
+	@$(MAKE) --silent t=30 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=available --timeout=600s deployment/gemfire-operator-controller-manager
 
 gemfire-cluster: gemfire-operator
-	kubectl -n ${NAMESPACE} wait --for=jsonpath='{.subsets[0].addresses}' --timeout=600s endpoints/gemfire-operator-webhook-service
 	sed -e 's#__GEMFIRE_CLUSTER_IMAGE__#$(GEMFIRE_CLUSTER_IMAGE)#' ./gemfire/cluster1.yaml > /tmp/cluster1.rendered.yaml
 	kubectl apply -n ${NAMESPACE} -f /tmp/cluster1.rendered.yaml
-	kubectl -n ${NAMESPACE} wait --for=create --timeout=600s statefulset/cluster1-server
-	kubectl -n ${NAMESPACE} rollout status statefulset/cluster1-locator --timeout=600s
-	kubectl -n ${NAMESPACE} rollout status statefulset/cluster1-server --timeout=600s
+	@$(MAKE) --silent t=60 wait
+	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod --all
 
 # Deploys the Layer7 GemFire function/security jars and creates the regions the Gateway's
 # shared-state client expects. Requires FUNCTIONS_JAR and SECURITY_JAR to be set to local

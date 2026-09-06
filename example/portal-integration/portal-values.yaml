@@ -32,17 +32,17 @@ ingress:
     - portal
 
 image:
-  dispatcher: dispatcher:5.4.2.2
-  apim: ingress:5.4.2.2
-  enterprise: portal-enterprise:5.4.2.2
-  data: portal-data:5.4.2.2
-  tps: tenant-provisioning-service:5.4.2.2
-  analytics: analytics-server:5.4.2.2
-  authenticator: authenticator:5.4.2.2
-  dbUpgrade: db-upgrade-portal:5.4.2.1
-  rbacUpgrade: db-upgrade-rbac:5.4.2
-  upgradeVerify: upgrade-verify:5.4.2
-  tlsManager: tls-automator:5.4.2
+  dispatcher: dispatcher:5.4.2.3
+  apim: ingress:5.4.2.3
+  enterprise: portal-enterprise:5.4.2.3
+  data: portal-data:5.4.2.3
+  tps: tenant-provisioning-service:5.4.2.3
+  analytics: analytics-server:5.4.2.3
+  authenticator: authenticator:5.4.2.3
+  dbUpgrade: db-upgrade-portal:5.4.2.3
+  rbacUpgrade: db-upgrade-rbac:5.4.2.3
+  upgradeVerify: upgrade-verify:5.4.2.3
+  tlsManager: tls-automator:5.4.2.3
 
 rabbitmq:
   enabled: true

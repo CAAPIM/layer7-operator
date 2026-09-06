@@ -261,6 +261,9 @@ pki-otk-internal: pki-otk
 	-kubectl create configmap otk-dmz-mtls-public-cert \
 	  --from-file=dmz-gateway.crt=/tmp/otk-dmz-mtls.crt \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	-kubectl create configmap otk-dmz-mtls-ca-cert \
+	  --from-file=dmz-gateway-mtls-ca.crt=/tmp/otk-dmz-mtls-ca.crt \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 cassandra:
 	helm upgrade --install cassandra -f ./otk/database/cassandra/cassandra-values.yaml oci://registry-1.docker.io/bitnamicharts/cassandra

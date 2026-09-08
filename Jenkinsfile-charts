@@ -15,8 +15,17 @@ pipeline {
           // nothing further to do for a PR build). The default branch pushes
           // to release-local, which a separate, not-yet-built workflow later
           // promotes to layer7.packages.broadcom.com (Phase 2c).
+          //
+          // --check-changed is a cheap `ct list-changed` short-circuit, only
+          // meaningful for PR builds (comparing the PR branch against main);
+          // it's meaningless when already running on main itself (main vs
+          // main always reports no changes), so it's omitted there. Either
+          // way, push_helm_charts.py also checks whether the chart's current
+          // version already exists in the target Artifactory repo and skips
+          // if so - the closer equivalent to chart-releaser's own "don't
+          // recreate an existing release" check.
           if (env.CHANGE_ID) {
-            sh 'python3 push_helm_charts.py'
+            sh 'python3 push_helm_charts.py --check-changed main'
           } else if (env.BRANCH_NAME == 'main') {
             sh 'python3 push_helm_charts.py --release'
           } else {

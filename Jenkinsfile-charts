@@ -5,14 +5,24 @@ pipeline {
   }
   environment {
     ARTIFACTORY_CREDS = credentials("ARTIFACTORY_USERNAME_TOKEN")
-    GITHUB_CREDS = credentials("GITHUB_CAAPIM_TOKEN")
-    GITHUB_TOKEN = "${GITHUB_CREDS_PSW}"
   }
   stages {
-    stage('Push Helm Charts') {
+    stage('Push Helm Chart') {
       steps {
-        sh("pip3 install requests ruamel.yaml")
-        sh("python3 push_helm_charts.py --release")
+        script {
+          // PR branches only ever push to dev-local (usw1 Artifactory blocks
+          // promoting dev-local to layer7.packages.broadcom.com, so there's
+          // nothing further to do for a PR build). The default branch pushes
+          // to release-local, which a separate, not-yet-built workflow later
+          // promotes to layer7.packages.broadcom.com (Phase 2c).
+          if (env.CHANGE_ID) {
+            sh 'python3 push_helm_charts.py'
+          } else if (env.BRANCH_NAME == 'main') {
+            sh 'python3 push_helm_charts.py --release'
+          } else {
+            echo "not a PR and not main - skipping chart publish for branch ${env.BRANCH_NAME}"
+          }
+        }
       }
     }
   }

@@ -62,7 +62,7 @@ portal-example: redis
 	./portal-integration/create-tenant.sh -d ./portal-integration/enroll-payload.json -n ${NAMESPACE}
 
 g2c-agent:
-#sed -e 's/ip:.*/ip: "$(shell kubectl get svc ingress-nginx-controller -n ingress-nginx -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
+	sed -e 's/ip:.*/ip: "$(shell kubectl get svc contour-envoy -n projectcontour -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
 	kubectl apply -k ./portal-integration/g2c-agent
 	echo "deploy g2cagent"
 
@@ -78,7 +78,7 @@ default-redis:
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis
 
 grafana-stack:
-	helm repo add grafana https://grafana.github.io/helm-charts
+	helm repo add grafana https://grafana-community.github.io/helm-charts
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/loki-overrides.yaml loki grafana/loki -n grafana-loki --create-namespace
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/promtail-overrides.yaml promtail grafana/promtail -n grafana-loki
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/tempo-overrides.yaml tempo grafana/tempo -n grafana-loki

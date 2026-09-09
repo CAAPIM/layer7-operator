@@ -70,6 +70,30 @@ pipeline {
                   }
             }
         }
+        stage('Test Automation') {
+            // Only run on PR builds - a full regression run takes ~15min and
+            // spins up a kind cluster, not worth it on every branch push.
+            when { expression { env.CHANGE_ID } }
+            steps {
+                script {
+                    // NOTE: this only passes OPERATOR_REF (the PR's source branch), so
+                    // layer7-operator-test-automation tests the right source code - but
+                    // it independently rebuilds the operator image from that source
+                    // rather than consuming the image just built/pushed by the
+                    // "Build and Push Image" stage above. layer7-operator-test-automation's
+                    // own PLAN.md already tracks this gap as a planned, opt-in
+                    // USE_UPSTREAM_BUILD mode (default off) to consume this pipeline's
+                    // published image instead of rebuilding. Revisit this call once
+                    // that's implemented, to avoid the double build.
+                    def testRun = build job: 'L7Operator/Components/L7Operator Test Automation/develop',
+                        parameters: [
+                            string(name: 'OPERATOR_REF', value: env.CHANGE_BRANCH)
+                        ],
+                        wait: true
+                    echo "layer7-operator-test-automation run: ${testRun.absoluteUrl} (${testRun.result})"
+                }
+            }
+        }
     }
 
     post {

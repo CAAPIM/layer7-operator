@@ -3,7 +3,7 @@ kind: Gateway
 metadata:
   name: portal-ssg
 spec:
-  version: "11.2.1"
+  version: "11.2.2"
   license:
     accept: false
     secretName: gateway-license
@@ -13,7 +13,7 @@ spec:
       minAvailable: 2
     replicas: 1
     restartOnConfigChange: true
-    image: caapim/gateway:11.2.1
+    image: caapim/gateway:11.2.2
     imagePullPolicy: IfNotPresent
     updateStrategy:
       type: rollingUpdate
@@ -250,10 +250,13 @@ spec:
         com.l7tech.server.extension.sharedRateLimiterProvider=redis
         #com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
         com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
-        # Gemfire configuration
-        com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=externalgemfire
-        com.l7tech.external.assertions.keyvaluestore.GW_STORE_ID.maxEntries=10000
-        com.l7tech.external.assertions.gemfireprovider.requireAuth=false
+        # Gemfire configuration - uncomment to use gemfire
+        #com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=externalgemfire
+        #com.l7tech.server.extension.sharedKeyValueStoreProvider=externalgemfire
+        #com.l7tech.server.extension.sharedCounterProvider=externalgemfire
+        #com.l7tech.server.extension.sharedRateLimiterProvider=externalgemfire
+        #com.l7tech.external.assertions.keyvaluestore.GW_STORE_ID.maxEntries=10000
+        #com.l7tech.external.assertions.gemfireprovider.requireAuth=false
     service:
       annotations:
         projectcontour.io/upstream-protocol.tls: "8443,9443"

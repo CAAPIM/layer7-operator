@@ -248,7 +248,7 @@ spec:
         com.l7tech.server.extension.sharedKeyValueStoreProvider=redis
         com.l7tech.server.extension.sharedCounterProvider=redis
         com.l7tech.server.extension.sharedRateLimiterProvider=redis
-        #com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
+        com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=redis
         com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
         # Gemfire configuration - uncomment to use gemfire
         #com.l7tech.external.assertions.keyvaluestore.sharedKeyValueStoreProvider=externalgemfire

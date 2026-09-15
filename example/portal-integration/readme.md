@@ -166,7 +166,7 @@ kubectl get pods
 ```
 
 ### Deploy the Developer Portal
-The Portal deployed is version 5.3.3 which supports layer7-operator gateways enroled with the portal as a proxy. 
+The Portal deployed is version 5.4.2.3 which supports layer7-operator gateways enroled with the portal as a proxy. 
 The Portal is deployed to the default namespace and uses the following [portal-values.yaml](../portal-integration/portal-values.yaml)
 
 You can deploy the portal using the following commands

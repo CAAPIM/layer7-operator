@@ -40,3 +40,6 @@ Other examples
 
 Repositories (used in most of the examples)
 - [Repositories](./repositories/)
+
+GemFire Shared State Example
+- [GemFire](./gemfire/)

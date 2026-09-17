@@ -224,11 +224,18 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		})
 	}
 
+	// Redis and Gemfire share a single sharedstate_client.yaml secret. Validation (webhook and
+	// NewSecret) guarantees existingSecret is either empty on both or identical on both, so
+	// either one can be consulted here.
+	sharedStateSecretName := gw.Name + "-shared-state-config"
+	if gw.Spec.App.Redis.Enabled && gw.Spec.App.Redis.ExistingSecret != "" {
+		sharedStateSecretName = gw.Spec.App.Redis.ExistingSecret
+	} else if gw.Spec.App.Gemfire.Enabled && gw.Spec.App.Gemfire.ExistingSecret != "" {
+		sharedStateSecretName = gw.Spec.App.Gemfire.ExistingSecret
+	}
+
 	if gw.Spec.App.Redis.Enabled {
-		secretName := gw.Name + "-shared-state-config"
-		if gw.Spec.App.Redis.ExistingSecret != "" {
-			secretName = gw.Spec.App.Redis.ExistingSecret
-		}
+		secretName := sharedStateSecretName
 
 		items := []corev1.KeyToPath{{Key: "sharedstate_client.yaml", Path: "sharedstate_client.yaml"}}
 
@@ -337,6 +344,108 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			},
 		})
 
+	}
+
+	if gw.Spec.App.Gemfire.Enabled {
+		secretName := sharedStateSecretName
+
+		if gw.Spec.App.Gemfire.ExistingSecret == "" {
+			if gw.Spec.App.Gemfire.Ssl.Enabled {
+				if gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretName != "" {
+					keystoreKey := gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretKey
+					if keystoreKey == "" {
+						keystoreKey = "keystore.jks"
+					}
+					volumes = append(volumes, corev1.Volume{
+						Name: "gemfire-keystore",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretName,
+								Optional:   &optional,
+								Items: []corev1.KeyToPath{{
+									Key:  keystoreKey,
+									Path: "keystore.jks",
+								}},
+							},
+						},
+					})
+					volumeMounts = append(volumeMounts, corev1.VolumeMount{
+						Name:      "gemfire-keystore",
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/keystore.jks",
+						SubPath:   "keystore.jks",
+					})
+				}
+
+				if gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretName != "" {
+					truststoreKey := gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretKey
+					if truststoreKey == "" {
+						truststoreKey = "truststore.jks"
+					}
+					volumes = append(volumes, corev1.Volume{
+						Name: "gemfire-truststore",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretName,
+								Optional:   &optional,
+								Items: []corev1.KeyToPath{{
+									Key:  truststoreKey,
+									Path: "truststore.jks",
+								}},
+							},
+						},
+					})
+					volumeMounts = append(volumeMounts, corev1.VolumeMount{
+						Name:      "gemfire-truststore",
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/truststore.jks",
+						SubPath:   "truststore.jks",
+					})
+				}
+			}
+		} else {
+			for i, certSecret := range gw.Spec.App.Gemfire.CertSecrets {
+				if certSecret.Enabled {
+					volumes = append(volumes, corev1.Volume{
+						Name: "gemfire-ssl-" + strconv.Itoa(i),
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: certSecret.SecretName,
+								Optional:   &optional,
+								Items: []corev1.KeyToPath{{
+									Key:  certSecret.Key,
+									Path: certSecret.Key,
+								}},
+							},
+						},
+					})
+					volumeMounts = append(volumeMounts, corev1.VolumeMount{
+						Name:      "gemfire-ssl-" + strconv.Itoa(i),
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/" + certSecret.Key,
+						SubPath:   certSecret.Key,
+					})
+				}
+			}
+		}
+
+		if !gw.Spec.App.Redis.Enabled {
+			items := []corev1.KeyToPath{{Key: "sharedstate_client.yaml", Path: "sharedstate_client.yaml"}}
+
+			volumeMounts = append(volumeMounts, corev1.VolumeMount{
+				Name:      "sharedstate-client-config",
+				MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/sharedstate_client.yaml",
+				SubPath:   "sharedstate_client.yaml",
+			})
+
+			volumes = append(volumes, corev1.Volume{
+				Name: "sharedstate-client-config",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: secretName,
+						Optional:   &optional,
+						Items:      items,
+					},
+				},
+			})
+		}
 	}
 
 	if gw.Spec.App.Log.Override {

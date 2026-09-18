@@ -1,4 +1,9 @@
+# Copyright © 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+# AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
+
 debug: true
+chart-yaml-schema: .github/chart_schema.yaml
+lint-conf: .github/lintconf.yaml
 charts:
   - charts/layer7-operator
 chart-repos:

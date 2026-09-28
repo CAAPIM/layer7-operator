@@ -9,7 +9,7 @@
 # python3 push_helm_charts.py
 # python3 push_helm_charts.py --release
 # python3 push_helm_charts.py --check-changed main
-# python3 push_helm_charts.py --chart-dir charts/layer7-operator
+# python3 push_helm_charts.py --chart-dir charts
 
 import argparse
 import os
@@ -18,7 +18,7 @@ import sys
 import tempfile
 
 parser = argparse.ArgumentParser(description='Package and push the layer7-operator helm chart to artifactory, if it is a new version')
-parser.add_argument('--chart-dir', default='charts/layer7-operator', help='path to the chart to package')
+parser.add_argument('--chart-dir', default='charts', help='path to the chart to package')
 parser.add_argument('--release', action='store_true', help='flag to push to release repo instead of dev')
 parser.add_argument('--check-changed', metavar='TARGET_BRANCH', default=None,
                      help='skip entirely if `ct list-changed --target-branch TARGET_BRANCH` does not report '

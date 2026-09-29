@@ -14,7 +14,7 @@ pipeline {
           // promoting dev-local to layer7.packages.broadcom.com, so there's
           // nothing further to do for a PR build). The default branch pushes
           // to release-local; a separate promotion job pushes from there to
-          // layer7.packages.broadcom.com.
+          // packages.broadcom.com.
           //
           // --check-changed is a cheap `ct list-changed` short-circuit, only
           // meaningful for PR builds (comparing the PR branch against main);

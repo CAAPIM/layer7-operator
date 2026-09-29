@@ -74,9 +74,9 @@ def main():
     chart_name, version = chart_metadata(args.chart_dir)
     subprocess.run(['docker', 'login', helm_repo, '-u', username, '-p', password], check=True, text=True)
     try:
-        if version_exists(chart_name, version):
-            print(f"{chart_name} {version} already published to {helm_repo} - skipping")
-            return
+        #if version_exists(chart_name, version):
+        #    print(f"{chart_name} {version} already published to {helm_repo} - skipping")
+        #    return
         print(f"working on {chart_name} {version} from {args.chart_dir}")
         operator_chart = package_chart(args.chart_dir)
         subprocess.run(['helm', 'push', operator_chart, f"oci://{helm_repo}"], check=True, text=True)

@@ -7,7 +7,7 @@ pipeline {
     ARTIFACTORY_CREDS = credentials("ARTIFACTORY_USERNAME_TOKEN")
   }
   stages {
-    stage('Push Helm Chart') {
+    stage('Package and Push Helm Chart') {
       steps {
         script {
           // PR branches only ever push to dev-local (usw1 Artifactory blocks
@@ -24,12 +24,10 @@ pipeline {
           // version already exists in the target Artifactory repo and skips
           // if so, to avoid pushing a duplicate of an already-published
           // version.
-          if (env.CHANGE_ID) {
-            sh 'python3 push_helm_charts.py --check-changed main'
-          } else if (env.BRANCH_NAME == 'main') {
-            sh 'python3 push_helm_charts.py --release'
+          if (env.BRANCH_NAME == 'main') {
+            sh 'python3 package_push_helm_charts.py --release'
           } else {
-            echo "not a PR and not main - skipping chart publish for branch ${env.BRANCH_NAME}"
+            echo "not main - skipping chart publish for branch ${env.BRANCH_NAME}"
           }
         }
       }

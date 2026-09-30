@@ -71,26 +71,62 @@ pipeline {
             }
         }
         stage('Test Automation') {
-            // Only run on PR builds - a full regression run takes ~15min and
-            // spins up a kind cluster, not worth it on every branch push.
-            when { expression { env.CHANGE_ID } }
+            // Runs on PR builds and tag/release builds - a full regression
+            // run takes ~15min and spins up a kind cluster, not worth it on
+            // every plain branch push, but a release should get one final
+            // fresh pass rather than relying solely on its earlier PR-time
+            // result.
+            when { expression { env.CHANGE_ID || env.TAG_NAME } }
             steps {
                 script {
-                    // NOTE: this only passes OPERATOR_REF (the PR's source branch), so
-                    // layer7-operator-test-automation tests the right source code - but
-                    // it independently rebuilds the operator image from that source
-                    // rather than consuming the image just built/pushed by the
-                    // "Build and Push Image" stage above. layer7-operator-test-automation's
-                    // own PLAN.md already tracks this gap as a planned, opt-in
-                    // USE_UPSTREAM_BUILD mode (default off) to consume this pipeline's
-                    // published image instead of rebuilding. Revisit this call once
-                    // that's implemented, to avoid the double build.
+                    // NOTE: this only passes OPERATOR_REF (the PR's source branch, or
+                    // the tag for a release build), so layer7-operator-test-automation
+                    // tests the right source code - but it independently rebuilds the
+                    // operator image from that source rather than consuming the image
+                    // just built/pushed by the "Build and Push Image" stage above.
+                    // layer7-operator-test-automation's own PLAN.md already tracks this
+                    // gap as a planned, opt-in USE_UPSTREAM_BUILD mode (default off) to
+                    // consume this pipeline's published image instead of rebuilding.
+                    // Revisit this call once that's implemented, to avoid the double
+                    // build.
                     def testRun = build job: 'L7Operator/Components/L7Operator Test Automation/develop',
                         parameters: [
-                            string(name: 'OPERATOR_REF', value: env.CHANGE_BRANCH)
+                            string(name: 'OPERATOR_REF', value: env.TAG_NAME ?: env.CHANGE_BRANCH)
                         ],
                         wait: true
                     echo "layer7-operator-test-automation run: ${testRun.absoluteUrl} (${testRun.result})"
+                }
+            }
+        }
+        stage('Create Release') {
+            // Tag builds only (env.TAG_NAME, set by the multibranch job's tag
+            // discovery once enabled) - produces and publishes the operator's
+            // installable deployment manifests for a versioned release.
+            // Placed after Test Automation so a release is never published
+            // without that stage having passed first for this exact tag.
+            when { expression { env.TAG_NAME } }
+            environment {
+                // Overrides this Jenkinsfile's own IMAGE_TAG_BASE (which above
+                // is just the Artifactory image path prefix, used for the
+                // internal image push) with the full registry+path the
+                // released bundle.yaml should actually reference.
+                BUNDLE_IMAGE_TAG_BASE = "docker.io/caapim/layer7-operator"
+            }
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId: 'GITHUB_CAAPIM_TOKEN', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')
+                ]) {
+                    sh '''
+                    IMAGE_TAG_BASE="${BUNDLE_IMAGE_TAG_BASE}" VERSION="${TAG_NAME}" make version
+                    make generate-deployment generate-cw-deployment
+                    make generate-deployment-bundle generate-cw-deployment-bundle
+
+                    if gh release view "${TAG_NAME}" --repo CAAPIM/layer7-operator >/dev/null 2>&1; then
+                        gh release upload "${TAG_NAME}" deploy/bundle.yaml deploy/cw-bundle.yaml --repo CAAPIM/layer7-operator --clobber
+                    else
+                        gh release create "${TAG_NAME}" deploy/bundle.yaml deploy/cw-bundle.yaml --repo CAAPIM/layer7-operator --title "${TAG_NAME}" --generate-notes
+                    fi
+                    '''
                 }
             }
         }

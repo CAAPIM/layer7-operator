@@ -30,6 +30,10 @@ pipeline {
                 usernamePassword(credentialsId: 'ARTIFACTORY_USERNAME_TOKEN', usernameVariable: 'ARTIFACTORY_DEV_LOCAL_USERNAME', passwordVariable: 'ARTIFACTORY_DEV_LOCAL_APIKEY')
                 ]){      
                       sh '''
+                      if [[ -n "${TAG_NAME}" ]]; then
+                        export RELEASE_VERSION="${TAG_NAME#v}"
+                      fi
+
                       if [[ -z "${RELEASE_VERSION}" ]]; then
                         if [[ "${BRANCH_NAME}" = "develop" ]]; then
                           export IMAGE_TAG="latest"

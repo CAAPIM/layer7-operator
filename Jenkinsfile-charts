@@ -1,0 +1,22 @@
+pipeline {
+  agent { label 'default' }
+  options {
+    timeout(time: 15, unit: 'MINUTES')
+  }
+  environment {
+    ARTIFACTORY_CREDS = credentials("ARTIFACTORY_USERNAME_TOKEN")
+  }
+  stages {
+    stage('Package and Push Helm Chart') {
+      steps {
+        script {
+          if (env.BRANCH_NAME == 'main') {
+            sh 'python3 package_push_helm_charts.py --release'
+          } else {
+            echo "not main - skipping chart publish for branch ${env.BRANCH_NAME}"
+          }
+        }
+      }
+    }
+  }
+}

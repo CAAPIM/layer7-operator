@@ -1,4 +1,4 @@
-module github.com/caapim/layer7-operator
+module github.com/broadcom/layer7-operator
 
 go 1.26.6
 

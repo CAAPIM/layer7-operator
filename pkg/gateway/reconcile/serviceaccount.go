@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caapim/layer7-operator/pkg/gateway"
+	"github.com/broadcom/layer7-operator/pkg/gateway"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"

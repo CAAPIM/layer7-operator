@@ -3,7 +3,7 @@ package reconcile
 import (
 	"github.com/go-logr/logr"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"

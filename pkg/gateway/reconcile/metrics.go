@@ -31,7 +31,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caapim/layer7-operator/pkg/util"
+	"github.com/broadcom/layer7-operator/pkg/util"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

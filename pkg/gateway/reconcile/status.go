@@ -31,8 +31,8 @@ import (
 	"fmt"
 	"reflect"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/broadcom/layer7-operator/api/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )

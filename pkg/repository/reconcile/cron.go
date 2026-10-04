@@ -29,8 +29,8 @@ import (
 	"context"
 	"time"
 
-	v1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/util"
+	v1 "github.com/broadcom/layer7-operator/api/v1"
+	"github.com/broadcom/layer7-operator/pkg/util"
 	"github.com/go-co-op/gocron"
 )
 

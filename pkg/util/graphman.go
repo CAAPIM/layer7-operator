@@ -49,7 +49,7 @@ import (
 	"strings"
 	"time"
 
-	graphman "github.com/caapim/layer7-operator/internal/graphman"
+	graphman "github.com/broadcom/layer7-operator/internal/graphman"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 )

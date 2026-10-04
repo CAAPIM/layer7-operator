@@ -22,8 +22,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
-	"github.com/caapim/layer7-operator/pkg/portal/reconcile"
+	securityv1alpha1 "github.com/broadcom/layer7-operator/api/v1alpha1"
+	"github.com/broadcom/layer7-operator/pkg/portal/reconcile"
 	"github.com/go-logr/logr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"

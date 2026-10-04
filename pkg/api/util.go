@@ -6,8 +6,8 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"github.com/caapim/layer7-operator/internal/graphman"
-	"github.com/caapim/layer7-operator/internal/templategen"
+	"github.com/broadcom/layer7-operator/internal/graphman"
+	"github.com/broadcom/layer7-operator/internal/templategen"
 )
 
 func ConvertPortalPolicyXmlToGraphman(policyXml string, passwords []templategen.SecurePassword, passwordUndeploymentIds []string) ([]byte, string, error) {

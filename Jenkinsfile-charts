@@ -10,10 +10,10 @@ pipeline {
     stage('Package and Push Helm Chart') {
       steps {
         script {
-          if (env.BRANCH_NAME == 'main') {
+          if (env.GIT_BRANCH == 'main' || env.GIT_BRANCH == 'origin/main') {
             sh 'python3 package_push_helm_charts.py --release'
           } else {
-            echo "not main - skipping chart publish for branch ${env.BRANCH_NAME}"
+            echo "not main - skipping chart publish for branch ${env.GIT_BRANCH}"
           }
         }
       }

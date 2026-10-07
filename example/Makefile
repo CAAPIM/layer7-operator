@@ -48,12 +48,11 @@ portal-example: redis
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 	kubectl apply -k ./base -n ${NAMESPACE}
 	kubectl apply -f ./gateway/portal-gateway.yaml -n ${NAMESPACE}
-	helm repo add layer7 https://caapim.github.io/apim-charts/
-	helm repo update
+	helm registry login layer7-portal.packages.broadcom.com -u <email> -p <registry-token>
 	@echo "####################################################################################################################################"
 	@echo "Deploying the Layer7 API Developer Portal, this will take several minutes and complete when all components are ready."
 	@echo "####################################################################################################################################"
-	helm upgrade --install portal --set ingress.create=false --set-file portal.registryCredentials=./portal-integration/secrets/docker-secret.yaml -f ./portal-integration/portal-values.yaml layer7/portal -n ${NAMESPACE}
+	helm upgrade --install portal --set ingress.create=false --set-file portal.registryCredentials=./portal-integration/secrets/docker-secret.yaml -f ./portal-integration/portal-values.yaml oci://layer7-portal.packages.broadcom.com/portal -n ${NAMESPACE}
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app=apim
 	@$(MAKE) --silent t=15 wait
 	@echo "####################################################################################################################################"

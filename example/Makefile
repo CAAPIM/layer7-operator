@@ -48,7 +48,7 @@ portal-example: redis
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 	kubectl apply -k ./base -n ${NAMESPACE}
 	kubectl apply -f ./gateway/portal-gateway.yaml -n ${NAMESPACE}
-	helm registry login layer7-portal.packages.broadcom.com -u <email> -p <registry-token>
+	helm registry login layer7-portal.packages.broadcom.com -u ${REGISTRY_EMAIL} -p ${REGISTRY_TOKEN}
 	@echo "####################################################################################################################################"
 	@echo "Deploying the Layer7 API Developer Portal, this will take several minutes and complete when all components are ready."
 	@echo "####################################################################################################################################"

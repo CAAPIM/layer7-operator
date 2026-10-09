@@ -53,6 +53,11 @@ By the end of this example you should have a better understanding of the Layer7 
             or
             - ```make contour-kind```
     - **NOTE:** the Portal requires an ingress controller that supports ssl/tls passthrough for mutual ssl/tls.
+7. Set the `REGISTRY_EMAIL` and `REGISTRY_TOKEN` environment variables, used by `make portal-example` to log in to the Broadcom Artifactory Helm registry. See [Downloading APIM Artifacts from Broadcom Artifactory](https://techdocs.broadcom.com/us/en/ca-enterprise-software/layer7-api-management/overview/apim/downloading-apim-artifacts-from-broadcom-artifactory.html) for how to obtain a registry token (or an API key for CI/CD use)
+   ```
+   export REGISTRY_EMAIL=<email>
+   export REGISTRY_TOKEN=<registry-token>
+   ```
 
 
 ### Guide

@@ -176,8 +176,8 @@ The Portal is deployed to the default namespace and uses the following [portal-v
 
 You can deploy the portal using the following commands
 ```
-helm registry login layer7-portal.packages.broadcom.com -u <email> -p <registry-token>
-helm upgrade --install portal --set ingress.create=false --set-file portal.registryCredentials=./portal-integration/secrets/docker-secret.yaml -f ./portal-integration/portal-values.yaml oci://layer7-portal.packages.broadcom.com/portal
+helm registry login layer7.packages.broadcom.com -u <email> -p <registry-token>
+helm upgrade --install portal --set ingress.create=false --set-file portal.registryCredentials=./portal-integration/secrets/docker-secret.yaml -f ./portal-integration/portal-values.yaml oci://layer7.packages.broadcom.com/charts/portal
 kubectl wait --for=condition=ready --timeout=600s pod -l app=apim
 ```
 

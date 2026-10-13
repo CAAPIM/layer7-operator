@@ -21,7 +21,7 @@ helm registry login layer7.packages.broadcom.com -u <email> -p <registry-token>
 ```
 Install the Operator
 ```
-helm upgrade -i layer7-operator oci://layer7.packages.broadcom.com/layer7-operator -n layer7-operator-system --create-namespace
+helm upgrade -i layer7-operator oci://layer7.packages.broadcom.com/charts/layer7-operator -n layer7-operator-system --create-namespace
 ```
 
 ## Parameters

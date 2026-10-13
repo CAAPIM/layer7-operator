@@ -15,17 +15,13 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 ```
 
 ## Getting Started
-Add the layer7-operator repository
+Login to the Broadcom Artifactory Helm registry. See [Downloading APIM Artifacts from Broadcom Artifactory](https://techdocs.broadcom.com/us/en/ca-enterprise-software/layer7-api-management/overview/apim/downloading-apim-artifacts-from-broadcom-artifactory.html) for how to obtain a registry token (or an API key for CI/CD use).
 ```
-helm repo add layer7-operator https://caapim.github.io/layer7-operator/
-``` 
-Update your repositories
-```
-helm repo update
+helm registry login layer7.packages.broadcom.com -u <email> -p <registry-token>
 ```
 Install the Operator
 ```
-helm upgrade -i layer7-operator layer7-operator/layer7-operator -n layer7-operator-system --create-namespace
+helm upgrade -i layer7-operator oci://layer7.packages.broadcom.com/charts/layer7-operator -n layer7-operator-system --create-namespace
 ```
 
 ## Parameters

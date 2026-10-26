@@ -65,7 +65,8 @@ spec:
         ssl:
           enabled: false
     gemfire:
-      enabled: true
+      # set enabled: true only when using GemFire (see portal-integration/readme.md)
+      enabled: false
       testOnStart: true
       locators:
       - host: cluster1-locator-clusterip

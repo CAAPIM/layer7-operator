@@ -52,8 +52,8 @@ spec:
             requests:
               cpu: 100m
               memory: 448Mi
-          limits:
-            memory: 640Mi
+            limits:
+              memory: 640Mi
           envFrom:
             - configMapRef:
                 name: g2c-agent-configmap

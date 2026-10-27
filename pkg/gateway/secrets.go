@@ -30,7 +30,6 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -87,9 +86,8 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 		}
 
 	case gw.Name + "-shared-state-config":
-		if gw.Spec.App.Redis.Enabled && gw.Spec.App.Gemfire.Enabled &&
-			gw.Spec.App.Redis.ExistingSecret != gw.Spec.App.Gemfire.ExistingSecret {
-			return nil, fmt.Errorf("redis and gemfire share a single sharedstate_client.yaml secret; existingSecret must be left empty on both (operator-managed) or set to the same secret name on both")
+		if err := gw.ValidateSharedStateExistingSecret(); err != nil {
+			return nil, err
 		}
 
 		redisGroupName := "l7GW"
@@ -356,28 +354,12 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 		}
 
 		if len(redisConfigs) > 0 || gemfireConfig != nil {
-			sharedStateClientBytes, err := util.GenerateSharedStateClientConfig(string(util.SharedStateClientConfigTypeRedis), redisConfigs, nil, gemfireConfig)
+			sharedStateClientBytes, err := util.GenerateSharedStateClientConfig(redisConfigs, nil, gemfireConfig)
 			if err != nil {
 				return nil, err
 			}
 
-			ssc := string(sharedStateClientBytes)
-			// Quote every *password/*Password value (password, encodedPassword,
-			// keystorePassword, truststorePassword, ...) so values containing
-			// YAML-significant characters (":", "#", leading/trailing whitespace, etc.)
-			// don't corrupt the document. The yaml encoder already quotes values it
-			// considers ambiguous, so skip lines that are already quoted to avoid
-			// double-quoting (which would bake literal quote characters into the value).
-			rePassword := regexp.MustCompile(`(?m)^(\s*\w*[Pp]assword:)\s(.*)$`)
-			ssc = rePassword.ReplaceAllStringFunc(ssc, func(line string) string {
-				m := rePassword.FindStringSubmatch(line)
-				prefix, value := m[1], m[2]
-				if len(value) >= 2 && (value[0] == '\'' || value[0] == '"') {
-					return line
-				}
-				return prefix + ` "` + value + `"`
-			})
-			data["sharedstate_client.yaml"] = []byte(ssc)
+			data["sharedstate_client.yaml"] = sharedStateClientBytes
 		}
 	}
 

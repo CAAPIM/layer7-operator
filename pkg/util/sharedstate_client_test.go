@@ -36,7 +36,7 @@ func TestSingleStandaloneSharedStateClientConfiguration(t *testing.T) {
 		},
 	}
 
-	configBytes, err := GenerateSharedStateClientConfig("redis", rcc, nil, nil)
+	configBytes, err := GenerateSharedStateClientConfig(rcc, nil, nil)
 	if err != nil {
 		t.Errorf("failed to generate sharedstate_client config for single client configuration test err: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestSingleSentinelSharedStateClientConfiguration(t *testing.T) {
 		},
 	}
 
-	configBytes, err := GenerateSharedStateClientConfig("redis", rcc, nil, nil)
+	configBytes, err := GenerateSharedStateClientConfig(rcc, nil, nil)
 	if err != nil {
 		t.Errorf("failed to generate sharedstate_client config for single client configuration test err: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestAdditionalProviderSharedStateClientConfiguration(t *testing.T) {
 		},
 	}
 
-	configBytes, err := GenerateSharedStateClientConfig("redis", rcc, nil, nil)
+	configBytes, err := GenerateSharedStateClientConfig(rcc, nil, nil)
 	if err != nil {
 		t.Errorf("failed to generate sharedstate_client config for single client configuration test err: %v", err)
 	}
@@ -251,11 +251,11 @@ func TestAdditionalProviderSharedStateClientConfiguration(t *testing.T) {
 	}
 }
 
-func TestUnsupportedTypeSharedStateClientConfiguration(t *testing.T) {
+func TestEmptySharedStateClientConfiguration(t *testing.T) {
 
-	_, err := GenerateSharedStateClientConfig("hazelcast", nil, nil, nil)
+	_, err := GenerateSharedStateClientConfig(nil, nil, nil)
 	if err == nil {
-		t.Errorf("hazelcast support is not implemented, should be rejected err: %v", err)
+		t.Errorf("empty configuration should be rejected err: %v", err)
 	}
 }
 
@@ -284,7 +284,7 @@ func TestGemfireSharedStateClientConfiguration(t *testing.T) {
 		},
 	}
 
-	configBytes, err := GenerateSharedStateClientConfig("gemfire", nil, nil, gcc)
+	configBytes, err := GenerateSharedStateClientConfig(nil, nil, gcc)
 	if err != nil {
 		t.Errorf("failed to generate sharedstate_client config for gemfire configuration test err: %v", err)
 	}
@@ -345,7 +345,7 @@ func TestCombinedRedisGemfireSharedStateClientConfiguration(t *testing.T) {
 		Password: "7layer",
 	}
 
-	configBytes, err := GenerateSharedStateClientConfig("redis", rcc, nil, gcc)
+	configBytes, err := GenerateSharedStateClientConfig(rcc, nil, gcc)
 	if err != nil {
 		t.Errorf("failed to generate sharedstate_client config for combined redis/gemfire configuration test err: %v", err)
 	}

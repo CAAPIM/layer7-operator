@@ -19,6 +19,8 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
+
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -585,6 +587,8 @@ type GemfireStore struct {
 	ExistingSecretName string `json:"existingSecretName,omitempty"`
 	// ExistingSecretKey is the key in the secret containing the keystore/truststore file.
 	// Defaults to keystore.jks or truststore.jks depending on which store this is.
+	// The file is always mounted on the Gateway as keystore.jks or truststore.jks, regardless of
+	// the keystore/truststore type (e.g. PKCS12).
 	ExistingSecretKey string `json:"existingSecretKey,omitempty"`
 	// PasswordEncoded for the keystore/truststore
 	PasswordEncoded string `json:"passwordEncoded,omitempty"`
@@ -1340,4 +1344,20 @@ type JVMHeap struct {
 
 func init() {
 	SchemeBuilder.Register(&Gateway{}, &GatewayList{})
+}
+
+// ValidateSharedStateExistingSecret checks that Redis and Gemfire, which share a single
+// sharedstate_client.yaml secret, agree on its existingSecret.
+func (g *Gateway) ValidateSharedStateExistingSecret() error {
+	if g.Spec.App.Redis.Enabled && g.Spec.App.Gemfire.Enabled &&
+		g.Spec.App.Redis.ExistingSecret != g.Spec.App.Gemfire.ExistingSecret {
+		return fmt.Errorf("redis and gemfire share a single sharedstate_client.yaml secret; existingSecret must be left empty on both (operator-managed) or set to the same secret name on both")
+	}
+	return nil
+}
+
+// SharedStateSecretManaged reports whether the operator manages the shared state client secret.
+func (g *Gateway) SharedStateSecretManaged() bool {
+	return (g.Spec.App.Redis.Enabled && g.Spec.App.Redis.ExistingSecret == "") ||
+		(g.Spec.App.Gemfire.Enabled && g.Spec.App.Gemfire.ExistingSecret == "")
 }

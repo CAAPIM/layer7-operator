@@ -7,14 +7,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type SharedStateClientConfigType string
-
-var (
-	SharedStateClientConfigTypeRedis     SharedStateClientConfigType = "redis"
-	SharedStateClientConfigTypeGemfire   SharedStateClientConfigType = "gemfire"
-	SharedStateClientConfigTypeHazelcast SharedStateClientConfigType = "hazelcast"
-)
-
 type RedisNode struct {
 	Host string `yaml:"host,omitempty"`
 	Port int    `yaml:"port,omitempty"`
@@ -90,7 +82,7 @@ func appendRedisConfig(redisConfigBlock map[string]interface{}, new map[string]R
 // GenerateSharedStateClientConfig renders the sharedstate_client.yaml contents for the Gateway.
 // Redis and Gemfire configuration can be combined in the same document, each under its own
 // top-level key, since the Gateway loads both from the same file.
-func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClientConfig, hazelcastConfigs interface{}, gemfireConfig *GemfireClientConfig) ([]byte, error) {
+func GenerateSharedStateClientConfig(redisConfigs []RedisClientConfig, hazelcastConfigs interface{}, gemfireConfig *GemfireClientConfig) ([]byte, error) {
 	var b bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&b)
 	yamlEncoder.SetIndent(2)
@@ -149,7 +141,7 @@ func GenerateSharedStateClientConfig(configType string, redisConfigs []RedisClie
 	}
 
 	if len(combinedConfig) == 0 {
-		return nil, fmt.Errorf("%s is not a supported shared state client type", configType)
+		return nil, fmt.Errorf("no shared state client configuration provided")
 	}
 
 	if err := yamlEncoder.Encode(combinedConfig); err != nil {

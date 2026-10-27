@@ -213,7 +213,7 @@ redis:
     keyPrefixGroupName: l7GW
     testOnStart: false
     username: redis-user
-    password: "redis-password"
+    password: redis-password
     standalone:
       host: redis-standalone
       port: 6379
@@ -238,7 +238,7 @@ redis:
     keyPrefixGroupName: l7GW
     testOnStart: false
     username: redis-user
-    encodedPassword: "wyN0kCr15hI.O37BlXCmrYS5V24l2MH1yg"
+    encodedPassword: wyN0kCr15hI.O37BlXCmrYS5V24l2MH1yg
     sentinel:
       master: mymaster
       nodes:
@@ -298,7 +298,7 @@ gemfire:
     - host: locator-1.gemfire.svc.cluster.local
       port: 10334
   username: gateway
-  password: "7layer"
+  password: 7layer
   gwKeyValueRegionName: layer7gw_keyvalue
   gwCounterRegionName: layer7gw_counter
   gwRateLimiterRegionName: layer7gw_ratelimiter
@@ -345,7 +345,7 @@ gemfire:
 		}
 
 		rendered := string(secret.Data["sharedstate_client.yaml"])
-		if !strings.Contains(rendered, `encodedPassword: "wyN0kCr15hI.O37BlXCmrYS5V24l2MH1yg"`) {
+		if !strings.Contains(rendered, `encodedPassword: wyN0kCr15hI.O37BlXCmrYS5V24l2MH1yg`) {
 			t.Errorf("expected rendered config to contain encodedPassword, got:\n%s", rendered)
 		}
 		if strings.Contains(rendered, "password: ") {
@@ -441,9 +441,9 @@ gemfire:
 		rendered := string(secret.Data["sharedstate_client.yaml"])
 		for _, want := range []string{
 			"keystore: " + gemfireProvidersDir + "keystore.jks",
-			"keystorePassword: \"keystorepass\"",
+			"keystorePassword: keystorepass",
 			"truststore: " + gemfireProvidersDir + "truststore.jks",
-			"truststorePassword: \"dHJ1c3RzdG9yZXBhc3M=\"",
+			"truststorePassword: dHJ1c3RzdG9yZXBhc3M=",
 			"enabledComponents: all",
 		} {
 			if !strings.Contains(rendered, want) {
@@ -626,5 +626,31 @@ func TestSharedStateClientSecretGemfireValidationErrors(t *testing.T) {
 				t.Errorf("expected error containing %q, got %q", tt.wantErr, err.Error())
 			}
 		})
+	}
+}
+
+func TestSharedStateClientSecretGemfirePasswordRoundTrip(t *testing.T) {
+	for _, pw := range []string{`a\b`, `C:\temp`, `ab"cd`, `p@ss:word, #hash`} {
+		gateway := gemfireGateway()
+		gateway.Spec.App.Gemfire.Auth.Enabled = true
+		gateway.Spec.App.Gemfire.Auth.PasswordEncoded = ""
+		gateway.Spec.App.Gemfire.Auth.PasswordPlainText = pw
+
+		secret, err := NewSecret(&gateway, gateway.Name+"-shared-state-config")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		var parsed struct {
+			Gemfire struct {
+				Password string `yaml:"password"`
+			} `yaml:"gemfire"`
+		}
+		if err := yaml.Unmarshal(secret.Data["sharedstate_client.yaml"], &parsed); err != nil {
+			t.Fatalf("password %q: generated YAML does not parse: %v", pw, err)
+		}
+		if parsed.Gemfire.Password != pw {
+			t.Errorf("password %q round-tripped as %q", pw, parsed.Gemfire.Password)
+		}
 	}
 }

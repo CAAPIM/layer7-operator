@@ -63,8 +63,7 @@ func Secrets(ctx context.Context, params Params) error {
 		desiredSecrets = append(desiredSecrets, desiredSecret)
 	}
 
-	if (params.Instance.Spec.App.Redis.Enabled && params.Instance.Spec.App.Redis.ExistingSecret == "") ||
-		(params.Instance.Spec.App.Gemfire.Enabled && params.Instance.Spec.App.Gemfire.ExistingSecret == "") {
+	if params.Instance.SharedStateSecretManaged() {
 		desiredSecret, err := gateway.NewSecret(params.Instance, params.Instance.Name+"-shared-state-config")
 		if err != nil {
 			return err

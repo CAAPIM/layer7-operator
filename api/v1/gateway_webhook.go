@@ -168,9 +168,8 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 		}
 	}
 
-	if r.Spec.App.Redis.Enabled && r.Spec.App.Gemfire.Enabled &&
-		r.Spec.App.Redis.ExistingSecret != r.Spec.App.Gemfire.ExistingSecret {
-		return warnings, fmt.Errorf("redis and gemfire share a single sharedstate_client.yaml secret; existingSecret must be left empty on both (operator-managed) or set to the same secret name on both")
+	if err := r.ValidateSharedStateExistingSecret(); err != nil {
+		return warnings, err
 	}
 
 	if r.Spec.App.Management.SecretName == "" {

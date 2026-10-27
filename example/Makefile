@@ -9,7 +9,7 @@ NAMESPACE ?= default
 # GemFire is licensed Broadcom/VMware software - Set GEMFIRE_REGISTRY (and credentials) for Broadcom's Support
 # Portal registry (registry.packages.broadcom.com) gemfire-operator/gemfire-cluster fail fast via
 # check-gemfire-vars if a required var is unset.
-GEMFIRE_REGISTRY := registry.packages.broadcom.com
+GEMFIRE_REGISTRY ?= registry.packages.broadcom.com
 GEMFIRE_CHART_REPO ?= tanzu-gemfire-for-kubernetes
 GEMFIRE_CONTROLLER_IMAGE_REPO ?= tanzu-gemfire-for-kubernetes/gemfire-controller
 GEMFIRE_CHART_VERSION ?= 2.5.0
@@ -102,10 +102,10 @@ check-gemfire-vars:
 	@:$(call require_var,REGISTRY_TOKEN)
 
 gemfire-operator: check-gemfire-vars cert-manager
-	kubectl create secret docker-registry image-pull-secret --namespace=${NAMESPACE} \
+	@kubectl create secret docker-registry image-pull-secret --namespace=${NAMESPACE} \
 	  --docker-server=$(GEMFIRE_REGISTRY) --docker-username='$(REGISTRY_USER)' --docker-password='$(REGISTRY_TOKEN)' \
 	  --dry-run=client -o yaml | kubectl apply -f -
-	helm registry login -u '$(REGISTRY_USER)' --password '$(REGISTRY_TOKEN)' $(GEMFIRE_REGISTRY)
+	@printf '%s' '$(REGISTRY_TOKEN)' | helm registry login -u '$(REGISTRY_USER)' --password-stdin $(GEMFIRE_REGISTRY)
 	helm upgrade -i gemfire-crd oci://$(GEMFIRE_REGISTRY)/$(GEMFIRE_CHART_REPO)/gemfire-crd --version $(GEMFIRE_CHART_VERSION) \
 	  --namespace ${NAMESPACE} --set operatorReleaseName=gemfire-operator
 	helm upgrade -i gemfire-operator oci://$(GEMFIRE_REGISTRY)/$(GEMFIRE_CHART_REPO)/gemfire-operator --version $(GEMFIRE_CHART_VERSION) \

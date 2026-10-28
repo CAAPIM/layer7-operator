@@ -219,6 +219,13 @@ are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappgemfire">gemfire</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecapphazelcast">hazelcast</a></b></td>
         <td>object</td>
         <td>
@@ -4536,6 +4543,401 @@ BundleEncryption allows setting an encryption passphrase per repository or exter
 </table>
 
 
+### Gateway.spec.app.gemfire
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappgemfireauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Auth for the Tanzu GemFire cluster<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfirecertsindex">certs</a></b></td>
+        <td>[]object</td>
+        <td>
+          CertSecrets provides a way to mount secrets that contain the keystore/truststore
+files for ssl/tls gemfire connections when using an existing secret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>dynamicProperties</b></td>
+        <td>map[string]string</td>
+        <td>
+          DynamicProperties are extra Tanzu GemFire client properties<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable a Tanzu GemFire integration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecret</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecret mounts an existing secret containing gemfire configuration
+to the container gateway.
+The secret should contain a key called sharedstate_client.yaml. If redis is
+also enabled, this must reference the same secret as redis.existingSecret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gwCounterRegionName</b></td>
+        <td>string</td>
+        <td>
+          GwCounterRegionName defaults to layer7gw_counter<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gwKeyValueRegionName</b></td>
+        <td>string</td>
+        <td>
+          GwKeyValueRegionName defaults to layer7gw_keyvalue<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gwRateLimiterRegionName</b></td>
+        <td>string</td>
+        <td>
+          GwRateLimiterRegionName defaults to layer7gw_ratelimiter<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gwSortedSetRegionName</b></td>
+        <td>string</td>
+        <td>
+          GwSortedSetRegionName defaults to layer7gw_sortedset<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfirelocatorsindex">locators</a></b></td>
+        <td>[]object</td>
+        <td>
+          Locators for the Tanzu GemFire cluster<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfiressl">ssl</a></b></td>
+        <td>object</td>
+        <td>
+          Ssl configuration for the Tanzu GemFire cluster<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>testOnStart</b></td>
+        <td>boolean</td>
+        <td>
+          TestOnStart test gemfire connection on startup<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.auth
+<sup><sup>[↩ Parent](#gatewayspecappgemfire)</sup></sup>
+
+
+
+Auth for the Tanzu GemFire cluster
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable Gemfire auth<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordEncoded</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordPlaintext</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.certs[index]
+<sup><sup>[↩ Parent](#gatewayspecappgemfire)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable an additional mount for gemfire keystore/truststore files<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          Key must match the file referenced in gemfire.existingSecret<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>secretName</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.locators[index]
+<sup><sup>[↩ Parent](#gatewayspecappgemfire)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.ssl
+<sup><sup>[↩ Parent](#gatewayspecappgemfire)</sup></sup>
+
+
+
+Ssl configuration for the Tanzu GemFire cluster
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable SSL/TLS for the Gemfire connection<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabledComponents</b></td>
+        <td>string</td>
+        <td>
+          EnabledComponents controls which components have SSL enabled, defaults to all<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfiresslkeystore">keystore</a></b></td>
+        <td>object</td>
+        <td>
+          Keystore configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>keystoreType</b></td>
+        <td>string</td>
+        <td>
+          KeystoreType defaults to JKS, also supports PKCS12<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfiressltruststore">truststore</a></b></td>
+        <td>object</td>
+        <td>
+          Truststore configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>truststoreType</b></td>
+        <td>string</td>
+        <td>
+          TruststoreType defaults to JKS, also supports PKCS12<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.ssl.keystore
+<sup><sup>[↩ Parent](#gatewayspecappgemfiressl)</sup></sup>
+
+
+
+Keystore configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>existingSecretKey</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretKey is the key in the secret containing the keystore/truststore file.
+Defaults to keystore.jks or truststore.jks depending on which store this is.
+The file is always mounted on the Gateway as keystore.jks or truststore.jks, regardless of
+the keystore/truststore type (e.g. PKCS12).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecretName</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretName references an existing secret containing the keystore/truststore file<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordEncoded</b></td>
+        <td>string</td>
+        <td>
+          PasswordEncoded for the keystore/truststore<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordPlaintext</b></td>
+        <td>string</td>
+        <td>
+          PasswordPlainText for the keystore/truststore<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.ssl.truststore
+<sup><sup>[↩ Parent](#gatewayspecappgemfiressl)</sup></sup>
+
+
+
+Truststore configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>existingSecretKey</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretKey is the key in the secret containing the keystore/truststore file.
+Defaults to keystore.jks or truststore.jks depending on which store this is.
+The file is always mounted on the Gateway as keystore.jks or truststore.jks, regardless of
+the keystore/truststore type (e.g. PKCS12).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecretName</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretName references an existing secret containing the keystore/truststore file<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordEncoded</b></td>
+        <td>string</td>
+        <td>
+          PasswordEncoded for the keystore/truststore<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordPlaintext</b></td>
+        <td>string</td>
+        <td>
+          PasswordPlainText for the keystore/truststore<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.hazelcast
 <sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
 
@@ -4719,7 +5121,7 @@ The Operator determines where to route to
         <td>
           TLSConfig defines config used to secure a route and provide termination<br/>
           <br/>
-            <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li>
+            <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li><li>!(has(self.certificate) && has(self.externalCertificate)): cannot have both spec.tls.certificate and spec.tls.externalCertificate</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13469,7 +13871,8 @@ Name must be an IANA_SVC_NAME.<br/>
         <td>
           ExistingSecret mounts an existing secret containing redis configuration
 to the container gateway.
-The secret should contain a key called redis.properties and redis.crt if tls is enabled<br/>
+The secret should contain a key called sharedstate_client.yaml. If gemfire is
+also enabled, this must reference the same secret as gemfire.existingSecret.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

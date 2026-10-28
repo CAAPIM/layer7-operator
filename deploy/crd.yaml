@@ -1884,6 +1884,9 @@ spec:
                                 rule: 'has(self.termination) && has(self.insecureEdgeTerminationPolicy)
                                   ? !((self.termination==''passthrough'') && (self.insecureEdgeTerminationPolicy==''Allow''))
                                   : true'
+                              - message: cannot have both spec.tls.certificate and
+                                  spec.tls.externalCertificate
+                                rule: '!(has(self.certificate) && has(self.externalCertificate))'
                             to:
                               description: RouteTargetReference specifies the target
                                 that resolve into endpoints.
@@ -7102,6 +7105,10 @@ spec:
                     type: array
                   enabled:
                     type: boolean
+                  httpMethods:
+                    items:
+                      type: string
+                    type: array
                   locationUrl:
                     type: string
                   modifyTs:

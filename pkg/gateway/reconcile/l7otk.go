@@ -31,8 +31,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/internal/graphman"
+	v1 "github.com/broadcom/layer7-operator/api/v1"
+	"github.com/broadcom/layer7-operator/internal/graphman"
 )
 
 var scheduledTasks = map[string]string{

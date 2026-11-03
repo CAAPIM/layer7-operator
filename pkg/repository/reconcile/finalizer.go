@@ -33,8 +33,8 @@ import (
 	"os"
 	"strings"
 
-	v1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/util"
+	v1 "github.com/broadcom/layer7-operator/api/v1"
+	"github.com/broadcom/layer7-operator/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )

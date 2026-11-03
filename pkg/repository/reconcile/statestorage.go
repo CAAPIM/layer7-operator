@@ -38,10 +38,10 @@ import (
 	"os"
 	"strings"
 
-	v1 "github.com/caapim/layer7-operator/api/v1"
-	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
-	"github.com/caapim/layer7-operator/internal/graphman"
-	"github.com/caapim/layer7-operator/pkg/util"
+	v1 "github.com/broadcom/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/broadcom/layer7-operator/api/v1alpha1"
+	"github.com/broadcom/layer7-operator/internal/graphman"
+	"github.com/broadcom/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

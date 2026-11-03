@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"

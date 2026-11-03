@@ -35,7 +35,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/caapim/layer7-operator/api/v1alpha1"
+	"github.com/broadcom/layer7-operator/api/v1alpha1"
 	"github.com/redis/go-redis/v9"
 )
 

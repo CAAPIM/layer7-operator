@@ -38,7 +38,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/caapim/layer7-operator/internal/graphman"
+	"github.com/broadcom/layer7-operator/internal/graphman"
 )
 
 var ErrInvalidFileFormatError = errors.New("InvalidFileFormat")

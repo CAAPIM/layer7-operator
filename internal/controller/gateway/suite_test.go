@@ -33,8 +33,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/internal/controller/repository"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
+	"github.com/broadcom/layer7-operator/internal/controller/repository"
 	//+kubebuilder:scaffold:imports
 )
 

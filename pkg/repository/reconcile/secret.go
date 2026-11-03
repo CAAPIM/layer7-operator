@@ -38,9 +38,9 @@ import (
 	"strings"
 	"sync"
 
-	v1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/repository"
-	"github.com/caapim/layer7-operator/pkg/util"
+	v1 "github.com/broadcom/layer7-operator/api/v1"
+	"github.com/broadcom/layer7-operator/pkg/repository"
+	"github.com/broadcom/layer7-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"

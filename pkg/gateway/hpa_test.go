@@ -3,7 +3,7 @@ package gateway
 import (
 	"testing"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

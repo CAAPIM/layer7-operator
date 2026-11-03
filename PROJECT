@@ -9,7 +9,7 @@ plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: layer7-operator
-repo: github.com/caapim/layer7-operator
+repo: github.com/broadcom/layer7-operator
 resources:
 - api:
     crdVersion: v1
@@ -18,7 +18,7 @@ resources:
   domain: brcmlabs.com
   group: security
   kind: Gateway
-  path: github.com/caapim/layer7-operator/api/v1
+  path: github.com/broadcom/layer7-operator/api/v1
   version: v1
 - api:
     crdVersion: v1
@@ -27,7 +27,7 @@ resources:
   domain: brcmlabs.com
   group: security
   kind: Repository
-  path: github.com/caapim/layer7-operator/api/v1
+  path: github.com/broadcom/layer7-operator/api/v1
   version: v1
 - api:
     crdVersion: v1
@@ -36,7 +36,7 @@ resources:
   domain: brcmlabs.com
   group: security
   kind: L7Portal
-  path: github.com/caapim/layer7-operator/api/v1alpha1
+  path: github.com/broadcom/layer7-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -45,7 +45,7 @@ resources:
   domain: brcmlabs.com
   group: security
   kind: L7Api
-  path: github.com/caapim/layer7-operator/api/v1alpha1
+  path: github.com/broadcom/layer7-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -54,6 +54,6 @@ resources:
   domain: brcmlabs.com
   group: security
   kind: L7StateStore
-  path: github.com/caapim/layer7-operator/api/v1alpha1
+  path: github.com/broadcom/layer7-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

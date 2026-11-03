@@ -32,7 +32,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/caapim/layer7-operator/pkg/gateway"
+	"github.com/broadcom/layer7-operator/pkg/gateway"
 	routev1 "github.com/openshift/api/route/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"

@@ -31,8 +31,8 @@ import (
 	"sync"
 	"time"
 
-	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
-	"github.com/caapim/layer7-operator/pkg/statestore/reconcile"
+	securityv1alpha1 "github.com/broadcom/layer7-operator/api/v1alpha1"
+	"github.com/broadcom/layer7-operator/pkg/statestore/reconcile"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"

@@ -33,7 +33,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
 	"github.com/go-logr/logr"
 )
 

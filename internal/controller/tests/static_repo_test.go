@@ -23,8 +23,8 @@ import (
 	"os"
 	"time"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/internal/graphman"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
+	"github.com/broadcom/layer7-operator/internal/graphman"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"

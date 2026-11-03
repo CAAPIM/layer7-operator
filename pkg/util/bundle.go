@@ -34,8 +34,8 @@ import (
 	"fmt"
 	"strings"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/internal/graphman"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
+	"github.com/broadcom/layer7-operator/internal/graphman"
 )
 
 type Bundle struct {

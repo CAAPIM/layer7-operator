@@ -36,9 +36,9 @@ import (
 	"sync"
 	"time"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	"github.com/caapim/layer7-operator/pkg/gateway/reconcile"
-	"github.com/caapim/layer7-operator/pkg/util"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
+	"github.com/broadcom/layer7-operator/pkg/gateway/reconcile"
+	"github.com/broadcom/layer7-operator/pkg/util"
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	"go.opentelemetry.io/otel"

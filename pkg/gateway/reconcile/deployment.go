@@ -321,8 +321,9 @@ func setLabels(ctx context.Context, params Params, dep *appsv1.Deployment) (*app
 				secrets = append(secrets, params.Instance.Name)
 			}
 		}
-		if params.Instance.Spec.App.Redis.Enabled && params.Instance.Spec.App.Redis.ExistingSecret == "" {
-			secrets = append(secrets, params.Instance.Name+"-shared-state-config")
+		sharedStateConfigSecret := params.Instance.Name + "-shared-state-config"
+		if params.Instance.SharedStateSecretManaged() {
+			secrets = append(secrets, sharedStateConfigSecret)
 		}
 
 		for _, secretName := range secrets {

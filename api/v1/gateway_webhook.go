@@ -168,6 +168,10 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 		}
 	}
 
+	if err := r.ValidateSharedStateExistingSecret(); err != nil {
+		return warnings, err
+	}
+
 	if r.Spec.App.Management.SecretName == "" {
 		warnings = append(warnings, "using an existing secret for gateway credentials is strongly recommended")
 		if r.Spec.App.Management.Username == "" || r.Spec.App.Management.Password == "" {

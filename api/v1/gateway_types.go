@@ -19,6 +19,8 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
+
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -269,6 +271,7 @@ type App struct {
 	ServiceAccount            ServiceAccount                    `json:"serviceAccount,omitempty"`
 	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
 	Redis                     RedisConfigurations               `json:"redis,omitempty"`
+	Gemfire                   GemfireConfigurations             `json:"gemfire,omitempty"`
 	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
 	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
 	PodSecurityContext        corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
@@ -453,7 +456,8 @@ type RedisConfigurations struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// ExistingSecret mounts an existing secret containing redis configuration
 	// to the container gateway.
-	// The secret should contain a key called redis.properties and redis.crt if tls is enabled
+	// The secret should contain a key called sharedstate_client.yaml. If gemfire is
+	// also enabled, this must reference the same secret as gemfire.existingSecret.
 	ExistingSecret string `json:"existingSecret,omitempty"`
 	// CertSecrets provides a way to mount secrets that contains certificates for ssl/tls redis connections when using an existing secret.
 	CertSecrets       []RedisCerts         `json:"certs,omitempty"`
@@ -524,6 +528,87 @@ type RedisSsl struct {
 	Crt string `json:"crt,omitempty"`
 	// VerifyPeer
 	VerifyPeer bool `json:"verifyPeer,omitempty"`
+}
+
+type GemfireConfigurations struct {
+	// Enable or disable a Tanzu GemFire integration
+	Enabled bool `json:"enabled,omitempty"`
+	// ExistingSecret mounts an existing secret containing gemfire configuration
+	// to the container gateway.
+	// The secret should contain a key called sharedstate_client.yaml. If redis is
+	// also enabled, this must reference the same secret as redis.existingSecret.
+	ExistingSecret string `json:"existingSecret,omitempty"`
+	// CertSecrets provides a way to mount secrets that contain the keystore/truststore
+	// files for ssl/tls gemfire connections when using an existing secret.
+	CertSecrets []GemfireCerts `json:"certs,omitempty"`
+	// TestOnStart test gemfire connection on startup
+	TestOnStart bool `json:"testOnStart,omitempty"`
+	// Locators for the Tanzu GemFire cluster
+	Locators []GemfireLocator `json:"locators,omitempty"`
+	// GwKeyValueRegionName defaults to layer7gw_keyvalue
+	GwKeyValueRegionName string `json:"gwKeyValueRegionName,omitempty"`
+	// GwCounterRegionName defaults to layer7gw_counter
+	GwCounterRegionName string `json:"gwCounterRegionName,omitempty"`
+	// GwRateLimiterRegionName defaults to layer7gw_ratelimiter
+	GwRateLimiterRegionName string `json:"gwRateLimiterRegionName,omitempty"`
+	// GwSortedSetRegionName defaults to layer7gw_sortedset
+	GwSortedSetRegionName string `json:"gwSortedSetRegionName,omitempty"`
+	// Auth for the Tanzu GemFire cluster
+	Auth GemfireAuth `json:"auth,omitempty"`
+	// DynamicProperties are extra Tanzu GemFire client properties
+	DynamicProperties map[string]string `json:"dynamicProperties,omitempty"`
+	// Ssl configuration for the Tanzu GemFire cluster
+	Ssl GemfireSsl `json:"ssl,omitempty"`
+}
+
+type GemfireLocator struct {
+	Host string `json:"host,omitempty"`
+	Port int    `json:"port,omitempty"`
+}
+
+type GemfireCerts struct {
+	// Enable or disable an additional mount for gemfire keystore/truststore files
+	Enabled    bool   `json:"enabled,omitempty"`
+	SecretName string `json:"secretName,omitempty"`
+	// Key must match the file referenced in gemfire.existingSecret
+	Key string `json:"key,omitempty"`
+}
+
+type GemfireAuth struct {
+	// Enable or disable Gemfire auth
+	Enabled           bool   `json:"enabled,omitempty"`
+	Username          string `json:"username,omitempty"`
+	PasswordEncoded   string `json:"passwordEncoded,omitempty"`
+	PasswordPlainText string `json:"passwordPlaintext,omitempty"`
+}
+
+type GemfireStore struct {
+	// ExistingSecretName references an existing secret containing the keystore/truststore file
+	ExistingSecretName string `json:"existingSecretName,omitempty"`
+	// ExistingSecretKey is the key in the secret containing the keystore/truststore file.
+	// Defaults to keystore.jks or truststore.jks depending on which store this is.
+	// The file is always mounted on the Gateway as keystore.jks or truststore.jks, regardless of
+	// the keystore/truststore type (e.g. PKCS12).
+	ExistingSecretKey string `json:"existingSecretKey,omitempty"`
+	// PasswordEncoded for the keystore/truststore
+	PasswordEncoded string `json:"passwordEncoded,omitempty"`
+	// PasswordPlainText for the keystore/truststore
+	PasswordPlainText string `json:"passwordPlaintext,omitempty"`
+}
+
+type GemfireSsl struct {
+	// Enable or disable SSL/TLS for the Gemfire connection
+	Enabled bool `json:"enabled,omitempty"`
+	// EnabledComponents controls which components have SSL enabled, defaults to all
+	EnabledComponents string `json:"enabledComponents,omitempty"`
+	// Keystore configuration
+	Keystore GemfireStore `json:"keystore,omitempty"`
+	// KeystoreType defaults to JKS, also supports PKCS12
+	KeystoreType string `json:"keystoreType,omitempty"`
+	// Truststore configuration
+	Truststore GemfireStore `json:"truststore,omitempty"`
+	// TruststoreType defaults to JKS, also supports PKCS12
+	TruststoreType string `json:"truststoreType,omitempty"`
 }
 
 type OtkDatabase struct {
@@ -1259,4 +1344,20 @@ type JVMHeap struct {
 
 func init() {
 	SchemeBuilder.Register(&Gateway{}, &GatewayList{})
+}
+
+// ValidateSharedStateExistingSecret checks that Redis and Gemfire, which share a single
+// sharedstate_client.yaml secret, agree on its existingSecret.
+func (g *Gateway) ValidateSharedStateExistingSecret() error {
+	if g.Spec.App.Redis.Enabled && g.Spec.App.Gemfire.Enabled &&
+		g.Spec.App.Redis.ExistingSecret != g.Spec.App.Gemfire.ExistingSecret {
+		return fmt.Errorf("redis and gemfire share a single sharedstate_client.yaml secret; existingSecret must be left empty on both (operator-managed) or set to the same secret name on both")
+	}
+	return nil
+}
+
+// SharedStateSecretManaged reports whether the operator manages the shared state client secret.
+func (g *Gateway) SharedStateSecretManaged() bool {
+	return (g.Spec.App.Redis.Enabled && g.Spec.App.Redis.ExistingSecret == "") ||
+		(g.Spec.App.Gemfire.Enabled && g.Spec.App.Gemfire.ExistingSecret == "")
 }

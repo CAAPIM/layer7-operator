@@ -36,6 +36,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	v1 "github.com/caapim/layer7-operator/api/v1"
@@ -339,8 +340,23 @@ func ReadStateStorage(ctx context.Context, params Params, statestore securityv1a
 		return fmt.Errorf("failed to marshal bundle map: %w", err)
 	}
 
-	if err := os.WriteFile(tmpPath+"/"+fileName, compressedBundleBytes, 0755); err != nil {
+	// Write atomically (temp file + rename) so a partial write can never be
+	// mistaken for a complete cache by the commit-tracker check above.
+	latestPath := tmpPath + "/" + fileName
+	tmpFile := latestPath + ".tmp"
+	if err := os.WriteFile(tmpFile, compressedBundleBytes, 0755); err != nil {
 		return err
+	}
+	if err := os.Rename(tmpFile, latestPath); err != nil {
+		_ = os.Remove(tmpFile)
+		return err
+	}
+
+	// Remove stale commit trackers from previous commits so they do not accumulate.
+	if stale, gErr := filepath.Glob(tmpPath + "/*.txt"); gErr == nil {
+		for _, f := range stale {
+			_ = os.Remove(f)
+		}
 	}
 
 	return os.WriteFile(tmpPath+"/"+commitTracker, []byte{}, 0755)

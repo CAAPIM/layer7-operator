@@ -1,9 +1,28 @@
+# Copyright © 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
+# AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
+
 # This Makefile drives the quickstart sections of all examples.
 #SHELL := /bin/bash
 
 NAMESPACE ?= default
 
-.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk
+# GemFire is licensed Broadcom/VMware software - Set GEMFIRE_REGISTRY (and credentials) for Broadcom's Support
+# Portal registry (registry.packages.broadcom.com) gemfire-operator/gemfire-cluster fail fast via
+# check-gemfire-vars if a required var is unset.
+GEMFIRE_REGISTRY ?= registry.packages.broadcom.com
+GEMFIRE_CHART_REPO ?= tanzu-gemfire-for-kubernetes
+GEMFIRE_CONTROLLER_IMAGE_REPO ?= tanzu-gemfire-for-kubernetes/gemfire-controller
+GEMFIRE_CHART_VERSION ?= 2.5.0
+GEMFIRE_CLUSTER_IMAGE ?= $(GEMFIRE_REGISTRY)/pivotal-gemfire/vmware-gemfire:10.2.1-jdk21
+
+REGISTRY_USER := $(or $(ARTIFACTORY_CREDS_USR),$(ARTIFACTORY_USERNAME),$(REG_USER))
+REGISTRY_TOKEN := $(or $(ARTIFACTORY_CREDS_PSW),$(ARTIFACTORY_PASSWORD),$(REG_PASSWORD))
+
+define require_var
+$(if $($(1)),,$(error $(1) is not set - GemFire registry access requires a Broadcom Support Portal registry token or an internal Artifactory mirror; see the GemFire section of README.md for both configs))
+endef
+
+.PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk gemfire-operator gemfire-cluster gemfire-configure gemfire-clean check-gemfire-vars
 
 wait:
 ifeq ($(OS),Windows_NT)
@@ -23,7 +42,7 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
@@ -43,7 +62,7 @@ otk-single:
 	kubectl apply -f ./gateway/otk/otk-single.yaml
 
 portal-example: redis
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml -n ${NAMESPACE}
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml -n ${NAMESPACE}
 	@$(MAKE) --silent t=15 wait
 	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 	kubectl apply -f ./state-store/portal-state-store.yaml -n ${NAMESPACE}
@@ -63,7 +82,7 @@ portal-example: redis
 	./portal-integration/create-tenant.sh -d ./portal-integration/enroll-payload.json -n ${NAMESPACE}
 
 g2c-agent:
-#sed -e 's/ip:.*/ip: "$(shell kubectl get svc ingress-nginx-controller -n ingress-nginx -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
+	#sed -e 's/ip:.*/ip: "$(shell kubectl get svc ingress-nginx-controller -n ingress-nginx -ojsonpath="{.spec.clusterIP}")"/g' ./portal-integration/g2c-agent/deployment-template.yaml > ./portal-integration/g2c-agent/deployment.yaml
 	kubectl apply -k ./portal-integration/g2c-agent
 	echo "deploy g2cagent"
 
@@ -78,8 +97,48 @@ default-redis:
 	@$(MAKE) --silent t=15 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=redis
 
+check-gemfire-vars:
+	@:$(call require_var,GEMFIRE_REGISTRY)
+	@:$(call require_var,REGISTRY_USER)
+	@:$(call require_var,REGISTRY_TOKEN)
+
+gemfire-operator: check-gemfire-vars cert-manager
+	@kubectl create secret docker-registry image-pull-secret --namespace=${NAMESPACE} \
+	  --docker-server=$(GEMFIRE_REGISTRY) --docker-username='$(REGISTRY_USER)' --docker-password='$(REGISTRY_TOKEN)' \
+	  --dry-run=client -o yaml | kubectl apply -f -
+	@printf '%s' '$(REGISTRY_TOKEN)' | helm registry login -u '$(REGISTRY_USER)' --password-stdin $(GEMFIRE_REGISTRY)
+	helm upgrade -i gemfire-crd oci://$(GEMFIRE_REGISTRY)/$(GEMFIRE_CHART_REPO)/gemfire-crd --version $(GEMFIRE_CHART_VERSION) \
+	  --namespace ${NAMESPACE} --set operatorReleaseName=gemfire-operator
+	helm upgrade -i gemfire-operator oci://$(GEMFIRE_REGISTRY)/$(GEMFIRE_CHART_REPO)/gemfire-operator --version $(GEMFIRE_CHART_VERSION) \
+	  --namespace ${NAMESPACE} --set controllerImage=$(GEMFIRE_REGISTRY)/$(GEMFIRE_CONTROLLER_IMAGE_REPO):$(GEMFIRE_CHART_VERSION) \
+	  --set imagePullSecretName=image-pull-secret
+	@$(MAKE) --silent t=30 wait
+	kubectl -n ${NAMESPACE} wait --for=condition=available --timeout=600s deployment/gemfire-operator-controller-manager
+
+gemfire-cluster: gemfire-operator
+	sed -e 's#__GEMFIRE_CLUSTER_IMAGE__#$(GEMFIRE_CLUSTER_IMAGE)#' ./gemfire/cluster1.yaml > /tmp/cluster1.rendered.yaml
+	kubectl apply -n ${NAMESPACE} -f /tmp/cluster1.rendered.yaml
+	@$(MAKE) --silent t=60 wait
+	kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=600s pod --all
+
+# Deploys the Layer7 GemFire function/security jars and creates the regions the Gateway's
+# shared-state client expects. Requires FUNCTIONS_JAR and SECURITY_JAR to be set to local
+# paths for the layer7-gemfire-functions and layer7-gemfire-security jars, e.g.:
+#   make gemfire-configure FUNCTIONS_JAR=/path/to/layer7-gemfire-functions-*.jar SECURITY_JAR=/path/to/layer7-gemfire-security-*.jar
+gemfire-configure: gemfire-cluster
+	NAMESPACE=${NAMESPACE} FUNCTIONS_JAR=$(FUNCTIONS_JAR) SECURITY_JAR=$(SECURITY_JAR) ./gemfire/configure-cluster.sh
+
+# Removes only the GemFire pieces (cluster, operator, CRD chart, image-pull-secret) so
+# gemfire-operator/gemfire-cluster/gemfire-configure can be re-run from a clean slate
+# without touching anything else in ${NAMESPACE}.
+gemfire-clean:
+	-kubectl delete -n ${NAMESPACE} -f ./gemfire/cluster1.yaml --ignore-not-found
+	-helm uninstall gemfire-operator -n ${NAMESPACE}
+	-helm uninstall gemfire-crd -n ${NAMESPACE}
+	-kubectl delete secret image-pull-secret -n ${NAMESPACE} --ignore-not-found
+
 grafana-stack:
-	helm repo add grafana https://grafana-community.github.io/helm-charts
+	helm repo add grafana https://grafana.github.io/helm-charts
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/loki-overrides.yaml loki grafana/loki -n grafana-loki --create-namespace
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/promtail-overrides.yaml promtail grafana/promtail -n grafana-loki
 	helm upgrade --install --values ./otel-lgtm/grafana-stack/tempo-overrides.yaml tempo grafana/tempo -n grafana-loki
@@ -251,7 +310,7 @@ pki-otk-dmz: pki-otk
 	-kubectl create secret tls otk-dmz-mtls-secret \
 	  --cert=/tmp/otk-dmz-mtls.crt --key=/tmp/otk-dmz-mtls.key \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	-kubectl create secret generic otk-internal-ca-cert \
+	-kubectl create configmap otk-internal-ca-cert \
 	  --from-file=ca.crt=/tmp/otk-internal-tls.crt \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
@@ -259,8 +318,11 @@ pki-otk-internal: pki-otk
 	-kubectl create secret tls otk-internal-secret \
 	  --cert=/tmp/otk-internal-tls.crt --key=/tmp/otk-internal-tls.key \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	-kubectl create secret generic otk-dmz-mtls-public-cert \
+	-kubectl create configmap otk-dmz-mtls-public-cert \
 	  --from-file=dmz-gateway.crt=/tmp/otk-dmz-mtls.crt \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	-kubectl create configmap otk-dmz-mtls-ca-cert \
+	  --from-file=dmz-gateway-mtls-ca.crt=/tmp/otk-dmz-mtls-ca.crt \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 cassandra:
@@ -290,10 +352,14 @@ uninstall:
 	-kubectl delete -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.65.0/jaeger-operator.yaml -n observability
 	-kubectl delete ns observability
 	-kubectl delete ns monitoring
-	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml
+	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml
 	-helm uninstall mysql
 	-helm uninstall cassandra
 	-helm uninstall contour -n projectcontour
+	-kubectl delete -n ${NAMESPACE} -f ./gemfire/cluster1.yaml
+	-helm uninstall gemfire-operator -n ${NAMESPACE}
+	-helm uninstall gemfire-crd -n ${NAMESPACE}
+	-kubectl delete secret image-pull-secret -n ${NAMESPACE}
 
 uninstall-kind:
 	kind delete cluster --name layer7

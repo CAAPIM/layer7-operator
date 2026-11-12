@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -46,6 +46,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -100,8 +101,10 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.PodDisruptionBudget, "podDisruptionBudget"},
 		{reconcile.GatewayStatus, "gatewayStatus"},
 		{reconcile.ConfigMaps, "configMaps"},
+		{reconcile.GatewayMigrationJob, "migration job"},
 		{reconcile.Deployment, "deployment"},
 		{reconcile.ManagementPod, "management pod"},
+		{reconcile.HandleEphemeralRestarts, "ephemeral restart detection"},
 		{reconcile.ClusterProperties, "cluster properties"},
 		{reconcile.ListenPorts, "listen ports"},
 		{reconcile.ExternalRepository, "repository references"},
@@ -130,20 +133,25 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	start := time.Now()
 	for _, op := range ops {
-		r.muTasks.Lock()
-		err = op.Run(ctx, params)
-		if err != nil {
+		if err = r.runOp(ctx, params, op); err != nil {
 			_ = captureMetrics(ctx, params, start, true, op.Name)
-			// record failures here
-			r.muTasks.Unlock()
 			return ctrl.Result{}, err
 		}
-		r.muTasks.Unlock()
 	}
 
 	_ = captureMetrics(ctx, params, start, false, "")
-
 	return ctrl.Result{RequeueAfter: 12 * time.Hour}, nil
+}
+
+// runOp executes a single reconcile operation under the task mutex.
+// Using a dedicated method ensures the deferred unlock fires when this
+// call returns rather than at the end of the outer Reconcile function,
+// which is what would happen if defer were placed inside the loop.
+// This also guarantees the mutex is always released even when op.Run panics.
+func (r *GatewayReconciler) runOp(ctx context.Context, params reconcile.Params, op ReconcileOperations) error {
+	r.muTasks.Lock()
+	defer r.muTasks.Unlock()
+	return op.Run(ctx, params)
 }
 
 func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -156,7 +164,8 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&networkingv1.Ingress{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
-		Owns(&autoscalingv2.HorizontalPodAutoscaler{})
+		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
+		Owns(&batchv1.Job{})
 
 	repo := &metav1.PartialObjectMetadata{}
 	repo.SetGroupVersionKind(schema.GroupVersionKind{

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package util
 
@@ -48,7 +49,7 @@ var ErrInvalidZipArchive = errors.New("InvalidZipArchive")
 // This is currently limited to URLs that contain the file extension as would be the
 // case when targeting releases from Git releases.
 // The following extensions are accepted .tar, .tar.gz, .zip
-func DownloadArtifact(URL string, username string, token string, name string, forceUpdate bool, namespace string) (string, error) {
+func DownloadArtifact(URL string, username string, token string, name string, forceUpdate bool, namespace string, insecureSkipVerify bool) (string, error) {
 	fileURL, err := url.Parse(URL)
 	if err != nil {
 		return "", err
@@ -94,7 +95,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 		os.RemoveAll(folderName)
 	}
 
-	resp, err := RestCall("GET", URL, true, map[string]string{}, "text/plain", []byte{}, username, token)
+	resp, err := RestCall("GET", URL, insecureSkipVerify, map[string]string{}, "text/plain", []byte{}, username, token)
 
 	if err != nil {
 		return "", err

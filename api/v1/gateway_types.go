@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -12,11 +13,14 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
 */
 
 package v1
 
 import (
+	"fmt"
+
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -62,6 +66,20 @@ type GatewayList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Gateway `json:"items"`
+}
+
+// MigrationStatus tracks the state of the pre-upgrade database migration job.
+// It is persisted in Gateway.Status so that completed migrations survive job
+// deletion and are not re-run on daily reconciles or operator restarts.
+type MigrationStatus struct {
+	// SpecHash is a short hash of the migration-relevant spec fields (image,
+	// effective jdbcUrl, clearLocks). When any of these change the hash changes
+	// and a fresh migration job is triggered.
+	SpecHash string `json:"specHash,omitempty"`
+	// Complete indicates that the migration job succeeded for the current SpecHash.
+	// Once true, GatewayMigrationJob skips job management entirely and the
+	// Deployment step is unblocked — regardless of whether the Job still exists.
+	Complete bool `json:"complete,omitempty"`
 }
 
 // GatewayStatus defines the observed state of Gateways
@@ -119,6 +137,8 @@ type GatewayStatus struct {
 	LastAppliedExternalCerts map[string][]string `json:"lastAppliedExternalCerts,omitempty"`
 	// LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates have been applied
 	LastAppliedOtkFipsCerts map[string][]string `json:"lastAppliedOtkFipsCerts,omitempty"`
+	// MigrationStatus tracks the state of the pre-upgrade database migration job.
+	MigrationStatus MigrationStatus `json:"migrationStatus,omitempty"`
 }
 
 // GatewayState tracks the status of Gateway Resources
@@ -171,6 +191,9 @@ type GatewayRepositoryStatus struct {
 	Conditions []RepositoryCondition `json:"conditions,omitempty"`
 	// Directories
 	Directories []string `json:"directories,omitempty"`
+	// InsecureSkipVerify disables TLS certificate verification for http and git
+	// repository types. Propagated from Repository.Spec.InsecureSkipVerify.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
 type RepositoryCondition struct {
@@ -248,6 +271,7 @@ type App struct {
 	ServiceAccount            ServiceAccount                    `json:"serviceAccount,omitempty"`
 	Hazelcast                 Hazelcast                         `json:"hazelcast,omitempty"`
 	Redis                     RedisConfigurations               `json:"redis,omitempty"`
+	Gemfire                   GemfireConfigurations             `json:"gemfire,omitempty"`
 	Bootstrap                 Bootstrap                         `json:"bootstrap,omitempty"`
 	ContainerSecurityContext  corev1.SecurityContext            `json:"containerSecurityContext,omitempty"`
 	PodSecurityContext        corev1.PodSecurityContext         `json:"podSecurityContext,omitempty"`
@@ -259,6 +283,7 @@ type App struct {
 	ExternalSecrets           []ExternalSecret                  `json:"externalSecrets,omitempty"`
 	ExternalKeys              []ExternalKey                     `json:"externalKeys,omitempty"`
 	ExternalCerts             []ExternalCert                    `json:"externalCerts,omitempty"`
+	StartupProbe              corev1.Probe                      `json:"startupProbe,omitempty"`
 	LivenessProbe             corev1.Probe                      `json:"livenessProbe,omitempty"`
 	ReadinessProbe            corev1.Probe                      `json:"readinessProbe,omitempty"`
 	CustomConfig              CustomConfig                      `json:"customConfig,omitempty"`
@@ -344,9 +369,6 @@ type PortalReference struct {
 type Otk struct {
 	// Enable or disable the OTK initContainer
 	Enabled bool `json:"enabled,omitempty"`
-	// ManageCrossNamespace allows a cluster-wide layer7 operator to manage internal/dmz gateways across namespaces
-	// this is limited to a single kubernetes cluster.
-	ManageCrossNamespace bool `json:"manageCrossNamespace,omitempty"`
 	// InitContainerImage for the initContainer
 	InitContainerImage string `json:"initContainerImage,omitempty"`
 	// InitContainerImagePullPolicy
@@ -392,16 +414,9 @@ type OtkMaintenanceTasks struct {
 }
 
 type GatewayReference struct {
-	// Name of the gateway
-	// if managing otk gateways across namespaces this must match the referenced gateway CR
-	Name string `json:"name,omitempty"`
-	// Namespace of the referenced gateway if managing gateways cross namespace (optional)
-	Namespace string `json:"namespace,omitempty"`
 	// Url of the target gateway
 	// used for post-installation gateway policy configuration
 	Url string `json:"url,omitempty"`
-	// Port of the target gateway
-	Port int `json:"port,omitempty"`
 }
 
 type OtkOverrides struct {
@@ -441,7 +456,8 @@ type RedisConfigurations struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// ExistingSecret mounts an existing secret containing redis configuration
 	// to the container gateway.
-	// The secret should contain a key called redis.properties and redis.crt if tls is enabled
+	// The secret should contain a key called sharedstate_client.yaml. If gemfire is
+	// also enabled, this must reference the same secret as gemfire.existingSecret.
 	ExistingSecret string `json:"existingSecret,omitempty"`
 	// CertSecrets provides a way to mount secrets that contains certificates for ssl/tls redis connections when using an existing secret.
 	CertSecrets       []RedisCerts         `json:"certs,omitempty"`
@@ -512,6 +528,87 @@ type RedisSsl struct {
 	Crt string `json:"crt,omitempty"`
 	// VerifyPeer
 	VerifyPeer bool `json:"verifyPeer,omitempty"`
+}
+
+type GemfireConfigurations struct {
+	// Enable or disable a Tanzu GemFire integration
+	Enabled bool `json:"enabled,omitempty"`
+	// ExistingSecret mounts an existing secret containing gemfire configuration
+	// to the container gateway.
+	// The secret should contain a key called sharedstate_client.yaml. If redis is
+	// also enabled, this must reference the same secret as redis.existingSecret.
+	ExistingSecret string `json:"existingSecret,omitempty"`
+	// CertSecrets provides a way to mount secrets that contain the keystore/truststore
+	// files for ssl/tls gemfire connections when using an existing secret.
+	CertSecrets []GemfireCerts `json:"certs,omitempty"`
+	// TestOnStart test gemfire connection on startup
+	TestOnStart bool `json:"testOnStart,omitempty"`
+	// Locators for the Tanzu GemFire cluster
+	Locators []GemfireLocator `json:"locators,omitempty"`
+	// GwKeyValueRegionName defaults to layer7gw_keyvalue
+	GwKeyValueRegionName string `json:"gwKeyValueRegionName,omitempty"`
+	// GwCounterRegionName defaults to layer7gw_counter
+	GwCounterRegionName string `json:"gwCounterRegionName,omitempty"`
+	// GwRateLimiterRegionName defaults to layer7gw_ratelimiter
+	GwRateLimiterRegionName string `json:"gwRateLimiterRegionName,omitempty"`
+	// GwSortedSetRegionName defaults to layer7gw_sortedset
+	GwSortedSetRegionName string `json:"gwSortedSetRegionName,omitempty"`
+	// Auth for the Tanzu GemFire cluster
+	Auth GemfireAuth `json:"auth,omitempty"`
+	// DynamicProperties are extra Tanzu GemFire client properties
+	DynamicProperties map[string]string `json:"dynamicProperties,omitempty"`
+	// Ssl configuration for the Tanzu GemFire cluster
+	Ssl GemfireSsl `json:"ssl,omitempty"`
+}
+
+type GemfireLocator struct {
+	Host string `json:"host,omitempty"`
+	Port int    `json:"port,omitempty"`
+}
+
+type GemfireCerts struct {
+	// Enable or disable an additional mount for gemfire keystore/truststore files
+	Enabled    bool   `json:"enabled,omitempty"`
+	SecretName string `json:"secretName,omitempty"`
+	// Key must match the file referenced in gemfire.existingSecret
+	Key string `json:"key,omitempty"`
+}
+
+type GemfireAuth struct {
+	// Enable or disable Gemfire auth
+	Enabled           bool   `json:"enabled,omitempty"`
+	Username          string `json:"username,omitempty"`
+	PasswordEncoded   string `json:"passwordEncoded,omitempty"`
+	PasswordPlainText string `json:"passwordPlaintext,omitempty"`
+}
+
+type GemfireStore struct {
+	// ExistingSecretName references an existing secret containing the keystore/truststore file
+	ExistingSecretName string `json:"existingSecretName,omitempty"`
+	// ExistingSecretKey is the key in the secret containing the keystore/truststore file.
+	// Defaults to keystore.jks or truststore.jks depending on which store this is.
+	// The file is always mounted on the Gateway as keystore.jks or truststore.jks, regardless of
+	// the keystore/truststore type (e.g. PKCS12).
+	ExistingSecretKey string `json:"existingSecretKey,omitempty"`
+	// PasswordEncoded for the keystore/truststore
+	PasswordEncoded string `json:"passwordEncoded,omitempty"`
+	// PasswordPlainText for the keystore/truststore
+	PasswordPlainText string `json:"passwordPlaintext,omitempty"`
+}
+
+type GemfireSsl struct {
+	// Enable or disable SSL/TLS for the Gemfire connection
+	Enabled bool `json:"enabled,omitempty"`
+	// EnabledComponents controls which components have SSL enabled, defaults to all
+	EnabledComponents string `json:"enabledComponents,omitempty"`
+	// Keystore configuration
+	Keystore GemfireStore `json:"keystore,omitempty"`
+	// KeystoreType defaults to JKS, also supports PKCS12
+	KeystoreType string `json:"keystoreType,omitempty"`
+	// Truststore configuration
+	Truststore GemfireStore `json:"truststore,omitempty"`
+	// TruststoreType defaults to JKS, also supports PKCS12
+	TruststoreType string `json:"truststoreType,omitempty"`
 }
 
 type OtkDatabase struct {
@@ -694,6 +791,27 @@ type Database struct {
 	Password string `json:"password,omitempty"`
 	// LiquibaseLogLevel
 	LiquibaseLogLevel LiquibaseLogLevel `json:"liquibaseLogLevel,omitempty"`
+	// MigrationJob for pre-upgrade schema updates
+	MigrationJob MigrationJob `json:"migrationJob,omitempty"`
+}
+
+// MigrationJob configures the pre-upgrade database migration job
+type MigrationJob struct {
+	// Enabled or disabled
+	Enabled bool `json:"enabled,omitempty"`
+	// JDBCUrl overrides the main database.jdbcUrl for the migration job (e.g. to bypass a proxy).
+	// Only applies in diskless mode (disklessConfig.disabled: false, the default).
+	// In non-diskless mode the entrypoint reads the JDBC URL from the mounted node.properties
+	// file and this field has no effect — node.properties always wins, consistent with Helm behavior.
+	JDBCUrl string `json:"jdbcUrl,omitempty"`
+	// ClearLocks forces release of any stuck Liquibase locks before applying
+	// schema updates. Use with caution: forcefully releasing a lock while
+	// another process is actively updating the schema can corrupt the database.
+	ClearLocks bool `json:"clearLocks,omitempty"`
+	// ActiveDeadlineSeconds is the max duration each pod attempt is allowed to run.
+	// The job may retry once (backoffLimit=1), so total elapsed time can be up to
+	// 2× this value. Defaults to 300 seconds (5 minutes) per attempt.
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 }
 
 // Restman is a Gateway Management interface that can be automatically provisioned.
@@ -720,7 +838,7 @@ type Graphman struct {
 // Service
 type Service struct {
 	// Enabled or disabled
-	Enabled bool ` json:"enabled,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
 	// Annotations for the service
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Type ClusterIP, NodePort, LoadBalancer
@@ -885,15 +1003,17 @@ const (
 	RevocationCheckPolicyTypeSpecified RevocationCheckPolicyType = "SPECIFIED"
 )
 
-// ExternalCert is a reference to an existing TLS or Opaque Secret in Kubernetes
-// The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+// ExternalCert is a reference to an existing TLS or Opaque Secret or ConfigMap in Kubernetes
+// The Layer7 Operator will attempt to convert this to a Graphman bundle that can be applied
 // dynamically keeping any referenced trusted certs up-to-date.
-// You can bring in external secrets using tools like cert-manager
+// You can bring in external certs using tools like cert-manager
 type ExternalCert struct {
 	// Enabled or disabled
 	Enabled bool `json:"enabled,omitempty"`
-	// Name of the Secret which already exists in Kubernetes
-	Name                      string                    `json:"name,omitempty"`
+	// Name of the Secret or ConfigMap which already exists in Kubernetes
+	Name string `json:"name,omitempty"`
+	// Type of the referenced resource: "secret" (default) or "configmap"
+	Type                      string                    `json:"type,omitempty"`
 	VerifyHostname            bool                      `json:"verifyHostname,omitempty"`
 	TrustedFor                []TrustedFor              `json:"trustedFor,omitempty"`
 	TrustAnchor               bool                      `json:"trustAnchor,omitempty"`
@@ -1224,4 +1344,20 @@ type JVMHeap struct {
 
 func init() {
 	SchemeBuilder.Register(&Gateway{}, &GatewayList{})
+}
+
+// ValidateSharedStateExistingSecret checks that Redis and Gemfire, which share a single
+// sharedstate_client.yaml secret, agree on its existingSecret.
+func (g *Gateway) ValidateSharedStateExistingSecret() error {
+	if g.Spec.App.Redis.Enabled && g.Spec.App.Gemfire.Enabled &&
+		g.Spec.App.Redis.ExistingSecret != g.Spec.App.Gemfire.ExistingSecret {
+		return fmt.Errorf("redis and gemfire share a single sharedstate_client.yaml secret; existingSecret must be left empty on both (operator-managed) or set to the same secret name on both")
+	}
+	return nil
+}
+
+// SharedStateSecretManaged reports whether the operator manages the shared state client secret.
+func (g *Gateway) SharedStateSecretManaged() bool {
+	return (g.Spec.App.Redis.Enabled && g.Spec.App.Redis.ExistingSecret == "") ||
+		(g.Spec.App.Gemfire.Enabled && g.Spec.App.Gemfire.ExistingSecret == "")
 }

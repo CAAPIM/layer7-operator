@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Broadcom Inc. and its subsidiaries. All Rights Reserved.
 /*
 Copyright 2021.
 
@@ -23,14 +24,12 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *Repository) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+	return ctrl.NewWebhookManagedBy(mgr, r).
 		WithDefaulter(r).
 		WithValidator(r).
 		Complete()
@@ -38,43 +37,31 @@ func (r *Repository) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-security-brcmlabs-com-v1-repository,mutating=true,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=repositories,verbs=create;update,versions=v1,name=mrepository.kb.io,admissionReviewVersions=v1
 
-var _ admission.CustomDefaulter = &Repository{}
+var _ admission.Defaulter[*Repository] = &Repository{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *Repository) Default(ctx context.Context, obj runtime.Object) error {
+// Default implements admission.Defaulter for *Repository.
+func (r *Repository) Default(ctx context.Context, obj *Repository) error {
 	return nil
 }
 
 //+kubebuilder:webhook:path=/validate-security-brcmlabs-com-v1-repository,mutating=false,failurePolicy=fail,sideEffects=None,groups=security.brcmlabs.com,resources=repositories,verbs=create;update,versions=v1,name=vrepository.kb.io,admissionReviewVersions=v1
 
-var _ admission.CustomValidator = &Repository{}
+var _ admission.Validator[*Repository] = &Repository{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Repository) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	repository, ok := obj.(*Repository)
-	if !ok {
-		return nil, fmt.Errorf("expected a Repository, received %T", obj)
-	}
-	return validateRepository(repository)
+// ValidateCreate implements admission.Validator for *Repository.
+func (r *Repository) ValidateCreate(ctx context.Context, obj *Repository) (admission.Warnings, error) {
+	return validateRepository(obj)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Repository) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	_, ok := oldObj.(*Repository)
-	if !ok {
-		return nil, fmt.Errorf("expected a Repository for oldObj, received %T", oldObj)
-	}
-	repository, ok := newObj.(*Repository)
-	if !ok {
-		return nil, fmt.Errorf("expected a Repository for newObj, received %T", newObj)
-	}
-	return validateRepository(repository)
+// ValidateUpdate implements admission.Validator for *Repository.
+func (r *Repository) ValidateUpdate(ctx context.Context, oldObj, newObj *Repository) (admission.Warnings, error) {
+	return validateRepository(newObj)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Repository) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+// ValidateDelete implements admission.Validator for *Repository.
+func (r *Repository) ValidateDelete(ctx context.Context, obj *Repository) (admission.Warnings, error) {
 	// Could extend to checking which gateways reference this before deletion.
-	return []string{}, nil
+	return nil, nil
 }
 
 func validateRepository(r *Repository) (admission.Warnings, error) {

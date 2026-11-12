@@ -4,7 +4,7 @@ pipeline {
     agent { label "default" }
     environment {
         ARTIFACTORY_DOCKER_IMS_IMAGE_REG = "ims-base-images-docker-release-local.usw1.packages.broadcom.com"
-        ARTIFACTORY_DOCKER_IMS_IMAGE = "ims-distro-debian13-static:202510"
+        ARTIFACTORY_DOCKER_IMS_IMAGE = "ims-distro-debian13-static:26.06.24"
         ARTIFACTORY_DOCKER_GO_IMAGE_REG = "docker-hub.usw1.packages.broadcom.com"
         ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST = "apim-docker-dev-local.usw1.packages.broadcom.com"
         ARTIFACT_HOST =  "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}"
@@ -34,7 +34,7 @@ pipeline {
                         if [[ "${BRANCH_NAME}" = "develop" ]]; then
                           export IMAGE_TAG="latest"
                         else
-                          export RELEASE_VERSION="${BRANCH_NAME}"
+                          export RELEASE_VERSION="$(echo "${BRANCH_NAME}" | tr '/' '-')"
                         fi
                       fi
 
@@ -63,7 +63,7 @@ pipeline {
                       docker login ${ARTIFACTORY_DOCKER_IMS_IMAGE_REG} -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}
                       docker login ${ARTIFACTORY_DOCKER_GO_IMAGE_REG}  -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}
                       DISTROLESS_IMG=${ARTIFACTORY_DOCKER_IMS_IMAGE_REG}/${ARTIFACTORY_DOCKER_IMS_IMAGE}
-                      GO_BUILD_IMG=${ARTIFACTORY_DOCKER_GO_IMAGE_REG}/golang:1.24
+                      GO_BUILD_IMG=${ARTIFACTORY_DOCKER_GO_IMAGE_REG}/golang:1.26
                       cat Dockerfile | sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" | sed -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" > operator.Dockerfile
                       docker buildx build -f operator.Dockerfile -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION} --builder "${DOCKER_BUILDER_NAME}" --platform="${TARGET_PLATFORMS}" --build-arg TITLE="${IMAGE_NAME}" --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${RELEASE_VERSION}" --build-arg CREATED="${CREATED}" --build-arg GOPROXY="${GOPROXY}" . --push
                   '''

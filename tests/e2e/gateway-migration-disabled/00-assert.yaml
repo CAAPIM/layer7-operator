@@ -1,0 +1,34 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+# 60 s is enough for the operator to reconcile and create the Deployment.
+# We only assert the Deployment spec (not pod readiness), so we do not need
+# to wait for the Gateway JVM to start against the fake database.
+timeout: 60
+commands:
+  - script: |
+      # Assert: no migration Job was ever created. YAML subset matching can
+      # only assert what exists — it cannot express "this resource is
+      # absent" — so a command script is required here. Without this check,
+      # a regression that created a Job despite migrationJob.enabled=false
+      # would pass this test silently.
+      if kubectl get job ssg-migration-disabled-db-migration -n "$NAMESPACE" >/dev/null 2>&1; then
+        echo "FAIL: Job must not exist when migrationJob.enabled=false"
+        exit 1
+      fi
+
+      echo "PASS: no migration Job exists"
+---
+# Assert: the Deployment was created with the correct image.
+# The key observable here is that the Deployment EXISTS at all — if migration
+# were enabled and blocking the rollout, the operator would return
+# ErrMigrationPending and never reach the Deployment reconcile step.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssg-migration-disabled
+spec:
+  template:
+    spec:
+      containers:
+      - name: gateway
+        image: docker.io/caapim/gateway:11.2.1

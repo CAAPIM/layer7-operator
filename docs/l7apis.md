@@ -190,6 +190,13 @@ PortalMeta is reserved for the API Developer Portal
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>httpMethods</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>locationUrl</b></td>
         <td>string</td>
         <td>

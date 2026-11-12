@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package util
 
@@ -38,6 +39,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// RedisClient builds a short-lived go-redis client. Callers must Close() when done to release the connection pool.
 func RedisClient(c *v1alpha1.Redis) (rdb *redis.Client, err error) {
 	username := ""
 	if c.Username != "" {
@@ -69,13 +71,15 @@ func RedisClient(c *v1alpha1.Redis) (rdb *redis.Client, err error) {
 		}
 
 		if c.Tls.VerifyPeer && c.Tls.RedisCrt != "" {
-			certValidations := 0
 			tlsConfig.InsecureSkipVerify = true
 			if strings.Contains(string(c.Tls.RedisCrt), "-----BEGIN CERTIFICATE-----") {
 				crtStrings := strings.SplitAfter(string(c.Tls.RedisCrt), "-----END CERTIFICATE-----")
 				crtStrings = crtStrings[:len(crtStrings)-1]
 				for crt := range crtStrings {
 					b, _ := pem.Decode([]byte(crtStrings[crt]))
+					if b == nil {
+						continue
+					}
 					crtX509, err := x509.ParseCertificate(b.Bytes)
 					if err != nil {
 						return nil, err
@@ -84,11 +88,15 @@ func RedisClient(c *v1alpha1.Redis) (rdb *redis.Client, err error) {
 				}
 
 				tlsConfig.VerifyConnection = func(cs tls.ConnectionState) error {
-					// validate local certs against server certs
+					// certValidations is declared inside the closure so it resets on every
+					// TLS handshake, including reconnects. Declaring it in the outer scope
+					// would cause it to accumulate across reconnects and eventually report
+					// false positives once it exceeded len(localCrts).
+					certValidations := 0
 					for _, localCert := range localCrts {
 						for _, peerCert := range cs.PeerCertificates {
 							if bytes.Equal(localCert.Raw, peerCert.Raw) {
-								certValidations = certValidations + 1
+								certValidations++
 							}
 						}
 					}

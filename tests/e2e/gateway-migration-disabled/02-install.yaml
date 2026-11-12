@@ -1,0 +1,39 @@
+# Step 02: flip migrationJob.enabled back to false.
+#
+# This exercises GatewayMigrationJob's orphan-cleanup branch
+# (pkg/gateway/reconcile/migration_job.go: "!migrationEnabled") against a
+# Job that actually exists (created in step 01) — the scenario the branch's
+# comment describes: "toggling enabled→false doesn't orphan a job".
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg-migration-disabled
+spec:
+  version: "11.2.1"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:11.2.1
+    imagePullPolicy: IfNotPresent
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
+      username: admin
+      password: 7layer
+      database:
+        enabled: true
+        jdbcUrl: jdbc:mysql://no-mysql.local:3306/ssg
+        migrationJob:
+          enabled: false   # ← toggled back off
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+        - name: management
+          port: 9443
+          targetPort: 9443

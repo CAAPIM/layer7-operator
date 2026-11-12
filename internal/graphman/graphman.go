@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package graphman
 
@@ -59,8 +60,8 @@ func Implode(path string, processNestedRepos bool) ([]byte, error) {
 	return bundleBytes, nil
 }
 
-func RemoveL7PortalApi(username string, password string, target string, apiName string, policyFragmentName string, secretNames []string) ([]byte, error) {
-	resp, err := deleteL7PortalApi(context.Background(), gqlClient(username, password, target, ""), []string{apiName}, []string{policyFragmentName}, secretNames)
+func RemoveL7PortalApi(username string, password string, target string, apiName string, policyFragmentName string, secretNames []string, insecureSkipVerify bool) ([]byte, error) {
+	resp, err := deleteL7PortalApi(context.Background(), gqlClient(username, password, target, "", insecureSkipVerify), []string{apiName}, []string{policyFragmentName}, secretNames)
 	if err != nil {
 		return nil, err
 	}
@@ -72,14 +73,14 @@ func RemoveL7PortalApi(username string, password string, target string, apiName 
 	return respBytes, nil
 }
 
-func ApplyDynamicBundle(username string, password string, target string, encpass string, bundleBytes []byte) (interface{}, error) {
+func ApplyDynamicBundle(username string, password string, target string, encpass string, bundleBytes []byte, insecureSkipVerify bool) (interface{}, error) {
 	bundle := Bundle{}
 
 	err := json.Unmarshal(bundleBytes, &bundle)
 	if err != nil {
 		return nil, err
 	}
-	resp, applyErr := installGenericBundle(context.Background(), gqlClient(username, password, target, encpass), &bundle)
+	resp, applyErr := installGenericBundle(context.Background(), gqlClient(username, password, target, encpass, insecureSkipVerify), &bundle)
 
 	respBytes, err := json.Marshal(resp)
 	if err != nil {
@@ -104,14 +105,14 @@ func ApplyDynamicBundle(username string, password string, target string, encpass
 	return resp, nil
 }
 
-func DeleteDynamicBundle(username string, password string, target string, encpass string, bundleBytes []byte) (interface{}, error) {
+func DeleteDynamicBundle(username string, password string, target string, encpass string, bundleBytes []byte, insecureSkipVerify bool) (interface{}, error) {
 	bundle := Bundle{}
 
 	err := json.Unmarshal(bundleBytes, &bundle)
 	if err != nil {
 		return nil, err
 	}
-	resp, applyErr := deleteGenericBundle(context.Background(), gqlClient(username, password, target, encpass), &bundle)
+	resp, applyErr := deleteGenericBundle(context.Background(), gqlClient(username, password, target, encpass, insecureSkipVerify), &bundle)
 
 	respBytes, err := json.Marshal(resp)
 	if err != nil {

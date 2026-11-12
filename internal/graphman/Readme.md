@@ -7,6 +7,6 @@ $ NODE_TLS_REJECT_UNAUTHORIZED=0 get-graphql-schema -h "Authorization=Basic YWRt
 ### Generate Schema
 
 ```
-$ go get github.com/Khan/genqlient@v0.7.0
-$ go run github.com/Khan/genqlient@v0.7.0
+go get -tool github.com/Khan/genqlient@v0.8.1
+go tool genqlient
 ```

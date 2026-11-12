@@ -1,0 +1,48 @@
+# Test: migrationJob.jdbcUrl override — Job gets SSG_DATABASE_JDBC_URL env var
+#
+# Scenario: database.jdbcUrl points at a load-balancing proxy (common with AWS RDS
+# Proxy or ProxySQL). Liquibase requires a direct connection to the primary writer
+# to avoid multiplexing issues, so migrationJob.jdbcUrl overrides the URL for the
+# migration Job only while normal Gateway pods continue to use the proxy URL.
+#
+# Expected behaviour:
+#   - The Job container has SSG_DATABASE_JDBC_URL set to the override URL.
+#   - "?createDatabaseIfNotExist=false" is appended to the override URL so a
+#     misconfigured URL fails fast rather than silently creating a new database.
+#   - The main database.jdbcUrl is NOT used by the Job container.
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg-migration-jdbcurl
+spec:
+  version: "11.2.1"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:11.2.1
+    imagePullPolicy: IfNotPresent
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
+      username: admin
+      password: 7layer
+      database:
+        enabled: true
+        # Proxy URL — used by live Gateway pods, NOT by the migration Job.
+        jdbcUrl: jdbc:mysql://no-mysql-proxy.local:3306/ssg
+        migrationJob:
+          enabled: true
+          # Direct primary writer URL — used exclusively by the migration Job.
+          jdbcUrl: jdbc:mysql://no-mysql-primary.local:3306/ssg
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+        - name: management
+          port: 9443
+          targetPort: 9443

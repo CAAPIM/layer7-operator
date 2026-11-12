@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -108,6 +108,10 @@ func StorageSecret(ctx context.Context, params Params) error {
 		storageSecretName = params.Instance.Name + "-repository-" + folderName
 		ext = folderName
 	case "git":
+		// Flatten any '/' in the ref so the storage-secret name is a valid
+		// Kubernetes name and the checkout path below matches the directory
+		// CloneRepository created (both apply SafeRef to the same ref).
+		ext = util.SafeRef(ext)
 		storageSecretName = params.Instance.Name + "-repository-" + ext
 	default:
 		params.Log.Info("repository type not set", "name", params.Instance.Name, "namespace", params.Instance.Name)
@@ -122,18 +126,37 @@ func StorageSecret(ctx context.Context, params Params) error {
 		return errors.New("exceededMaxSize")
 	}
 
-	projects, err := util.DetectGraphmanFolders("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
+	checkoutPath := "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext
+	projects, err := util.DetectGraphmanFolders(checkoutPath)
 
 	if err != nil {
 		return err
 	}
 
+	var warnNoProjectDirs, useCloneRootAsProject bool
+	if len(projects) == 0 {
+		warnNoProjectDirs, useCloneRootAsProject, err = analyzeGraphmanCloneRoot(checkoutPath, params.Log)
+		if err != nil {
+			return err
+		}
+		if warnNoProjectDirs {
+			params.Log.Info("no graphman bundle folders found under repository checkout. storage secret will have no compressed bundle keys",
+				"name", params.Instance.Name,
+				"namespace", params.Instance.Namespace)
+		}
+	}
+
+	projectsToBuild := projects
+	if len(projects) == 0 && useCloneRootAsProject {
+		projectsToBuild = []string{checkoutPath}
+	}
+
 	data := map[string][]byte{}
 
 	secretSize := 0
-	for _, p := range projects {
+	for _, p := range projectsToBuild {
 
-		bundleGzip, err := util.CompressGraphmanBundle(p, false)
+		bundleGzip, err := util.CompressGraphmanBundle(p, false, params.Log)
 		if err != nil {
 			return err
 		}
@@ -158,7 +181,11 @@ func StorageSecret(ctx context.Context, params Params) error {
 		}
 
 		keyName := strings.Replace(p, "/tmp/"+params.Instance.Name+"-"+params.Instance.Namespace+"-"+ext, "", 1)
-		keyName = strings.Replace(strings.ReplaceAll(keyName, "/", "-"), "-", "", 1) + ".gz"
+		keyName = strings.Replace(strings.ReplaceAll(keyName, "/", "-"), "-", "", 1)
+		if keyName == "" {
+			keyName = params.Instance.Name
+		}
+		keyName = keyName + ".gz"
 		data[keyName] = bundleGzip
 		buf.Reset()
 	}
@@ -187,7 +214,9 @@ func StorageSecretFromBundleMap(ctx context.Context, params Params, bundleMap ma
 	}
 
 	if len(bundleMap) == 0 {
-		params.Log.V(2).Info("bundleMap is empty, skipping storage secret creation")
+		params.Log.Info("repository produced no bundle artifacts. skipping storage secret update from bundle map",
+			"name", params.Instance.Name,
+			"namespace", params.Instance.Namespace)
 		return nil
 	}
 

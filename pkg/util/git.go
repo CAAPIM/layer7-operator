@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -22,6 +22,7 @@
 * LOST DATA, EVEN IF BROADCOM IS EXPRESSLY ADVISED IN ADVANCE OF THE
 * POSSIBILITY OF SUCH LOSS OR DAMAGE.
 *
+* AI assistance has been used to generate some or all contents of this file. That includes, but is not limited to, new code, modifying existing code, stylistic edits.
  */
 package util
 
@@ -36,9 +37,60 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	gossh "golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-func CloneRepository(url string, username string, token string, privateKey []byte, privateKeyPass string, branch string, tag string, remoteName string, name string, vendor string, authType string, knownHosts []byte, namespace string) (string, error) {
+// ValidateRef rejects branch and tag values that could escape the /tmp working
+// directory or are otherwise unsafe. It intentionally permits '/', which is
+// common in namespaced refs such as "feature/x" or "release/1.3", but rejects
+// path traversal ("..", a leading or trailing '/', or "//"), backslashes, and
+// control characters. Callers must pass the ref through SafeRef before using it
+// to build a filesystem path or Kubernetes resource name.
+func ValidateRef(ref string) error {
+	if ref == "" {
+		return nil
+	}
+	if strings.Contains(ref, "..") {
+		return fmt.Errorf("branch/tag %q must not contain %q", ref, "..")
+	}
+	if strings.ContainsRune(ref, '\\') {
+		return fmt.Errorf("branch/tag %q must not contain backslashes", ref)
+	}
+	if strings.HasPrefix(ref, "/") || strings.HasSuffix(ref, "/") || strings.Contains(ref, "//") {
+		return fmt.Errorf("branch/tag %q has invalid '/' placement", ref)
+	}
+	for _, r := range ref {
+		if r < 0x20 || r == 0x7f {
+			return fmt.Errorf("branch/tag %q must not contain control characters", ref)
+		}
+	}
+	return nil
+}
+
+// SafeRef converts a validated git ref (branch or tag) into a single flat token
+// safe for use in filesystem paths and Kubernetes resource names. Path
+// separators are replaced with '-' so a slash-namespaced ref like "feature/x"
+// maps to a single, contained directory ("feature-x") rather than a nested path
+// that could escape /tmp. Every site that builds the repository's /tmp working
+// directory or storage-secret name from a ref must apply this so they all
+// resolve to the same value. ValidateRef must be called first.
+func SafeRef(ref string) string {
+	return strings.NewReplacer("/", "-", "\\", "-").Replace(ref)
+}
+
+func CloneRepository(url string, username string, token string, privateKey []byte, privateKeyPass string, branch string, tag string, remoteName string, name string, vendor string, authType string, knownHosts []byte, namespace string, insecureSkipVerify bool) (string, error) {
+	if branch != "" {
+		if err := ValidateRef(branch); err != nil {
+			return "", err
+		}
+	}
+	if tag != "" {
+		if err := ValidateRef(tag); err != nil {
+			return "", err
+		}
+	}
+
 	if remoteName == "" {
 		remoteName = "origin"
 	}
@@ -63,7 +115,7 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 		cloneOpts.URL = url
 	}
 
-	if strings.Contains(strings.ToLower(vendor), "insecure") {
+	if insecureSkipVerify || strings.Contains(strings.ToLower(vendor), "insecure") {
 		cloneOpts.InsecureSkipTLS = true
 		pullOpts.InsecureSkipTLS = true
 	}
@@ -91,45 +143,11 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 		cloneOpts.Auth = publicKeys
 		pullOpts.Auth = publicKeys
 
-		if os.Getenv("SSH_KNOWN_HOSTS") != "/tmp/known_hosts" {
-			os.Setenv("SSH_KNOWN_HOSTS", "/tmp/known_hosts")
-		}
-		var newKnownHosts string
-		currentKnownHosts, err := os.ReadFile("/tmp/known_hosts")
+		cb, err := knownHostsCallbackFromBytes(knownHosts)
 		if err != nil {
-			err = os.WriteFile("/tmp/known_hosts", knownHosts, 0644)
-			if err != nil {
-				return "", err
-			}
-		} else {
-			if len(currentKnownHosts) == 0 {
-				newKnownHosts = string(knownHosts)
-			}
-			for _, c := range strings.Split(string(currentKnownHosts), "\n") {
-				if !strings.Contains(newKnownHosts, c) {
-					if newKnownHosts == "" {
-						newKnownHosts = c
-					} else {
-						newKnownHosts = newKnownHosts + "\n" + c
-					}
-
-					for _, n := range strings.Split(string(knownHosts), "\n") {
-						if !strings.Contains(newKnownHosts, n) {
-							if newKnownHosts == "" {
-								newKnownHosts = n
-							} else {
-								newKnownHosts = newKnownHosts + "\n" + n
-							}
-						}
-					}
-				}
-			}
-
-			err = os.WriteFile("/tmp/known_hosts", []byte(newKnownHosts), 0644)
-			if err != nil {
-				return "", err
-			}
+			return "", fmt.Errorf("failed to parse known_hosts: %w", err)
 		}
+		publicKeys.HostKeyCallback = cb
 
 	case "basic":
 		if username != "" && token != "" {
@@ -140,16 +158,23 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 
 	ext := cloneOpts.ReferenceName.String()
 
-	r, err := git.PlainClone("/tmp/"+name+"-"+namespace+"-"+ext, false, &cloneOpts)
+	// dir is the on-disk working directory for this clone. ext may legitimately
+	// contain '/' (e.g. "feature/x", "release/1.3"); SafeRef flattens separators
+	// so the directory is always a single, contained child of /tmp. Every other
+	// site that derives this path (finalizer, statestorage, secret) applies the
+	// same SafeRef, so they all resolve to the same directory.
+	dir := "/tmp/" + name + "-" + namespace + "-" + SafeRef(ext)
+
+	r, err := git.PlainClone(dir, false, &cloneOpts)
 
 	if err == git.ErrRepositoryAlreadyExists {
-		r, _ := git.PlainOpen("/tmp/" + name + "-" + namespace + "-" + ext)
+		r, _ := git.PlainOpen(dir)
 		w, _ := r.Worktree()
 
 		ref, _ := r.Head()
 
 		if ref == nil {
-			_ = os.RemoveAll("/tmp/" + name + "-" + namespace + "-" + ext)
+			_ = os.RemoveAll(dir)
 			return "", fmt.Errorf("ref is nil for %s", name)
 		}
 		commit, err := r.CommitObject(ref.Hash())
@@ -161,9 +186,9 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			return commit.Hash.String(), nil
 		}
 
-		gbytes, _ := os.ReadFile("/tmp/" + name + "-" + namespace + "-" + ext + "/.git/config")
+		gbytes, _ := os.ReadFile(dir + "/.git/config")
 		if !strings.Contains(string(gbytes), cloneOpts.URL) {
-			err = os.RemoveAll("/tmp/" + name + "-" + namespace + "-" + ext)
+			err = os.RemoveAll(dir)
 			if err != nil {
 				return "", err
 			}
@@ -178,7 +203,19 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 			return "", err
 		}
 
-		return commit.Hash.String(), nil
+		// Re-read HEAD after a successful pull to return the actual new commit SHA.
+		// The pre-pull `commit` captured above reflects the old HEAD; without this
+		// re-read the caller receives the stale SHA and treats the new push as if
+		// nothing changed, causing a one-cycle delay before any commit is detected.
+		newRef, err := r.Head()
+		if err != nil {
+			return "", err
+		}
+		newCommit, err := r.CommitObject(newRef.Hash())
+		if err != nil {
+			return "", err
+		}
+		return newCommit.Hash.String(), nil
 	}
 
 	if err != nil {
@@ -193,4 +230,26 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 	}
 
 	return commit.Hash.String(), nil
+}
+
+// knownHostsCallbackFromBytes builds a per-repository SSH HostKeyCallback from
+// raw known_hosts bytes without touching any process-wide file or environment
+// variable. It writes to a unique temp file, lets knownhosts.New parse it into
+// an in-memory closure, then removes the file immediately.
+func knownHostsCallbackFromBytes(data []byte) (gossh.HostKeyCallback, error) {
+	f, err := os.CreateTemp("", "layer7-known-hosts-*")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(f.Name())
+
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		return nil, err
+	}
+	if err := f.Close(); err != nil {
+		return nil, err
+	}
+
+	return knownhosts.New(f.Name())
 }

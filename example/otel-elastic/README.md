@@ -163,7 +163,7 @@ spec:
     - name: OTEL_TRACES_EXPORTER
       value: otlp
     - name: OTEL_RESOURCE_ATTRIBUTES
-      value: service.version=11.1.3,deployment.environment=development
+      value: service.version=11.2.1,deployment.environment=development
   exporter:
     endpoint: http://localhost:4317
   propagators:
@@ -594,7 +594,7 @@ curl -XPOST "https://kibana.brcmlabs.com/api/saved_objects/_import?createNewCopi
 This step will deploy the Layer7 Operator and all of its resources in namespaced mode. This means that it will only manage Gateway and Repository Custom Resources in the Kubernetes Namespace that it's deployed in.
 
 ```
-kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml
+kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml
 ```
 
 #### Verify the Operator is up and running
@@ -693,7 +693,7 @@ kubectl describe pods ssg-57d96567cb-n24g9
 Init Containers:
   graphman-static-init-c1b58adb6d:
     Container ID:   containerd://21924ae85d25437d3634ea5da1415c9bb58d678600f9fd67d4f0b0360857d7c5
-    Image:          docker.io/caapim/graphman-static-init:1.0.4
+    Image:          docker.io/caapim/graphman-static-init:1.0.5
     Image ID:       docker.io/caapim/graphman-static-init@sha256:8cb1035035b18fa9dc2c95e2b584c758e78909b3f615ee5f49dce166e8aae213
     Port:           <none>
     Host Port:      <none>
@@ -732,7 +732,7 @@ status:
     ready: true
     startTime: 2023-04-03 18:57:24 +0000 UTC
   host: gateway.brcmlabs.com
-  image: caapim/gateway:11.1.3
+  image: caapim/gateway:11.2.1
   ready: 1
   replicas: 1
 repositoryStatus:
@@ -761,7 +761,7 @@ repositoryStatus:
   storageSecretName: l7-gw-mysubscriptions-repository
   type: dynamic
 state: Ready
-version: 11.1.3
+version: 11.2.1
 ```
 
 #### Repository CR
@@ -888,5 +888,5 @@ helm uninstall contour -n projectcontour
 
 ### Uninstall the Operator
 ```
-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.2.2/bundle.yaml
+kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml
 ```

@@ -219,6 +219,13 @@ are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappgemfire">gemfire</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#gatewayspecapphazelcast">hazelcast</a></b></td>
         <td>object</td>
         <td>
@@ -492,6 +499,14 @@ delete<br/>
 this enables scheduled tasks that are set to execute on a single node and jms destinations that are outbound
 to be applied to one ephemeral gateway only.
 This works inconjunction with repository references and only supports dynamic repository references.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappstartupprobe">startupProbe</a></b></td>
+        <td>object</td>
+        <td>
+          Probe describes a health check to be performed against a container to determine whether it is
+alive or ready to receive traffic.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1578,8 +1593,8 @@ a node that violates one or more of the expressions. The node that is
 most preferred is the one with the greatest sum of weights, i.e.
 for each node that meets all of the scheduling requirements (resource
 request, requiredDuringScheduling anti-affinity expressions, etc.),
-compute a sum by iterating through the elements of this field and adding
-"weight" to the sum if the node has pods which matches the corresponding podAffinityTerm; the
+compute a sum by iterating through the elements of this field and subtracting
+"weight" from the sum if the node has pods which matches the corresponding podAffinityTerm; the
 node(s) with the highest sum are the most preferred.<br/>
         </td>
         <td>false</td>
@@ -2349,8 +2364,8 @@ For example, if autoscaling is configured with a memory consumption target of 10
 and scale-down and scale-up tolerances of 5% and 1% respectively, scaling will be
 triggered when the actual consumption falls below 95Mi or exceeds 101Mi.
 
-This is an alpha field and requires enabling the HPAConfigurableTolerance
-feature gate.<br/>
+This is an beta field and requires the HPAConfigurableTolerance feature
+gate to be enabled.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2469,8 +2484,8 @@ For example, if autoscaling is configured with a memory consumption target of 10
 and scale-down and scale-up tolerances of 5% and 1% respectively, scaling will be
 triggered when the actual consumption falls below 95Mi or exceeds 101Mi.
 
-This is an alpha field and requires enabling the HPAConfigurableTolerance
-feature gate.<br/>
+This is an beta field and requires the HPAConfigurableTolerance feature
+gate to be enabled.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3682,7 +3697,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -4302,10 +4316,10 @@ Property is a simple k/v pair
 
 
 
-ExternalCert is a reference to an existing TLS or Opaque Secret in Kubernetes
-The Layer7 Operator will attempt to convert this secret to a Graphman bundle that can be applied
+ExternalCert is a reference to an existing TLS or Opaque Secret or ConfigMap in Kubernetes
+The Layer7 Operator will attempt to convert this to a Graphman bundle that can be applied
 dynamically keeping any referenced trusted certs up-to-date.
-You can bring in external secrets using tools like cert-manager
+You can bring in external certs using tools like cert-manager
 
 <table>
     <thead>
@@ -4327,7 +4341,7 @@ You can bring in external secrets using tools like cert-manager
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the Secret which already exists in Kubernetes<br/>
+          Name of the Secret or ConfigMap which already exists in Kubernetes<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4356,6 +4370,13 @@ You can bring in external secrets using tools like cert-manager
         <td>[]string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type of the referenced resource: "secret" (default) or "configmap"<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4516,6 +4537,401 @@ BundleEncryption allows setting an encryption passphrase per repository or exter
         <td>string</td>
         <td>
           Passphrase - bundle encryption passphrase in plaintext<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappgemfireauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Auth for the Tanzu GemFire cluster<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfirecertsindex">certs</a></b></td>
+        <td>[]object</td>
+        <td>
+          CertSecrets provides a way to mount secrets that contain the keystore/truststore
+files for ssl/tls gemfire connections when using an existing secret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>dynamicProperties</b></td>
+        <td>map[string]string</td>
+        <td>
+          DynamicProperties are extra Tanzu GemFire client properties<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable a Tanzu GemFire integration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecret</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecret mounts an existing secret containing gemfire configuration
+to the container gateway.
+The secret should contain a key called sharedstate_client.yaml. If redis is
+also enabled, this must reference the same secret as redis.existingSecret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gwCounterRegionName</b></td>
+        <td>string</td>
+        <td>
+          GwCounterRegionName defaults to layer7gw_counter<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gwKeyValueRegionName</b></td>
+        <td>string</td>
+        <td>
+          GwKeyValueRegionName defaults to layer7gw_keyvalue<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gwRateLimiterRegionName</b></td>
+        <td>string</td>
+        <td>
+          GwRateLimiterRegionName defaults to layer7gw_ratelimiter<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gwSortedSetRegionName</b></td>
+        <td>string</td>
+        <td>
+          GwSortedSetRegionName defaults to layer7gw_sortedset<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfirelocatorsindex">locators</a></b></td>
+        <td>[]object</td>
+        <td>
+          Locators for the Tanzu GemFire cluster<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfiressl">ssl</a></b></td>
+        <td>object</td>
+        <td>
+          Ssl configuration for the Tanzu GemFire cluster<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>testOnStart</b></td>
+        <td>boolean</td>
+        <td>
+          TestOnStart test gemfire connection on startup<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.auth
+<sup><sup>[↩ Parent](#gatewayspecappgemfire)</sup></sup>
+
+
+
+Auth for the Tanzu GemFire cluster
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable Gemfire auth<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordEncoded</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordPlaintext</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.certs[index]
+<sup><sup>[↩ Parent](#gatewayspecappgemfire)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable an additional mount for gemfire keystore/truststore files<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          Key must match the file referenced in gemfire.existingSecret<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>secretName</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.locators[index]
+<sup><sup>[↩ Parent](#gatewayspecappgemfire)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.ssl
+<sup><sup>[↩ Parent](#gatewayspecappgemfire)</sup></sup>
+
+
+
+Ssl configuration for the Tanzu GemFire cluster
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enable or disable SSL/TLS for the Gemfire connection<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabledComponents</b></td>
+        <td>string</td>
+        <td>
+          EnabledComponents controls which components have SSL enabled, defaults to all<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfiresslkeystore">keystore</a></b></td>
+        <td>object</td>
+        <td>
+          Keystore configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>keystoreType</b></td>
+        <td>string</td>
+        <td>
+          KeystoreType defaults to JKS, also supports PKCS12<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappgemfiressltruststore">truststore</a></b></td>
+        <td>object</td>
+        <td>
+          Truststore configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>truststoreType</b></td>
+        <td>string</td>
+        <td>
+          TruststoreType defaults to JKS, also supports PKCS12<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.ssl.keystore
+<sup><sup>[↩ Parent](#gatewayspecappgemfiressl)</sup></sup>
+
+
+
+Keystore configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>existingSecretKey</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretKey is the key in the secret containing the keystore/truststore file.
+Defaults to keystore.jks or truststore.jks depending on which store this is.
+The file is always mounted on the Gateway as keystore.jks or truststore.jks, regardless of
+the keystore/truststore type (e.g. PKCS12).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecretName</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretName references an existing secret containing the keystore/truststore file<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordEncoded</b></td>
+        <td>string</td>
+        <td>
+          PasswordEncoded for the keystore/truststore<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordPlaintext</b></td>
+        <td>string</td>
+        <td>
+          PasswordPlainText for the keystore/truststore<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.gemfire.ssl.truststore
+<sup><sup>[↩ Parent](#gatewayspecappgemfiressl)</sup></sup>
+
+
+
+Truststore configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>existingSecretKey</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretKey is the key in the secret containing the keystore/truststore file.
+Defaults to keystore.jks or truststore.jks depending on which store this is.
+The file is always mounted on the Gateway as keystore.jks or truststore.jks, regardless of
+the keystore/truststore type (e.g. PKCS12).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>existingSecretName</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretName references an existing secret containing the keystore/truststore file<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordEncoded</b></td>
+        <td>string</td>
+        <td>
+          PasswordEncoded for the keystore/truststore<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordPlaintext</b></td>
+        <td>string</td>
+        <td>
+          PasswordPlainText for the keystore/truststore<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4705,7 +5121,7 @@ The Operator determines where to route to
         <td>
           TLSConfig defines config used to secure a route and provide termination<br/>
           <br/>
-            <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li>
+            <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li><li>!(has(self.certificate) && has(self.externalCertificate)): cannot have both spec.tls.certificate and spec.tls.externalCertificate</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4776,10 +5192,12 @@ TLSConfig defines config used to secure a route and provide termination
         <td><b>termination</b></td>
         <td>enum</td>
         <td>
-          termination indicates termination type.
+          termination indicates the TLS termination type.
 
 * edge - TLS termination is done by the router and http is used to communicate with the backend (default)
+
 * passthrough - Traffic is sent straight to the destination without the router providing TLS termination
+
 * reencrypt - TLS termination is done by the router and https is used to communicate with the backend
 
 Note: passthrough termination is incompatible with httpHeader actions<br/>
@@ -4821,7 +5239,9 @@ verify.<br/>
 This should be a single serving certificate, not a certificate
 chain. Do not include a CA certificate. The secret referenced should
 be present in the same namespace as that of the Route.
-Forbidden when `certificate` is set.<br/>
+Forbidden when `certificate` is set.
+The router service account needs to be granted with read-only access to this secret,
+please refer to openshift docs for additional details.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4863,6 +5283,8 @@ This should be a single serving certificate, not a certificate
 chain. Do not include a CA certificate. The secret referenced should
 be present in the same namespace as that of the Route.
 Forbidden when `certificate` is set.
+The router service account needs to be granted with read-only access to this secret,
+please refer to openshift docs for additional details.
 
 <table>
     <thead>
@@ -5355,8 +5777,8 @@ Cannot be updated.<br/>
         <td>[]object</td>
         <td>
           List of sources to populate environment variables in the container.
-The keys defined within a source must be a C_IDENTIFIER. All invalid keys
-will be reported as an event when the container is starting. When a key exists in multiple
+The keys defined within a source may consist of any printable ASCII characters except '='.
+When a key exists in multiple
 sources, the value associated with the last source will take precedence.
 Values defined by an Env with a duplicate key will take precedence.
 Cannot be updated.<br/>
@@ -5428,7 +5850,8 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
         <td><b><a href="#gatewayspecappinitcontainersindexresizepolicyindex">resizePolicy</a></b></td>
         <td>[]object</td>
         <td>
-          Resources resize policy for the container.<br/>
+          Resources resize policy for the container.
+This field cannot be set on ephemeral containers.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5445,10 +5868,10 @@ More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-co
         <td>string</td>
         <td>
           RestartPolicy defines the restart behavior of individual containers in a pod.
-This field may only be set for init containers, and the only allowed value is "Always".
-For non-init containers or when this field is not specified,
+This overrides the pod-level restart policy. When this field is not specified,
 the restart behavior is defined by the Pod's restart policy and the container type.
-Setting the RestartPolicy as "Always" for the init container will have the following effect:
+Additionally, setting the RestartPolicy as "Always" for the init container will
+have the following effect:
 this init container will be continually restarted on
 exit until all regular containers have terminated. Once all regular
 containers have completed, all init containers with restartPolicy "Always"
@@ -5459,6 +5882,23 @@ for the container to complete before proceeding to the next init
 container. Instead, the next init container starts immediately after this
 init container is started, or after any startupProbe has successfully
 completed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappinitcontainersindexrestartpolicyrulesindex">restartPolicyRules</a></b></td>
+        <td>[]object</td>
+        <td>
+          Represents a list of rules to be checked to determine if the
+container should be restarted on exit. The rules are evaluated in
+order. Once a rule matches a container exit condition, the remaining
+rules are ignored. If no rule matches the container exit condition,
+the Container-level restart policy determines the whether the container
+is restarted or not. Constraints on the rules:
+- At most 20 rules are allowed.
+- Rules can have the same action.
+- Identical rules are not forbidden in validations.
+When rules are specified, container MUST set RestartPolicy explicitly
+even it if matches the Pod's RestartPolicy.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5588,7 +6028,8 @@ EnvVar represents an environment variable present in a Container.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the environment variable. Must be a C_IDENTIFIER.<br/>
+          Name of the environment variable.
+May consist of any printable ASCII characters except '='.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5646,6 +6087,14 @@ Source for the environment variable's value. Cannot be used if value is not empt
         <td>
           Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
 spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappinitcontainersindexenvindexvaluefromfilekeyref">fileKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          FileKeyRef selects a key of the env file.
+Requires the EnvFiles feature gate to be enabled.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5743,6 +6192,66 @@ spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podI
         <td>string</td>
         <td>
           Version of the schema the FieldPath is written in terms of, defaults to "v1".<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.initContainers[index].env[index].valueFrom.fileKeyRef
+<sup><sup>[↩ Parent](#gatewayspecappinitcontainersindexenvindexvaluefrom)</sup></sup>
+
+
+
+FileKeyRef selects a key of the env file.
+Requires the EnvFiles feature gate to be enabled.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key within the env file. An invalid key will prevent the pod from starting.
+The keys defined within a source may consist of any printable ASCII characters except '='.
+During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          The path within the volume from which to select the file.
+Must be relative and may not contain the '..' path or start with '..'.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>volumeName</b></td>
+        <td>string</td>
+        <td>
+          The name of the volume mount containing the env file.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>optional</b></td>
+        <td>boolean</td>
+        <td>
+          Specify whether the file or its key must be defined. If the file or key
+does not exist, then the env var is not published.
+If optional is set to true and the specified key does not exist,
+the environment variable will not be set in the Pod's containers.
+
+If optional is set to false and the specified key does not exist,
+an error will be returned during Pod creation.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5865,7 +6374,8 @@ EnvFromSource represents the source of a set of ConfigMaps or Secrets
         <td><b>prefix</b></td>
         <td>string</td>
         <td>
-          Optional text to prepend to the name of each environment variable. Must be a C_IDENTIFIER.<br/>
+          Optional text to prepend to the name of each environment variable.
+May consist of any printable ASCII characters except '='.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7282,7 +7792,7 @@ More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-co
           Claims lists the names of resources, defined in spec.resourceClaims,
 that are used by this container.
 
-This is an alpha field and requires enabling the
+This field depends on the
 DynamicResourceAllocation feature gate.
 
 This field is immutable. It can only be set for containers.<br/>
@@ -7342,6 +7852,82 @@ inside a container.<br/>
           Request is the name chosen for a request in the referenced claim.
 If empty, everything from the claim is made available, otherwise
 only the result of this request.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.initContainers[index].restartPolicyRules[index]
+<sup><sup>[↩ Parent](#gatewayspecappinitcontainersindex)</sup></sup>
+
+
+
+ContainerRestartRule describes how a container exit is handled.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>string</td>
+        <td>
+          Specifies the action taken on a container exit if the requirements
+are satisfied. The only possible value is "Restart" to restart the
+container.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappinitcontainersindexrestartpolicyrulesindexexitcodes">exitCodes</a></b></td>
+        <td>object</td>
+        <td>
+          Represents the exit codes to check on container exits.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.initContainers[index].restartPolicyRules[index].exitCodes
+<sup><sup>[↩ Parent](#gatewayspecappinitcontainersindexrestartpolicyrulesindex)</sup></sup>
+
+
+
+Represents the exit codes to check on container exits.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>string</td>
+        <td>
+          Represents the relationship between the container exit code(s) and the
+specified values. Possible values are:
+- In: the requirement is satisfied if the container exit code is in the
+  set of specified values.
+- NotIn: the requirement is satisfied if the container exit code is
+  not in the set of specified values.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]integer</td>
+        <td>
+          Specifies the set of values to check for container exit codes.
+At most 255 elements are allowed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7414,7 +8000,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -9666,6 +10251,13 @@ Database configuration for the Gateway
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappmanagementdatabasemigrationjob">migrationJob</a></b></td>
+        <td>object</td>
+        <td>
+          MigrationJob for pre-upgrade schema updates<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>password</b></td>
         <td>string</td>
         <td>
@@ -9677,6 +10269,63 @@ Database configuration for the Gateway
         <td>string</td>
         <td>
           Username MySQL - can be set in management.secretName<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.management.database.migrationJob
+<sup><sup>[↩ Parent](#gatewayspecappmanagementdatabase)</sup></sup>
+
+
+
+MigrationJob for pre-upgrade schema updates
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>activeDeadlineSeconds</b></td>
+        <td>integer</td>
+        <td>
+          ActiveDeadlineSeconds is the max duration each pod attempt is allowed to run.
+The job may retry once (backoffLimit=1), so total elapsed time can be up to
+2× this value. Defaults to 300 seconds (5 minutes) per attempt.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearLocks</b></td>
+        <td>boolean</td>
+        <td>
+          ClearLocks forces release of any stuck Liquibase locks before applying
+schema updates. Use with caution: forcefully releasing a lock while
+another process is actively updating the schema can corrupt the database.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled or disabled<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>jdbcUrl</b></td>
+        <td>string</td>
+        <td>
+          JDBCUrl overrides the main database.jdbcUrl for the migration job (e.g. to bypass a proxy).
+Only applies in diskless mode (disklessConfig.disabled: false, the default).
+In non-diskless mode the entrypoint reads the JDBC URL from the mounted node.properties
+file and this field has no effect — node.properties always wins, consistent with Helm behavior.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9880,7 +10529,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -10692,14 +11340,6 @@ leaf certificates for DMZ gateway mTLS client authentication.<br/>
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>manageCrossNamespace</b></td>
-        <td>boolean</td>
-        <td>
-          ManageCrossNamespace allows a cluster-wide layer7 operator to manage internal/dmz gateways across namespaces
-this is limited to a single kubernetes cluster.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b><a href="#gatewayspecappotkoverrides">overrides</a></b></td>
         <td>object</td>
         <td>
@@ -11331,28 +11971,6 @@ DmzOTKGateway reference if type is internal
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name of the gateway
-if managing otk gateways across namespaces this must match the referenced gateway CR<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>namespace</b></td>
-        <td>string</td>
-        <td>
-          Namespace of the referenced gateway if managing gateways cross namespace (optional)<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>port</b></td>
-        <td>integer</td>
-        <td>
-          Port of the target gateway<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>url</b></td>
         <td>string</td>
         <td>
@@ -11469,7 +12087,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -11807,28 +12424,6 @@ InternalOTKGateway reference if type is dmz
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name of the gateway
-if managing otk gateways across namespaces this must match the referenced gateway CR<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>namespace</b></td>
-        <td>string</td>
-        <td>
-          Namespace of the referenced gateway if managing gateways cross namespace (optional)<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>port</b></td>
-        <td>integer</td>
-        <td>
-          Port of the target gateway<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>url</b></td>
         <td>string</td>
         <td>
@@ -12531,7 +13126,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -13277,7 +13871,8 @@ Name must be an IANA_SVC_NAME.<br/>
         <td>
           ExistingSecret mounts an existing secret containing redis configuration
 to the container gateway.
-The secret should contain a key called redis.properties and redis.crt if tls is enabled<br/>
+The secret should contain a key called sharedstate_client.yaml. If gemfire is
+also enabled, this must reference the same secret as gemfire.existingSecret.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -14711,8 +15306,8 @@ Cannot be updated.<br/>
         <td>[]object</td>
         <td>
           List of sources to populate environment variables in the container.
-The keys defined within a source must be a C_IDENTIFIER. All invalid keys
-will be reported as an event when the container is starting. When a key exists in multiple
+The keys defined within a source may consist of any printable ASCII characters except '='.
+When a key exists in multiple
 sources, the value associated with the last source will take precedence.
 Values defined by an Env with a duplicate key will take precedence.
 Cannot be updated.<br/>
@@ -14784,7 +15379,8 @@ More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#cont
         <td><b><a href="#gatewayspecappsidecarsindexresizepolicyindex">resizePolicy</a></b></td>
         <td>[]object</td>
         <td>
-          Resources resize policy for the container.<br/>
+          Resources resize policy for the container.
+This field cannot be set on ephemeral containers.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14801,10 +15397,10 @@ More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-co
         <td>string</td>
         <td>
           RestartPolicy defines the restart behavior of individual containers in a pod.
-This field may only be set for init containers, and the only allowed value is "Always".
-For non-init containers or when this field is not specified,
+This overrides the pod-level restart policy. When this field is not specified,
 the restart behavior is defined by the Pod's restart policy and the container type.
-Setting the RestartPolicy as "Always" for the init container will have the following effect:
+Additionally, setting the RestartPolicy as "Always" for the init container will
+have the following effect:
 this init container will be continually restarted on
 exit until all regular containers have terminated. Once all regular
 containers have completed, all init containers with restartPolicy "Always"
@@ -14815,6 +15411,23 @@ for the container to complete before proceeding to the next init
 container. Instead, the next init container starts immediately after this
 init container is started, or after any startupProbe has successfully
 completed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappsidecarsindexrestartpolicyrulesindex">restartPolicyRules</a></b></td>
+        <td>[]object</td>
+        <td>
+          Represents a list of rules to be checked to determine if the
+container should be restarted on exit. The rules are evaluated in
+order. Once a rule matches a container exit condition, the remaining
+rules are ignored. If no rule matches the container exit condition,
+the Container-level restart policy determines the whether the container
+is restarted or not. Constraints on the rules:
+- At most 20 rules are allowed.
+- Rules can have the same action.
+- Identical rules are not forbidden in validations.
+When rules are specified, container MUST set RestartPolicy explicitly
+even it if matches the Pod's RestartPolicy.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14944,7 +15557,8 @@ EnvVar represents an environment variable present in a Container.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the environment variable. Must be a C_IDENTIFIER.<br/>
+          Name of the environment variable.
+May consist of any printable ASCII characters except '='.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -15002,6 +15616,14 @@ Source for the environment variable's value. Cannot be used if value is not empt
         <td>
           Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
 spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappsidecarsindexenvindexvaluefromfilekeyref">fileKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          FileKeyRef selects a key of the env file.
+Requires the EnvFiles feature gate to be enabled.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15099,6 +15721,66 @@ spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podI
         <td>string</td>
         <td>
           Version of the schema the FieldPath is written in terms of, defaults to "v1".<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.sidecars[index].env[index].valueFrom.fileKeyRef
+<sup><sup>[↩ Parent](#gatewayspecappsidecarsindexenvindexvaluefrom)</sup></sup>
+
+
+
+FileKeyRef selects a key of the env file.
+Requires the EnvFiles feature gate to be enabled.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key within the env file. An invalid key will prevent the pod from starting.
+The keys defined within a source may consist of any printable ASCII characters except '='.
+During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          The path within the volume from which to select the file.
+Must be relative and may not contain the '..' path or start with '..'.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>volumeName</b></td>
+        <td>string</td>
+        <td>
+          The name of the volume mount containing the env file.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>optional</b></td>
+        <td>boolean</td>
+        <td>
+          Specify whether the file or its key must be defined. If the file or key
+does not exist, then the env var is not published.
+If optional is set to true and the specified key does not exist,
+the environment variable will not be set in the Pod's containers.
+
+If optional is set to false and the specified key does not exist,
+an error will be returned during Pod creation.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -15221,7 +15903,8 @@ EnvFromSource represents the source of a set of ConfigMaps or Secrets
         <td><b>prefix</b></td>
         <td>string</td>
         <td>
-          Optional text to prepend to the name of each environment variable. Must be a C_IDENTIFIER.<br/>
+          Optional text to prepend to the name of each environment variable.
+May consist of any printable ASCII characters except '='.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16638,7 +17321,7 @@ More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-co
           Claims lists the names of resources, defined in spec.resourceClaims,
 that are used by this container.
 
-This is an alpha field and requires enabling the
+This field depends on the
 DynamicResourceAllocation feature gate.
 
 This field is immutable. It can only be set for containers.<br/>
@@ -16698,6 +17381,82 @@ inside a container.<br/>
           Request is the name chosen for a request in the referenced claim.
 If empty, everything from the claim is made available, otherwise
 only the result of this request.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.sidecars[index].restartPolicyRules[index]
+<sup><sup>[↩ Parent](#gatewayspecappsidecarsindex)</sup></sup>
+
+
+
+ContainerRestartRule describes how a container exit is handled.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>string</td>
+        <td>
+          Specifies the action taken on a container exit if the requirements
+are satisfied. The only possible value is "Restart" to restart the
+container.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappsidecarsindexrestartpolicyrulesindexexitcodes">exitCodes</a></b></td>
+        <td>object</td>
+        <td>
+          Represents the exit codes to check on container exits.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.sidecars[index].restartPolicyRules[index].exitCodes
+<sup><sup>[↩ Parent](#gatewayspecappsidecarsindexrestartpolicyrulesindex)</sup></sup>
+
+
+
+Represents the exit codes to check on container exits.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>string</td>
+        <td>
+          Represents the relationship between the container exit code(s) and the
+specified values. Possible values are:
+- In: the requirement is satisfied if the container exit code is in the
+  set of specified values.
+- NotIn: the requirement is satisfied if the container exit code is
+  not in the set of specified values.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]integer</td>
+        <td>
+          Specifies the set of values to check for container exit codes.
+At most 255 elements are allowed.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -16770,7 +17529,6 @@ Note that this field cannot be set when spec.os.name is windows.<br/>
           procMount denotes the type of proc mount to use for the containers.
 The default value is Default which uses the container runtime defaults for
 readonly paths and masked paths.
-This requires the ProcMountType feature flag to be enabled.
 Note that this field cannot be set when spec.os.name is windows.<br/>
         </td>
         <td>false</td>
@@ -17545,6 +18303,326 @@ SubPathExpr and SubPath are mutually exclusive.<br/>
 </table>
 
 
+### Gateway.spec.app.startupProbe
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+Probe describes a health check to be performed against a container to determine whether it is
+alive or ready to receive traffic.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappstartupprobeexec">exec</a></b></td>
+        <td>object</td>
+        <td>
+          Exec specifies a command to execute in the container.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>failureThreshold</b></td>
+        <td>integer</td>
+        <td>
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+Defaults to 3. Minimum value is 1.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappstartupprobegrpc">grpc</a></b></td>
+        <td>object</td>
+        <td>
+          GRPC specifies a GRPC HealthCheckRequest.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappstartupprobehttpget">httpGet</a></b></td>
+        <td>object</td>
+        <td>
+          HTTPGet specifies an HTTP GET request to perform.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>initialDelaySeconds</b></td>
+        <td>integer</td>
+        <td>
+          Number of seconds after the container has started before liveness probes are initiated.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>periodSeconds</b></td>
+        <td>integer</td>
+        <td>
+          How often (in seconds) to perform the probe.
+Default to 10 seconds. Minimum value is 1.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>successThreshold</b></td>
+        <td>integer</td>
+        <td>
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappstartupprobetcpsocket">tcpSocket</a></b></td>
+        <td>object</td>
+        <td>
+          TCPSocket specifies a connection to a TCP port.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>terminationGracePeriodSeconds</b></td>
+        <td>integer</td>
+        <td>
+          Optional duration in seconds the pod needs to terminate gracefully upon probe failure.
+The grace period is the duration in seconds after the processes running in the pod are sent
+a termination signal and the time when the processes are forcibly halted with a kill signal.
+Set this value longer than the expected cleanup time for your process.
+If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this
+value overrides the value provided by the pod spec.
+Value must be non-negative integer. The value zero indicates stop immediately via
+the kill signal (no opportunity to shut down).
+This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.
+Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>timeoutSeconds</b></td>
+        <td>integer</td>
+        <td>
+          Number of seconds after which the probe times out.
+Defaults to 1 second. Minimum value is 1.
+More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.startupProbe.exec
+<sup><sup>[↩ Parent](#gatewayspecappstartupprobe)</sup></sup>
+
+
+
+Exec specifies a command to execute in the container.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>command</b></td>
+        <td>[]string</td>
+        <td>
+          Command is the command line to execute inside the container, the working directory for the
+command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+a shell, you need to explicitly call out to that shell.
+Exit status of 0 is treated as live/healthy and non-zero is unhealthy.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.startupProbe.grpc
+<sup><sup>[↩ Parent](#gatewayspecappstartupprobe)</sup></sup>
+
+
+
+GRPC specifies a GRPC HealthCheckRequest.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          Port number of the gRPC service. Number must be in the range 1 to 65535.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>service</b></td>
+        <td>string</td>
+        <td>
+          Service is the name of the service to place in the gRPC HealthCheckRequest
+(see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+
+If this is not specified, the default behavior is defined by gRPC.<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.startupProbe.httpGet
+<sup><sup>[↩ Parent](#gatewayspecappstartupprobe)</sup></sup>
+
+
+
+HTTPGet specifies an HTTP GET request to perform.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>port</b></td>
+        <td>int or string</td>
+        <td>
+          Name or number of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          Host name to connect to, defaults to the pod IP. You probably want to set
+"Host" in httpHeaders instead.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappstartupprobehttpgethttpheadersindex">httpHeaders</a></b></td>
+        <td>[]object</td>
+        <td>
+          Custom headers to set in the request. HTTP allows repeated headers.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to access on the HTTP server.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>scheme</b></td>
+        <td>string</td>
+        <td>
+          Scheme to use for connecting to the host.
+Defaults to HTTP.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.startupProbe.httpGet.httpHeaders[index]
+<sup><sup>[↩ Parent](#gatewayspecappstartupprobehttpget)</sup></sup>
+
+
+
+HTTPHeader describes a custom header to be used in HTTP probes
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The header field name.
+This will be canonicalized upon output, so case-variant names will be understood as the same header.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          The header field value<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.startupProbe.tcpSocket
+<sup><sup>[↩ Parent](#gatewayspecappstartupprobe)</sup></sup>
+
+
+
+TCPSocket specifies a connection to a TCP port.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>port</b></td>
+        <td>int or string</td>
+        <td>
+          Number or name of the port to access on the container.
+Number must be in the range 1 to 65535.
+Name must be an IANA_SVC_NAME.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>host</b></td>
+        <td>string</td>
+        <td>
+          Optional: Host name to connect to, defaults to the pod IP.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.spec.app.system
 <sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
 
@@ -17610,9 +18688,10 @@ If the key is empty, operator must be Exists; this combination means to match al
         <td>string</td>
         <td>
           Operator represents a key's relationship to the value.
-Valid operators are Exists and Equal. Defaults to Equal.
+Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
 Exists is equivalent to wildcard for value, so that a pod can
-tolerate all taints of a particular category.<br/>
+tolerate all taints of a particular category.
+Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -18109,6 +19188,13 @@ management service and applying singleton resources<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewaystatusmigrationstatus">migrationStatus</a></b></td>
+        <td>object</td>
+        <td>
+          MigrationStatus tracks the state of the pre-upgrade database migration job.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>phase</b></td>
         <td>string</td>
         <td>
@@ -18320,6 +19406,44 @@ GatewayState tracks the status of Gateway Resources
 </table>
 
 
+### Gateway.status.migrationStatus
+<sup><sup>[↩ Parent](#gatewaystatus)</sup></sup>
+
+
+
+MigrationStatus tracks the state of the pre-upgrade database migration job.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>complete</b></td>
+        <td>boolean</td>
+        <td>
+          Complete indicates that the migration job succeeded for the current SpecHash.
+Once true, GatewayMigrationJob skips job management entirely and the
+Deployment step is unblocked — regardless of whether the Job still exists.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>specHash</b></td>
+        <td>string</td>
+        <td>
+          SpecHash is a short hash of the migration-relevant spec fields (image,
+effective jdbcUrl, clearLocks). When any of these change the hash changes
+and a fresh migration job is triggered.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### Gateway.status.repositoryStatus[index]
 <sup><sup>[↩ Parent](#gatewaystatus)</sup></sup>
 
@@ -18383,6 +19507,14 @@ GatewayRepositoryStatus tracks the status of which Graphman repositories have be
         <td>string</td>
         <td>
           Endoint is the Git or HTTP repo<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>insecureSkipVerify</b></td>
+        <td>boolean</td>
+        <td>
+          InsecureSkipVerify disables TLS certificate verification for http and git
+repository types. Propagated from Repository.Spec.InsecureSkipVerify.<br/>
         </td>
         <td>false</td>
       </tr><tr>

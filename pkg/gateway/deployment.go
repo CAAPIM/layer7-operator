@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Broadcom. All rights reserved.
+* Copyright (c) 2026 Broadcom. All rights reserved.
 * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 * All trademarks, trade names, service marks, and logos referenced
 * herein belong to their respective companies.
@@ -97,6 +97,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	if gw.Spec.App.ReadinessProbe != (corev1.Probe{}) {
 		readinessProbe = gw.Spec.App.ReadinessProbe
+	}
+
+	var startupProbe *corev1.Probe
+	if gw.Spec.App.StartupProbe != (corev1.Probe{}) {
+		sp := gw.Spec.App.StartupProbe
+		startupProbe = &sp
 	}
 
 	terminationGracePeriodSeconds := int64(30)
@@ -218,11 +224,18 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		})
 	}
 
+	// Redis and Gemfire share a single sharedstate_client.yaml secret. Validation (webhook and
+	// NewSecret) guarantees existingSecret is either empty on both or identical on both, so
+	// either one can be consulted here.
+	sharedStateSecretName := gw.Name + "-shared-state-config"
+	if gw.Spec.App.Redis.Enabled && gw.Spec.App.Redis.ExistingSecret != "" {
+		sharedStateSecretName = gw.Spec.App.Redis.ExistingSecret
+	} else if gw.Spec.App.Gemfire.Enabled && gw.Spec.App.Gemfire.ExistingSecret != "" {
+		sharedStateSecretName = gw.Spec.App.Gemfire.ExistingSecret
+	}
+
 	if gw.Spec.App.Redis.Enabled {
-		secretName := gw.Name + "-shared-state-config"
-		if gw.Spec.App.Redis.ExistingSecret != "" {
-			secretName = gw.Spec.App.Redis.ExistingSecret
-		}
+		secretName := sharedStateSecretName
 
 		items := []corev1.KeyToPath{{Key: "sharedstate_client.yaml", Path: "sharedstate_client.yaml"}}
 
@@ -331,6 +344,108 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			},
 		})
 
+	}
+
+	if gw.Spec.App.Gemfire.Enabled {
+		secretName := sharedStateSecretName
+
+		if gw.Spec.App.Gemfire.ExistingSecret == "" {
+			if gw.Spec.App.Gemfire.Ssl.Enabled {
+				if gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretName != "" {
+					keystoreKey := gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretKey
+					if keystoreKey == "" {
+						keystoreKey = "keystore.jks"
+					}
+					volumes = append(volumes, corev1.Volume{
+						Name: "gemfire-keystore",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: gw.Spec.App.Gemfire.Ssl.Keystore.ExistingSecretName,
+								Optional:   &optional,
+								Items: []corev1.KeyToPath{{
+									Key:  keystoreKey,
+									Path: "keystore.jks",
+								}},
+							},
+						},
+					})
+					volumeMounts = append(volumeMounts, corev1.VolumeMount{
+						Name:      "gemfire-keystore",
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/keystore.jks",
+						SubPath:   "keystore.jks",
+					})
+				}
+
+				if gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretName != "" {
+					truststoreKey := gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretKey
+					if truststoreKey == "" {
+						truststoreKey = "truststore.jks"
+					}
+					volumes = append(volumes, corev1.Volume{
+						Name: "gemfire-truststore",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: gw.Spec.App.Gemfire.Ssl.Truststore.ExistingSecretName,
+								Optional:   &optional,
+								Items: []corev1.KeyToPath{{
+									Key:  truststoreKey,
+									Path: "truststore.jks",
+								}},
+							},
+						},
+					})
+					volumeMounts = append(volumeMounts, corev1.VolumeMount{
+						Name:      "gemfire-truststore",
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/truststore.jks",
+						SubPath:   "truststore.jks",
+					})
+				}
+			}
+		} else {
+			for i, certSecret := range gw.Spec.App.Gemfire.CertSecrets {
+				if certSecret.Enabled {
+					volumes = append(volumes, corev1.Volume{
+						Name: "gemfire-ssl-" + strconv.Itoa(i),
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: certSecret.SecretName,
+								Optional:   &optional,
+								Items: []corev1.KeyToPath{{
+									Key:  certSecret.Key,
+									Path: certSecret.Key,
+								}},
+							},
+						},
+					})
+					volumeMounts = append(volumeMounts, corev1.VolumeMount{
+						Name:      "gemfire-ssl-" + strconv.Itoa(i),
+						MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/" + certSecret.Key,
+						SubPath:   certSecret.Key,
+					})
+				}
+			}
+		}
+
+		if !gw.Spec.App.Redis.Enabled {
+			items := []corev1.KeyToPath{{Key: "sharedstate_client.yaml", Path: "sharedstate_client.yaml"}}
+
+			volumeMounts = append(volumeMounts, corev1.VolumeMount{
+				Name:      "sharedstate-client-config",
+				MountPath: "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/providers/sharedstate_client.yaml",
+				SubPath:   "sharedstate_client.yaml",
+			})
+
+			volumes = append(volumes, corev1.Volume{
+				Name: "sharedstate-client-config",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: secretName,
+						Optional:   &optional,
+						Items:      items,
+					},
+				},
+			})
+		}
 	}
 
 	if gw.Spec.App.Log.Override {
@@ -664,7 +779,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 
 	volumeMounts = append(volumeMounts, gmanInitContainerVolumeMounts...)
 
-	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.4"
+	graphmanInitContainerImage := "docker.io/caapim/graphman-static-init:1.0.5"
 	graphmanInitContainerImagePullPolicy := corev1.PullIfNotPresent
 	graphmanInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -780,7 +895,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	otkDbInitContainer := false
 	otkBootstrapDirectory := "/opt/SecureSpan/Gateway/node/default/etc/bootstrap/bundle/000OTK"
 	otkInitContainerVolumeMounts := []corev1.VolumeMount{}
-	otkInitContainerImage := "docker.io/caapim/otk-install:4.6.2_202402"
+	otkInitContainerImage := "docker.io/caapim/otk-install:4.7.0"
 	otkInitContainerImagePullPolicy := corev1.PullIfNotPresent
 	otkInitContainerSecurityContext := corev1.SecurityContext{}
 
@@ -881,12 +996,12 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			})
 		}
 		initContainers = append(initContainers, corev1.Container{
-			Name:            "otk-install-init",
-			Image:           otkInitContainerImage,
-			ImagePullPolicy: otkInitContainerImagePullPolicy,
-			SecurityContext: &otkInitContainerSecurityContext,
-			VolumeMounts:    otkInitContainerVolumeMounts,
-			EnvFrom:         otkInstallEnvFrom,
+			Name:                     "otk-install-init",
+			Image:                    otkInitContainerImage,
+			ImagePullPolicy:          otkInitContainerImagePullPolicy,
+			SecurityContext:          &otkInitContainerSecurityContext,
+			VolumeMounts:             otkInitContainerVolumeMounts,
+			EnvFrom:                  otkInstallEnvFrom,
 			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		})
@@ -932,16 +1047,7 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		imagePullPolicy = gw.Spec.App.ImagePullPolicy
 	}
 
-	gatewayContainerSecurityContext := corev1.SecurityContext{}
-	podSecurityContext := corev1.PodSecurityContext{}
-
-	if gw.Spec.App.ContainerSecurityContext != (corev1.SecurityContext{}) {
-		gatewayContainerSecurityContext = gw.Spec.App.ContainerSecurityContext
-	}
-
-	if !reflect.DeepEqual(gw.Spec.App.PodSecurityContext, corev1.PodSecurityContext{}) {
-		podSecurityContext = gw.Spec.App.PodSecurityContext
-	}
+	gatewayContainerSecurityContext, podSecurityContext := gatewaySecurityContexts(gw)
 	gatewaySecretName := gw.Name
 	if gw.Spec.App.Management.DisklessConfig.Disabled {
 		gatewaySecretName = gw.Name + "-node-properties"
@@ -966,12 +1072,18 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 		Ports:          ports,
 		LivenessProbe:  &livenessProbe,
 		ReadinessProbe: &readinessProbe,
+		StartupProbe:   startupProbe,
 		Resources:      resources,
 		Lifecycle:      &lifecycleHooks,
 	}
 
 	if gw.Spec.App.Otel.OtelSDKOnly.Enabled {
-		resourceAttributes := "k8s.container.name=$(CONTAINER_NAME),k8s.deployment.name=$(OTEL_SERVICE_NAME),service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(NAMESPACE),k8s.node.name=$(NODE_NAME),k8s.pod.name=$(POD_NAME),service.version='" + strings.Split(gw.Spec.App.Image, ":")[1] + "'"
+		imageParts := strings.SplitN(gw.Spec.App.Image, ":", 2)
+		imageTag := "unknown"
+		if len(imageParts) == 2 {
+			imageTag = imageParts[1]
+		}
+		resourceAttributes := "k8s.container.name=$(CONTAINER_NAME),k8s.deployment.name=$(OTEL_SERVICE_NAME),service.name=$(OTEL_SERVICE_NAME),k8s.namespace.name=$(NAMESPACE),k8s.node.name=$(NODE_NAME),k8s.pod.name=$(POD_NAME),service.version='" + imageTag + "'"
 		if len(gw.Spec.App.Otel.AdditionalResourceAttritbutes) > 0 {
 			additionalResourceAttributes := []string{}
 			for _, attr := range gw.Spec.App.Otel.AdditionalResourceAttritbutes {
@@ -1104,7 +1216,8 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: gw.Spec.App.PodAnnotations,
-					Labels:      gw.Spec.App.PodLabels,
+					// Labels are set below (dep.Spec.Template.Labels) so default,
+					// App and Pod labels are merged rather than overwritten.
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            serviceAccountName,
@@ -1139,7 +1252,21 @@ func NewDeployment(gw *securityv1.Gateway, platform string) *appsv1.Deployment {
 	}
 
 	dep.Spec.Template.Spec.ImagePullSecrets = append(dep.Spec.Template.Spec.ImagePullSecrets, gw.Spec.App.ImagePullSecrets...)
-	dep.Spec.Template.Labels = ls
+
+	// Pod template labels: user PodLabels first, then the operator-managed default
+	// and App labels overlaid on top so the defaults always win. PodLabels must
+	// reach the Pods, but they must not override the default labels
+	// which are also the Deployment selector, so a PodLabel overriding one of those keys
+	// would stop the template matching the selector and the API server would
+	// reject the Deployment.
+	podLabels := map[string]string{}
+	for k, v := range gw.Spec.App.PodLabels {
+		podLabels[k] = v
+	}
+	for k, v := range util.DefaultLabels(gw.Name, gw.Spec.App.Labels) {
+		podLabels[k] = v
+	}
+	dep.Spec.Template.Labels = podLabels
 
 	if !gw.Spec.App.Autoscaling.Enabled {
 		dep.Spec.Replicas = &gw.Spec.App.Replicas

@@ -134,13 +134,13 @@ kind: Gateway
 metadata:
   name: otk-ssg-dmz
 spec:
-  version: "11.1.3"
+  version: "11.2.1"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.3
+    image: docker.io/caapim/gateway:11.2.1
     imagePullPolicy: IfNotPresent
     resources:
       requests:
@@ -158,13 +158,12 @@ spec:
       otk: true
     otk:
       enabled: true
-      initContainerImage: docker.io/caapim/otk-install:4.6.4
+      initContainerImage: docker.io/caapim/otk-install:4.7.0
       type: dmz
       # Reference to Internal gateway (can be Gateway name or external hostname)
       internalGatewayReference: otk-ssg-internal
-      # InternalGatewayPort is used when the Internal gateway is external
-      # If not specified, defaults to 9443 or the gateway's graphmanDynamicSync port
-      internalGatewayPort: 9443
+      # OTK override-bundle port (defaults to 8443). Use otk.port, not a separate peer-gateway port field.
+      port: 8443
       # SyncIntervalSeconds determines how often certificates are synchronized
       # Defaults to RuntimeSyncIntervalSeconds if not specified, or 10 seconds if neither is set
       syncIntervalSeconds: 30
@@ -202,7 +201,7 @@ spec:
       secretName: gateway-secret
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.4
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.5
         dynamicSyncPort: 9443
       cluster:
         hostname: gateway.brcmlabs.com
@@ -233,13 +232,13 @@ kind: Gateway
 metadata:
   name: otk-ssg-internal
 spec:
-  version: "11.1.3"
+  version: "11.2.1"
   license:
     accept: true
     secretName: gateway-license
   app:
     replicas: 1
-    image: docker.io/caapim/gateway:11.1.3
+    image: docker.io/caapim/gateway:11.2.1
     imagePullPolicy: IfNotPresent
     resources:
       requests:
@@ -257,13 +256,12 @@ spec:
       otk: true
     otk:
       enabled: true
-      initContainerImage: docker.io/caapim/otk-install:4.6.4
+      initContainerImage: docker.io/caapim/otk-install:4.7.0
       type: internal
       # Reference to DMZ gateway (can be Gateway name or external hostname)
       dmzGatewayReference: otk-ssg-dmz
-      # DmzGatewayPort is used when the DMZ gateway is external
-      # If not specified, defaults to 9443 or the gateway's graphmanDynamicSync port
-      dmzGatewayPort: 9443
+      # OTK override-bundle port (defaults to 8443). Use otk.port, not a separate peer-gateway port field.
+      port: 8443
       # SyncIntervalSeconds determines how often certificates are synchronized
       # Defaults to RuntimeSyncIntervalSeconds if not specified, or 10 seconds if neither is set
       syncIntervalSeconds: 30
@@ -301,7 +299,7 @@ spec:
       secretName: gateway-secret
       graphman:
         enabled: true
-        initContainerImage: docker.io/caapim/graphman-static-init:1.0.4
+        initContainerImage: docker.io/caapim/graphman-static-init:1.0.5
       cluster:
         hostname: gateway.brcmlabs.com
     service:
@@ -332,10 +330,8 @@ spec:
 | `otk.internalAuthSecret` | Reference to secret with Internal gateway credentials | Yes (DMZ) | - |
 | `otk.dmzGatewayReference` | Reference to DMZ gateway (name or hostname) | Yes (Internal) | - |
 | `otk.internalGatewayReference` | Reference to Internal gateway (name or hostname) | Yes (DMZ) | - |
-| `otk.dmzGatewayPort` | Port for DMZ gateway (when external) | No | `9443` or `graphmanDynamicSync` port |
-| `otk.internalGatewayPort` | Port for Internal gateway (when external) | No | `9443` or `graphmanDynamicSync` port |
 | `otk.syncIntervalSeconds` | Certificate sync interval in seconds | No | `RuntimeSyncIntervalSeconds` or `10` |
-| `otk.port` | OTK port (defaults to 8443) | No | `8443` |
+| `otk.port` | OTK port for the OTK override bundle and install (single, internal, and dmz); not taken from `dmzGateway` / `internalGateway` | No | `8443` |
 
 ### External Keys Configuration
 
@@ -412,8 +408,9 @@ If the DMZ gateway is external, configure the Internal gateway with:
 ```yaml
 otk:
   type: internal
-  dmzGatewayReference: external-dmz-gateway.example.com
-  dmzGatewayPort: 9443  # Port for Graphman API
+  port: 8443
+  dmzGateway:
+    url: https://external-dmz-gateway.example.com:8443
   dmzAuthSecret: otk-dmz-auth-secret
 ```
 
@@ -424,8 +421,9 @@ If the Internal gateway is external, configure the DMZ gateway with:
 ```yaml
 otk:
   type: dmz
-  internalGatewayReference: external-internal-gateway.example.com
-  internalGatewayPort: 9443  # Port for Graphman API
+  port: 8443
+  internalGateway:
+    url: https://external-internal-gateway.example.com:8443
   internalAuthSecret: otk-internal-auth-secret
 ```
 
@@ -433,7 +431,7 @@ otk:
 
 - Graphman API must be enabled and accessible
 - Authentication credentials must be provided via auth secrets
-- The correct port must be specified if different from default (9443)
+- Put the HTTPS URL (including port) for the peer gateway on `dmzGateway.url` or `internalGateway.url`; set `otk.port` for the OTK override-bundle port (defaults to 8443)
 - The gateway must be reachable from the operator's network
 
 ## Troubleshooting

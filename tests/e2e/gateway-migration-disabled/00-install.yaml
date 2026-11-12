@@ -1,0 +1,55 @@
+# Test: migration disabled — Deployment must be created without a Job,
+# and toggling migrationJob off after it was on must clean up the Job.
+#
+# This is a 3-step test:
+#   00: migrationJob.enabled=false from the very first apply.
+#       -> Deployment created, no Job ever exists.
+#   01: migrationJob.enabled=true.
+#       -> Job created (exercises the enable path so step 02 has something
+#          real to clean up, rather than a no-op delete of a Job that was
+#          never there).
+#   02: migrationJob.enabled=false again.
+#       -> Job is deleted (the orphan-cleanup path in
+#          GatewayMigrationJob's "!migrationEnabled" branch) and the
+#          Deployment keeps reconciling normally.
+#
+# Scenario: database.enabled=true so the operator has a full database config,
+# but migrationJob.enabled=false. The operator must skip migration entirely
+# (deleting any stale Job if one exists) and proceed to create the Deployment
+# without waiting for any migration to complete.
+#
+# The fake jdbcUrl (no-mysql.local) means the Gateway pods will fail to start,
+# but this test only asserts the Deployment/Job object specs — not pod readiness.
+apiVersion: security.brcmlabs.com/v1
+kind: Gateway
+metadata:
+  name: ssg-migration-disabled
+spec:
+  version: "11.2.1"
+  license:
+    accept: true
+    secretName: gateway-license
+  app:
+    replicas: 1
+    image: docker.io/caapim/gateway:11.2.1
+    imagePullPolicy: IfNotPresent
+    management:
+      cluster:
+        hostname: gateway.brcmlabs.com
+      username: admin
+      password: 7layer
+      database:
+        enabled: true
+        jdbcUrl: jdbc:mysql://no-mysql.local:3306/ssg
+        migrationJob:
+          enabled: false   # ← migration explicitly off
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: https
+          port: 8443
+          targetPort: 8443
+        - name: management
+          port: 9443
+          targetPort: 9443

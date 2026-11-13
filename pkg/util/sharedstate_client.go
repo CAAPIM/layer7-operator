@@ -92,10 +92,10 @@ func GenerateSharedStateClientConfig(redisConfigs []RedisClientConfig, hazelcast
 	dynamicRedisConfig := map[string]interface{}{}
 	combinedConfig := map[string]interface{}{}
 	var newRedisConfigBlock interface{}
+	// When SSL is enabled, peer verification defaults to on; only an explicit
+	// verifyPeer: false disables it.
 	t := new(bool)
-	f := new(bool)
 	*t = true
-	*f = false
 
 	if len(redisConfigs) > 0 {
 		if len(redisConfigs) > 1 {
@@ -104,8 +104,8 @@ func GenerateSharedStateClientConfig(redisConfigs []RedisClientConfig, hazelcast
 				case "default":
 					rc.Name = ""
 					if rc.Ssl.Enabled {
-						if rc.Ssl.VerifyPeer == nil || !*rc.Ssl.VerifyPeer {
-							rc.Ssl.VerifyPeer = f
+						if rc.Ssl.VerifyPeer == nil {
+							rc.Ssl.VerifyPeer = t
 						}
 					}
 					dynamicRedisConfig["default"] = rc
@@ -113,8 +113,8 @@ func GenerateSharedStateClientConfig(redisConfigs []RedisClientConfig, hazelcast
 					name := rc.Name
 					rc.Name = ""
 					if rc.Ssl.Enabled {
-						if rc.Ssl.VerifyPeer == nil || !*rc.Ssl.VerifyPeer {
-							rc.Ssl.VerifyPeer = f
+						if rc.Ssl.VerifyPeer == nil {
+							rc.Ssl.VerifyPeer = t
 						}
 					}
 
@@ -127,8 +127,8 @@ func GenerateSharedStateClientConfig(redisConfigs []RedisClientConfig, hazelcast
 		} else {
 			redisConfigs[0].Name = ""
 			if redisConfigs[0].Ssl.Enabled {
-				if redisConfigs[0].Ssl.VerifyPeer == nil || !*redisConfigs[0].Ssl.VerifyPeer {
-					redisConfigs[0].Ssl.VerifyPeer = f
+				if redisConfigs[0].Ssl.VerifyPeer == nil {
+					redisConfigs[0].Ssl.VerifyPeer = t
 				}
 			}
 			dynamicRedisConfig["default"] = redisConfigs[0]

@@ -57,7 +57,10 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 	folderName := ""
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
-	fileName := "/tmp/" + name + "-" + namespace + "-" + segments[len(segments)-1]
+	fileName := RepoArtifactPath(name, namespace, segments[len(segments)-1])
+	if err := os.MkdirAll(filepath.Dir(fileName), 0755); err != nil {
+		return "", err
+	}
 
 	// Downloaded artifacts are treated as immutable, once a given release has been downloaded it will not be
 	// retrieved again unless there is a URL change.
@@ -150,7 +153,7 @@ func DownloadArtifact(URL string, username string, token string, name string, fo
 			return "", ErrInvalidTarArchive
 		}
 	case "json":
-		fileName = "/tmp/" + name + "-" + namespace + "-" + segments[len(segments)-1]
+		fileName = RepoArtifactPath(name, namespace, segments[len(segments)-1])
 		folderName := strings.ReplaceAll(fileName, "."+ext, "")
 		os.Mkdir(folderName, 0755)
 		fBytes, err := os.ReadFile(fileName)

@@ -15,11 +15,9 @@ metadata:
               "image": "docker.io/caapim/gateway:11.2.1",
               "management": {
                 "cluster": {
-                  "hostname": "gateway.brcmlabs.com",
-                  "password": "7layer"
+                  "hostname": "gateway.brcmlabs.com"
                 },
-                "password": "7layer",
-                "username": "admin"
+                "secretName": "gateway-secret"
               },
               "replicas": 1,
               "service": {
@@ -29,15 +27,9 @@ metadata:
                     "port": 8443,
                     "protocol": "TCP",
                     "targetPort": 8443
-                  },
-                  {
-                    "name": "management",
-                    "port": 9443,
-                    "protocol": "TCP",
-                    "targetPort": 9443
                   }
                 ],
-                "type": "LoadBalancer"
+                "type": "ClusterIP"
               }
             },
             "license": {
@@ -381,6 +373,21 @@ spec:
     spec:
       clusterPermissions:
       - rules:
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - gateways
+          - httproutes
+          - tlsroutes
+          - backendtlspolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         - apiGroups:
           - apps
           resources:

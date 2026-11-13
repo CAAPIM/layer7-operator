@@ -12,8 +12,6 @@ pipeline {
         IMAGE_NAME = "layer7-operator"
         IMAGE_TAG_BASE = "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_PROJECT}/${IMAGE_NAME}"
         TARGET_PLATFORMS="linux/amd64,linux/arm64"
-        ARTIFACTORY_CREDS = credentials('ARTIFACTORY_USERNAME_TOKEN')
-        DOCKER_HUB_CREDS = credentials('DOCKERHUB_USERNAME_PASSWORD_RW')
         def CREATED = sh(script: "echo `date -u +%Y-%m-%dT%H:%M:%SZ`", returnStdout: true).trim() 
         def YEAR = sh(script: "echo `date +%Y`", returnStdout: true).trim()
         VERSION = "${env.BRANCH_NAME}"    
@@ -25,6 +23,9 @@ pipeline {
     }
     stages {
         stage('Build and Push Image') {
+            // Code from forks must never run with publish credentials. Branch builds and
+            // pull requests from branches in this repository are unaffected.
+            when { expression { return !env.CHANGE_FORK } }
             steps {
                 withCredentials([
                 usernamePassword(credentialsId: 'ARTIFACTORY_USERNAME_TOKEN', usernameVariable: 'ARTIFACTORY_DEV_LOCAL_USERNAME', passwordVariable: 'ARTIFACTORY_DEV_LOCAL_APIKEY')
@@ -32,10 +33,13 @@ pipeline {
                       sh '''
                       if [[ -z "${RELEASE_VERSION}" ]]; then
                         if [[ "${BRANCH_NAME}" = "develop" ]]; then
-                          export IMAGE_TAG="latest"
+                          export RELEASE_VERSION="latest"
                         else
                           export RELEASE_VERSION="$(echo "${BRANCH_NAME}" | tr '/' '-')"
                         fi
+                      fi
+                      if [[ ! "${RELEASE_VERSION}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+                        error "RELEASE_VERSION must match ^[A-Za-z0-9._-]+$"; exit 1
                       fi
 
                       info "Getting the Docker and driver info"
@@ -58,14 +62,15 @@ pipeline {
                       	docker buildx create --name ${DOCKER_BUILDER_NAME} --driver docker-container
                       fi
 
-                      GOPROXY="https://${ARTIFACTORY_DEV_LOCAL_USERNAME}:${ARTIFACTORY_DEV_LOCAL_APIKEY}@usw1.packages.broadcom.com/artifactory/api/go/apim-golang-virtual"
-                      docker login ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST} -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}                    
-                      docker login ${ARTIFACTORY_DOCKER_IMS_IMAGE_REG} -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}
-                      docker login ${ARTIFACTORY_DOCKER_GO_IMAGE_REG}  -u ${ARTIFACTORY_DEV_LOCAL_USERNAME} -p ${ARTIFACTORY_DEV_LOCAL_APIKEY}
-                      DISTROLESS_IMG=${ARTIFACTORY_DOCKER_IMS_IMAGE_REG}/${ARTIFACTORY_DOCKER_IMS_IMAGE}
-                      GO_BUILD_IMG=${ARTIFACTORY_DOCKER_GO_IMAGE_REG}/golang:1.26
-                      cat Dockerfile | sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" | sed -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" > operator.Dockerfile
-                      docker buildx build -f operator.Dockerfile -t ${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION} --builder "${DOCKER_BUILDER_NAME}" --platform="${TARGET_PLATFORMS}" --build-arg TITLE="${IMAGE_NAME}" --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${RELEASE_VERSION}" --build-arg CREATED="${CREATED}" --build-arg GOPROXY="${GOPROXY}" . --push
+                      export GOPROXY="https://${ARTIFACTORY_DEV_LOCAL_USERNAME}:${ARTIFACTORY_DEV_LOCAL_APIKEY}@usw1.packages.broadcom.com/artifactory/api/go/apim-golang-virtual"
+                      trap 'docker logout "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}"; docker logout "${ARTIFACTORY_DOCKER_IMS_IMAGE_REG}"; docker logout "${ARTIFACTORY_DOCKER_GO_IMAGE_REG}"' EXIT
+                      for registry in "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}" "${ARTIFACTORY_DOCKER_IMS_IMAGE_REG}" "${ARTIFACTORY_DOCKER_GO_IMAGE_REG}"; do
+                        printf '%s' "${ARTIFACTORY_DEV_LOCAL_APIKEY}" | docker login "${registry}" -u "${ARTIFACTORY_DEV_LOCAL_USERNAME}" --password-stdin
+                      done
+                      DISTROLESS_IMG="${ARTIFACTORY_DOCKER_IMS_IMAGE_REG}/${ARTIFACTORY_DOCKER_IMS_IMAGE}"
+                      GO_BUILD_IMG="${ARTIFACTORY_DOCKER_GO_IMAGE_REG}/golang:1.26"
+                      sed -e "s~DISTROLESS_IMG~${DISTROLESS_IMG}~g" -e "s~GO_BUILD_IMG~${GO_BUILD_IMG}~g" Dockerfile > operator.Dockerfile
+                      docker buildx build -f operator.Dockerfile -t "${ARTIFACTORY_DOCKER_DEV_LOCAL_REG_HOST}/${IMAGE_TAG_BASE}:${RELEASE_VERSION}" --builder "${DOCKER_BUILDER_NAME}" --platform="${TARGET_PLATFORMS}" --build-arg TITLE="${IMAGE_NAME}" --build-arg COPYRIGHT="${COPYRIGHT}" --build-arg VERSION="${RELEASE_VERSION}" --build-arg CREATED="${CREATED}" --secret id=goproxy,env=GOPROXY . --push
                   '''
                   }
             }

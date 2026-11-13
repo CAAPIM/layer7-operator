@@ -52,6 +52,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -505,7 +506,11 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 						if b == nil {
 							continue
 						}
-						crtX509, _ := x509.ParseCertificate(b.Bytes)
+						crtX509, err := x509.ParseCertificate(b.Bytes)
+						if err != nil {
+							params.Log.Info("skipping external certificate that failed to parse", "externalCert", externalCert.Name, "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
+							continue
+						}
 
 						gmanCert := util.GraphmanCert{
 							Name:                      crtX509.Subject.CommonName,
@@ -526,7 +531,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				for _, appliedCert := range gateway.Status.LastAppliedExternalCerts[externalCert.Name] {
 					found := false
 					for _, desiredCert := range certSecretMap {
-						if strings.Split(appliedCert, "-")[0] == desiredCert.Name {
+						if appliedName, _, ok := util.SplitAppliedCertKey(appliedCert); ok && appliedName == desiredCert.Name {
 							found = true
 						}
 					}
@@ -2244,6 +2249,8 @@ func readLocalReference(ctx context.Context, repository *securityv1.Repository, 
 }
 
 // GetGatewayPods returns the pods in a Gateway Deployment
+// Labels can be set by anyone able to create pods in the namespace and these pods receive gateway admin credentials,
+// so only pods controlled by a ReplicaSet of this Gateway's Deployment are returned.
 func getGatewayPods(ctx context.Context, params Params) (*corev1.PodList, error) {
 	podList := &corev1.PodList{}
 
@@ -2254,6 +2261,40 @@ func getGatewayPods(ctx context.Context, params Params) (*corev1.PodList, error)
 	if err := params.Client.List(ctx, podList, listOpts...); err != nil {
 		return podList, err
 	}
+	if len(podList.Items) == 0 {
+		return podList, nil
+	}
+
+	deployment, err := getGatewayDeployment(ctx, params)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			params.Log.V(2).Info("gateway deployment not found, ignoring labelled pods", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+			podList.Items = nil
+			return podList, nil
+		}
+		return podList, err
+	}
+	if !metav1.IsControlledBy(deployment, params.Instance) {
+		params.Log.Info("gateway deployment is not controlled by this gateway, ignoring labelled pods", "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+		podList.Items = nil
+		return podList, nil
+	}
+
+	trustedPods := []corev1.Pod{}
+	for i := range podList.Items {
+		pod := &podList.Items[i]
+		// A Deployment's ReplicaSets are named <deployment>-<pod-template-hash>.
+		owner := metav1.GetControllerOf(pod)
+		hash := pod.Labels[appsv1.DefaultDeploymentUniqueLabelKey]
+		trusted := owner != nil && owner.Kind == "ReplicaSet" && owner.APIVersion == appsv1.SchemeGroupVersion.String() &&
+			hash != "" && owner.Name == deployment.Name+"-"+hash
+		if !trusted {
+			params.Log.V(2).Info("ignoring pod with gateway labels that is not owned by the gateway deployment", "pod", pod.Name, "name", params.Instance.Name, "namespace", params.Instance.Namespace)
+			continue
+		}
+		trustedPods = append(trustedPods, *pod)
+	}
+	podList.Items = trustedPods
 	return podList, nil
 }
 
@@ -2727,7 +2768,7 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 				mappingSource := MappingSource{}
 				found := false
 				for _, cert := range params.Instance.Status.LastAppliedExternalCerts[name] {
-					if bundle.Properties != nil && strings.Split(cert, "-")[0] == appliedCert.Name {
+					if certName, _, ok := util.SplitAppliedCertKey(cert); bundle.Properties != nil && ok && certName == appliedCert.Name {
 						for _, mapping := range bundle.Properties.Mappings.TrustedCerts {
 							sourceBytes, err := json.Marshal(mapping.Source)
 							if err != nil {

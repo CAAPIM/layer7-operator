@@ -51,6 +51,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -62,6 +63,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	creconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 // GatewayReconciler reconciles a Gateway object
@@ -97,6 +99,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{reconcile.ServiceAccount, "service account"},
 		{reconcile.Ingress, "ingress"},
 		{reconcile.Routes, "openshift routes"},
+		{reconcile.KubernetesGateway, "kubernetes gateway API"},
 		{reconcile.HorizontalPodAutoscaler, "horizontalPodAutoscaler"},
 		{reconcile.PodDisruptionBudget, "podDisruptionBudget"},
 		{reconcile.GatewayStatus, "gatewayStatus"},
@@ -152,6 +155,17 @@ func (r *GatewayReconciler) runOp(ctx context.Context, params reconcile.Params, 
 	r.muTasks.Lock()
 	defer r.muTasks.Unlock()
 	return op.Run(ctx, params)
+}
+
+// gatewayAPIUpdate reports whether an update is for an owned Gateway API resource and,
+// if so, whether its spec changed. Status written by the Gateway API implementation
+// does not change the generation and is ignored.
+func gatewayAPIUpdate(e event.UpdateEvent) (isGatewayAPI, specChanged bool) {
+	switch e.ObjectNew.(type) {
+	case *gatewayv1.Gateway, *gatewayv1.HTTPRoute, *gatewayv1.TLSRoute, *gatewayv1.BackendTLSPolicy:
+		return true, e.ObjectOld.GetGeneration() != e.ObjectNew.GetGeneration()
+	}
+	return false, false
 }
 
 func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -255,6 +269,9 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		}),
 	).WithEventFilter(predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
+			if isGatewayAPI, specChanged := gatewayAPIUpdate(e); isGatewayAPI {
+				return specChanged
+			}
 			if e.ObjectNew.GetObjectKind().GroupVersionKind().Kind == "gateway" {
 				oldGwGen := e.ObjectOld.GetGeneration()
 				newGwGen := e.ObjectNew.GetGeneration()
@@ -262,7 +279,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			}
 			objType := fmt.Sprintf("%v", reflect.TypeOf(e.ObjectNew))
 			if e.ObjectNew.GetObjectKind().GroupVersionKind().Kind == "" {
-				if objType == "*v1.Gateway" {
+				if _, isLayer7Gateway := e.ObjectNew.(*securityv1.Gateway); isLayer7Gateway {
 					oldGw := securityv1.Gateway{}
 					newGw := securityv1.Gateway{}
 					oldGwB, err := json.Marshal(e.ObjectOld.DeepCopyObject())
@@ -393,6 +410,25 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		},
 	})
 
+	// Gateway API CRDs are optional. Avoid starting informers for absent kinds.
+	for _, resource := range []struct {
+		kind   string
+		object client.Object
+	}{
+		{"Gateway", &gatewayv1.Gateway{}},
+		{"HTTPRoute", &gatewayv1.HTTPRoute{}},
+		{"TLSRoute", &gatewayv1.TLSRoute{}},
+		{"BackendTLSPolicy", &gatewayv1.BackendTLSPolicy{}},
+	} {
+		groupKind := schema.GroupKind{Group: gatewayv1.GroupName, Kind: resource.kind}
+		if _, err := mgr.GetRESTMapper().RESTMapping(groupKind, "v1"); err != nil {
+			if meta.IsNoMatchError(err) {
+				continue
+			}
+			return fmt.Errorf("discover Gateway API %s: %w", resource.kind, err)
+		}
+		builder.Owns(resource.object)
+	}
 	if r.Platform == "openshift" {
 		builder.Owns(&routev1.Route{})
 	}

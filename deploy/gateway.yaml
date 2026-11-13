@@ -8,9 +8,7 @@ spec:
     management:
       cluster:
         hostname: gateway.brcmlabs.com
-        password: 7layer
-      password: 7layer
-      username: admin
+      secretName: gateway-secret
     replicas: 1
     service:
       ports:
@@ -18,11 +16,7 @@ spec:
         port: 8443
         protocol: TCP
         targetPort: 8443
-      - name: management
-        port: 9443
-        protocol: TCP
-        targetPort: 9443
-      type: LoadBalancer
+      type: ClusterIP
   license:
     accept: false
     secretName: gateway-license

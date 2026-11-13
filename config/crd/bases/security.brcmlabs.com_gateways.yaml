@@ -1759,6 +1759,9 @@ spec:
                                 rule: 'has(self.termination) && has(self.insecureEdgeTerminationPolicy)
                                   ? !((self.termination==''passthrough'') && (self.insecureEdgeTerminationPolicy==''Allow''))
                                   : true'
+                              - message: cannot have both spec.tls.certificate and
+                                  spec.tls.externalCertificate
+                                rule: '!(has(self.certificate) && has(self.externalCertificate))'
                             to:
                               description: RouteTargetReference specifies the target
                                 that resolve into endpoints.
@@ -3089,6 +3092,236 @@ spec:
                           percentage:
                             description: Percentage of requests.limits.
                             type: integer
+                        type: object
+                    type: object
+                  kubernetesGateway:
+                    description: KubernetesGateway configures Gateway API resources
+                      independently of...
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      backendTLSPolicy:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          enabled:
+                            description: Enabled defaults to true when omitted, matching
+                              the Helm chart.
+                            type: boolean
+                          excludePorts:
+                            items:
+                              format: int32
+                              type: integer
+                            type: array
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          validation:
+                            properties:
+                              caCertificateRefs:
+                                description: CACertificateRefs references externally
+                                  managed CA ConfigMaps in this...
+                                items:
+                                  description: LocalObjectReference identifies an
+                                    API object within the namespace of the...
+                                  properties:
+                                    group:
+                                      description: Group is the group of the referent.
+                                        For example, "gateway.networking.k8s.
+                                      maxLength: 253
+                                      pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    kind:
+                                      description: Kind is kind of the referent. For
+                                        example "HTTPRoute" or "Service".
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                      type: string
+                                    name:
+                                      description: Name is the name of the referent.
+                                      maxLength: 253
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - group
+                                  - kind
+                                  - name
+                                  type: object
+                                maxItems: 8
+                                type: array
+                              hostname:
+                                description: Hostname defaults to <gateway-name>.<namespace>.svc.cluster.local.
+                                maxLength: 253
+                                minLength: 1
+                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                type: string
+                              wellKnownCACertificates:
+                                description: WellKnownCACertificatesType is the type
+                                  of CA certificate that will be...
+                                maxLength: 253
+                                minLength: 1
+                                pattern: ^(System|([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/([A-Za-z0-9][-A-Za-z0-9_.]{0,61})?[A-Za-z0-9]))$
+                                type: string
+                            type: object
+                        type: object
+                      enabled:
+                        type: boolean
+                      gateway:
+                        properties:
+                          addresses:
+                            items:
+                              description: GatewaySpecAddress describes an address
+                                that can be bound to a Gateway.
+                              properties:
+                                type:
+                                  default: IPAddress
+                                  description: Type of the address.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^Hostname|IPAddress|NamedAddress|[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[A-Za-z0-9\/\-._~%!$&'()*+,;=:]+$
+                                  type: string
+                                value:
+                                  description: |-
+                                    When a value is unspecified, an implementation SHOULD automatically
+                                    assign...
+                                  maxLength: 253
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: Hostname value must be empty or contain only
+                                  valid characters (matching ^(\*\.)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$)
+                                rule: 'self.type == ''Hostname'' ? (!has(self.value)
+                                  || self.value.matches(r"""^(\*\.)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$""")):
+                                  true'
+                            maxItems: 16
+                            type: array
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          create:
+                            type: boolean
+                          existingRef:
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                            type: object
+                          gatewayClassName:
+                            type: string
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          tls:
+                            properties:
+                              existingSecretName:
+                                description: ExistingSecretName references a listener
+                                  TLS Secret in the Layer7 Gateway...
+                                type: string
+                            type: object
+                        type: object
+                      httpRoute:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          enabled:
+                            description: Enabled defaults to true when omitted.
+                            type: boolean
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          rules:
+                            description: Rules are grouped by hostname, with at most
+                              16 rules per generated...
+                            items:
+                              properties:
+                                backend:
+                                  description: Backend selects the main Service (empty)
+                                    or the management Service.
+                                  enum:
+                                  - ""
+                                  - management
+                                  type: string
+                                filters:
+                                  description: Nested filters are validated by the
+                                    generated HTTPRoute API.
+                                  x-kubernetes-preserve-unknown-fields: true
+                                hostname:
+                                  description: Hostname is the fully qualified domain
+                                    name of a network host.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^(\*\.)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                matches:
+                                  description: Nested matches are validated by the
+                                    generated HTTPRoute API.
+                                  x-kubernetes-preserve-unknown-fields: true
+                                port:
+                                  description: Port is the Service port, rather than
+                                    the pod target port.
+                                  format: int32
+                                  maximum: 65535
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - port
+                              type: object
+                            type: array
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      tlsRoute:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          enabled:
+                            type: boolean
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          rules:
+                            items:
+                              properties:
+                                backend:
+                                  enum:
+                                  - ""
+                                  - management
+                                  type: string
+                                hostname:
+                                  description: Hostname is the fully qualified domain
+                                    name of a network host.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^(\*\.)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                port:
+                                  format: int32
+                                  maximum: 65535
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - hostname
+                              - port
+                              type: object
+                            maxItems: 64
+                            type: array
                         type: object
                     type: object
                   labels:

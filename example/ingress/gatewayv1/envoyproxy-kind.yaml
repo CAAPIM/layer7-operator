@@ -1,0 +1,39 @@
+# Envoy Gateway settings for Kind clusters, which have no LoadBalancer implementation.
+# Runs Envoy as a ClusterIP Service on the ingress-ready node with host ports 80 and 443,
+# matching the extraPortMappings in example/kind-config.yaml.
+# Applied by `make envoy-gateway-kind`, which also references it from GatewayClass eg via parametersRef.
+# Not needed on clusters that provide LoadBalancer Services.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: eg-kind
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: ClusterIP
+      envoyDeployment:
+        replicas: 1
+        strategy:
+          type: Recreate
+        pod:
+          nodeSelector:
+            ingress-ready: "true"
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: envoy
+                      ports:
+                        # Envoy adds 10000 to privileged listener ports.
+                        - containerPort: 10080
+                          hostPort: 80
+                          protocol: TCP
+                        - containerPort: 10443
+                          hostPort: 443
+                          protocol: TCP

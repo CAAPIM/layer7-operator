@@ -64,7 +64,8 @@ OPERATOR_SDK_VERSION ?= v1.33.0
 DOCKER_VERSION := $(subst /,-,$(VERSION))
 IMG ?= $(IMAGE_TAG_BASE):$(DOCKER_VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.30.0
+# Stable TLSRoute v1 CRDs require a newer API server for CEL IP validation.
+ENVTEST_K8S_VERSION = 1.34.0
 
 START_KIND_CLUSTER ?= true
 

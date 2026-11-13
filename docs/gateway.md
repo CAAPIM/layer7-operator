@@ -268,6 +268,14 @@ are set, the values in SecurityContext take precedence.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgateway">kubernetesGateway</a></b></td>
+        <td>object</td>
+        <td>
+          KubernetesGateway configures Gateway API resources independently of Ingress.
+All resources use gateway.networking.k8s.io/v1. Certificates are externally managed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
@@ -4719,7 +4727,7 @@ The Operator determines where to route to
         <td>
           TLSConfig defines config used to secure a route and provide termination<br/>
           <br/>
-            <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li>
+            <i>Validations</i>:<li>has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true: cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow</li><li>!(has(self.certificate) && has(self.externalCertificate)): cannot have both spec.tls.certificate and spec.tls.externalCertificate</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8474,6 +8482,624 @@ Set to 1g<br/>
         <td>
           Percentage of requests.limits.memory to allocate to the jvm
 75% is the default, it should be no lower than 50%<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway
+<sup><sup>[↩ Parent](#gatewayspecapp)</sup></sup>
+
+
+
+KubernetesGateway configures Gateway API resources independently of Ingress.
+All resources use gateway.networking.k8s.io/v1. Certificates are externally managed.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>annotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaybackendtlspolicy">backendTLSPolicy</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaygateway">gateway</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewayhttproute">httpRoute</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>labels</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaytlsroute">tlsRoute</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.backendTLSPolicy
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgateway)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>annotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled defaults to true when omitted, matching the Helm chart.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>excludePorts</b></td>
+        <td>[]integer</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>labels</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaybackendtlspolicyvalidation">validation</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.backendTLSPolicy.validation
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgatewaybackendtlspolicy)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaybackendtlspolicyvalidationcacertificaterefsindex">caCertificateRefs</a></b></td>
+        <td>[]object</td>
+        <td>
+          CACertificateRefs references externally managed CA ConfigMaps in this namespace.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>hostname</b></td>
+        <td>string</td>
+        <td>
+          Hostname defaults to <gateway-name>.<namespace>.svc.cluster.local.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>wellKnownCACertificates</b></td>
+        <td>string</td>
+        <td>
+          WellKnownCACertificatesType is the type of CA certificate that will be used
+when the caCertificateRefs field is unspecified.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.backendTLSPolicy.validation.caCertificateRefs[index]
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgatewaybackendtlspolicyvalidation)</sup></sup>
+
+
+
+LocalObjectReference identifies an API object within the namespace of the
+referrer.
+The API object must be valid in the cluster; the Group and Kind must
+be registered in the cluster for this reference to be valid.
+
+References to objects with invalid Group and Kind are not valid, and must
+be rejected by the implementation, with appropriate Conditions set
+on the containing object.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>group</b></td>
+        <td>string</td>
+        <td>
+          Group is the group of the referent. For example, "gateway.networking.k8s.io".
+When unspecified or empty string, core API group is inferred.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>kind</b></td>
+        <td>string</td>
+        <td>
+          Kind is kind of the referent. For example "HTTPRoute" or "Service".<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is the name of the referent.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.gateway
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgateway)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaygatewayaddressesindex">addresses</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>annotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>create</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaygatewayexistingref">existingRef</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>gatewayClassName</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>labels</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaygatewaytls">tls</a></b></td>
+        <td>object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.gateway.addresses[index]
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgatewaygateway)</sup></sup>
+
+
+
+GatewaySpecAddress describes an address that can be bound to a Gateway.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type of the address.<br/>
+          <br/>
+            <i>Default</i>: IPAddress<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          When a value is unspecified, an implementation SHOULD automatically
+assign an address matching the requested type if possible.
+
+If an implementation does not support an empty value, they MUST set the
+"Programmed" condition in status to False with a reason of "AddressNotAssigned".
+
+Examples: `1.2.3.4`, `128::1`, `my-ip-address`.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.gateway.existingRef
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgatewaygateway)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>namespace</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.gateway.tls
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgatewaygateway)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>existingSecretName</b></td>
+        <td>string</td>
+        <td>
+          ExistingSecretName references a listener TLS Secret in the Layer7 Gateway namespace.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.httpRoute
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgateway)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>annotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled defaults to true when omitted.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>labels</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewayhttprouterulesindex">rules</a></b></td>
+        <td>[]object</td>
+        <td>
+          Rules are grouped by hostname, with at most 16 rules per generated HTTPRoute.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.httpRoute.rules[index]
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgatewayhttproute)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          Port is the Service port, rather than the pod target port.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 1<br/>
+            <i>Maximum</i>: 65535<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>backend</b></td>
+        <td>enum</td>
+        <td>
+          Backend selects the main Service (empty) or the management Service.<br/>
+          <br/>
+            <i>Enum</i>: , management<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>filters</b></td>
+        <td>JSON</td>
+        <td>
+          Nested filters are validated by the generated HTTPRoute API.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>hostname</b></td>
+        <td>string</td>
+        <td>
+          Hostname is the fully qualified domain name of a network host. This matches
+the RFC 1123 definition of a hostname with 2 notable exceptions:
+
+ 1. IPs are not allowed.
+ 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard
+    label must appear by itself as the first label.
+
+Hostname can be "precise" which is a domain name without the terminating
+dot of a network host (e.g. "foo.example.com") or "wildcard", which is a
+domain name prefixed with a single wildcard label (e.g. `*.example.com`).
+
+Note that as per RFC1035 and RFC1123, a *label* must consist of lower case
+alphanumeric characters or '-', and must start and end with an alphanumeric
+character. No other punctuation is allowed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matches</b></td>
+        <td>JSON</td>
+        <td>
+          Nested matches are validated by the generated HTTPRoute API.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.tlsRoute
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgateway)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>annotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>labels</b></td>
+        <td>map[string]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#gatewayspecappkubernetesgatewaytlsrouterulesindex">rules</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Gateway.spec.app.kubernetesGateway.tlsRoute.rules[index]
+<sup><sup>[↩ Parent](#gatewayspecappkubernetesgatewaytlsroute)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>hostname</b></td>
+        <td>string</td>
+        <td>
+          Hostname is the fully qualified domain name of a network host. This matches
+the RFC 1123 definition of a hostname with 2 notable exceptions:
+
+ 1. IPs are not allowed.
+ 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard
+    label must appear by itself as the first label.
+
+Hostname can be "precise" which is a domain name without the terminating
+dot of a network host (e.g. "foo.example.com") or "wildcard", which is a
+domain name prefixed with a single wildcard label (e.g. `*.example.com`).
+
+Note that as per RFC1035 and RFC1123, a *label* must consist of lower case
+alphanumeric characters or '-', and must start and end with an alphanumeric
+character. No other punctuation is allowed.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 1<br/>
+            <i>Maximum</i>: 65535<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>backend</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: , management<br/>
         </td>
         <td>false</td>
       </tr></tbody>

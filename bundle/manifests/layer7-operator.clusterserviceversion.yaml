@@ -382,6 +382,21 @@ spec:
       clusterPermissions:
       - rules:
         - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - gateways
+          - httproutes
+          - tlsroutes
+          - backendtlspolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - apps
           resources:
           - deployments

@@ -4,6 +4,7 @@
 NAMESPACE ?= default
 
 .PHONY: basic advanced otel-gateway wait elastic metrics-server prepare-collector test grafana-stack prometheus otel otk
+.PHONY: envoy-gateway envoy-gateway-kind kubernetes-gateway-example pki-gatewayv1 pki-gatewayv1-listener pki-gatewayv1-backend
 
 wait:
 ifeq ($(OS),Windows_NT)
@@ -23,7 +24,7 @@ create-collector:
 	rm -rf $(tmp)
 
 install:
-	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml
+	kubectl apply -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.1/bundle.yaml
 	@$(MAKE) --silent t=10 wait
 	kubectl wait --for=condition=ready --timeout=600s pod -l app.kubernetes.io/name=layer7-operator
 
@@ -36,6 +37,22 @@ advanced:
 	kubectl apply -k ./repositories
 	@$(MAKE) --silent t=10 wait
 	kubectl apply -f ./gateway/advanced-gateway.yaml
+
+envoy-gateway:
+	helm upgrade --install eg oci://docker.io/envoyproxy/gateway-helm --version v1.9.3 --namespace envoy-gateway-system --create-namespace
+	kubectl -n envoy-gateway-system wait --for=condition=Available --timeout=300s deployment/envoy-gateway
+	kubectl apply -f ./ingress/gatewayv1/gatewayclass.yaml
+	kubectl wait --for=condition=Accepted --timeout=120s gatewayclasses.gateway.networking.k8s.io/eg
+
+envoy-gateway-kind: envoy-gateway
+	kubectl apply -f ./ingress/gatewayv1/envoyproxy-kind.yaml
+	kubectl patch gatewayclasses.gateway.networking.k8s.io eg --type=merge -p '{"spec":{"parametersRef":{"group":"gateway.envoyproxy.io","kind":"EnvoyProxy","name":"eg-kind","namespace":"envoy-gateway-system"}}}'
+
+# Requires Envoy Gateway, the eg GatewayClass, and the Layer7 Operator.
+kubernetes-gateway-example: pki-gatewayv1-listener pki-gatewayv1-backend
+	kubectl apply -k ./repositories -n $(NAMESPACE)
+	@$(MAKE) --silent t=10 wait
+	kubectl apply -f ./gateway/gateway-api.yaml -n $(NAMESPACE)
 
 otk-single:
 	kubectl apply -k ./repositories
@@ -265,6 +282,60 @@ pki-otk-internal: pki-otk
 	  --from-file=dmz-gateway-mtls-ca.crt=/tmp/otk-dmz-mtls-ca.crt \
 	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
+# Generate local files once, as with pki-otk. No cluster access is needed here.
+pki-gatewayv1:
+	@test -f /tmp/gatewayv1-ca.crt || { \
+	  umask 077; \
+	  openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 365 \
+	    -subj "/CN=Layer7 Gateway API Example CA" \
+	    -addext "basicConstraints=critical,CA:TRUE,pathlen:0" \
+	    -addext "keyUsage=critical,keyCertSign,cRLSign" \
+	    -keyout /tmp/gatewayv1-ca.key -out /tmp/gatewayv1-ca.crt; \
+	}
+	@test -f /tmp/gateway-listener-tls.crt || { \
+	  umask 077; \
+	  openssl req -new -newkey rsa:2048 -nodes \
+	    -subj "/CN=gateway.brcmlabs.com" \
+	    -addext "basicConstraints=critical,CA:FALSE" \
+	    -addext "keyUsage=critical,digitalSignature,keyEncipherment" \
+	    -addext "extendedKeyUsage=serverAuth" \
+	    -addext "subjectAltName=DNS:gateway.brcmlabs.com,DNS:gateway-management.brcmlabs.com" \
+	    -keyout /tmp/gateway-listener-tls.key -out /tmp/gateway-listener-tls.csr && \
+	  openssl x509 -req -sha256 -days 365 \
+	    -in /tmp/gateway-listener-tls.csr \
+	    -CA /tmp/gatewayv1-ca.crt -CAkey /tmp/gatewayv1-ca.key \
+	    -CAcreateserial -copy_extensions copy \
+	    -out /tmp/gateway-listener-tls.crt; \
+	}
+	@test -f /tmp/gateway-backend-tls.crt || { \
+	  umask 077; \
+	  openssl req -new -newkey rsa:2048 -nodes \
+	    -subj "/CN=gateway.brcmlabs.com" \
+	    -addext "basicConstraints=critical,CA:FALSE" \
+	    -addext "keyUsage=critical,digitalSignature,keyEncipherment" \
+	    -addext "extendedKeyUsage=serverAuth" \
+	    -addext "subjectAltName=DNS:gateway.brcmlabs.com,DNS:gateway-management.brcmlabs.com" \
+	    -keyout /tmp/gateway-backend-tls.key -out /tmp/gateway-backend-tls.csr && \
+	  openssl x509 -req -sha256 -days 365 \
+	    -in /tmp/gateway-backend-tls.csr \
+	    -CA /tmp/gatewayv1-ca.crt -CAkey /tmp/gatewayv1-ca.key \
+	    -CAcreateserial -copy_extensions copy \
+	    -out /tmp/gateway-backend-tls.crt; \
+	}
+
+pki-gatewayv1-listener: pki-gatewayv1
+	kubectl create secret tls gateway-listener-tls \
+	  --cert=/tmp/gateway-listener-tls.crt --key=/tmp/gateway-listener-tls.key \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+
+pki-gatewayv1-backend: pki-gatewayv1
+	kubectl create secret tls gateway-backend-tls \
+	  --cert=/tmp/gateway-backend-tls.crt --key=/tmp/gateway-backend-tls.key \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create configmap gateway-backend-ca \
+	  --from-file=ca.crt=/tmp/gatewayv1-ca.crt \
+	  -n $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+
 cassandra:
 	helm upgrade --install cassandra -f ./otk/database/cassandra/cassandra-values.yaml oci://registry-1.docker.io/bitnamicharts/cassandra
 
@@ -291,7 +362,7 @@ uninstall:
 	-kubectl delete -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.65.0/jaeger-operator.yaml -n observability
 	-kubectl delete ns observability
 	-kubectl delete ns monitoring
-	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.0/bundle.yaml
+	-kubectl delete -f https://github.com/CAAPIM/layer7-operator/releases/download/v1.3.1/bundle.yaml
 	-helm uninstall mysql
 	-helm uninstall cassandra
 	-helm uninstall contour -n projectcontour

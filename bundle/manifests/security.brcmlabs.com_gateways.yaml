@@ -4,7 +4,6 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: layer7-operator-system/layer7-operator-serving-cert
     controller-gen.kubebuilder.io/version: v0.19.0
-  creationTimestamp: null
   name: gateways.security.brcmlabs.com
 spec:
   group: security.brcmlabs.com
@@ -1544,14 +1543,14 @@ spec:
                   externalCerts:
                     items:
                       description: ExternalCert is a reference to an existing TLS
-                        or Opaque Secret in...
+                        or Opaque Secret or...
                       properties:
                         enabled:
                           description: Enabled or disabled
                           type: boolean
                         name:
-                          description: Name of the Secret which already exists in
-                            Kubernetes
+                          description: Name of the Secret or ConfigMap which already
+                            exists in Kubernetes
                           type: string
                         revocationCheckPolicyName:
                           type: string
@@ -1563,6 +1562,10 @@ spec:
                           items:
                             type: string
                           type: array
+                        type:
+                          description: 'Type of the referenced resource: "secret"
+                            (default) or "configmap"'
+                          type: string
                         verifyHostname:
                           type: boolean
                       type: object
@@ -1740,7 +1743,8 @@ spec:
                                   description: key provides key file contents
                                   type: string
                                 termination:
-                                  description: termination indicates termination type.
+                                  description: termination indicates the TLS termination
+                                    type.
                                   enum:
                                   - edge
                                   - reencrypt
@@ -1755,6 +1759,9 @@ spec:
                                 rule: 'has(self.termination) && has(self.insecureEdgeTerminationPolicy)
                                   ? !((self.termination==''passthrough'') && (self.insecureEdgeTerminationPolicy==''Allow''))
                                   : true'
+                              - message: cannot have both spec.tls.certificate and
+                                  spec.tls.externalCertificate
+                                rule: '!(has(self.certificate) && has(self.externalCertificate))'
                             to:
                               description: RouteTargetReference specifies the target
                                 that resolve into endpoints.
@@ -1935,8 +1942,7 @@ spec:
                               present in a Container.
                             properties:
                               name:
-                                description: Name of the environment variable. Must
-                                  be a C_IDENTIFIER.
+                                description: Name of the environment variable.
                                 type: string
                               value:
                                 description: |-
@@ -1979,6 +1985,32 @@ spec:
                                         type: string
                                     required:
                                     - fieldPath
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  fileKeyRef:
+                                    description: FileKeyRef selects a key of the env
+                                      file.
+                                    properties:
+                                      key:
+                                        description: The key within the env file.
+                                        type: string
+                                      optional:
+                                        default: false
+                                        description: Specify whether the file or its
+                                          key must be defined.
+                                        type: boolean
+                                      path:
+                                        description: The path within the volume from
+                                          which to select the file.
+                                        type: string
+                                      volumeName:
+                                        description: The name of the volume mount
+                                          containing the env file.
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    - volumeName
                                     type: object
                                     x-kubernetes-map-type: atomic
                                   resourceFieldRef:
@@ -2639,6 +2671,43 @@ spec:
                           description: RestartPolicy defines the restart behavior
                             of individual containers in a...
                           type: string
+                        restartPolicyRules:
+                          description: |-
+                            Represents a list of rules to be checked to determine if the
+                            container...
+                          items:
+                            description: ContainerRestartRule describes how a container
+                              exit is handled.
+                            properties:
+                              action:
+                                description: |-
+                                  Specifies the action taken on a container exit if the requirements
+                                  are...
+                                type: string
+                              exitCodes:
+                                description: Represents the exit codes to check on
+                                  container exits.
+                                properties:
+                                  operator:
+                                    description: Represents the relationship between
+                                      the container exit code(s) and the...
+                                    type: string
+                                  values:
+                                    description: Specifies the set of values to check
+                                      for container exit codes.
+                                    items:
+                                      format: int32
+                                      type: integer
+                                    type: array
+                                    x-kubernetes-list-type: set
+                                required:
+                                - operator
+                                type: object
+                            required:
+                            - action
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
                         securityContext:
                           description: SecurityContext defines the security options
                             the container should be run...
@@ -3023,6 +3092,236 @@ spec:
                           percentage:
                             description: Percentage of requests.limits.
                             type: integer
+                        type: object
+                    type: object
+                  kubernetesGateway:
+                    description: KubernetesGateway configures Gateway API resources
+                      independently of...
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      backendTLSPolicy:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          enabled:
+                            description: Enabled defaults to true when omitted, matching
+                              the Helm chart.
+                            type: boolean
+                          excludePorts:
+                            items:
+                              format: int32
+                              type: integer
+                            type: array
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          validation:
+                            properties:
+                              caCertificateRefs:
+                                description: CACertificateRefs references externally
+                                  managed CA ConfigMaps in this...
+                                items:
+                                  description: LocalObjectReference identifies an
+                                    API object within the namespace of the...
+                                  properties:
+                                    group:
+                                      description: Group is the group of the referent.
+                                        For example, "gateway.networking.k8s.
+                                      maxLength: 253
+                                      pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    kind:
+                                      description: Kind is kind of the referent. For
+                                        example "HTTPRoute" or "Service".
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                      type: string
+                                    name:
+                                      description: Name is the name of the referent.
+                                      maxLength: 253
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - group
+                                  - kind
+                                  - name
+                                  type: object
+                                maxItems: 8
+                                type: array
+                              hostname:
+                                description: Hostname defaults to <gateway-name>.<namespace>.svc.cluster.local.
+                                maxLength: 253
+                                minLength: 1
+                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                type: string
+                              wellKnownCACertificates:
+                                description: WellKnownCACertificatesType is the type
+                                  of CA certificate that will be...
+                                maxLength: 253
+                                minLength: 1
+                                pattern: ^(System|([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/([A-Za-z0-9][-A-Za-z0-9_.]{0,61})?[A-Za-z0-9]))$
+                                type: string
+                            type: object
+                        type: object
+                      enabled:
+                        type: boolean
+                      gateway:
+                        properties:
+                          addresses:
+                            items:
+                              description: GatewaySpecAddress describes an address
+                                that can be bound to a Gateway.
+                              properties:
+                                type:
+                                  default: IPAddress
+                                  description: Type of the address.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^Hostname|IPAddress|NamedAddress|[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[A-Za-z0-9\/\-._~%!$&'()*+,;=:]+$
+                                  type: string
+                                value:
+                                  description: |-
+                                    When a value is unspecified, an implementation SHOULD automatically
+                                    assign...
+                                  maxLength: 253
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: Hostname value must be empty or contain only
+                                  valid characters (matching ^(\*\.)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$)
+                                rule: 'self.type == ''Hostname'' ? (!has(self.value)
+                                  || self.value.matches(r"""^(\*\.)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$""")):
+                                  true'
+                            maxItems: 16
+                            type: array
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          create:
+                            type: boolean
+                          existingRef:
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                            type: object
+                          gatewayClassName:
+                            type: string
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          tls:
+                            properties:
+                              existingSecretName:
+                                description: ExistingSecretName references a listener
+                                  TLS Secret in the Layer7 Gateway...
+                                type: string
+                            type: object
+                        type: object
+                      httpRoute:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          enabled:
+                            description: Enabled defaults to true when omitted.
+                            type: boolean
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          rules:
+                            description: Rules are grouped by hostname, with at most
+                              16 rules per generated...
+                            items:
+                              properties:
+                                backend:
+                                  description: Backend selects the main Service (empty)
+                                    or the management Service.
+                                  enum:
+                                  - ""
+                                  - management
+                                  type: string
+                                filters:
+                                  description: Nested filters are validated by the
+                                    generated HTTPRoute API.
+                                  x-kubernetes-preserve-unknown-fields: true
+                                hostname:
+                                  description: Hostname is the fully qualified domain
+                                    name of a network host.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^(\*\.)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                matches:
+                                  description: Nested matches are validated by the
+                                    generated HTTPRoute API.
+                                  x-kubernetes-preserve-unknown-fields: true
+                                port:
+                                  description: Port is the Service port, rather than
+                                    the pod target port.
+                                  format: int32
+                                  maximum: 65535
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - port
+                              type: object
+                            type: array
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      tlsRoute:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          enabled:
+                            type: boolean
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          rules:
+                            items:
+                              properties:
+                                backend:
+                                  enum:
+                                  - ""
+                                  - management
+                                  type: string
+                                hostname:
+                                  description: Hostname is the fully qualified domain
+                                    name of a network host.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^(\*\.)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                port:
+                                  format: int32
+                                  maximum: 65535
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - hostname
+                              - port
+                              type: object
+                            maxItems: 64
+                            type: array
                         type: object
                     type: object
                   labels:
@@ -3468,6 +3767,26 @@ spec:
                           liquibaseLogLevel:
                             description: LiquibaseLogLevel
                             type: string
+                          migrationJob:
+                            description: MigrationJob for pre-upgrade schema updates
+                            properties:
+                              activeDeadlineSeconds:
+                                description: ActiveDeadlineSeconds is the max duration
+                                  each pod attempt is allowed to...
+                                format: int64
+                                type: integer
+                              clearLocks:
+                                description: ClearLocks forces release of any stuck
+                                  Liquibase locks before applying...
+                                type: boolean
+                              enabled:
+                                description: Enabled or disabled
+                                type: boolean
+                              jdbcUrl:
+                                description: JDBCUrl overrides the main database.jdbcUrl
+                                  for the migration job (e.g.
+                                type: string
+                            type: object
                           password:
                             description: Password MySQL - can be set in management.secretName
                             type: string
@@ -4004,12 +4323,35 @@ spec:
                             description: Type of OTK Database
                             type: string
                         type: object
-                      dmzGatewayReference:
-                        description: OTKPort is used in Single mode - sets the otk.
-                        type: string
+                      dmzGateway:
+                        description: DmzOTKGateway reference if type is internal
+                        properties:
+                          url:
+                            description: |-
+                              Url of the target gateway
+                              used for post-installation gateway policy...
+                            type: string
+                        type: object
                       enabled:
                         description: Enable or disable the OTK initContainer
                         type: boolean
+                      fipsCertificates:
+                        description: FipsCertificates is a list of certificate references
+                          for FIPS user...
+                        items:
+                          properties:
+                            enabled:
+                              description: Enabled or disabled
+                              type: boolean
+                            name:
+                              description: Name of the Secret or ConfigMap
+                              type: string
+                            type:
+                              description: 'Type of the referenced resource: "secret"
+                                or "configmap"'
+                              type: string
+                          type: object
+                        type: array
                       initContainerImage:
                         description: InitContainerImage for the initContainer
                         type: string
@@ -4143,14 +4485,15 @@ spec:
                                 type: string
                             type: object
                         type: object
-                      internalGatewayPort:
-                        description: InternalGatewayPort defaults to 9443 or graphmanDynamicSync
-                          port
-                        type: integer
-                      internalGatewayReference:
-                        description: InternalOtkGatewayReference to an Operator managed
-                          Gateway deployment that...
-                        type: string
+                      internalGateway:
+                        description: InternalOTKGateway reference if type is dmz
+                        properties:
+                          url:
+                            description: |-
+                              Url of the target gateway
+                              used for post-installation gateway policy...
+                            type: string
+                        type: object
                       maintenanceTasks:
                         description: MaintenanceTasks for the OTK database are disabled
                           by default
@@ -4192,10 +4535,6 @@ spec:
                         type: object
                       port:
                         description: OTKPort defaults to 8443
-                        type: integer
-                      runtimeSyncIntervalSeconds:
-                        description: RuntimeSyncIntervalSeconds how often OTK Gateways
-                          should be updated in...
                         type: integer
                       subSolutionKitNames:
                         description: A list of subSolutionKitNames - all,internal
@@ -4884,11 +5223,17 @@ spec:
                       when a...
                     properties:
                       enabled:
-                        description: Enable or disable deleting repository references
+                        description: |-
+                          Enable or disable deleting repository references
+                          by default this only...
                         type: boolean
-                      limitToStateStore:
-                        description: Limit deletion to repositories that have an external
-                          statestore
+                      includeEfs:
+                        description: IncludeEfs we track deltas between repositories
+                          on the operators ephemeral...
+                        type: boolean
+                      reconcileDirectoryChanges:
+                        description: ReconcileDirectoryChanges will create and apply
+                          mappings if your dynamic...
                         type: boolean
                       reconcileReferences:
                         description: ReconcileReferences resets the commits for all
@@ -5138,8 +5483,7 @@ spec:
                               present in a Container.
                             properties:
                               name:
-                                description: Name of the environment variable. Must
-                                  be a C_IDENTIFIER.
+                                description: Name of the environment variable.
                                 type: string
                               value:
                                 description: |-
@@ -5182,6 +5526,32 @@ spec:
                                         type: string
                                     required:
                                     - fieldPath
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                  fileKeyRef:
+                                    description: FileKeyRef selects a key of the env
+                                      file.
+                                    properties:
+                                      key:
+                                        description: The key within the env file.
+                                        type: string
+                                      optional:
+                                        default: false
+                                        description: Specify whether the file or its
+                                          key must be defined.
+                                        type: boolean
+                                      path:
+                                        description: The path within the volume from
+                                          which to select the file.
+                                        type: string
+                                      volumeName:
+                                        description: The name of the volume mount
+                                          containing the env file.
+                                        type: string
+                                    required:
+                                    - key
+                                    - path
+                                    - volumeName
                                     type: object
                                     x-kubernetes-map-type: atomic
                                   resourceFieldRef:
@@ -5842,6 +6212,43 @@ spec:
                           description: RestartPolicy defines the restart behavior
                             of individual containers in a...
                           type: string
+                        restartPolicyRules:
+                          description: |-
+                            Represents a list of rules to be checked to determine if the
+                            container...
+                          items:
+                            description: ContainerRestartRule describes how a container
+                              exit is handled.
+                            properties:
+                              action:
+                                description: |-
+                                  Specifies the action taken on a container exit if the requirements
+                                  are...
+                                type: string
+                              exitCodes:
+                                description: Represents the exit codes to check on
+                                  container exits.
+                                properties:
+                                  operator:
+                                    description: Represents the relationship between
+                                      the container exit code(s) and the...
+                                    type: string
+                                  values:
+                                    description: Specifies the set of values to check
+                                      for container exit codes.
+                                    items:
+                                      format: int32
+                                      type: integer
+                                    type: array
+                                    x-kubernetes-list-type: set
+                                required:
+                                - operator
+                                type: object
+                            required:
+                            - action
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
                         securityContext:
                           description: SecurityContext defines the security options
                             the container should be run...
@@ -6196,6 +6603,131 @@ spec:
                     description: SingletonExtraction works with the Gateway in Ephemeral
                       mode.
                     type: boolean
+                  startupProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to...
+                    properties:
+                      exec:
+                        description: Exec specifies a command to execute in the container.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working...
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after...
+                        format: int32
+                        type: integer
+                      grpc:
+                        description: GRPC specifies a GRPC HealthCheckRequest.
+                        properties:
+                          port:
+                            description: Port number of the gRPC service. Number must
+                              be in the range 1 to 65535.
+                            format: int32
+                            type: integer
+                          service:
+                            default: ""
+                            description: Service is the name of the service to place
+                              in the gRPC HealthCheckRequest...
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      httpGet:
+                        description: HTTPGet specifies an HTTP GET request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name.
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Name or number of the port to access on the
+                              container.
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            description: |-
+                              Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: Number of seconds after the container has started
+                          before liveness probes...
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: |-
+                          How often (in seconds) to perform the probe.
+                          Default to 10 seconds.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful...
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: TCPSocket specifies a connection to a TCP port.
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Number or name of the port to access on the
+                              container.
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - port
+                        type: object
+                      terminationGracePeriodSeconds:
+                        description: Optional duration in seconds the pod needs to
+                          terminate gracefully upon...
+                        format: int64
+                        type: integer
+                      timeoutSeconds:
+                        description: |-
+                          Number of seconds after which the probe times out.
+                          Defaults to 1 second.
+                        format: int32
+                        type: integer
+                    type: object
                   system:
                     description: System
                     properties:
@@ -6474,10 +7006,31 @@ spec:
                 items:
                   type: string
                 type: array
+              lastAppliedOtkFipsCerts:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: LastAppliedOtkFipsCerts tracks which OTK FIPS user certificates
+                  have been...
+                type: object
               managementPod:
                 description: Management Pod is a Gateway with a special annotation
                   is used as a...
                 type: string
+              migrationStatus:
+                description: MigrationStatus tracks the state of the pre-upgrade database
+                  migration job.
+                properties:
+                  complete:
+                    description: Complete indicates that the migration job succeeded
+                      for the current...
+                    type: boolean
+                  specHash:
+                    description: SpecHash is a short hash of the migration-relevant
+                      spec fields (image,...
+                    type: string
+                type: object
               phase:
                 description: PodPhase is a label for the condition of a pod at the
                   current time.
@@ -6528,6 +7081,10 @@ spec:
                     endpoint:
                       description: Endoint is the Git or HTTP repo
                       type: string
+                    insecureSkipVerify:
+                      description: InsecureSkipVerify disables TLS certificate verification
+                        for http and git...
+                      type: boolean
                     name:
                       description: Name of the Repository Reference
                       type: string
@@ -6576,9 +7133,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
-  storedVersions: null

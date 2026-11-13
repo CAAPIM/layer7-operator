@@ -27,6 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 // GatewaySpec defines the desired state of Gateway
@@ -260,6 +261,7 @@ type App struct {
 	// delete
 	RepositoryReferenceDelete RepositoryReferenceDelete `json:"repositoryReferenceDelete,omitempty"`
 	RepositoryReferences      []RepositoryReference     `json:"repositoryReferences,omitempty"`
+	KubernetesGateway         KubernetesGateway         `json:"kubernetesGateway,omitempty"`
 	Ingress                   Ingress                   `json:"ingress,omitempty"`
 	Sidecars                  []corev1.Container        `json:"sidecars,omitempty"`
 	InitContainers            []corev1.Container        `json:"initContainers,omitempty"`
@@ -1198,6 +1200,109 @@ type PodDisruptionBudgetSpec struct {
 type PodResources struct {
 	Requests corev1.ResourceList `json:"requests,omitempty"`
 	Limits   corev1.ResourceList `json:"limits,omitempty"`
+}
+
+// KubernetesGateway configures Gateway API resources independently of Ingress.
+// All resources use gateway.networking.k8s.io/v1. Certificates are externally managed.
+type KubernetesGateway struct {
+	Enabled          bool                       `json:"enabled,omitempty"`
+	Gateway          KubernetesGatewayResource  `json:"gateway,omitempty"`
+	HTTPRoute        KubernetesHTTPRoute        `json:"httpRoute,omitempty"`
+	TLSRoute         KubernetesTLSRoute         `json:"tlsRoute,omitempty"`
+	BackendTLSPolicy KubernetesBackendTLSPolicy `json:"backendTLSPolicy,omitempty"`
+	Labels           map[string]string          `json:"labels,omitempty"`
+	Annotations      map[string]string          `json:"annotations,omitempty"`
+}
+
+type KubernetesGatewayResource struct {
+	Create           bool   `json:"create,omitempty"`
+	GatewayClassName string `json:"gatewayClassName,omitempty"`
+	// +kubebuilder:validation:MaxItems=16
+	Addresses   []gatewayv1.GatewaySpecAddress `json:"addresses,omitempty"`
+	ExistingRef KubernetesGatewayReference     `json:"existingRef,omitempty"`
+	TLS         KubernetesGatewayTLS           `json:"tls,omitempty"`
+	Labels      map[string]string              `json:"labels,omitempty"`
+	Annotations map[string]string              `json:"annotations,omitempty"`
+}
+
+type KubernetesGatewayReference struct {
+	Name      string `json:"name,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
+type KubernetesGatewayTLS struct {
+	// ExistingSecretName references a listener TLS Secret in the Layer7 Gateway namespace.
+	ExistingSecretName string `json:"existingSecretName,omitempty"`
+}
+
+type KubernetesHTTPRoute struct {
+	// Enabled defaults to true when omitted.
+	Enabled *bool `json:"enabled,omitempty"`
+	// Rules are grouped by hostname, with at most 16 rules per generated HTTPRoute.
+	Rules       []KubernetesHTTPRouteRule `json:"rules,omitempty"`
+	Labels      map[string]string         `json:"labels,omitempty"`
+	Annotations map[string]string         `json:"annotations,omitempty"`
+}
+
+type KubernetesHTTPRouteRule struct {
+	Hostname gatewayv1.Hostname `json:"hostname,omitempty"`
+	// Port is the Service port, rather than the pod target port.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port"`
+	// Backend selects the main Service (empty) or the management Service.
+	// +kubebuilder:validation:Enum="";management
+	Backend string `json:"backend,omitempty"`
+	// Nested matches are validated by the generated HTTPRoute API.
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Matches []gatewayv1.HTTPRouteMatch `json:"matches,omitempty"`
+	// Nested filters are validated by the generated HTTPRoute API.
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Filters []gatewayv1.HTTPRouteFilter `json:"filters,omitempty"`
+}
+
+type KubernetesTLSRoute struct {
+	Enabled bool `json:"enabled,omitempty"`
+	// +kubebuilder:validation:MaxItems=64
+	Rules       []KubernetesTLSRouteRule `json:"rules,omitempty"`
+	Labels      map[string]string        `json:"labels,omitempty"`
+	Annotations map[string]string        `json:"annotations,omitempty"`
+}
+
+type KubernetesTLSRouteRule struct {
+	Hostname gatewayv1.Hostname `json:"hostname"`
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port"`
+	// +kubebuilder:validation:Enum="";management
+	Backend string `json:"backend,omitempty"`
+}
+
+type KubernetesBackendTLSPolicy struct {
+	// Enabled defaults to true when omitted, matching the Helm chart.
+	Enabled      *bool                          `json:"enabled,omitempty"`
+	ExcludePorts []int32                        `json:"excludePorts,omitempty"`
+	Validation   KubernetesBackendTLSValidation `json:"validation,omitempty"`
+	Labels       map[string]string              `json:"labels,omitempty"`
+	Annotations  map[string]string              `json:"annotations,omitempty"`
+}
+
+type KubernetesBackendTLSValidation struct {
+	// Hostname defaults to <gateway-name>.<namespace>.svc.cluster.local.
+	Hostname gatewayv1.PreciseHostname `json:"hostname,omitempty"`
+	// CACertificateRefs references externally managed CA ConfigMaps in this namespace.
+	// +kubebuilder:validation:MaxItems=8
+	CACertificateRefs       []gatewayv1.LocalObjectReference       `json:"caCertificateRefs,omitempty"`
+	WellKnownCACertificates *gatewayv1.WellKnownCACertificatesType `json:"wellKnownCACertificates,omitempty"`
+}
+
+func (c KubernetesGateway) HTTPEnabled() bool {
+	return c.Enabled && (c.HTTPRoute.Enabled == nil || *c.HTTPRoute.Enabled)
+}
+func (c KubernetesGateway) BackendTLSEnabled() bool {
+	return c.Enabled && (c.BackendTLSPolicy.Enabled == nil || *c.BackendTLSPolicy.Enabled)
 }
 
 type Ingress struct {

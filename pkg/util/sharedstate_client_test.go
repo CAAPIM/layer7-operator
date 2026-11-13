@@ -36,7 +36,7 @@ func TestSingleStandaloneSharedStateClientConfiguration(t *testing.T) {
 		},
 	}
 
-	configBytes, err := GenerateSharedStateClientConfig("redis", rcc, nil)
+	configBytes, err := GenerateSharedStateClientConfig(rcc, nil, nil)
 	if err != nil {
 		t.Errorf("failed to generate sharedstate_client config for single client configuration test err: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestSingleSentinelSharedStateClientConfiguration(t *testing.T) {
 		},
 	}
 
-	configBytes, err := GenerateSharedStateClientConfig("redis", rcc, nil)
+	configBytes, err := GenerateSharedStateClientConfig(rcc, nil, nil)
 	if err != nil {
 		t.Errorf("failed to generate sharedstate_client config for single client configuration test err: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestAdditionalProviderSharedStateClientConfiguration(t *testing.T) {
 		},
 	}
 
-	configBytes, err := GenerateSharedStateClientConfig("redis", rcc, nil)
+	configBytes, err := GenerateSharedStateClientConfig(rcc, nil, nil)
 	if err != nil {
 		t.Errorf("failed to generate sharedstate_client config for single client configuration test err: %v", err)
 	}
@@ -251,15 +251,129 @@ func TestAdditionalProviderSharedStateClientConfiguration(t *testing.T) {
 	}
 }
 
-func TestUnsupportedTypeSharedStateClientConfiguration(t *testing.T) {
+func TestEmptySharedStateClientConfiguration(t *testing.T) {
 
-	_, err := GenerateSharedStateClientConfig("hazelcast", nil, nil)
+	_, err := GenerateSharedStateClientConfig(nil, nil, nil)
 	if err == nil {
-		t.Errorf("hazelcast support is not implemented, should be rejected err: %v", err)
+		t.Errorf("empty configuration should be rejected err: %v", err)
+	}
+}
+
+func TestGemfireSharedStateClientConfiguration(t *testing.T) {
+	gcc := &GemfireClientConfig{
+		TestOnStart: true,
+		Locators: []GemfireLocator{
+			{Host: "locator-0.gemfire.develop.svc.cluster.local", Port: 10334},
+			{Host: "locator-1.gemfire.develop.svc.cluster.local", Port: 10334},
+		},
+		Username:                "gateway",
+		Password:                "7layer",
+		GwKeyValueRegionName:    "layer7gw_keyvalue",
+		GwCounterRegionName:     "layer7gw_counter",
+		GwRateLimiterRegionName: "layer7gw_ratelimiter",
+		GwSortedSetRegionName:   "layer7gw_sortedset",
+		Ssl: GemfireSsl{
+			Enabled:            true,
+			EnabledComponents:  "all",
+			Keystore:           "keystore.jks",
+			KeystorePassword:   "keystorepass",
+			KeystoreType:       "JKS",
+			Truststore:         "truststore.jks",
+			TruststorePassword: "truststorepass",
+			TruststoreType:     "JKS",
+		},
 	}
 
-	_, err = GenerateSharedStateClientConfig("gemfire", nil, nil)
-	if err == nil {
-		t.Errorf("gemfire support is not implemented, should be rejected err: %v", err)
+	configBytes, err := GenerateSharedStateClientConfig(nil, nil, gcc)
+	if err != nil {
+		t.Errorf("failed to generate sharedstate_client config for gemfire configuration test err: %v", err)
+	}
+
+	expected := `gemfire:
+  testOnStart: true
+  locators:
+    - host: locator-0.gemfire.develop.svc.cluster.local
+      port: 10334
+    - host: locator-1.gemfire.develop.svc.cluster.local
+      port: 10334
+  username: gateway
+  password: 7layer
+  gwKeyValueRegionName: layer7gw_keyvalue
+  gwCounterRegionName: layer7gw_counter
+  gwRateLimiterRegionName: layer7gw_ratelimiter
+  gwSortedSetRegionName: layer7gw_sortedset
+  ssl:
+    enabled: true
+    enabledComponents: all
+    keystore: keystore.jks
+    keystorePassword: keystorepass
+    keystoreType: JKS
+    truststore: truststore.jks
+    truststorePassword: truststorepass
+    truststoreType: JKS`
+
+	if !reflect.DeepEqual(strings.TrimSpace(string(configBytes)), strings.TrimSpace(expected)) {
+		t.Errorf("actual \n%v, expected \n%v", string(configBytes), expected)
+	}
+}
+
+func TestCombinedRedisGemfireSharedStateClientConfiguration(t *testing.T) {
+	rcc := []RedisClientConfig{
+		{
+			Name:               defaultName,
+			Type:               "standalone",
+			KeyPrefixGroupName: redisGroupName,
+			CommandTimeout:     commandTimeout,
+			ConnectTimeout:     connectTimeout,
+			Password:           "7layer",
+			Standalone: RedisNode{
+				Host: "localhost",
+				Port: 6379,
+			},
+			Ssl: RedisSsl{
+				Enabled: true, Crt: "------",
+				VerifyPeer: &verifyPeer,
+			},
+		},
+	}
+
+	gcc := &GemfireClientConfig{
+		Locators: []GemfireLocator{
+			{Host: "locator-0.gemfire.develop.svc.cluster.local", Port: 10334},
+		},
+		Username: "gateway",
+		Password: "7layer",
+	}
+
+	configBytes, err := GenerateSharedStateClientConfig(rcc, nil, gcc)
+	if err != nil {
+		t.Errorf("failed to generate sharedstate_client config for combined redis/gemfire configuration test err: %v", err)
+	}
+
+	expected := `gemfire:
+  testOnStart: false
+  locators:
+    - host: locator-0.gemfire.develop.svc.cluster.local
+      port: 10334
+  username: gateway
+  password: 7layer
+redis:
+  default:
+    type: standalone
+    commandTimeout: 5000
+    connectTimeout: 10000
+    keyPrefixGroupName: l7GW
+    testOnStart: false
+    password: 7layer
+    standalone:
+      host: localhost
+      port: 6379
+    ssl:
+      enabled: true
+      cert: '------'
+      verifyPeer: false`
+
+	if !reflect.DeepEqual(strings.TrimSpace(string(configBytes)), strings.TrimSpace(expected)) {
+		t.Errorf("actual \n%v, expected \n%v", string(configBytes), expected)
 	}
 }

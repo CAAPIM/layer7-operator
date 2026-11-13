@@ -76,6 +76,7 @@ If you deploy the contour ingress controller as part of this example, it will us
   - [Deploy the Operator](#deploy-the-layer7-operator)
   - [Create a Portal specific State Store](#create-a-portal-specific-state-store)
   - [Create a Gateway](#create-a-gateway)
+    - [Using GemFire instead of Redis for API key storage](#using-gemfire-instead-of-redis-for-api-key-storage)
 - [Configure the Developer Portal](#configure-the-developer-portal)
   - [Connect to the Developer Portal](#connect-to-the-developer-portal)
   - [Enable the requisite feature flags](#enable-the-requisite-feature-flags)
@@ -150,6 +151,8 @@ make portal-example
 
 ### Deploy Redis
 This integration does not use the traditional OTK database, instead Portal writes keys to a central Redis deployment that the Gateway uses to verify application keys. Redis is deployed using the [Bitnami Redis Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/redis) to its own namespace called redis. See [redis-values.yaml](../portal-integration/redis/redis-values.yaml) for more details on how it is configured.
+
+**NOTE** Redis is still required for this example regardless of the choice below — it backs the [Portal specific State Store](#create-a-portal-specific-state-store) used to store Graphman bundles. GemFire can optionally be used *in addition* to Redis, as an alternative backend for API key storage only, decided when you [Create a Gateway](#create-a-gateway). See [Using GemFire instead of Redis for API key storage](#using-gemfire-instead-of-redis-for-api-key-storage) if you want to try this. If you're following the default Redis-only path, continue below.
 
 You can deploy redis using the makefile
 ```
@@ -226,6 +229,30 @@ kubectl get l7statestores
 The [Gateway Custom Resource](../gateway/portal-gateway.yaml) is configured to use Redis and Gateway version 11.2.1
 
 Make sure that you've accepted the license in [portal-gateway.yaml](../gateway/portal-gateway.yaml) and placed a gateway v11 license in [example/base/resources/secrets/license/](../base/resources/secrets/license/) called license.xml.
+
+#### Using GemFire instead of Redis for API key storage
+This is the point at which you decide whether the Gateway uses Redis or GemFire as the backend for
+API key storage (the Remote Key Store data Portal writes for the Gateway to verify). Redis is still
+required for the [Portal specific State Store](#create-a-portal-specific-state-store) regardless of
+this choice — this only affects API key storage. See the [GemFire example](../gemfire/readme.md) for
+standing up a GemFire cluster and the full `spec.app.gemfire` field reference before following the
+steps below.
+
+To use GemFire instead of Redis for API key storage, before applying [portal-gateway.yaml](../gateway/portal-gateway.yaml):
+- Configure `spec.app.gemfire` on the Gateway Custom Resource (locators pointing at
+  `cluster1-locator-clusterip:10334`, region names, auth/TLS as needed). This can be configured
+  alongside the existing `redis` block — both backends can coexist on the same Gateway.
+- Switch the CWP (Cluster Wide Property) that selects the key-value store provider from `redis` to
+  `externalgemfire`, reusing the same `storeIdList`/store ID (e.g. `GW_STORE_ID`) used with Redis:
+  ```
+  com.l7tech.server.extension.sharedKeyValueStoreProvider=externalgemfire
+  com.l7tech.external.assertions.keyvaluestore.storeIdList=GW_STORE_ID
+  com.l7tech.external.assertions.keyvaluestore.GW_STORE_ID.maxEntries=10000
+  com.l7tech.external.assertions.gemfireprovider.requireAuth=false
+  ```
+- Later, when you [Configure the g2cA](#configure-the-g2ca-ground-2-cloud-agent), use the
+  `KV_STORE_BACKEND=GEMFIRE` env vars instead of `REDIS_CONFIG`.
+
 ```
 kubectl apply -k ./base
 ```
@@ -279,19 +306,12 @@ Now that all of the Required Components have been deployed we can proceed to con
 ### Enable the requisite feature flags
 
 To use this preview feature, two feature flags must be enabled by setting their values to 'true':
-- FEATURE_FLAG_L7_OPERATOR
-- FEATURE_FLAG_REMOTE_KEY_STORE
-
-Do the above via the 'Portal API' link found at the top of the portal navigation.
-- Click 'Portal API'
-- From the 'Application' drop-down select the 'Portal API App for...'
-- From the 'API Key' drop-down select 'api key 1'
-- Scroll down to the 'Settings' API and expand it
-- Expand the GET request, setting the 'name' param of the feature flag to one of the above and execute the request
-- Copy the response
-- Expand the PUT request, setting the 'name' and param and body to the copied value. Update the value from 'false' -> 'true' and execute the request
-- Repeat the same for the other feature flag
-![portal-feature-flags](../images/set-feature-flags.gif)
+- Application & Key Settings > Remote Key Stores
+![remote-key-store-ff](../images/remote-key-store-ff.png)
+  - toggle the setting and click 'Save' at the bottom
+- General Settings > L7 Operator
+![l7op-ff.png](../images/l7op-ff.png)
+  - toggle the setting and click 'Save' at the bottom
 
 ### Create an API
 This example includes a sample API definition and a simple mock server that you can call to test the integration.
@@ -370,6 +390,10 @@ If unmodified, this value should be `GW_STORE_ID`
 
 ![create-remote-key-store](../images/create-remote-key-store.gif)
 
+**NOTE** there is no difference in the steps above whether the Gateway is using Redis or GemFire for
+API key storage — that decision is made earlier when you [Create a Gateway](#create-a-gateway). The
+Remote Key Store is created the same way in the Portal UI either way.
+
 ### Create a Proxy
 In the same browser
 - Click 'Manage' in the center of the top navigation bar.
@@ -415,6 +439,18 @@ In the same browser
 REDIS_CONFIG=ewoJInR5cGUiOiAiYXNkZmFzZCIsCgkibWFzdGVyUGFzc3dvcmQiOiAiNz...
 ```
 
+  - If you are [using GemFire instead of Redis for API key storage](#using-gemfire-instead-of-redis-for-api-key-storage),
+    set `KV_STORE_BACKEND=GEMFIRE` in [g2c-agent/agent.env](./g2c-agent/agent.env) along with the
+    following flat (non-base64-encoded) env vars instead of `REDIS_CONFIG`:
+    ```
+    KV_STORE_BACKEND=GEMFIRE
+    GEMFIRE_STORE_ID=GW_STORE_ID
+    GEMFIRE_LOCATOR_HOST=cluster1-locator-clusterip
+    GEMFIRE_LOCATOR_PORT=10334
+    GEMFIRE_REGION_NAME=layer7gw_keyvalue
+    ```
+    `KV_STORE_BACKEND` selects between `REDIS` and `GEMFIRE`; `GEMFIRE_STORE_ID` should match the
+    store ID used in the CWP `storeIdList` config on the Gateway CR.
 
 ### Deploy the G2C (Ground 2 Cloud) Agent
 Make sure that you set the ENROLMENT_ENDPOINT above

@@ -23,7 +23,9 @@ pipeline {
     }
     stages {
         stage('Build and Push Image') {
-            when { not { changeRequest() } }
+            // Code from forks must never run with publish credentials. Branch builds and
+            // pull requests from branches in this repository are unaffected.
+            when { expression { return !env.CHANGE_FORK } }
             steps {
                 withCredentials([
                 usernamePassword(credentialsId: 'ARTIFACTORY_USERNAME_TOKEN', usernameVariable: 'ARTIFACTORY_DEV_LOCAL_USERNAME', passwordVariable: 'ARTIFACTORY_DEV_LOCAL_APIKEY')

@@ -377,3 +377,79 @@ redis:
 		t.Errorf("actual \n%v, expected \n%v", string(configBytes), expected)
 	}
 }
+
+// redisVerifyPeerFromYAML returns ssl.verifyPeer for each redis provider in the
+// rendered config (nil if the key is absent).
+func redisVerifyPeerFromYAML(t *testing.T, configBytes []byte) map[string]*bool {
+	t.Helper()
+	var doc struct {
+		Redis map[string]struct {
+			Ssl struct {
+				VerifyPeer *bool `yaml:"verifyPeer"`
+			} `yaml:"ssl"`
+		} `yaml:"redis"`
+	}
+	if err := yaml.Unmarshal(configBytes, &doc); err != nil {
+		t.Fatalf("unmarshal rendered config: %v", err)
+	}
+	out := map[string]*bool{}
+	for name, rc := range doc.Redis {
+		out[name] = rc.Ssl.VerifyPeer
+	}
+	return out
+}
+
+func TestSharedStateClientVerifyPeerDefaultsTrue(t *testing.T) {
+	explicitFalse := false
+	explicitTrue := true
+	node := RedisNode{Host: "localhost", Port: 6379}
+
+	t.Run("single", func(t *testing.T) {
+		cases := []struct {
+			name string
+			in   *bool
+			want bool
+		}{
+			{"unset defaults to true", nil, true},
+			{"explicit false preserved", &explicitFalse, false},
+			{"explicit true preserved", &explicitTrue, true},
+		}
+		for _, tc := range cases {
+			rcc := []RedisClientConfig{{
+				Name: defaultName, Type: "standalone", Standalone: node,
+				Ssl: RedisSsl{Enabled: true, VerifyPeer: tc.in},
+			}}
+			configBytes, err := GenerateSharedStateClientConfig(rcc, nil, nil)
+			if err != nil {
+				t.Fatalf("%s: %v", tc.name, err)
+			}
+			got := redisVerifyPeerFromYAML(t, configBytes)["default"]
+			if got == nil || *got != tc.want {
+				t.Errorf("%s: verifyPeer = %v, want %v", tc.name, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("multiple", func(t *testing.T) {
+		rcc := []RedisClientConfig{
+			{Name: defaultName, Type: "standalone", Standalone: node, Ssl: RedisSsl{Enabled: true}},
+			{Name: "unset", Type: "standalone", Standalone: node, Ssl: RedisSsl{Enabled: true}},
+			{Name: "optout", Type: "standalone", Standalone: node, Ssl: RedisSsl{Enabled: true, VerifyPeer: &explicitFalse}},
+			{Name: "plain", Type: "standalone", Standalone: node},
+		}
+		configBytes, err := GenerateSharedStateClientConfig(rcc, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := redisVerifyPeerFromYAML(t, configBytes)
+		for name, want := range map[string]bool{"default": true, "unset": true, "optout": false} {
+			if got[name] == nil || *got[name] != want {
+				t.Errorf("%s: verifyPeer = %v, want %v", name, got[name], want)
+			}
+		}
+		// SSL disabled: verifyPeer is not rendered at all.
+		if got["plain"] != nil {
+			t.Errorf("plain: verifyPeer rendered (%v) although ssl is disabled", *got["plain"])
+		}
+	})
+}

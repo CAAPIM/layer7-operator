@@ -158,71 +158,39 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 
 	ext := cloneOpts.ReferenceName.String()
 
-	// dir is the on-disk working directory for this clone. ext may legitimately
-	// contain '/' (e.g. "feature/x", "release/1.3"); SafeRef flattens separators
-	// so the directory is always a single, contained child of /tmp. Every other
-	// site that derives this path (finalizer, statestorage, secret) applies the
-	// same SafeRef, so they all resolve to the same directory.
-	dir := "/tmp/" + name + "-" + namespace + "-" + SafeRef(ext)
+	// dir is the on-disk working directory for this clone. RepoCheckoutDir
+	// nests namespace, name and the SafeRef'd ref as separate path segments so
+	// distinct (namespace, name, ref) tuples never share a directory. Every
+	// other site that derives this path must call RepoCheckoutDir as well.
+	dir := RepoCheckoutDir(name, namespace, ext)
 
 	r, err := git.PlainClone(dir, false, &cloneOpts)
 
 	if err == git.ErrRepositoryAlreadyExists {
-		r, _ := git.PlainOpen(dir)
-		w, _ := r.Worktree()
+		existing, openErr := git.PlainOpen(dir)
 
-		ref, _ := r.Head()
-
-		if ref == nil {
-			_ = os.RemoveAll(dir)
-			return "", fmt.Errorf("ref is nil for %s", name)
-		}
-		commit, err := r.CommitObject(ref.Hash())
-		if err != nil {
-			return "", err
-		}
-
-		if ext == tag {
-			return commit.Hash.String(), nil
-		}
-
-		gbytes, _ := os.ReadFile(dir + "/.git/config")
-		if !strings.Contains(string(gbytes), cloneOpts.URL) {
-			err = os.RemoveAll(dir)
-			if err != nil {
+		// The existing directory must belong to this repository before any of
+		// its content is trusted, including the tag early-return below.
+		// Otherwise a stale checkout from a previous spec.endpoint (or a
+		// pre-seeded directory) would be returned as authoritative content.
+		if openErr != nil || !remoteURLMatches(existing, remoteName, cloneOpts.URL) {
+			if err := os.RemoveAll(dir); err != nil {
 				return "", err
 			}
-			return "", fmt.Errorf("invalid git config for %s removing temp storage", name)
+			r, err = git.PlainClone(dir, false, &cloneOpts)
+		} else {
+			return updateExistingClone(existing, dir, name, ext, tag, &pullOpts)
 		}
-
-		err = w.Pull(&pullOpts)
-		if err != nil {
-			if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
-				return commit.Hash.String(), err
-			}
-			return "", err
-		}
-
-		// Re-read HEAD after a successful pull to return the actual new commit SHA.
-		// The pre-pull `commit` captured above reflects the old HEAD; without this
-		// re-read the caller receives the stale SHA and treats the new push as if
-		// nothing changed, causing a one-cycle delay before any commit is detected.
-		newRef, err := r.Head()
-		if err != nil {
-			return "", err
-		}
-		newCommit, err := r.CommitObject(newRef.Hash())
-		if err != nil {
-			return "", err
-		}
-		return newCommit.Hash.String(), nil
 	}
 
 	if err != nil {
 		return "", err
 	}
 
-	ref, _ := r.Head()
+	ref, err := r.Head()
+	if err != nil {
+		return "", err
+	}
 	commit, err := r.CommitObject(ref.Hash())
 
 	if err != nil {
@@ -230,6 +198,70 @@ func CloneRepository(url string, username string, token string, privateKey []byt
 	}
 
 	return commit.Hash.String(), nil
+}
+
+// remoteURLMatches reports whether the repository's remoteName remote is
+// configured with exactly one URL that is exactly equal to url. A substring
+// match is not sufficient: a remote such as
+// "https://evil.example/x.git?u=https://github.com/victim/repo.git" contains
+// the expected URL but fetches from a different host.
+func remoteURLMatches(r *git.Repository, remoteName string, url string) bool {
+	if r == nil {
+		return false
+	}
+	remote, err := r.Remote(remoteName)
+	if err != nil {
+		return false
+	}
+	urls := remote.Config().URLs
+	return len(urls) == 1 && urls[0] == url
+}
+
+// updateExistingClone refreshes an already-verified checkout and returns its
+// HEAD commit. Tags are immutable so a tag checkout is returned as-is; branch
+// checkouts are pulled.
+func updateExistingClone(r *git.Repository, dir string, name string, ext string, tag string, pullOpts *git.PullOptions) (string, error) {
+	ref, _ := r.Head()
+
+	if ref == nil {
+		_ = os.RemoveAll(dir)
+		return "", fmt.Errorf("ref is nil for %s", name)
+	}
+	commit, err := r.CommitObject(ref.Hash())
+	if err != nil {
+		return "", err
+	}
+
+	if ext == tag {
+		return commit.Hash.String(), nil
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return "", err
+	}
+
+	err = w.Pull(pullOpts)
+	if err != nil {
+		if err == git.NoErrAlreadyUpToDate || err == git.ErrRemoteExists {
+			return commit.Hash.String(), err
+		}
+		return "", err
+	}
+
+	// Re-read HEAD after a successful pull to return the actual new commit SHA.
+	// The pre-pull `commit` captured above reflects the old HEAD; without this
+	// re-read the caller receives the stale SHA and treats the new push as if
+	// nothing changed, causing a one-cycle delay before any commit is detected.
+	newRef, err := r.Head()
+	if err != nil {
+		return "", err
+	}
+	newCommit, err := r.CommitObject(newRef.Hash())
+	if err != nil {
+		return "", err
+	}
+	return newCommit.Hash.String(), nil
 }
 
 // knownHostsCallbackFromBytes builds a per-repository SSH HostKeyCallback from

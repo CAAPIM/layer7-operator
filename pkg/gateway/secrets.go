@@ -27,7 +27,10 @@
 package gateway
 
 import (
+	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -387,6 +390,24 @@ func NewSecret(gw *securityv1.Gateway, name string) (*corev1.Secret, error) {
 	}
 
 	return secret, nil
+}
+
+// secretLabelChecksumLength keeps the label value within the 63 character limit
+const secretLabelChecksumLength = 40
+
+// SecretLabelChecksum returns a value for Deployment labels that changes when the Secret's data changes.
+// The checksum/data annotation is an unkeyed hash of the secret data and must not be copied into
+// objects that are readable without access to Secrets (it would be an offline brute-force oracle).
+// This is an HMAC-SHA256 of the data keyed by the Secret's UID, which is random and only readable
+// by principals that can already read the Secret. Returns "" if the Secret has no UID.
+func SecretLabelChecksum(secret *corev1.Secret) string {
+	if secret == nil || secret.UID == "" {
+		return ""
+	}
+	dataBytes, _ := json.Marshal(secret.Data)
+	mac := hmac.New(sha256.New, []byte(secret.UID))
+	mac.Write(dataBytes)
+	return hex.EncodeToString(mac.Sum(nil))[:secretLabelChecksumLength]
 }
 
 func OtkOverrideBundleRequired(gw *securityv1.Gateway) bool {

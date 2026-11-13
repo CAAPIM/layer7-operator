@@ -1,6 +1,8 @@
 # Layer7 Operator Examples
 These examples cover a broader set of the features that the Layer7 Operator provides and serve as a starting point for implementing these in your own environments or just trying them out.
 
+> **For evaluation only.** Every credential, key and certificate in these examples is a placeholder, and the supporting components (databases, Redis, Grafana, Portal) are configured for convenience, not security. Replace all credentials before using any part of an example elsewhere, and don't expose example services outside a local or test cluster.
+
 ## Prerequisites
 - Kubernetes v1.34+
 - Gateway v11.x License

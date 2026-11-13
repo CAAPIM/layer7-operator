@@ -42,7 +42,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const tempDirectoryBase = "/tmp/portalapis/"
+// tempDirectoryBase is a var so that tests can redirect it
+var tempDirectoryBase = "/tmp/portalapis/"
 
 type RawPortalAPISummary struct {
 	APIs []templategen.PortalAPI `json:"results"`
@@ -64,7 +65,9 @@ func syncPortal(ctx context.Context, params Params) {
 	}
 
 	portalAPIs := []templategen.PortalAPI{}
-	portalTempDirectory := tempDirectoryBase + l7Portal.Name
+	// temp storage is partitioned by namespace, only APIs written by L7Apis in this
+	// portal's namespace are read. This must match the path written in pkg/api/reconcile/l7api.go
+	portalTempDirectory := portalTempPath(l7Portal.Namespace, l7Portal.Name)
 
 	folderInfo, err := os.Stat(portalTempDirectory)
 	if err != nil {
@@ -129,6 +132,12 @@ func syncPortal(ctx context.Context, params Params) {
 	}
 	buf.Reset()
 
+}
+
+// portalTempPath returns the temp storage directory for an L7Portal's APIs
+// /tmp/portalapis/<namespace>/<portalName>
+func portalTempPath(namespace string, portalName string) string {
+	return tempDirectoryBase + namespace + "/" + portalName
 }
 
 func getConfigmap(ctx context.Context, params Params, name string) (*corev1.ConfigMap, error) {

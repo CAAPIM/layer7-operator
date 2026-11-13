@@ -5203,7 +5203,8 @@ spec:
                                     a key called redis.
                                   type: string
                                 verifyPeer:
-                                  description: VerifyPeer
+                                  description: VerifyPeer defaults to true when TLS
+                                    is enabled.
                                   type: boolean
                               type: object
                             standalone:
@@ -5307,7 +5308,8 @@ spec:
                                   a key called redis.
                                 type: string
                               verifyPeer:
-                                description: VerifyPeer
+                                description: VerifyPeer defaults to true when TLS
+                                  is enabled.
                                 type: boolean
                             type: object
                           standalone:

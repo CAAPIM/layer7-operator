@@ -494,17 +494,44 @@ func matchOptionsLevelFormat(value string) string {
 	return ""
 }
 
+// readContainedFile reads ref relative to baseDir, refusing any reference that resolves outside baseDir.
+// Containment is checked lexically and again after symlinks are evaluated on both baseDir and the target,
+// so a symlink committed to a repository cannot redirect the read to an arbitrary file on the operator pod.
+func readContainedFile(baseDir string, ref string) ([]byte, error) {
+	cleanDir := filepath.Clean(baseDir)
+	target := filepath.Join(cleanDir, ref)
+	if !isWithinDir(cleanDir, target) {
+		return nil, fmt.Errorf("bundle reference %q escapes repository directory", ref)
+	}
+	realDir, err := filepath.EvalSymlinks(cleanDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve directory for bundle reference %q: %w", ref, err)
+	}
+	realTarget, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve bundle reference %q: %w", ref, err)
+	}
+	if !isWithinDir(realDir, realTarget) {
+		return nil, fmt.Errorf("bundle reference %q escapes repository directory", ref)
+	}
+	return os.ReadFile(realTarget)
+}
+
+// isWithinDir reports whether target is strictly below dir (both already cleaned or resolved).
+func isWithinDir(dir string, target string) bool {
+	rel, err := filepath.Rel(dir, target)
+	if err != nil || filepath.IsAbs(rel) {
+		return false
+	}
+	return rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator))
+}
+
 func parseCacString(entityType string, configFile string, f interface{}) (string, error) {
 	v := reflect.ValueOf(f)
 	match := matchOptionsLevelFormat(v.String())
 	if match != "" {
 		dir, _ := filepath.Split(configFile)
-		cleanDir := filepath.Clean(dir)
-		target := filepath.Clean(filepath.Join(dir, match))
-		if !strings.HasPrefix(target, cleanDir+string(os.PathSeparator)) {
-			return "", fmt.Errorf("bundle reference %q escapes repository directory", match)
-		}
-		fBytes, err := os.ReadFile(target)
+		fBytes, err := readContainedFile(dir, match)
 		if err != nil {
 			return "", err
 		}
@@ -532,7 +559,7 @@ func parsePacCode(p *PolicyInput, file string) (PolicyInput, error) {
 				match := matchOptionsLevelFormat(v.Field(i).String())
 				if match != "" {
 					dir, _ := filepath.Split(file)
-					fBytes, err := os.ReadFile(dir + match)
+					fBytes, err := readContainedFile(dir, match)
 					if err != nil {
 						return *p, err
 					}

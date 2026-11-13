@@ -528,8 +528,8 @@ type RedisSsl struct {
 	ExistingSecretKey string `json:"existingSecretKey,omitempty"`
 	// Crt in plaintext
 	Crt string `json:"crt,omitempty"`
-	// VerifyPeer
-	VerifyPeer bool `json:"verifyPeer,omitempty"`
+	// VerifyPeer defaults to true when TLS is enabled. Set to false to skip verification.
+	VerifyPeer *bool `json:"verifyPeer,omitempty"`
 }
 
 type GemfireConfigurations struct {

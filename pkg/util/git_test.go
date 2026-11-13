@@ -26,7 +26,16 @@
  */
 package util
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing/object"
+)
 
 func TestValidateRef(t *testing.T) {
 	valid := []string{
@@ -87,10 +96,11 @@ func TestSafeRefContainment(t *testing.T) {
 		if err := ValidateRef(ref); err != nil {
 			t.Fatalf("ValidateRef(%q) unexpectedly failed: %v", ref, err)
 		}
-		dir := "/tmp/name-namespace-" + SafeRef(ref)
-		// A single flat segment under /tmp: exactly two path separators
-		// ("/tmp/" prefix) and no additional "/" from the ref.
-		if got := countSlashesAfter(dir, "/tmp/"); got != 0 {
+		prefix := filepath.Join(repositoryCheckoutBase, "namespace", "name") + "/"
+		dir := RepoCheckoutDir("name", "namespace", ref)
+		// A single flat segment under {base}/{namespace}/{name}/: no additional
+		// "/" from the ref.
+		if got := countSlashesAfter(dir, prefix); got != 0 {
 			t.Errorf("SafeRef(%q) produced a nested dir %q (%d extra separators)", ref, dir, got)
 		}
 	}
@@ -105,4 +115,155 @@ func countSlashesAfter(s, prefix string) int {
 		}
 	}
 	return n
+}
+
+// newSourceRepo creates a local git repository (path ending in ".git" so
+// CloneRepository uses it verbatim) with one commit on master and a tag v1.
+func newSourceRepo(t *testing.T, content string) (path string, head string) {
+	t.Helper()
+	path = filepath.Join(t.TempDir(), "src.git")
+	r, err := git.PlainInit(path, false)
+	if err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(path, "file.txt"), []byte(content), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	w, err := r.Worktree()
+	if err != nil {
+		t.Fatalf("worktree: %v", err)
+	}
+	if _, err := w.Add("file.txt"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	h, err := w.Commit(content, &git.CommitOptions{Author: &object.Signature{Name: "t", Email: "t@example.com", When: time.Now()}})
+	if err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	if _, err := r.CreateTag("v1", h, nil); err != nil {
+		t.Fatalf("tag: %v", err)
+	}
+	return path, h.String()
+}
+
+func withCheckoutBase(t *testing.T) {
+	t.Helper()
+	orig := repositoryCheckoutBase
+	repositoryCheckoutBase = t.TempDir()
+	t.Cleanup(func() { repositoryCheckoutBase = orig })
+}
+
+func TestRemoteURLMatches(t *testing.T) {
+	const want = "https://github.com/victim/repo.git"
+	cases := []struct {
+		name string
+		urls []string
+		ok   bool
+	}{
+		{"exact", []string{want}, true},
+		{"substring", []string{"https://evil.example/pwn.git?u=" + want}, false},
+		{"prefix", []string{want + "x"}, false},
+		{"multiple urls", []string{want, "https://evil.example/pwn.git"}, false},
+	}
+	for _, tc := range cases {
+		r, err := git.PlainInit(t.TempDir(), false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := r.CreateRemote(&config.RemoteConfig{Name: "origin", URLs: tc.urls}); err != nil {
+			t.Fatal(err)
+		}
+		if got := remoteURLMatches(r, "origin", want); got != tc.ok {
+			t.Errorf("%s: remoteURLMatches = %v, want %v", tc.name, got, tc.ok)
+		}
+		if remoteURLMatches(r, "upstream", want) {
+			t.Errorf("%s: missing remote matched", tc.name)
+		}
+	}
+	if remoteURLMatches(nil, "origin", want) {
+		t.Error("nil repository matched")
+	}
+}
+
+// TestCloneRepositoryReusedDirRemoteMismatch pre-seeds the checkout directory
+// with a clone of a different repository and asserts CloneRepository discards
+// it and re-clones, for both the tag early-return and the branch/pull paths.
+func TestCloneRepositoryReusedDirRemoteMismatch(t *testing.T) {
+	cases := []struct {
+		name   string
+		branch string
+		tag    string
+		// remoteURL builds the seeded remote URL from (evil, good).
+		remoteURL func(evil, good string) string
+	}{
+		{"tag path, foreign remote", "", "v1", func(evil, _ string) string { return evil }},
+		{"branch path, foreign remote", "master", "", func(evil, _ string) string { return evil }},
+		{"branch path, substring remote", "master", "", func(evil, good string) string { return evil + "#" + good }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			withCheckoutBase(t)
+			good, goodHead := newSourceRepo(t, "good")
+			evil, evilHead := newSourceRepo(t, "evil")
+
+			ref := tc.tag
+			if tc.branch != "" {
+				ref = tc.branch
+			}
+			dir := RepoCheckoutDir("repo", "ns", ref)
+			seeded, err := git.PlainClone(dir, false, &git.CloneOptions{URL: evil})
+			if err != nil {
+				t.Fatalf("seed clone: %v", err)
+			}
+			if err := seeded.DeleteRemote("origin"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := seeded.CreateRemote(&config.RemoteConfig{Name: "origin", URLs: []string{tc.remoteURL(evil, good)}}); err != nil {
+				t.Fatal(err)
+			}
+
+			got, err := CloneRepository(good, "", "", nil, "", tc.branch, tc.tag, "", "repo", "", "", nil, "ns", false)
+			if err != nil {
+				t.Fatalf("CloneRepository: %v", err)
+			}
+			if got == evilHead {
+				t.Fatal("returned the foreign checkout's HEAD")
+			}
+			if got != goodHead {
+				t.Fatalf("CloneRepository = %s, want %s", got, goodHead)
+			}
+			b, err := os.ReadFile(filepath.Join(dir, "file.txt"))
+			if err != nil || string(b) != "good" {
+				t.Fatalf("checkout content = %q (%v), want re-cloned good content", b, err)
+			}
+		})
+	}
+}
+
+// TestCloneRepositoryReusedDirMatching asserts a checkout whose remote matches
+// exactly is reused rather than re-cloned.
+func TestCloneRepositoryReusedDirMatching(t *testing.T) {
+	withCheckoutBase(t)
+	good, goodHead := newSourceRepo(t, "good")
+
+	for _, ref := range []struct{ branch, tag string }{{"master", ""}, {"", "v1"}} {
+		first, err := CloneRepository(good, "", "", nil, "", ref.branch, ref.tag, "", "repo", "", "", nil, "ns", false)
+		if err != nil || first != goodHead {
+			t.Fatalf("initial clone (%+v) = %s, %v", ref, first, err)
+		}
+		marker := filepath.Join(RepoCheckoutDir("repo", "ns", ref.branch+ref.tag), "marker")
+		if err := os.WriteFile(marker, nil, 0644); err != nil {
+			t.Fatal(err)
+		}
+		second, err := CloneRepository(good, "", "", nil, "", ref.branch, ref.tag, "", "repo", "", "", nil, "ns", false)
+		if err != nil && err != git.NoErrAlreadyUpToDate {
+			t.Fatalf("reuse (%+v): %v", ref, err)
+		}
+		if second != goodHead {
+			t.Fatalf("reuse (%+v) = %s, want %s", ref, second, goodHead)
+		}
+		if _, err := os.Stat(marker); err != nil {
+			t.Fatalf("matching checkout (%+v) was re-cloned instead of reused", ref)
+		}
+	}
 }

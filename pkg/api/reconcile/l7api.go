@@ -52,7 +52,6 @@ import (
 
 const apiFinalizer = "security.brcmlabs.com/finalizer"
 const L7API_REMOVED_ANNOTATION = "security.brcmlabs.com/l7api-removed"
-const portalTempDirectory = "/tmp/portalapis/"
 const GATEWAY_STATUS_CONDITIONS_MAX_LEN = 1
 const (
 	DEPLOY   = "DEPLOY"
@@ -60,6 +59,9 @@ const (
 	SUCCESS  = "SUCCESS"
 	FAILURE  = "FAILURE"
 )
+
+// portalTempDirectory is a var so that tests can redirect it
+var portalTempDirectory = "/tmp/portalapis/"
 
 func Gateway(ctx context.Context, params Params) error {
 
@@ -351,19 +353,35 @@ func updateL7ApiDeploymentStatusOnPod(tag string, podName string, checksum strin
 	}
 }
 
-// TempStorage writes API Metadata to /tmp/portalapis/<l7PortalName>/apiname.json
+// portalApiTempPath returns the temp storage directory for an L7Portal's APIs.
+// It is partitioned by namespace so that same-named portals in different namespaces never
+// share state. L7Api.spec.l7Portal always refers to a portal in the L7Api's own namespace.
+// This must match the path read by syncPortal in pkg/portal/reconcile/portal.go
+func portalApiTempPath(namespace string, portalName string) (string, error) {
+	// Kubernetes names may contain dots, so only reject separators and dot-only segments.
+	invalid := func(segment string) bool {
+		return segment == "" || segment == "." || segment == ".." || strings.ContainsAny(segment, "/\\")
+	}
+	if invalid(namespace) {
+		return "", fmt.Errorf("L7Api namespace %q is invalid", namespace)
+	}
+	if invalid(portalName) {
+		return "", fmt.Errorf("L7Portal name %q is invalid", portalName)
+	}
+	return portalTempDirectory + namespace + "/" + portalName + "/", nil
+}
+
+// TempStorage writes API Metadata to /tmp/portalapis/<namespace>/<l7PortalName>/apiname.json
 // This does not track the deployment tag which will be resolved in a future update
 // l7api and l7portal should have the same deployment tags, l7portal deployment tags are
 // primarily used for bootstrapping portal apis to target container gateway deployments.
 // this mechanism will be updated in the future.
 func WriteTempStorage(ctx context.Context, params Params) error {
 	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
-		if strings.ContainsAny(params.Instance.Spec.L7Portal, "/\\.") {
-			return fmt.Errorf("L7Portal name %q is invalid", params.Instance.Spec.L7Portal)
+		apiPath, err := portalApiTempPath(params.Instance.Namespace, params.Instance.Spec.L7Portal)
+		if err != nil {
+			return err
 		}
-	}
-	apiPath := portalTempDirectory + params.Instance.Spec.L7Portal + "/"
-	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
 		portalMeta := templategen.PortalAPI{}
 		portalMetaBytes, err := json.Marshal(params.Instance.Spec.PortalMeta)
 		if err != nil {
@@ -391,9 +409,12 @@ func WriteTempStorage(ctx context.Context, params Params) error {
 }
 
 func RemoveTempStorage(ctx context.Context, params Params) error {
-	apiPath := portalTempDirectory + params.Instance.Spec.L7Portal + "/"
 	if params.Instance.Spec.PortalPublished && params.Instance.Spec.L7Portal != "" {
-		err := os.Remove(apiPath + strings.ReplaceAll(params.Instance.Name, " ", "-") + ".json")
+		apiPath, err := portalApiTempPath(params.Instance.Namespace, params.Instance.Spec.L7Portal)
+		if err != nil {
+			return err
+		}
+		err = os.Remove(apiPath + strings.ReplaceAll(params.Instance.Name, " ", "-") + ".json")
 		if err != nil {
 			return err
 		}

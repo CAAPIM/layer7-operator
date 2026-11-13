@@ -40,7 +40,7 @@ import (
 
 // Unzip will decompress a zip archive, moving all files and folders
 // within the zip file (parameter 1) to an output directory (parameter 2).
-func Unzip(src string, dest string) error {
+func Unzip(src string, dest string) (err error) {
 	folderExists, _ := os.Stat(dest)
 	if folderExists != nil {
 		return nil
@@ -52,6 +52,22 @@ func Unzip(src string, dest string) error {
 	}
 	defer r.Close()
 
+	// Enforce the same entry cap as Untar. Many tiny files can be used as a
+	// zip-bomb variant (inode/descriptor exhaustion).
+	if len(r.File) > maxArchiveEntries {
+		return fmt.Errorf("archive exceeds maximum entry count of %d", maxArchiveEntries)
+	}
+
+	// dest did not exist on entry, so on failure remove the partial extraction.
+	// Otherwise the next call would see dest present, return nil above and
+	// treat a rejected (e.g. oversized) archive as successfully extracted.
+	defer func() {
+		if err != nil {
+			_ = os.RemoveAll(dest)
+		}
+	}()
+
+	var totalWritten int64
 	for _, f := range r.File {
 
 		if strings.Contains(f.Name, "__MACOSX") || strings.Contains(f.Name, "._") || strings.Contains(f.Name, "._") || strings.Contains(f.Name, "./._") || strings.Contains(f.Name, "/._") {
@@ -84,10 +100,17 @@ func Unzip(src string, dest string) error {
 
 		rc, err := f.Open()
 		if err != nil {
+			outFile.Close()
 			return err
 		}
 
-		_, err = io.Copy(outFile, rc)
+		// Enforce a cumulative decompressed-size budget across all entries, as
+		// Untar does. The zip header's declared size is attacker-controlled, so
+		// the limit is applied to the bytes actually decompressed. Read one byte
+		// past the remaining budget so an overflow is surfaced as an error
+		// rather than silently truncated.
+		remaining := maxDecompressedSize - totalWritten
+		written, err := io.Copy(outFile, io.LimitReader(rc, remaining+1))
 
 		// Close the file without defer to close before next iteration of loop
 		outFile.Close()
@@ -96,6 +119,10 @@ func Unzip(src string, dest string) error {
 		if err != nil {
 			return err
 		}
+		if written > remaining {
+			return fmt.Errorf("archive exceeds maximum decompressed size of %d bytes", maxDecompressedSize)
+		}
+		totalWritten += written
 	}
 	return nil
 }
@@ -104,13 +131,13 @@ func Unzip(src string, dest string) error {
 // constants in production code.
 var (
 	// maxDecompressedSize is the maximum total number of decompressed bytes
-	// accepted from an archive — cumulative across all tar entries, or the size
+	// accepted from an archive — cumulative across all tar/zip entries, or the size
 	// of a single gzip payload. 500 MiB prevents decompression bombs from
 	// exhausting memory or disk. Exceeding it is a hard error, not a truncation.
 	maxDecompressedSize int64 = 500 << 20 // 500 MiB
 
 	// maxArchiveEntries is the maximum number of entries accepted from a tar
-	// archive. Many tiny files can be used as a zip-bomb variant; this cap
+	// or zip archive. Many tiny files can be used as a zip-bomb variant; this cap
 	// prevents that class of attack.
 	maxArchiveEntries = 10_000
 )

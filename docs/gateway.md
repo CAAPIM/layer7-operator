@@ -14766,7 +14766,7 @@ TLS configuration if using sentinel or standalone (from Gateway v11.1.00)
         <td><b>verifyPeer</b></td>
         <td>boolean</td>
         <td>
-          VerifyPeer<br/>
+          VerifyPeer defaults to true when TLS is enabled. Set to false to skip verification.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -15109,7 +15109,7 @@ TLS configuration if using sentinel or standalone (from Gateway v11.1.00)
         <td><b>verifyPeer</b></td>
         <td>boolean</td>
         <td>
-          VerifyPeer<br/>
+          VerifyPeer defaults to true when TLS is enabled. Set to false to skip verification.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

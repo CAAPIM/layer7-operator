@@ -36,6 +36,8 @@ import (
 // CombineWithOverwrite combines bundles where src overwrites dest entities (latest wins)
 // and removes delete mappings for re-added entities
 func CombineWithOverwrite(src Bundle, dest Bundle) (Bundle, error) {
+	normalizeTrustedCertThumbprints(&src)
+	normalizeTrustedCertThumbprints(&dest)
 	// Recover from reflection panics
 	defer func() {
 		if r := recover(); r != nil {
@@ -189,6 +191,8 @@ func CombineWithOverwrite(src Bundle, dest Bundle) (Bundle, error) {
 // repository controller has already determined the correct DELETE mappings.
 // Unlike CombineWithOverwrite, this does NOT call CleanDeleteMappingsForEntities.
 func CombineWithOverwritePreservingDeleteMappings(src Bundle, dest Bundle) (Bundle, error) {
+	normalizeTrustedCertThumbprints(&src)
+	normalizeTrustedCertThumbprints(&dest)
 	// Recover from reflection panics
 	defer func() {
 		if r := recover(); r != nil {
@@ -581,6 +585,8 @@ func CleanDeleteMappingsForEntities(bundle *Bundle, source Bundle) error {
 // - combined: full bundle with all entities from desired + delete mappings for removed items
 // - error: any error that occurred during processing
 func CalculateDelta(current Bundle, desired Bundle) (delta Bundle, combined Bundle, err error) {
+	normalizeTrustedCertThumbprints(&current)
+	normalizeTrustedCertThumbprints(&desired)
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panic during delta calculation: %v", r)

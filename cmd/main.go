@@ -190,6 +190,7 @@ func main() {
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("Gateway"),
 		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("Gateway"),
 		Platform: string(platform),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Gateway")

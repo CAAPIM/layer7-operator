@@ -36,7 +36,7 @@ metadata:
               "accept": false,
               "secretName": "gateway-license"
             },
-            "version": "11.1.3"
+            "version": "11.2.1"
           },
           "status": {}
         },
@@ -112,13 +112,13 @@ metadata:
     capabilities: Basic Install
     certified: "false"
     containerImage: docker.io/caapim/layer7-operator:v1.2.2
-    createdAt: "2025-11-24T09:17:56Z"
+    createdAt: "2026-11-17T15:43:34Z"
     operatorframework.io/suggested-namespace: layer7-operator-system
-    operators.operatorframework.io/builder: operator-sdk-v1.42.0
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: github.com/caapim/layer7-operator
     support: Broadcom Community
-  name: layer7-operator.v1.2.2
+  name: layer7-operator.v1.3.1
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -309,6 +309,13 @@ spec:
       - description: Endoint - Git repository endpoint
         displayName: Endpoint
         path: endpoint
+      - description: |-
+          InsecureSkipVerify disables TLS certificate verification for all repository
+          types (http, git). For git repositories this is OR-combined with the legacy
+          -insecure vendor flag: either condition set to true enables insecure mode.
+          Should only be set to true for internal repositories using self-signed certificates.
+        displayName: InsecureSkipVerify
+        path: insecureSkipVerify
       - description: Labels - Custom Labels
         displayName: Labels
         path: labels
@@ -399,6 +406,14 @@ spec:
           - list
           - patch
           - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          verbs:
+          - get
+          - list
           - watch
         - apiGroups:
           - autoscaling
@@ -710,7 +725,7 @@ spec:
                   value: localhost:4317
                 - name: OTEL_METRIC_PREFIX
                   value: layer7_
-                image: docker.io/caapim/layer7-operator:v1.2.2
+                image: docker.io/caapim/layer7-operator:v1.3.1
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -799,7 +814,7 @@ spec:
   provider:
     name: Broadcom
     url: https://www.broadcom.com/
-  version: 1.2.2
+  version: 1.3.1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1

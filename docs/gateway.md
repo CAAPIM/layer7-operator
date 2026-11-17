@@ -5035,7 +5035,8 @@ More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/nam
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
-          Annotations for the ingress resource<br/>
+          Annotations for the ingress resource. Keys removed here are not removed from
+an existing Ingress.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8911,7 +8912,8 @@ All resources use gateway.networking.k8s.io/v1. Certificates are externally mana
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Annotations for all generated Gateway API resources. Keys removed here are
+also removed from those resources; keys added by other controllers are kept.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8946,7 +8948,8 @@ All resources use gateway.networking.k8s.io/v1. Certificates are externally mana
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Labels for all generated Gateway API resources. Keys removed here are also
+removed from those resources; keys added by other controllers are kept.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8994,7 +8997,8 @@ All resources use gateway.networking.k8s.io/v1. Certificates are externally mana
         <td><b>excludePorts</b></td>
         <td>[]integer</td>
         <td>
-          <br/>
+          ExcludePorts lists Service ports that are not targeted. When set, each
+remaining port is targeted by name, so every targeted port must be named.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11529,7 +11533,8 @@ Service is the Gateway Management Service
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
-          Annotations for the service<br/>
+          Annotations for the service. Keys removed here are not removed from an
+existing Service.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15581,7 +15586,8 @@ Service
         <td><b>annotations</b></td>
         <td>map[string]string</td>
         <td>
-          Annotations for the service<br/>
+          Annotations for the service. Keys removed here are not removed from an
+existing Service.<br/>
         </td>
         <td>false</td>
       </tr><tr>

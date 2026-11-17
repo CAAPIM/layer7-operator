@@ -197,3 +197,86 @@ func TestUnzipWithinBudget(t *testing.T) {
 		t.Fatalf("extracted file truncated: got %d bytes, want 40", len(b))
 	}
 }
+
+// assertOnlyEntry fails unless dir contains exactly the named entry (or nothing
+// when name is empty), so leftover temporary extraction directories are caught.
+func assertOnlyEntry(t *testing.T, dir, name string) {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("read dir: %v", err)
+	}
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	if name == "" && len(names) != 0 || name != "" && (len(names) != 1 || names[0] != name) {
+		t.Fatalf("unexpected entries in %s: %v (want only %q)", dir, names, name)
+	}
+}
+
+func TestUntarFailureLeavesNoPartialExtraction(t *testing.T) {
+	withLimits(t, 100, 10_000)
+
+	data := makeTar(t, map[string]int{"a.txt": 40, "b.txt": 40, "c.txt": 40})
+	parent := t.TempDir()
+	dest := filepath.Join(parent, "out")
+	if err := Untar(dest, "repo", bytes.NewReader(data), false); err == nil {
+		t.Fatal("expected cumulative size error")
+	}
+	assertOnlyEntry(t, parent, "")
+	// A retry must still fail rather than short-circuit on an existing dest.
+	if err := Untar(dest, "repo", bytes.NewReader(data), false); err == nil {
+		t.Fatal("retry after rejected archive returned nil")
+	}
+}
+
+func TestUntarSuccessLeavesNoTempDir(t *testing.T) {
+	withLimits(t, 1000, 10_000)
+
+	data := makeTar(t, map[string]int{"a.txt": 40})
+	parent := t.TempDir()
+	dest := filepath.Join(parent, "out")
+	if err := Untar(dest, "repo", bytes.NewReader(data), false); err != nil {
+		t.Fatalf("Untar failed: %v", err)
+	}
+	assertOnlyEntry(t, parent, "out")
+}
+
+func TestUnzipFailureLeavesNoPartialExtraction(t *testing.T) {
+	withLimits(t, 100, 10_000)
+
+	src := writeZip(t, map[string]int{"a.txt": 40, "b.txt": 40, "c.txt": 40})
+	parent := t.TempDir()
+	if err := Unzip(src, filepath.Join(parent, "out")); err == nil {
+		t.Fatal("expected cumulative size error")
+	}
+	assertOnlyEntry(t, parent, "")
+}
+
+func TestUnzipSuccessLeavesNoTempDir(t *testing.T) {
+	withLimits(t, 1000, 10)
+
+	src := writeZip(t, map[string]int{"a.txt": 40, "dir/b.txt": 40})
+	parent := t.TempDir()
+	if err := Unzip(src, filepath.Join(parent, "out")); err != nil {
+		t.Fatalf("Unzip failed: %v", err)
+	}
+	assertOnlyEntry(t, parent, "out")
+}
+
+func TestExtractAtomicallyConcurrentWinner(t *testing.T) {
+	parent := t.TempDir()
+	dest := filepath.Join(parent, "out")
+	err := extractAtomically(dest, func(dir string) error {
+		// Simulate another caller completing the same extraction first.
+		if err := os.MkdirAll(filepath.Join(dest, "x"), 0755); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dir, "a.txt"), []byte("a"), 0644)
+	})
+	if err != nil {
+		t.Fatalf("expected nil when a concurrent extraction already completed, got %v", err)
+	}
+	assertOnlyEntry(t, parent, "out")
+}

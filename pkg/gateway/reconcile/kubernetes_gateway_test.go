@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -366,4 +367,129 @@ func TestKubernetesGatewayLifecycle(t *testing.T) {
 			t.Fatalf("expected upstream rejection of invalid path, got %v", err)
 		}
 	})
+}
+
+func gatewayAPIFakeParams(t *testing.T, funcs *interceptor.Funcs) (Params, client.Client) {
+	t.Helper()
+	scheme := runtime.NewScheme()
+	if err := securityv1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	if err := gatewayv1.Install(scheme); err != nil {
+		t.Fatal(err)
+	}
+	builder := fake.NewClientBuilder().WithScheme(scheme)
+	if funcs != nil {
+		builder = builder.WithInterceptorFuncs(*funcs)
+	}
+	cl := builder.Build()
+	instance := &securityv1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: "metadata", Namespace: "default", UID: "metadata-owner"}}
+	instance.Spec.App.KubernetesGateway = securityv1.KubernetesGateway{
+		Enabled:          true,
+		Gateway:          securityv1.KubernetesGatewayResource{ExistingRef: securityv1.KubernetesGatewayReference{Name: "shared"}},
+		HTTPRoute:        securityv1.KubernetesHTTPRoute{Rules: []securityv1.KubernetesHTTPRouteRule{{Port: 8443}}},
+		BackendTLSPolicy: securityv1.KubernetesBackendTLSPolicy{Enabled: new(false)},
+	}
+	return Params{Client: cl, Scheme: scheme, Instance: instance}, cl
+}
+
+func TestKubernetesGatewayRemovesStaleMetadata(t *testing.T) {
+	p, cl := gatewayAPIFakeParams(t, nil)
+	c := &p.Instance.Spec.App.KubernetesGateway
+	c.HTTPRoute.Annotations = map[string]string{"timeout": "5s", "policy": "strict"}
+	c.HTTPRoute.Labels = map[string]string{"tier": "edge"}
+	run := func() {
+		t.Helper()
+		if err := KubernetesGateway(context.Background(), p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	getRoute := func() *gatewayv1.HTTPRoute {
+		t.Helper()
+		routes := &gatewayv1.HTTPRouteList{}
+		if err := cl.List(context.Background(), routes); err != nil || len(routes.Items) != 1 {
+			t.Fatalf("expected one HTTPRoute, got %d routes and error %v", len(routes.Items), err)
+		}
+		return &routes.Items[0]
+	}
+
+	run()
+	route := getRoute()
+	if route.Annotations["timeout"] != "5s" || route.Labels["tier"] != "edge" || route.Annotations[gatewayAPIManagedMetadataAnnotation] == "" {
+		t.Fatalf("desired metadata not applied: labels=%v annotations=%v", route.Labels, route.Annotations)
+	}
+
+	// Another controller adds its own keys.
+	route.Annotations["external"] = "keep"
+	route.Labels["external"] = "keep"
+	if err := cl.Update(context.Background(), route); err != nil {
+		t.Fatal(err)
+	}
+	run()
+	version := getRoute().ResourceVersion
+	run()
+	if getRoute().ResourceVersion != version {
+		t.Fatal("HTTPRoute changed on no-op reconcile")
+	}
+
+	// Removing keys from the CR removes them from the route, but keeps keys
+	// written by other controllers.
+	c.HTTPRoute.Annotations = map[string]string{"policy": "strict"}
+	c.HTTPRoute.Labels = nil
+	run()
+	route = getRoute()
+	if _, ok := route.Annotations["timeout"]; ok {
+		t.Fatal("removed annotation was not deleted")
+	}
+	if _, ok := route.Labels["tier"]; ok {
+		t.Fatal("removed label was not deleted")
+	}
+	if route.Annotations["policy"] != "strict" || route.Annotations["external"] != "keep" || route.Labels["external"] != "keep" {
+		t.Fatalf("unexpected metadata after removal: labels=%v annotations=%v", route.Labels, route.Annotations)
+	}
+
+	// A resource without a tracking record (created before tracking existed) has
+	// nothing deleted on the first reconcile; the record is added.
+	delete(route.Annotations, gatewayAPIManagedMetadataAnnotation)
+	route.Annotations["legacy"] = "kept"
+	if err := cl.Update(context.Background(), route); err != nil {
+		t.Fatal(err)
+	}
+	c.HTTPRoute.Annotations = nil
+	run()
+	route = getRoute()
+	if route.Annotations["legacy"] != "kept" || route.Annotations["policy"] != "strict" || route.Annotations[gatewayAPIManagedMetadataAnnotation] == "" {
+		t.Fatalf("untracked keys must be kept and tracking added: %v", route.Annotations)
+	}
+}
+
+func TestKubernetesGatewayApplyFailureRecordsEvent(t *testing.T) {
+	applyErr := errors.New(`HTTPRoute.gateway.networking.k8s.io "metadata" is invalid: spec.rules[0].matches[0].path: Invalid value`)
+	p, _ := gatewayAPIFakeParams(t, &interceptor.Funcs{
+		Create: func(ctx context.Context, cl client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+			if _, ok := obj.(*gatewayv1.HTTPRoute); ok {
+				return applyErr
+			}
+			return cl.Create(ctx, obj, opts...)
+		},
+	})
+	recorder := record.NewFakeRecorder(10)
+	p.Recorder = recorder
+	if err := KubernetesGateway(context.Background(), p); !errors.Is(err, applyErr) {
+		t.Fatalf("expected apply error, got %v", err)
+	}
+	select {
+	case event := <-recorder.Events:
+		if !strings.Contains(event, "Warning "+gatewayAPIApplyFailedReason) || !strings.Contains(event, "HTTPRoute") || !strings.Contains(event, "Invalid value") {
+			t.Fatalf("unexpected event: %s", event)
+		}
+	default:
+		t.Fatal("expected a Warning event for the failed HTTPRoute")
+	}
+
+	// A nil Recorder must not panic.
+	p.Recorder = nil
+	if err := KubernetesGateway(context.Background(), p); !errors.Is(err, applyErr) {
+		t.Fatalf("expected apply error, got %v", err)
+	}
 }

@@ -841,7 +841,8 @@ type Graphman struct {
 type Service struct {
 	// Enabled or disabled
 	Enabled bool `json:"enabled,omitempty"`
-	// Annotations for the service
+	// Annotations for the service. Keys removed here are not removed from an
+	// existing Service.
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Type ClusterIP, NodePort, LoadBalancer
 	Type corev1.ServiceType `json:"type,omitempty"`
@@ -1295,8 +1296,12 @@ type KubernetesGateway struct {
 	HTTPRoute        KubernetesHTTPRoute        `json:"httpRoute,omitempty"`
 	TLSRoute         KubernetesTLSRoute         `json:"tlsRoute,omitempty"`
 	BackendTLSPolicy KubernetesBackendTLSPolicy `json:"backendTLSPolicy,omitempty"`
-	Labels           map[string]string          `json:"labels,omitempty"`
-	Annotations      map[string]string          `json:"annotations,omitempty"`
+	// Labels for all generated Gateway API resources. Keys removed here are also
+	// removed from those resources; keys added by other controllers are kept.
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations for all generated Gateway API resources. Keys removed here are
+	// also removed from those resources; keys added by other controllers are kept.
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type KubernetesGatewayResource struct {
@@ -1367,7 +1372,9 @@ type KubernetesTLSRouteRule struct {
 
 type KubernetesBackendTLSPolicy struct {
 	// Enabled defaults to true when omitted, matching the Helm chart.
-	Enabled      *bool                          `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
+	// ExcludePorts lists Service ports that are not targeted. When set, each
+	// remaining port is targeted by name, so every targeted port must be named.
 	ExcludePorts []int32                        `json:"excludePorts,omitempty"`
 	Validation   KubernetesBackendTLSValidation `json:"validation,omitempty"`
 	Labels       map[string]string              `json:"labels,omitempty"`
@@ -1395,7 +1402,8 @@ type Ingress struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// Type ingress or route
 	Type string `json:"type,omitempty"`
-	// Annotations for the ingress resource
+	// Annotations for the ingress resource. Keys removed here are not removed from
+	// an existing Ingress.
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Routes for Openshift
 	// This allows for customization of the default route and adding of an additional route for the management service

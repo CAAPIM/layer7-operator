@@ -32,7 +32,7 @@ pipeline {
                 ]){      
                       sh '''
                       if [[ -z "${RELEASE_VERSION}" ]]; then
-                        if [[ "${BRANCH_NAME}" = "develop" ]]; then
+                        if [[ "${BRANCH_NAME}" = "main" ]]; then
                           export RELEASE_VERSION="latest"
                         else
                           export RELEASE_VERSION="$(echo "${BRANCH_NAME}" | tr '/' '-')"

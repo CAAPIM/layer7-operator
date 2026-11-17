@@ -40,7 +40,8 @@ import (
 
 // Unzip will decompress a zip archive, moving all files and folders
 // within the zip file (parameter 1) to an output directory (parameter 2).
-func Unzip(src string, dest string) (err error) {
+// dest is only created once the whole archive has been extracted successfully.
+func Unzip(src string, dest string) error {
 	folderExists, _ := os.Stat(dest)
 	if folderExists != nil {
 		return nil
@@ -58,15 +59,12 @@ func Unzip(src string, dest string) (err error) {
 		return fmt.Errorf("archive exceeds maximum entry count of %d", maxArchiveEntries)
 	}
 
-	// dest did not exist on entry, so on failure remove the partial extraction.
-	// Otherwise the next call would see dest present, return nil above and
-	// treat a rejected (e.g. oversized) archive as successfully extracted.
-	defer func() {
-		if err != nil {
-			_ = os.RemoveAll(dest)
-		}
-	}()
+	return extractAtomically(dest, func(dir string) error {
+		return unzipInto(r, dir)
+	})
+}
 
+func unzipInto(r *zip.ReadCloser, dest string) error {
 	var totalWritten int64
 	for _, f := range r.File {
 
@@ -89,7 +87,7 @@ func Unzip(src string, dest string) (err error) {
 		}
 
 		// Make File
-		if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
 			return err
 		}
 
@@ -127,6 +125,38 @@ func Unzip(src string, dest string) (err error) {
 	return nil
 }
 
+// extractAtomically runs extract against a fresh sibling temporary directory and
+// renames it to dest only when extraction succeeds, so dest is either absent or
+// complete. A concurrent reader, or a restart after a crash mid-extraction, can
+// never observe a partially extracted dest and treat it as complete.
+func extractAtomically(dest string, extract func(dir string) error) (err error) {
+	tmp, err := os.MkdirTemp(filepath.Dir(dest), filepath.Base(dest)+".tmp-")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = os.RemoveAll(tmp)
+		}
+	}()
+	// MkdirTemp creates the directory with 0700; keep the previous permissions.
+	if err = os.Chmod(tmp, 0755); err != nil {
+		return err
+	}
+	if err = extract(tmp); err != nil {
+		return err
+	}
+	if err = os.Rename(tmp, dest); err != nil {
+		// A concurrent extraction of the same archive completed first.
+		if _, statErr := os.Stat(dest); statErr == nil {
+			_ = os.RemoveAll(tmp)
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
 // These are vars (not consts) only so tests can lower them; treat them as
 // constants in production code.
 var (
@@ -153,6 +183,8 @@ func safeJoin(base, name string) (string, error) {
 	return p, nil
 }
 
+// Untar extracts a tar (optionally gzipped) stream into folderName. folderName
+// is only created once the whole archive has been extracted successfully.
 func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) error {
 	folderExists, _ := os.Stat(folderName)
 	if folderExists != nil {
@@ -169,9 +201,12 @@ func Untar(folderName string, repoName string, tarStream io.Reader, gz bool) err
 		tarReader = tar.NewReader(uncompressedStream)
 	}
 
-	// Create the folder up front and return an error if it doesn't exist while iterating over tar entries
-	_ = os.Mkdir(folderName, 0755)
+	return extractAtomically(folderName, func(dir string) error {
+		return untarInto(tarReader, dir)
+	})
+}
 
+func untarInto(tarReader *tar.Reader, folderName string) error {
 	entryCount := 0
 	var totalWritten int64
 	for {

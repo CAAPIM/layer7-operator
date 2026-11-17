@@ -3,9 +3,13 @@ package reconcile
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/caapim/layer7-operator/pkg/gateway"
+	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -16,67 +20,132 @@ import (
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
+// gatewayAPIManagedMetadataAnnotation records the label and annotation keys the
+// operator last applied to a generated Gateway API resource, so keys removed from
+// the Gateway CR can be deleted without touching keys written by other controllers.
+const gatewayAPIManagedMetadataAnnotation = "security.brcmlabs.com/managed-metadata"
+
+// gatewayAPIApplyFailedReason is the Event reason used when a Gateway API resource
+// can't be applied, so users see the API server's message on the Gateway CR.
+const gatewayAPIApplyFailedReason = "GatewayAPIApplyFailed"
+
+// gatewayAPIKind adapts one Gateway API resource type to reconcileGatewayAPIResources.
+type gatewayAPIKind[T client.Object] struct {
+	kind      string
+	newObj    func() T
+	list      func(ctx context.Context, c client.Client, namespace string) ([]T, error)
+	specEqual func(current, desired T) bool
+	copySpec  func(dst, src T)
+}
+
+func itemPointers[E any](items []E) []*E {
+	ptrs := make([]*E, len(items))
+	for i := range items {
+		ptrs[i] = &items[i]
+	}
+	return ptrs
+}
+
+var kubernetesGatewayKind = gatewayAPIKind[*gatewayv1.Gateway]{
+	kind:   "Gateway",
+	newObj: func() *gatewayv1.Gateway { return &gatewayv1.Gateway{} },
+	list: func(ctx context.Context, c client.Client, namespace string) ([]*gatewayv1.Gateway, error) {
+		l := &gatewayv1.GatewayList{}
+		if err := c.List(ctx, l, client.InNamespace(namespace)); err != nil {
+			return nil, err
+		}
+		return itemPointers(l.Items), nil
+	},
+	specEqual: func(current, desired *gatewayv1.Gateway) bool {
+		return apiequality.Semantic.DeepEqual(current.Spec, desired.Spec)
+	},
+	copySpec: func(dst, src *gatewayv1.Gateway) { dst.Spec = src.Spec },
+}
+
+var httpRouteKind = gatewayAPIKind[*gatewayv1.HTTPRoute]{
+	kind:   "HTTPRoute",
+	newObj: func() *gatewayv1.HTTPRoute { return &gatewayv1.HTTPRoute{} },
+	list: func(ctx context.Context, c client.Client, namespace string) ([]*gatewayv1.HTTPRoute, error) {
+		l := &gatewayv1.HTTPRouteList{}
+		if err := c.List(ctx, l, client.InNamespace(namespace)); err != nil {
+			return nil, err
+		}
+		return itemPointers(l.Items), nil
+	},
+	specEqual: func(current, desired *gatewayv1.HTTPRoute) bool {
+		return apiequality.Semantic.DeepEqual(current.Spec, desired.Spec)
+	},
+	copySpec: func(dst, src *gatewayv1.HTTPRoute) { dst.Spec = src.Spec },
+}
+
+var tlsRouteKind = gatewayAPIKind[*gatewayv1.TLSRoute]{
+	kind:   "TLSRoute",
+	newObj: func() *gatewayv1.TLSRoute { return &gatewayv1.TLSRoute{} },
+	list: func(ctx context.Context, c client.Client, namespace string) ([]*gatewayv1.TLSRoute, error) {
+		l := &gatewayv1.TLSRouteList{}
+		if err := c.List(ctx, l, client.InNamespace(namespace)); err != nil {
+			return nil, err
+		}
+		return itemPointers(l.Items), nil
+	},
+	specEqual: func(current, desired *gatewayv1.TLSRoute) bool {
+		return apiequality.Semantic.DeepEqual(current.Spec, desired.Spec)
+	},
+	copySpec: func(dst, src *gatewayv1.TLSRoute) { dst.Spec = src.Spec },
+}
+
+var backendTLSPolicyKind = gatewayAPIKind[*gatewayv1.BackendTLSPolicy]{
+	kind:   "BackendTLSPolicy",
+	newObj: func() *gatewayv1.BackendTLSPolicy { return &gatewayv1.BackendTLSPolicy{} },
+	list: func(ctx context.Context, c client.Client, namespace string) ([]*gatewayv1.BackendTLSPolicy, error) {
+		l := &gatewayv1.BackendTLSPolicyList{}
+		if err := c.List(ctx, l, client.InNamespace(namespace)); err != nil {
+			return nil, err
+		}
+		return itemPointers(l.Items), nil
+	},
+	specEqual: func(current, desired *gatewayv1.BackendTLSPolicy) bool {
+		return apiequality.Semantic.DeepEqual(current.Spec, desired.Spec)
+	},
+	copySpec: func(dst, src *gatewayv1.BackendTLSPolicy) { dst.Spec = src.Spec },
+}
+
 func KubernetesGateway(ctx context.Context, params Params) error {
 	desired, err := gateway.NewKubernetesGatewayResources(params.Instance)
 	if err != nil {
 		return err
 	}
-	if err := reconcileKubernetesGateways(ctx, params, desired.Gateways); err != nil {
+	if err := reconcileGatewayAPIResources(ctx, params, kubernetesGatewayKind, desired.Gateways); err != nil {
 		return fmt.Errorf("failed to reconcile Kubernetes Gateways: %w", err)
 	}
-	if err := reconcileHTTPRoutes(ctx, params, desired.HTTPRoutes); err != nil {
+	if err := reconcileGatewayAPIResources(ctx, params, httpRouteKind, desired.HTTPRoutes); err != nil {
 		return fmt.Errorf("failed to reconcile HTTPRoutes: %w", err)
 	}
-	if err := reconcileTLSRoutes(ctx, params, desired.TLSRoutes); err != nil {
+	if err := reconcileGatewayAPIResources(ctx, params, tlsRouteKind, desired.TLSRoutes); err != nil {
 		return fmt.Errorf("failed to reconcile TLSRoutes: %w", err)
 	}
-	if err := reconcileBackendTLSPolicies(ctx, params, desired.BackendTLSPolicies); err != nil {
+	if err := reconcileGatewayAPIResources(ctx, params, backendTLSPolicyKind, desired.BackendTLSPolicies); err != nil {
 		return fmt.Errorf("failed to reconcile BackendTLSPolicies: %w", err)
 	}
 	return nil
 }
 
-func reconcileKubernetesGateways(ctx context.Context, params Params, desiredResources []*gatewayv1.Gateway) error {
+// reconcileGatewayAPIResources creates or updates every desired resource of one kind,
+// then deletes resources of that kind previously owned by this Gateway that are no
+// longer desired.
+func reconcileGatewayAPIResources[T client.Object](ctx context.Context, params Params, k gatewayAPIKind[T], desiredResources []T) error {
 	desiredNames := make(map[string]bool, len(desiredResources))
 	for _, desired := range desiredResources {
-		desiredNames[desired.Name] = true
-		if err := controllerutil.SetControllerReference(params.Instance, desired, params.Scheme); err != nil {
-			return fmt.Errorf("failed to set controller reference: %w", err)
-		}
-		current := &gatewayv1.Gateway{}
-		err := params.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: params.Instance.Namespace}, current)
-		if k8serrors.IsNotFound(err) {
-			if err := params.Client.Create(ctx, desired); err != nil {
-				return err
-			}
-			params.Log.Info("created Gateway", "name", desired.Name, "namespace", params.Instance.Namespace)
-			continue
-		}
-		if err != nil {
+		desiredNames[desired.GetName()] = true
+		if err := applyGatewayAPIResource(ctx, params, k, desired); err != nil {
+			recordGatewayAPIFailure(params, k.kind, desired.GetName(), err)
 			return err
 		}
-		if !metav1.IsControlledBy(current, params.Instance) {
-			return fmt.Errorf("refusing to modify Gateway %s/%s: not owned by this Layer7 Gateway", current.Namespace, current.Name)
-		}
-		if apiequality.Semantic.DeepEqual(current.Spec, desired.Spec) &&
-			apiequality.Semantic.DeepEqual(current.OwnerReferences, desired.OwnerReferences) &&
-			metadataKeysMatch(current.ObjectMeta, desired.ObjectMeta) {
-			params.Log.V(2).Info("no Gateway updates needed", "name", desired.Name, "namespace", desired.Namespace)
-			continue
-		}
-		updated := current.DeepCopy()
-		updated.Spec = desired.Spec
-		mergeGatewayAPIMetadata(&updated.ObjectMeta, desired.ObjectMeta)
-		patch := client.MergeFrom(current)
-		if err := params.Client.Patch(ctx, updated, patch); err != nil {
-			return err
-		}
-		params.Log.Info("updated Gateway", "name", desired.Name, "namespace", desired.Namespace)
 	}
 	// List the namespace to find previously owned resources after rules are removed
 	// or the feature is disabled, including resources whose labels have changed.
-	currentResources := &gatewayv1.GatewayList{}
-	if err := params.Client.List(ctx, currentResources, client.InNamespace(params.Instance.Namespace)); err != nil {
+	currentResources, err := k.list(ctx, params.Client, params.Instance.Namespace)
+	if err != nil {
 		// An absent, unused API has no resources to clean up. Other errors must
 		// still be returned so failed cleanup is retried.
 		if len(desiredResources) == 0 && (meta.IsNoMatchError(err) || k8serrors.IsNotFound(err)) {
@@ -84,214 +153,155 @@ func reconcileKubernetesGateways(ctx context.Context, params Params, desiredReso
 		}
 		return err
 	}
-	for i := range currentResources.Items {
-		current := &currentResources.Items[i]
-		if desiredNames[current.Name] || !metav1.IsControlledBy(current, params.Instance) {
+	for _, current := range currentResources {
+		if desiredNames[current.GetName()] || !metav1.IsControlledBy(current, params.Instance) {
 			continue
 		}
-		if err := deleteGatewayAPIResource(ctx, params, current, "Gateway"); err != nil {
+		if err := deleteGatewayAPIResource(ctx, params, current, k.kind); err != nil {
+			recordGatewayAPIFailure(params, k.kind, current.GetName(), err)
 			return err
 		}
 	}
 	return nil
 }
 
-func reconcileHTTPRoutes(ctx context.Context, params Params, desiredResources []*gatewayv1.HTTPRoute) error {
-	desiredNames := make(map[string]bool, len(desiredResources))
-	for _, desired := range desiredResources {
-		desiredNames[desired.Name] = true
-		if err := controllerutil.SetControllerReference(params.Instance, desired, params.Scheme); err != nil {
-			return fmt.Errorf("failed to set controller reference: %w", err)
-		}
-		current := &gatewayv1.HTTPRoute{}
-		err := params.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: params.Instance.Namespace}, current)
-		if k8serrors.IsNotFound(err) {
-			if err := params.Client.Create(ctx, desired); err != nil {
-				return err
-			}
-			params.Log.Info("created HTTPRoute", "name", desired.Name, "namespace", params.Instance.Namespace)
-			continue
-		}
-		if err != nil {
-			return err
-		}
-		if !metav1.IsControlledBy(current, params.Instance) {
-			return fmt.Errorf("refusing to modify HTTPRoute %s/%s: not owned by this Layer7 Gateway", current.Namespace, current.Name)
-		}
-		if apiequality.Semantic.DeepEqual(current.Spec, desired.Spec) &&
-			apiequality.Semantic.DeepEqual(current.OwnerReferences, desired.OwnerReferences) &&
-			metadataKeysMatch(current.ObjectMeta, desired.ObjectMeta) {
-			params.Log.V(2).Info("no HTTPRoute updates needed", "name", desired.Name, "namespace", desired.Namespace)
-			continue
-		}
-		updated := current.DeepCopy()
-		updated.Spec = desired.Spec
-		mergeGatewayAPIMetadata(&updated.ObjectMeta, desired.ObjectMeta)
-		patch := client.MergeFrom(current)
-		if err := params.Client.Patch(ctx, updated, patch); err != nil {
-			return err
-		}
-		params.Log.Info("updated HTTPRoute", "name", desired.Name, "namespace", desired.Namespace)
+func applyGatewayAPIResource[T client.Object](ctx context.Context, params Params, k gatewayAPIKind[T], desired T) error {
+	if err := controllerutil.SetControllerReference(params.Instance, desired, params.Scheme); err != nil {
+		return fmt.Errorf("failed to set controller reference: %w", err)
 	}
-	// List the namespace to find previously owned resources after rules are removed
-	// or the feature is disabled, including resources whose labels have changed.
-	currentResources := &gatewayv1.HTTPRouteList{}
-	if err := params.Client.List(ctx, currentResources, client.InNamespace(params.Instance.Namespace)); err != nil {
-		// An absent, unused API has no resources to clean up. Other errors must
-		// still be returned so failed cleanup is retried.
-		if len(desiredResources) == 0 && (meta.IsNoMatchError(err) || k8serrors.IsNotFound(err)) {
-			return nil
+	setManagedMetadataAnnotation(desired)
+	current := k.newObj()
+	err := params.Client.Get(ctx, types.NamespacedName{Name: desired.GetName(), Namespace: params.Instance.Namespace}, current)
+	if k8serrors.IsNotFound(err) {
+		if err := params.Client.Create(ctx, desired); err != nil {
+			return err
 		}
+		params.Log.Info("created "+k.kind, "name", desired.GetName(), "namespace", params.Instance.Namespace)
+		return nil
+	}
+	if err != nil {
 		return err
 	}
-	for i := range currentResources.Items {
-		current := &currentResources.Items[i]
-		if desiredNames[current.Name] || !metav1.IsControlledBy(current, params.Instance) {
-			continue
-		}
-		if err := deleteGatewayAPIResource(ctx, params, current, "HTTPRoute"); err != nil {
-			return err
-		}
+	if !metav1.IsControlledBy(current, params.Instance) {
+		return fmt.Errorf("refusing to modify %s %s/%s: not owned by this Layer7 Gateway", k.kind, current.GetNamespace(), current.GetName())
 	}
-	return nil
-}
-
-func reconcileTLSRoutes(ctx context.Context, params Params, desiredResources []*gatewayv1.TLSRoute) error {
-	desiredNames := make(map[string]bool, len(desiredResources))
-	for _, desired := range desiredResources {
-		desiredNames[desired.Name] = true
-		if err := controllerutil.SetControllerReference(params.Instance, desired, params.Scheme); err != nil {
-			return fmt.Errorf("failed to set controller reference: %w", err)
-		}
-		current := &gatewayv1.TLSRoute{}
-		err := params.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: params.Instance.Namespace}, current)
-		if k8serrors.IsNotFound(err) {
-			if err := params.Client.Create(ctx, desired); err != nil {
-				return err
-			}
-			params.Log.Info("created TLSRoute", "name", desired.Name, "namespace", params.Instance.Namespace)
-			continue
-		}
-		if err != nil {
-			return err
-		}
-		if !metav1.IsControlledBy(current, params.Instance) {
-			return fmt.Errorf("refusing to modify TLSRoute %s/%s: not owned by this Layer7 Gateway", current.Namespace, current.Name)
-		}
-		if apiequality.Semantic.DeepEqual(current.Spec, desired.Spec) &&
-			apiequality.Semantic.DeepEqual(current.OwnerReferences, desired.OwnerReferences) &&
-			metadataKeysMatch(current.ObjectMeta, desired.ObjectMeta) {
-			params.Log.V(2).Info("no TLSRoute updates needed", "name", desired.Name, "namespace", desired.Namespace)
-			continue
-		}
-		updated := current.DeepCopy()
-		updated.Spec = desired.Spec
-		mergeGatewayAPIMetadata(&updated.ObjectMeta, desired.ObjectMeta)
-		patch := client.MergeFrom(current)
-		if err := params.Client.Patch(ctx, updated, patch); err != nil {
-			return err
-		}
-		params.Log.Info("updated TLSRoute", "name", desired.Name, "namespace", desired.Namespace)
+	if k.specEqual(current, desired) &&
+		apiequality.Semantic.DeepEqual(current.GetOwnerReferences(), desired.GetOwnerReferences()) &&
+		gatewayAPIMetadataMatches(current, desired) {
+		params.Log.V(2).Info("no "+k.kind+" updates needed", "name", desired.GetName(), "namespace", desired.GetNamespace())
+		return nil
 	}
-	// List the namespace to find previously owned resources after rules are removed
-	// or the feature is disabled, including resources whose labels have changed.
-	currentResources := &gatewayv1.TLSRouteList{}
-	if err := params.Client.List(ctx, currentResources, client.InNamespace(params.Instance.Namespace)); err != nil {
-		// An absent, unused API has no resources to clean up. Other errors must
-		// still be returned so failed cleanup is retried.
-		if len(desiredResources) == 0 && (meta.IsNoMatchError(err) || k8serrors.IsNotFound(err)) {
-			return nil
-		}
+	updated := current.DeepCopyObject().(T)
+	k.copySpec(updated, desired)
+	mergeGatewayAPIMetadata(updated, desired)
+	if err := params.Client.Patch(ctx, updated, client.MergeFrom(current)); err != nil {
 		return err
 	}
-	for i := range currentResources.Items {
-		current := &currentResources.Items[i]
-		if desiredNames[current.Name] || !metav1.IsControlledBy(current, params.Instance) {
-			continue
-		}
-		if err := deleteGatewayAPIResource(ctx, params, current, "TLSRoute"); err != nil {
-			return err
-		}
-	}
+	params.Log.Info("updated "+k.kind, "name", desired.GetName(), "namespace", desired.GetNamespace())
 	return nil
 }
 
-func reconcileBackendTLSPolicies(ctx context.Context, params Params, desiredResources []*gatewayv1.BackendTLSPolicy) error {
-	desiredNames := make(map[string]bool, len(desiredResources))
-	for _, desired := range desiredResources {
-		desiredNames[desired.Name] = true
-		if err := controllerutil.SetControllerReference(params.Instance, desired, params.Scheme); err != nil {
-			return fmt.Errorf("failed to set controller reference: %w", err)
-		}
-		current := &gatewayv1.BackendTLSPolicy{}
-		err := params.Client.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: params.Instance.Namespace}, current)
-		if k8serrors.IsNotFound(err) {
-			if err := params.Client.Create(ctx, desired); err != nil {
-				return err
-			}
-			params.Log.Info("created BackendTLSPolicy", "name", desired.Name, "namespace", params.Instance.Namespace)
-			continue
-		}
-		if err != nil {
-			return err
-		}
-		if !metav1.IsControlledBy(current, params.Instance) {
-			return fmt.Errorf("refusing to modify BackendTLSPolicy %s/%s: not owned by this Layer7 Gateway", current.Namespace, current.Name)
-		}
-		if apiequality.Semantic.DeepEqual(current.Spec, desired.Spec) &&
-			apiequality.Semantic.DeepEqual(current.OwnerReferences, desired.OwnerReferences) &&
-			metadataKeysMatch(current.ObjectMeta, desired.ObjectMeta) {
-			params.Log.V(2).Info("no BackendTLSPolicy updates needed", "name", desired.Name, "namespace", desired.Namespace)
-			continue
-		}
-		updated := current.DeepCopy()
-		updated.Spec = desired.Spec
-		mergeGatewayAPIMetadata(&updated.ObjectMeta, desired.ObjectMeta)
-		patch := client.MergeFrom(current)
-		if err := params.Client.Patch(ctx, updated, patch); err != nil {
-			return err
-		}
-		params.Log.Info("updated BackendTLSPolicy", "name", desired.Name, "namespace", desired.Namespace)
+// recordGatewayAPIFailure surfaces the API server's error on the Gateway CR, so a
+// rejected route (for example an invalid schemaless match) is visible with
+// kubectl describe rather than only in operator logs.
+func recordGatewayAPIFailure(params Params, kind, name string, err error) {
+	if params.Recorder == nil {
+		return
 	}
-	// List the namespace to find previously owned resources after rules are removed
-	// or the feature is disabled, including resources whose labels have changed.
-	currentResources := &gatewayv1.BackendTLSPolicyList{}
-	if err := params.Client.List(ctx, currentResources, client.InNamespace(params.Instance.Namespace)); err != nil {
-		// An absent, unused API has no resources to clean up. Other errors must
-		// still be returned so failed cleanup is retried.
-		if len(desiredResources) == 0 && (meta.IsNoMatchError(err) || k8serrors.IsNotFound(err)) {
-			return nil
-		}
-		return err
-	}
-	for i := range currentResources.Items {
-		current := &currentResources.Items[i]
-		if desiredNames[current.Name] || !metav1.IsControlledBy(current, params.Instance) {
-			continue
-		}
-		if err := deleteGatewayAPIResource(ctx, params, current, "BackendTLSPolicy"); err != nil {
-			return err
-		}
-	}
-	return nil
+	params.Recorder.Eventf(params.Instance, corev1.EventTypeWarning, gatewayAPIApplyFailedReason, "%s %s: %v", kind, name, err)
 }
 
-// mergeGatewayAPIMetadata follows the Ingress metadata merge: retain extra keys
-// written by other controllers and update the keys supplied by the Gateway CR.
-func mergeGatewayAPIMetadata(current *metav1.ObjectMeta, desired metav1.ObjectMeta) {
-	current.OwnerReferences = desired.OwnerReferences
-	if current.Labels == nil {
-		current.Labels = make(map[string]string)
+type managedMetadata struct {
+	Labels      []string `json:"labels,omitempty"`
+	Annotations []string `json:"annotations,omitempty"`
+}
+
+// setManagedMetadataAnnotation records the desired label and annotation keys on
+// the desired object itself, so it is written on create and compared like any
+// other desired annotation on update.
+func setManagedMetadataAnnotation(desired client.Object) {
+	annotations := desired.GetAnnotations()
+	keys := managedMetadata{
+		Labels:      slices.Sorted(maps.Keys(desired.GetLabels())),
+		Annotations: slices.Sorted(maps.Keys(annotations)),
 	}
-	for k, v := range desired.Labels {
-		current.Labels[k] = v
+	keys.Annotations = slices.DeleteFunc(keys.Annotations, func(k string) bool { return k == gatewayAPIManagedMetadataAnnotation })
+	raw, _ := json.Marshal(keys)
+	if annotations == nil {
+		annotations = map[string]string{}
 	}
-	if current.Annotations == nil {
-		current.Annotations = make(map[string]string)
+	annotations[gatewayAPIManagedMetadataAnnotation] = string(raw)
+	desired.SetAnnotations(annotations)
+}
+
+// previouslyManagedMetadata returns the keys recorded on current. A missing or
+// unreadable record is treated as empty, so no keys are deleted on the first
+// reconcile of a resource created before tracking existed.
+func previouslyManagedMetadata(current client.Object) managedMetadata {
+	keys := managedMetadata{}
+	if raw, ok := current.GetAnnotations()[gatewayAPIManagedMetadataAnnotation]; ok {
+		if err := json.Unmarshal([]byte(raw), &keys); err != nil {
+			return managedMetadata{}
+		}
 	}
-	for k, v := range desired.Annotations {
-		current.Annotations[k] = v
+	return keys
+}
+
+// staleKeys returns keys the operator managed previously that are still present
+// on current but no longer desired.
+func staleKeys(previous []string, current, desired map[string]string) []string {
+	stale := []string{}
+	for _, k := range previous {
+		if _, wanted := desired[k]; wanted {
+			continue
+		}
+		if _, present := current[k]; present {
+			stale = append(stale, k)
+		}
 	}
+	return stale
+}
+
+// gatewayAPIMetadataMatches reports whether current already carries every desired
+// label and annotation (including the managed-metadata record) and none of the
+// keys the operator managed previously but no longer wants.
+func gatewayAPIMetadataMatches(current, desired client.Object) bool {
+	currentMeta := metav1.ObjectMeta{Labels: current.GetLabels(), Annotations: current.GetAnnotations()}
+	desiredMeta := metav1.ObjectMeta{Labels: desired.GetLabels(), Annotations: desired.GetAnnotations()}
+	if !metadataKeysMatch(currentMeta, desiredMeta) {
+		return false
+	}
+	previous := previouslyManagedMetadata(current)
+	return len(staleKeys(previous.Labels, current.GetLabels(), desired.GetLabels())) == 0 &&
+		len(staleKeys(previous.Annotations, current.GetAnnotations(), desired.GetAnnotations())) == 0
+}
+
+// mergeGatewayAPIMetadata updates the keys supplied by the Gateway CR, deletes keys
+// the operator managed previously but no longer wants, and keeps keys written by
+// other controllers.
+func mergeGatewayAPIMetadata(current, desired client.Object) {
+	current.SetOwnerReferences(desired.GetOwnerReferences())
+	previous := previouslyManagedMetadata(current)
+
+	labels := maps.Clone(current.GetLabels())
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	for _, k := range staleKeys(previous.Labels, labels, desired.GetLabels()) {
+		delete(labels, k)
+	}
+	maps.Copy(labels, desired.GetLabels())
+	current.SetLabels(labels)
+
+	annotations := maps.Clone(current.GetAnnotations())
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	for _, k := range staleKeys(previous.Annotations, annotations, desired.GetAnnotations()) {
+		delete(annotations, k)
+	}
+	maps.Copy(annotations, desired.GetAnnotations())
+	current.SetAnnotations(annotations)
 }
 
 func deleteGatewayAPIResource(ctx context.Context, params Params, current client.Object, kind string) error {

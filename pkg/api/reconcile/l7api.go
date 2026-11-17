@@ -46,7 +46,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -424,17 +423,11 @@ func RemoveTempStorage(ctx context.Context, params Params) error {
 }
 
 // GetGatewayPods returns the pods in a Gateway Deployment
+// getGatewayPods returns the Gateway's pods that were created by its own
+// Deployment, so L7Api bundles and credentials are not sent to pods that only
+// carry the Gateway's labels. See util.GatewayDeploymentPods.
 func getGatewayPods(ctx context.Context, params Params, gateway *v1.Gateway) (*corev1.PodList, error) {
-	podList := &corev1.PodList{}
-
-	listOpts := []client.ListOption{
-		client.InNamespace(gateway.Namespace),
-		client.MatchingLabels(util.DefaultLabels(gateway.Name, map[string]string{})),
-	}
-	if err := params.Client.List(ctx, podList, listOpts...); err != nil {
-		return podList, err
-	}
-	return podList, nil
+	return util.GatewayDeploymentPods(ctx, params.Client, params.Log, gateway)
 }
 
 func getGatewaySecret(ctx context.Context, params Params, name string) (*corev1.Secret, error) {

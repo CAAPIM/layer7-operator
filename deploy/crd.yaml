@@ -1796,7 +1796,7 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: Annotations for the ingress resource
+                        description: Annotations for the ingress resource.
                         type: object
                       enabled:
                         description: Enabled or disabled
@@ -3226,6 +3226,7 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations for all generated Gateway API resources.
                         type: object
                       backendTLSPolicy:
                         properties:
@@ -3238,6 +3239,8 @@ spec:
                               the Helm chart.
                             type: boolean
                           excludePorts:
+                            description: ExcludePorts lists Service ports that are
+                              not targeted.
                             items:
                               format: int32
                               type: integer
@@ -3408,6 +3411,7 @@ spec:
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels for all generated Gateway API resources.
                         type: object
                       tlsRoute:
                         properties:
@@ -4112,7 +4116,7 @@ spec:
                           annotations:
                             additionalProperties:
                               type: string
-                            description: Annotations for the service
+                            description: Annotations for the service.
                             type: object
                           clusterIP:
                             type: string
@@ -5480,7 +5484,7 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: Annotations for the service
+                        description: Annotations for the service.
                         type: object
                       clusterIP:
                         type: string

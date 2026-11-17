@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -225,5 +226,67 @@ func TestGatewayAPINames(t *testing.T) {
 	}
 	if len(routeName(strings.Repeat("a", 253), "httproute", "example.com")) > 253 {
 		t.Fatal("name exceeds limit")
+	}
+}
+
+func TestKubernetesGatewayBackendTLSTargetValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		change  func(*securityv1.Gateway)
+		wantErr string
+	}{
+		{"unnamed port", func(gw *securityv1.Gateway) {
+			gw.Spec.App.Service.Ports = []securityv1.Ports{{Port: 8443}, {Name: "http", Port: 8080}}
+			gw.Spec.App.KubernetesGateway.BackendTLSPolicy.ExcludePorts = []int32{8080}
+		}, "Cannot create BackendTLSPolicy target for Service test port 8443 because the port has no name"},
+		{"unnamed management port", func(gw *securityv1.Gateway) {
+			gw.Spec.App.Management.Service.Enabled = true
+			gw.Spec.App.Management.Service.Ports = []securityv1.Ports{{Port: 9443}}
+			gw.Spec.App.Service.Ports = []securityv1.Ports{{Name: "https", Port: 8443}, {Name: "http", Port: 8080}}
+			gw.Spec.App.KubernetesGateway.HTTPRoute.Rules[0].Backend = "management"
+			gw.Spec.App.KubernetesGateway.HTTPRoute.Rules[0].Port = 9443
+			gw.Spec.App.KubernetesGateway.BackendTLSPolicy.ExcludePorts = []int32{8080}
+		}, "Service test-management-service port 9443"},
+		{"unmatched exclude", func(gw *securityv1.Gateway) {
+			gw.Spec.App.Service.Ports = []securityv1.Ports{{Name: "https", Port: 8443}}
+			gw.Spec.App.KubernetesGateway.BackendTLSPolicy.ExcludePorts = []int32{8081}
+		}, "excludePorts entry 8081 matches no port"},
+		{"all ports excluded", func(gw *securityv1.Gateway) {
+			gw.Spec.App.Service.Ports = []securityv1.Ports{{Name: "https", Port: 8443}}
+			gw.Spec.App.KubernetesGateway.BackendTLSPolicy.ExcludePorts = []int32{8443}
+		}, "between 1 and 16 targets"},
+		{"too many targets", func(gw *securityv1.Gateway) {
+			gw.Spec.App.Service.Ports = nil
+			for i := range int32(18) {
+				gw.Spec.App.Service.Ports = append(gw.Spec.App.Service.Ports, securityv1.Ports{Name: fmt.Sprintf("p%d", i), Port: 9000 + i})
+			}
+			gw.Spec.App.KubernetesGateway.BackendTLSPolicy.ExcludePorts = []int32{9000}
+		}, "between 1 and 16 targets"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gw := gatewayAPIExample()
+			tt.change(gw)
+			err := securityv1.ValidateKubernetesGateway(gw)
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("expected error containing %q, got %v", tt.wantErr, err)
+			}
+		})
+	}
+
+	// An unnamed port is fine when excludePorts is not set: the whole Service is targeted.
+	gw := gatewayAPIExample()
+	gw.Spec.App.Service.Ports = []securityv1.Ports{{Port: 8443}}
+	if err := securityv1.ValidateKubernetesGateway(gw); err != nil {
+		t.Fatalf("unexpected error without excludePorts: %v", err)
+	}
+	// The management Service is not targeted unless a route uses it.
+	gw = gatewayAPIExample()
+	gw.Spec.App.Management.Service.Enabled = true
+	gw.Spec.App.Management.Service.Ports = []securityv1.Ports{{Port: 9443}}
+	gw.Spec.App.Service.Ports = []securityv1.Ports{{Name: "https", Port: 8443}, {Name: "http", Port: 8080}}
+	gw.Spec.App.KubernetesGateway.BackendTLSPolicy.ExcludePorts = []int32{8080}
+	if err := securityv1.ValidateKubernetesGateway(gw); err != nil {
+		t.Fatalf("unexpected error for unused management Service: %v", err)
 	}
 }

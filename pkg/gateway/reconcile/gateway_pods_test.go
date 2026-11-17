@@ -27,7 +27,9 @@ package reconcile
 
 import (
 	"context"
+	"errors"
 	"sort"
+	"strings"
 	"testing"
 
 	securityv1 "github.com/caapim/layer7-operator/api/v1"
@@ -35,12 +37,14 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func controllerRef(apiVersion, kind, name string, uid types.UID) []metav1.OwnerReference {
@@ -83,6 +87,12 @@ func newGatewayPodsTestParams(t *testing.T) Params {
 	objs := []client.Object{
 		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: gw.Name, Namespace: ns, UID: "dep-uid",
 			OwnerReferences: controllerRef("security.brcmlabs.com/v1", "Gateway", gw.Name, gw.UID)}},
+		// the Deployment's live ReplicaSet
+		&appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Name: "gw-abc", Namespace: ns, UID: "rs-uid",
+			OwnerReferences: controllerRef("apps/v1", "Deployment", gw.Name, "dep-uid")}},
+		// correctly named ReplicaSet controlled by a different Deployment
+		&appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Name: "gw-def", Namespace: ns, UID: "def-rs-uid",
+			OwnerReferences: controllerRef("apps/v1", "Deployment", gw.Name, "other-dep-uid")}},
 		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "gw-abc-1", Namespace: ns, Labels: hash("abc", nil),
 			OwnerReferences: controllerRef("apps/v1", "ReplicaSet", "gw-abc", "rs-uid")}, Status: running},
 		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "gw-abc-2", Namespace: ns, Labels: hash("abc", nil),
@@ -98,6 +108,15 @@ func newGatewayPodsTestParams(t *testing.T) Params {
 		// no pod-template-hash label
 		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "spoof-no-hash", Namespace: ns, Labels: podLabels(nil),
 			OwnerReferences: controllerRef("apps/v1", "ReplicaSet", "gw-", "rs-uid")}, Status: running},
+		// right ReplicaSet name and hash, forged UID; also already claiming leadership
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "spoof-wrong-uid", Namespace: ns, Labels: hash("abc", map[string]string{"management-access": "leader"}),
+			OwnerReferences: controllerRef("apps/v1", "ReplicaSet", "gw-abc", "forged-uid")}, Status: running},
+		// ReplicaSet exists but is controlled by another Deployment
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "spoof-rs-other-dep", Namespace: ns, Labels: hash("def", nil),
+			OwnerReferences: controllerRef("apps/v1", "ReplicaSet", "gw-def", "def-rs-uid")}, Status: running},
+		// ReplicaSet does not exist
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "spoof-rs-missing", Namespace: ns, Labels: hash("ghi", nil),
+			OwnerReferences: controllerRef("apps/v1", "ReplicaSet", "gw-ghi", "ghi-rs-uid")}, Status: running},
 		// claims the Deployment directly
 		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "spoof-dep", Namespace: ns, Labels: hash("abc", nil),
 			OwnerReferences: controllerRef("apps/v1", "Deployment", gw.Name, "dep-uid")}, Status: running},
@@ -167,11 +186,32 @@ func TestManagementPodIgnoresSpoofedLeader(t *testing.T) {
 	}
 	leaders := []string{}
 	for _, p := range pods.Items {
-		if p.Labels["management-access"] == "leader" && p.Name != "spoof-labels" {
+		// spoofed pods were labelled leader before ManagementPod ran
+		if p.Labels["management-access"] == "leader" && !strings.HasPrefix(p.Name, "spoof-") {
 			leaders = append(leaders, p.Name)
 		}
 	}
 	if len(leaders) != 1 || (leaders[0] != "gw-abc-1" && leaders[0] != "gw-abc-2") {
 		t.Fatalf("expected exactly one deployment pod elected leader, got %v", leaders)
+	}
+}
+
+func TestGetGatewayPodsReplicaSetLookupError(t *testing.T) {
+	params := newGatewayPodsTestParams(t)
+	forbidden := k8serrors.NewForbidden(appsv1.Resource("replicasets"), "gw-abc", errors.New("RBAC: access denied"))
+	params.Client = interceptor.NewClient(params.Client.(client.WithWatch), interceptor.Funcs{
+		Get: func(ctx context.Context, cl client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, ok := obj.(*metav1.PartialObjectMetadata); ok {
+				return forbidden
+			}
+			return cl.Get(ctx, key, obj, opts...)
+		},
+	})
+	podList, err := getGatewayPods(context.Background(), params)
+	if !k8serrors.IsForbidden(err) {
+		t.Fatalf("expected Forbidden error, got %v", err)
+	}
+	if len(podList.Items) != 0 {
+		t.Fatalf("no pods may be trusted when the ReplicaSet lookup fails, got %v", podNames(podList.Items))
 	}
 }

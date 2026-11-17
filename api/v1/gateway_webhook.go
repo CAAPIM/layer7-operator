@@ -22,6 +22,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -318,6 +319,66 @@ func ValidateKubernetesGateway(gw *Gateway) error {
 				return invalid("CA references must name core ConfigMaps")
 			}
 		}
+		if err := validateBackendTLSTargets(gw); err != nil {
+			return invalid(err.Error())
+		}
+	}
+	return nil
+}
+
+// validateBackendTLSTargets checks the per-port BackendTLSPolicy targets that are
+// built when excludePorts is set. Without excludePorts each targeted Service is a
+// single whole-Service target, so there is nothing to check.
+func validateBackendTLSTargets(gw *Gateway) error {
+	c := gw.Spec.App.KubernetesGateway
+	exclude := c.BackendTLSPolicy.ExcludePorts
+	if len(exclude) == 0 {
+		return nil
+	}
+	type targetService struct {
+		name  string
+		ports []Ports
+	}
+	services := []targetService{{gw.Name, gw.Spec.App.Service.Ports}}
+	// Mirrors the builder: the management Service is only targeted when an
+	// enabled route sends traffic to it.
+	usesManagement := false
+	if c.HTTPEnabled() {
+		for _, r := range c.HTTPRoute.Rules {
+			usesManagement = usesManagement || r.Backend == "management"
+		}
+	}
+	if c.TLSRoute.Enabled {
+		for _, r := range c.TLSRoute.Rules {
+			usesManagement = usesManagement || r.Backend == "management"
+		}
+	}
+	if usesManagement {
+		services = append(services, targetService{gw.Name + "-management-service", gw.Spec.App.Management.Service.Ports})
+	}
+	matched := map[int32]bool{}
+	targets := 0
+	for _, s := range services {
+		for _, p := range s.ports {
+			if slices.Contains(exclude, p.Port) {
+				matched[p.Port] = true
+				continue
+			}
+			// The port name becomes the policy target's sectionName, which must be
+			// a non-empty DNS label.
+			if p.Name == "" {
+				return fmt.Errorf("Cannot create BackendTLSPolicy target for Service %s port %d because the port has no name. Name the port or remove excludePorts.", s.name, p.Port)
+			}
+			targets++
+		}
+	}
+	for _, p := range exclude {
+		if !matched[p] {
+			return fmt.Errorf("backendTLSPolicy.excludePorts entry %d matches no port on the targeted Services", p)
+		}
+	}
+	if targets == 0 || targets > 16 {
+		return fmt.Errorf("backendTLSPolicy requires between 1 and 16 targets after excludePorts, found %d", targets)
 	}
 	return nil
 }

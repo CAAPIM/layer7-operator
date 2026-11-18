@@ -31,7 +31,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/caapim/layer7-operator/pkg/gateway"
+	"github.com/broadcom/layer7-operator/pkg/gateway"
 	networkingv1 "k8s.io/api/networking/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"

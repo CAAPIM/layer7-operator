@@ -32,8 +32,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/caapim/layer7-operator/internal/graphman"
-	"github.com/caapim/layer7-operator/pkg/util"
+	"github.com/broadcom/layer7-operator/internal/graphman"
+	"github.com/broadcom/layer7-operator/pkg/util"
 )
 
 func TestParseStateStoreKeyPayload_rawJSON(t *testing.T) {

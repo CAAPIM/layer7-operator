@@ -9,7 +9,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/caapim/layer7-operator/internal/templategen"
+	"github.com/broadcom/layer7-operator/internal/templategen"
 )
 
 func Status(ctx context.Context, params Params) error {

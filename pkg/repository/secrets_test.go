@@ -3,7 +3,7 @@ package repository
 import (
 	"testing"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
 )
 
 func TestNewSecret(t *testing.T) {

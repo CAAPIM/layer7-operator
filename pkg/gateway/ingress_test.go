@@ -29,7 +29,7 @@ package gateway
 import (
 	"testing"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 )
 

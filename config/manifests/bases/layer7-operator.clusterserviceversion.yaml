@@ -7,7 +7,7 @@ metadata:
     certified: "false"
     containerImage: docker.io/caapim/layer7-operator:v1.2.2
     operatorframework.io/suggested-namespace: layer7-operator-system
-    repository: github.com/caapim/layer7-operator
+    repository: github.com/broadcom/layer7-operator
     support: Broadcom Community
   name: layer7-operator.v0.0.0
 spec:
@@ -277,7 +277,7 @@ spec:
   - layer7-operator
   links:
   - name: Layer7 Operator
-    url: https://github.com/caapim/layer7-operator
+    url: https://github.com/broadcom/layer7-operator
   maintainers:
   - email: gary.vermeulen@broadcom.com
     name: Gary Vermeulen

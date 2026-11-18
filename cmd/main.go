@@ -51,15 +51,15 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	securityv1 "github.com/caapim/layer7-operator/api/v1"
-	securityv1alpha1 "github.com/caapim/layer7-operator/api/v1alpha1"
-	"github.com/caapim/layer7-operator/internal/controller/api"
-	"github.com/caapim/layer7-operator/internal/controller/gateway"
-	"github.com/caapim/layer7-operator/internal/controller/portal"
-	"github.com/caapim/layer7-operator/internal/controller/repository"
-	controller "github.com/caapim/layer7-operator/internal/controller/statestore"
-	"github.com/caapim/layer7-operator/internal/platform"
-	"github.com/caapim/layer7-operator/pkg/util"
+	securityv1 "github.com/broadcom/layer7-operator/api/v1"
+	securityv1alpha1 "github.com/broadcom/layer7-operator/api/v1alpha1"
+	"github.com/broadcom/layer7-operator/internal/controller/api"
+	"github.com/broadcom/layer7-operator/internal/controller/gateway"
+	"github.com/broadcom/layer7-operator/internal/controller/portal"
+	"github.com/broadcom/layer7-operator/internal/controller/repository"
+	controller "github.com/broadcom/layer7-operator/internal/controller/statestore"
+	"github.com/broadcom/layer7-operator/internal/platform"
+	"github.com/broadcom/layer7-operator/pkg/util"
 	//+kubebuilder:scaffold:imports
 )
 

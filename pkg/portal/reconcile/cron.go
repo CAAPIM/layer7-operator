@@ -30,7 +30,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/caapim/layer7-operator/pkg/util"
+	"github.com/broadcom/layer7-operator/pkg/util"
 	"github.com/go-co-op/gocron"
 )
 

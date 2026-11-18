@@ -11,7 +11,7 @@ pipeline {
       steps {
         script {
           if (env.GIT_BRANCH == 'main' || env.GIT_BRANCH == 'origin/main') {
-            sh 'python3 package_push_helm_charts.py --release'
+            sh 'python3 package_push_helm_charts.py --release --chart-dir charts/layer7-operator'
           } else {
             echo "not main - skipping chart publish for branch ${env.GIT_BRANCH}"
           }

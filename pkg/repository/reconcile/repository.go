@@ -255,14 +255,6 @@ func syncRepository(ctx context.Context, params Params) error {
 			return nil
 		}
 
-		// Always ensure the /tmp cache is populated. ReadStateStorage is a no-op when
-		// the commit-tracker file already exists, so this is safe on every reconcile.
-		// This covers cases where the file was lost (e.g. operator restart clears /tmp)
-		// even when the commit hash in status has not changed.
-		if cacheErr := ReadStateStorage(ctx, params, statestore, commit); cacheErr != nil {
-			params.Log.V(2).Info("failed to cache statestore bundle", "name", repository.Name, "namespace", repository.Namespace, "error", cacheErr.Error())
-		}
-
 		if params.Instance.Status.Commit == commit {
 			if repository.Spec.StateStoreReference != "" {
 				cacheDir := util.StateStoreCacheDir(repository.Name, repository.Namespace)

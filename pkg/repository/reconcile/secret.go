@@ -81,7 +81,7 @@ func Secret(ctx context.Context, params Params) error {
 }
 
 func StorageSecret(ctx context.Context, params Params) error {
-	var storageSecretName string
+	var storageSecretName, checkoutPath string
 	ext := params.Instance.Spec.Branch
 	if ext == "" {
 		ext = params.Instance.Spec.Tag
@@ -107,18 +107,20 @@ func StorageSecret(ctx context.Context, params Params) error {
 		}
 		storageSecretName = params.Instance.Name + "-repository-" + folderName
 		ext = folderName
+		checkoutPath = util.RepoArtifactPath(params.Instance.Name, params.Instance.Namespace, ext)
 	case "git":
 		// Flatten any '/' in the ref so the storage-secret name is a valid
 		// Kubernetes name and the checkout path below matches the directory
 		// CloneRepository created (both apply SafeRef to the same ref).
 		ext = util.SafeRef(ext)
 		storageSecretName = params.Instance.Name + "-repository-" + ext
+		checkoutPath = util.RepoCheckoutDir(params.Instance.Name, params.Instance.Namespace, ext)
 	default:
 		params.Log.Info("repository type not set", "name", params.Instance.Name, "namespace", params.Instance.Name)
 		return nil
 	}
 
-	dirSize, err := getDirSize("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext)
+	dirSize, err := getDirSize(checkoutPath)
 	if err != nil {
 		return err
 	}
@@ -126,7 +128,6 @@ func StorageSecret(ctx context.Context, params Params) error {
 		return errors.New("exceededMaxSize")
 	}
 
-	checkoutPath := "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext
 	projects, err := util.DetectGraphmanFolders(checkoutPath)
 
 	if err != nil {
@@ -180,7 +181,7 @@ func StorageSecret(ctx context.Context, params Params) error {
 			return errors.New("combined file size exceeded")
 		}
 
-		keyName := strings.Replace(p, "/tmp/"+params.Instance.Name+"-"+params.Instance.Namespace+"-"+ext, "", 1)
+		keyName := strings.Replace(p, checkoutPath, "", 1)
 		keyName = strings.Replace(strings.ReplaceAll(keyName, "/", "-"), "-", "", 1)
 		if keyName == "" {
 			keyName = params.Instance.Name

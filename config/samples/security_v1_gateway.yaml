@@ -15,22 +15,18 @@ spec:
     replicas: 1
     image: docker.io/caapim/gateway:11.2.1
     management:
-      username: admin
-      password: 7layer
+      # secretName references an existing Secret with the keys SSG_ADMIN_USERNAME,
+      # SSG_ADMIN_PASSWORD and SSG_CLUSTER_PASSWORD. Create it before applying this resource.
+      secretName: gateway-secret
       cluster:
-        password: 7layer
         hostname: gateway.brcmlabs.com
     service:
       # annotations:
-      type: LoadBalancer
+      type: ClusterIP
       ports:
       - name: https
         port: 8443
         targetPort: 8443
-        protocol: TCP
-      - name: management
-        port: 9443
-        targetPort: 9443
         protocol: TCP
 # status Gateway status
 status: {}

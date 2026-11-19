@@ -76,7 +76,7 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 				return err
 			}
 
-			err = os.RemoveAll("/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + util.SafeRef(ref))
+			err = os.RemoveAll(util.RepoCheckoutDir(params.Instance.Name, params.Instance.Namespace, ref))
 
 			if err != nil {
 				return err
@@ -93,8 +93,8 @@ func Finalizer(ctx context.Context, params Params) (err error) {
 				folderName = strings.ReplaceAll(fileName, ".tar.gz", "")
 			}
 
-			fileName = "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + fileName
-			folderName = "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + folderName
+			fileName = util.RepoArtifactPath(params.Instance.Name, params.Instance.Namespace, fileName)
+			folderName = util.RepoArtifactPath(params.Instance.Name, params.Instance.Namespace, folderName)
 
 			err = os.RemoveAll(folderName)
 			if err != nil {

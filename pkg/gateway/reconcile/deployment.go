@@ -332,10 +332,10 @@ func setLabels(ctx context.Context, params Params, dep *appsv1.Deployment) (*app
 			if err != nil {
 				return nil, fmt.Errorf("failed to retrieve configmap: %s", secretName)
 			}
-			for k, v := range secret.ObjectMeta.Annotations {
-				if k == "checksum/data" {
-					dep.ObjectMeta.Labels[secretName+"-checksum"] = v
-				}
+			// the checksum/data annotation is an unkeyed hash of the secret data, use a
+			// checksum keyed by the secret UID so Deployment readers can't brute-force it
+			if checksum := gateway.SecretLabelChecksum(&secret); checksum != "" {
+				dep.ObjectMeta.Labels[secretName+"-checksum"] = checksum
 			}
 		}
 	}

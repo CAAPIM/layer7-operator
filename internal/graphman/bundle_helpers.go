@@ -33,15 +33,42 @@ import (
 	"strings"
 )
 
+// checkNilEntities returns an error if any entity list in the bundle contains a null entry
+// (e.g. {"services":[null]}). Such entries cannot be identified or merged and must not be dropped silently.
+func checkNilEntities(b Bundle) error {
+	v := reflect.ValueOf(b)
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.Kind() != reflect.Slice {
+			continue
+		}
+		for j := 0; j < field.Len(); j++ {
+			if e := field.Index(j); e.Kind() == reflect.Ptr && e.IsNil() {
+				name := strings.Split(v.Type().Field(i).Tag.Get("json"), ",")[0]
+				return fmt.Errorf("bundle entity list %q contains a null entry at index %d", name, j)
+			}
+		}
+	}
+	return nil
+}
+
 // CombineWithOverwrite combines bundles where src overwrites dest entities (latest wins)
 // and removes delete mappings for re-added entities
-func CombineWithOverwrite(src Bundle, dest Bundle) (Bundle, error) {
-	// Recover from reflection panics
+func CombineWithOverwrite(src Bundle, dest Bundle) (combined Bundle, err error) {
+	// Recover from reflection panics and surface them as errors so callers never receive an empty bundle silently
 	defer func() {
 		if r := recover(); r != nil {
-			dest = Bundle{}
+			combined = Bundle{}
+			err = fmt.Errorf("panic while combining bundles: %v", r)
 		}
 	}()
+
+	if err := checkNilEntities(src); err != nil {
+		return Bundle{}, fmt.Errorf("invalid source bundle: %w", err)
+	}
+	if err := checkNilEntities(dest); err != nil {
+		return Bundle{}, fmt.Errorf("invalid destination bundle: %w", err)
+	}
 
 	// Merge using reflection - src overwrites dest
 	destVal := reflect.ValueOf(&dest).Elem()
@@ -70,6 +97,9 @@ func CombineWithOverwrite(src Bundle, dest Bundle) (Bundle, error) {
 		// Uses primary identifier fields based on entity type
 		getID := func(e reflect.Value, fieldName string) string {
 			if e.Kind() == reflect.Ptr {
+				if e.IsNil() {
+					return ""
+				}
 				e = e.Elem()
 			}
 
@@ -188,13 +218,21 @@ func CombineWithOverwrite(src Bundle, dest Bundle) (Bundle, error) {
 // This is used when concatenating repository-controlled bundles (combined.json, latest.json) where the
 // repository controller has already determined the correct DELETE mappings.
 // Unlike CombineWithOverwrite, this does NOT call CleanDeleteMappingsForEntities.
-func CombineWithOverwritePreservingDeleteMappings(src Bundle, dest Bundle) (Bundle, error) {
-	// Recover from reflection panics
+func CombineWithOverwritePreservingDeleteMappings(src Bundle, dest Bundle) (combined Bundle, err error) {
+	// Recover from reflection panics and surface them as errors so callers never receive an empty bundle silently
 	defer func() {
 		if r := recover(); r != nil {
-			dest = Bundle{}
+			combined = Bundle{}
+			err = fmt.Errorf("panic while combining bundles: %v", r)
 		}
 	}()
+
+	if err := checkNilEntities(src); err != nil {
+		return Bundle{}, fmt.Errorf("invalid source bundle: %w", err)
+	}
+	if err := checkNilEntities(dest); err != nil {
+		return Bundle{}, fmt.Errorf("invalid destination bundle: %w", err)
+	}
 
 	// Merge using reflection - src overwrites dest
 	destVal := reflect.ValueOf(&dest).Elem()
@@ -223,6 +261,9 @@ func CombineWithOverwritePreservingDeleteMappings(src Bundle, dest Bundle) (Bund
 		// Uses primary identifier fields based on entity type
 		getID := func(e reflect.Value, fieldName string) string {
 			if e.Kind() == reflect.Ptr {
+				if e.IsNil() {
+					return ""
+				}
 				e = e.Elem()
 			}
 
@@ -336,10 +377,10 @@ func CombineWithOverwritePreservingDeleteMappings(src Bundle, dest Bundle) (Bund
 }
 
 // mergeMappings combines mapping instructions from src into dest
-func mergeMappings(dest *BundleMappings, src BundleMappings) error {
+func mergeMappings(dest *BundleMappings, src BundleMappings) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			// Silently recover from reflection panics
+			err = fmt.Errorf("panic while merging mappings: %v", r)
 		}
 	}()
 
@@ -368,10 +409,10 @@ func mergeMappings(dest *BundleMappings, src BundleMappings) error {
 // CleanDeleteMappingsForEntities removes delete mappings only for entities that exist in the source bundle
 // WITHOUT delete mappings. This ensures delete mappings are only removed when an entity is explicitly
 // re-added (not when it's being deleted).
-func CleanDeleteMappingsForEntities(bundle *Bundle, source Bundle) error {
+func CleanDeleteMappingsForEntities(bundle *Bundle, source Bundle) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			// Silently recover from reflection panics
+			err = fmt.Errorf("panic while cleaning delete mappings: %v", r)
 		}
 	}()
 
@@ -402,7 +443,7 @@ func CleanDeleteMappingsForEntities(bundle *Bundle, source Bundle) error {
 
 		for j := 0; j < srcField.Len(); j++ {
 			entity := srcField.Index(j)
-			if entity.Kind() == reflect.Ptr {
+			if entity.Kind() == reflect.Ptr && !entity.IsNil() {
 				e := entity.Elem()
 
 				// Get primary identifier based on entity type
@@ -462,7 +503,7 @@ func CleanDeleteMappingsForEntities(bundle *Bundle, source Bundle) error {
 
 			for j := 0; j < field.Len(); j++ {
 				m := field.Index(j).Interface().(*MappingInstructionInput)
-				if m.Action == MappingActionDelete {
+				if m != nil && m.Action == MappingActionDelete {
 					var name, alias, systemId, key string
 
 					if src, ok := m.Source.(MappingSource); ok {
@@ -520,6 +561,9 @@ func CleanDeleteMappingsForEntities(bundle *Bundle, source Bundle) error {
 		for j := 0; j < field.Len(); j++ {
 			mapping := field.Index(j)
 			m := mapping.Interface().(*MappingInstructionInput)
+			if m == nil {
+				continue
+			}
 
 			shouldKeep := true
 
@@ -804,10 +848,10 @@ func CalculateDelta(current Bundle, desired Bundle) (delta Bundle, combined Bund
 
 // ResetMappings applies delete mappings to a bundle by removing entities marked for deletion
 // and clearing the mappings. This is useful after applying a bundle to reset it for the next iteration.
-func ResetMappings(bundle *Bundle) error {
+func ResetMappings(bundle *Bundle) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			// Silently recover from reflection panics
+			err = fmt.Errorf("panic while resetting mappings: %v", r)
 		}
 	}()
 
@@ -847,7 +891,7 @@ func ResetMappings(bundle *Bundle) error {
 			for j := 0; j < field.Len(); j++ {
 				m := field.Index(j).Interface().(*MappingInstructionInput)
 
-				if m.Action == MappingActionDelete {
+				if m != nil && m.Action == MappingActionDelete {
 					var name, alias, systemId, key, resolutionPath, thumbprint string
 					var port int
 
@@ -929,7 +973,7 @@ func ResetMappings(bundle *Bundle) error {
 			shouldDelete := false
 
 			// Get entity ID using same logic as getID
-			if entity.Kind() == reflect.Ptr {
+			if entity.Kind() == reflect.Ptr && !entity.IsNil() {
 				e := entity.Elem()
 
 				// Check primary identifier fields
@@ -1004,10 +1048,11 @@ func ResetMappings(bundle *Bundle) error {
 // logic as CombineWithOverwrite (name, alias, thumbprint, systemId, etc. + goid).
 // If an entity appears multiple times, only the first occurrence is kept.
 // Takes a JSON byte array and returns a deduplicated JSON byte array.
-func RemoveDuplicates(bundleBytes []byte) ([]byte, error) {
+func RemoveDuplicates(bundleBytes []byte) (result []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			// Silently recover from reflection panics
+			result = nil
+			err = fmt.Errorf("panic while removing duplicates: %v", r)
 		}
 	}()
 
@@ -1017,15 +1062,21 @@ func RemoveDuplicates(bundleBytes []byte) ([]byte, error) {
 
 	// Unmarshal the bundle
 	var bundle Bundle
-	err := json.Unmarshal(bundleBytes, &bundle)
+	err = json.Unmarshal(bundleBytes, &bundle)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal bundle: %w", err)
+	}
+	if err := checkNilEntities(bundle); err != nil {
+		return nil, err
 	}
 
 	// Function to get multiple IDs for an entity - if ANY match, it's a duplicate
 	// This catches both name matches AND goid matches
 	getIDs := func(e reflect.Value, fieldName string) []string {
 		if e.Kind() == reflect.Ptr {
+			if e.IsNil() {
+				return nil
+			}
 			e = e.Elem()
 		}
 
@@ -1148,7 +1199,7 @@ func RemoveDuplicates(bundleBytes []byte) ([]byte, error) {
 	}
 
 	// Marshal the bundle back to JSON
-	result, err := json.Marshal(bundle)
+	result, err = json.Marshal(bundle)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal bundle: %w", err)
 	}

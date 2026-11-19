@@ -153,7 +153,11 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 			if b == nil {
 				continue
 			}
-			crtX509, _ := x509.ParseCertificate(b.Bytes)
+			// skip certificates that fail to parse rather than dereferencing a nil result
+			crtX509, err := x509.ParseCertificate(b.Bytes)
+			if err != nil {
+				continue
+			}
 			crtsX509 = append(crtsX509, *crtX509)
 			certsChain = append(certsChain, crtStrings[crt])
 		}
@@ -210,6 +214,16 @@ func ConvertX509ToGraphmanBundle(keys []GraphmanKey, notFound []string) ([]byte,
 	return bundleBytes, nil
 }
 
+// SplitAppliedCertKey splits an applied external cert status entry ("Name-ThumbprintSha1") into its name and thumbprint.
+// Certificate names (CNs) may contain '-' while the base64 (std encoding) SHA-1 thumbprint cannot, so the split is on the last '-'.
+func SplitAppliedCertKey(entry string) (name string, thumbprint string, ok bool) {
+	i := strings.LastIndex(entry, "-")
+	if i < 0 || i == len(entry)-1 {
+		return "", "", false
+	}
+	return entry[:i], entry[i+1:], true
+}
+
 func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]byte, error) {
 	bundle := graphman.Bundle{}
 
@@ -218,7 +232,11 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 		if b == nil {
 			continue
 		}
-		crtX509, _ := x509.ParseCertificate(b.Bytes)
+		// skip certificates that fail to parse rather than dereferencing a nil result
+		crtX509, err := x509.ParseCertificate(b.Bytes)
+		if err != nil {
+			continue
+		}
 
 		tf := []graphman.TrustedForType{}
 		for _, v := range cert.TrustedFor {
@@ -254,21 +272,26 @@ func ConvertCertsToGraphmanBundle(certs []GraphmanCert, notFound []string) ([]by
 	}
 
 	for _, nf := range notFound {
+		name, thumbprint, ok := SplitAppliedCertKey(nf)
+		if !ok {
+			continue
+		}
+
 		_, cert, err := createDummyKey()
 		if err != nil {
 			return nil, err
 		}
 
 		bundle.TrustedCerts = append(bundle.TrustedCerts, &graphman.TrustedCertInput{
-			Name:                      strings.Split(nf, "-")[0],
-			ThumbprintSha1:            strings.Split(nf, "-")[1],
+			Name:                      name,
+			ThumbprintSha1:            thumbprint,
 			CertBase64:                base64.StdEncoding.EncodeToString([]byte(cert)),
 			VerifyHostname:            true,
 			TrustAnchor:               false,
 			TrustedFor:                []graphman.TrustedForType{graphman.TrustedForTypeSsl},
 			RevocationCheckPolicyType: graphman.PolicyUsageTypeUseDefault,
 		})
-		mappingSource := graphman.MappingSource{ThumbprintSha1: strings.Split(nf, "-")[1]}
+		mappingSource := graphman.MappingSource{ThumbprintSha1: thumbprint}
 		if bundle.Properties == nil {
 			bundle.Properties = &graphman.BundleProperties{}
 		}

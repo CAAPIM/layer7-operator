@@ -505,7 +505,11 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 						if b == nil {
 							continue
 						}
-						crtX509, _ := x509.ParseCertificate(b.Bytes)
+						crtX509, err := x509.ParseCertificate(b.Bytes)
+						if err != nil {
+							params.Log.Info("skipping external certificate that failed to parse", "externalCert", externalCert.Name, "name", gateway.Name, "namespace", gateway.Namespace, "error", err.Error())
+							continue
+						}
 
 						gmanCert := util.GraphmanCert{
 							Name:                      crtX509.Subject.CommonName,
@@ -526,7 +530,7 @@ func NewGwUpdateRequest(ctx context.Context, gateway *securityv1.Gateway, params
 				for _, appliedCert := range gateway.Status.LastAppliedExternalCerts[externalCert.Name] {
 					found := false
 					for _, desiredCert := range certSecretMap {
-						if strings.Split(appliedCert, "-")[0] == desiredCert.Name {
+						if appliedName, _, ok := util.SplitAppliedCertKey(appliedCert); ok && appliedName == desiredCert.Name {
 							found = true
 						}
 					}
@@ -2244,17 +2248,12 @@ func readLocalReference(ctx context.Context, repository *securityv1.Repository, 
 }
 
 // GetGatewayPods returns the pods in a Gateway Deployment
+// Labels can be set by anyone able to create pods in the namespace and these pods receive gateway admin credentials,
+// so only pods controlled by a ReplicaSet of this Gateway's Deployment are returned.
+// getGatewayPods returns the Gateway's pods that were created by its own
+// Deployment. See util.GatewayDeploymentPods for the ownership checks.
 func getGatewayPods(ctx context.Context, params Params) (*corev1.PodList, error) {
-	podList := &corev1.PodList{}
-
-	listOpts := []client.ListOption{
-		client.InNamespace(params.Instance.Namespace),
-		client.MatchingLabels(util.DefaultLabels(params.Instance.Name, map[string]string{})),
-	}
-	if err := params.Client.List(ctx, podList, listOpts...); err != nil {
-		return podList, err
-	}
-	return podList, nil
+	return util.GatewayDeploymentPods(ctx, params.Client, params.Log, params.Instance)
 }
 
 func getGatewayDeployment(ctx context.Context, params Params) (*appsv1.Deployment, error) {
@@ -2727,7 +2726,7 @@ func updateEntityStatus(ctx context.Context, kind string, name string, bundleByt
 				mappingSource := MappingSource{}
 				found := false
 				for _, cert := range params.Instance.Status.LastAppliedExternalCerts[name] {
-					if bundle.Properties != nil && strings.Split(cert, "-")[0] == appliedCert.Name {
+					if certName, _, ok := util.SplitAppliedCertKey(cert); bundle.Properties != nil && ok && certName == appliedCert.Name {
 						for _, mapping := range bundle.Properties.Mappings.TrustedCerts {
 							sourceBytes, err := json.Marshal(mapping.Source)
 							if err != nil {

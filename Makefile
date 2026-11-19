@@ -64,7 +64,8 @@ OPERATOR_SDK_VERSION ?= v1.33.0
 DOCKER_VERSION := $(subst /,-,$(VERSION))
 IMG ?= $(IMAGE_TAG_BASE):$(DOCKER_VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.30.0
+# Stable TLSRoute v1 CRDs require a newer API server for CEL IP validation.
+ENVTEST_K8S_VERSION = 1.34.0
 
 START_KIND_CLUSTER ?= true
 
@@ -141,10 +142,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
 GOLANGCI_LINT_VERSION ?= v1.54.2
 golangci-lint:
-	@[ -f $(GOLANGCI_LINT) ] || { \
-	set -e ;\
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell dirname $(GOLANGCI_LINT)) $(GOLANGCI_LINT_VERSION) ;\
-	}
+	@[ -f $(GOLANGCI_LINT) ] || GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter & yamllint

@@ -477,14 +477,14 @@ func localRepoStorageInfo(params Params) (storageSecretName string, repositoryPa
 		}
 		storageSecretName = params.Instance.Name + "-repository-" + folderName
 		ext = folderName
-		return storageSecretName, "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext, ext, nil
+		return storageSecretName, util.RepoArtifactPath(params.Instance.Name, params.Instance.Namespace, ext), ext, nil
 	case "git":
 		// Flatten any '/' in the ref so the storage-secret name is valid and the
 		// returned checkout path matches the directory CloneRepository created
 		// (both apply SafeRef to the same ref).
 		ext = util.SafeRef(ext)
 		storageSecretName = params.Instance.Name + "-repository-" + ext
-		return storageSecretName, "/tmp/" + params.Instance.Name + "-" + params.Instance.Namespace + "-" + ext, ext, nil
+		return storageSecretName, util.RepoCheckoutDir(params.Instance.Name, params.Instance.Namespace, ext), ext, nil
 	default:
 		params.Log.Info("repository type not set or unsupported", "name", params.Instance.Name, "namespace", params.Instance.Name)
 		return "", "", "", errors.New("repository type not set or unsupported")

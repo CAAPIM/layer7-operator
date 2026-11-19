@@ -22,12 +22,14 @@ package v1
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 // log is for logging in this package.
@@ -72,6 +74,9 @@ func (r *Gateway) ValidateDelete(ctx context.Context, obj *Gateway) (admission.W
 func validateGateway(r *Gateway) (admission.Warnings, error) {
 
 	warnings := admission.Warnings{}
+	if err := ValidateKubernetesGateway(r); err != nil {
+		return warnings, err
+	}
 
 	if !r.Spec.License.Accept {
 		return warnings, fmt.Errorf("please accept the gateway license")
@@ -230,4 +235,150 @@ func validateGateway(r *Gateway) (admission.Warnings, error) {
 	}
 
 	return warnings, nil
+}
+
+// ValidateKubernetesGateway is shared by admission and reconciliation, since webhooks are optional.
+func ValidateKubernetesGateway(gw *Gateway) error {
+	c := gw.Spec.App.KubernetesGateway
+	if !c.Enabled {
+		return nil
+	}
+	invalid := func(message string) error { return fmt.Errorf("spec.app.kubernetesGateway: %s", message) }
+	if c.Gateway.Create {
+		if c.Gateway.GatewayClassName == "" {
+			return invalid("gateway.gatewayClassName is required when gateway.create is true")
+		}
+		if c.HTTPEnabled() && c.TLSRoute.Enabled {
+			return invalid("httpRoute and tlsRoute cannot both be enabled with a managed Gateway; use an existing Gateway")
+		}
+		if !c.HTTPEnabled() && !c.TLSRoute.Enabled {
+			return invalid("a managed Gateway requires httpRoute or tlsRoute")
+		}
+		if c.HTTPEnabled() && c.Gateway.TLS.ExistingSecretName == "" {
+			return invalid("gateway.tls.existingSecretName is required for HTTPS termination")
+		}
+	} else if c.Gateway.ExistingRef.Name == "" {
+		return invalid("gateway.existingRef.name is required when gateway.create is false")
+	}
+	validateBackend := func(port int32, backend string) error {
+		if port < 1 || port > 65535 {
+			return invalid("route port must be between 1 and 65535")
+		}
+		if backend != "" && backend != "management" {
+			return invalid("route backend must be empty or management")
+		}
+		if backend == "management" && !gw.Spec.App.Management.Service.Enabled {
+			return invalid("management backend requires the management Service to be enabled")
+		}
+		return nil
+	}
+	if c.HTTPEnabled() {
+		if len(c.HTTPRoute.Rules) == 0 {
+			return invalid("httpRoute.rules must contain at least one rule")
+		}
+		rulesPerHost := map[gatewayv1.Hostname]int{}
+		matchesPerHost := map[gatewayv1.Hostname]int{}
+		for _, r := range c.HTTPRoute.Rules {
+			if err := validateBackend(r.Port, r.Backend); err != nil {
+				return err
+			}
+			rulesPerHost[r.Hostname]++
+			if rulesPerHost[r.Hostname] > 16 {
+				return invalid(fmt.Sprintf("httpRoute.rules for hostname %q exceed the Gateway API limit of 16 rules per HTTPRoute", r.Hostname))
+			}
+			// The builder supplies one PathPrefix match when matches are omitted.
+			matchesPerHost[r.Hostname] += max(1, len(r.Matches))
+			if matchesPerHost[r.Hostname] > 128 {
+				return invalid(fmt.Sprintf("httpRoute.rules for hostname %q exceed the Gateway API limit of 128 matches per HTTPRoute", r.Hostname))
+			}
+		}
+	}
+	if c.TLSRoute.Enabled {
+		if len(c.TLSRoute.Rules) == 0 {
+			return invalid("tlsRoute.rules must contain at least one rule")
+		}
+		for _, r := range c.TLSRoute.Rules {
+			if r.Hostname == "" {
+				return invalid("each tlsRoute rule requires a hostname")
+			}
+			if err := validateBackend(r.Port, r.Backend); err != nil {
+				return err
+			}
+		}
+	}
+	if c.BackendTLSEnabled() {
+		v := c.BackendTLSPolicy.Validation
+		if (len(v.CACertificateRefs) == 0) == (v.WellKnownCACertificates == nil) {
+			return invalid("backendTLSPolicy.validation requires exactly one of caCertificateRefs or wellKnownCACertificates")
+		}
+		if v.WellKnownCACertificates != nil && *v.WellKnownCACertificates != gatewayv1.WellKnownCACertificatesSystem {
+			return invalid("wellKnownCACertificates must be System")
+		}
+		for _, ref := range v.CACertificateRefs {
+			if ref.Group != "" || ref.Kind != "ConfigMap" || ref.Name == "" {
+				return invalid("CA references must name core ConfigMaps")
+			}
+		}
+		if err := validateBackendTLSTargets(gw); err != nil {
+			return invalid(err.Error())
+		}
+	}
+	return nil
+}
+
+// validateBackendTLSTargets checks the per-port BackendTLSPolicy targets that are
+// built when excludePorts is set. Without excludePorts each targeted Service is a
+// single whole-Service target, so there is nothing to check.
+func validateBackendTLSTargets(gw *Gateway) error {
+	c := gw.Spec.App.KubernetesGateway
+	exclude := c.BackendTLSPolicy.ExcludePorts
+	if len(exclude) == 0 {
+		return nil
+	}
+	type targetService struct {
+		name  string
+		ports []Ports
+	}
+	services := []targetService{{gw.Name, gw.Spec.App.Service.Ports}}
+	// Mirrors the builder: the management Service is only targeted when an
+	// enabled route sends traffic to it.
+	usesManagement := false
+	if c.HTTPEnabled() {
+		for _, r := range c.HTTPRoute.Rules {
+			usesManagement = usesManagement || r.Backend == "management"
+		}
+	}
+	if c.TLSRoute.Enabled {
+		for _, r := range c.TLSRoute.Rules {
+			usesManagement = usesManagement || r.Backend == "management"
+		}
+	}
+	if usesManagement {
+		services = append(services, targetService{gw.Name + "-management-service", gw.Spec.App.Management.Service.Ports})
+	}
+	matched := map[int32]bool{}
+	targets := 0
+	for _, s := range services {
+		for _, p := range s.ports {
+			if slices.Contains(exclude, p.Port) {
+				matched[p.Port] = true
+				continue
+			}
+			// The port name becomes the policy target's sectionName, which must be
+			// a non-empty DNS label.
+			if p.Name == "" {
+				return fmt.Errorf("Cannot create BackendTLSPolicy target for Service %s port %d because the port has no name. Name the port or remove excludePorts.", s.name, p.Port)
+			}
+			targets++
+		}
+	}
+	for _, p := range exclude {
+		if !matched[p] {
+			return fmt.Errorf("backendTLSPolicy.excludePorts entry %d matches no port on the targeted Services", p)
+		}
+	}
+	if targets == 0 || targets > 16 {
+		return fmt.Errorf("backendTLSPolicy requires between 1 and 16 targets after excludePorts, found %d", targets)
+	}
+	return nil
 }

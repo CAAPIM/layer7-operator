@@ -14,7 +14,6 @@ LABEL org.opencontainers.image.version=${VERSION}
 LABEL org.opencontainers.image.vendor=${VENDOR}
 LABEL com.broadcom.copyright=${COPYRIGHT}
 
-ARG GOPROXY
 WORKDIR /workspace
 
 COPY go.mod go.mod
@@ -25,8 +24,10 @@ COPY cmd/main.go cmd/main.go
 COPY api/ api/
 COPY pkg/ pkg/
 COPY scripts/ scripts/
-ENV GOPROXY=${GOPROXY}
-RUN go mod download
+# An authenticated GOPROXY is supplied as a BuildKit secret so it is not stored in the image.
+RUN --mount=type=secret,id=goproxy \
+    if [ -s /run/secrets/goproxy ]; then export GOPROXY="$(cat /run/secrets/goproxy)"; fi; \
+    go mod download
 
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -a -o manager cmd/main.go
 

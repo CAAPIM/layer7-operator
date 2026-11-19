@@ -28,6 +28,17 @@ Install the Operator
 helm upgrade -i layer7-operator layer7-operator/layer7-operator -n layer7-operator-system --create-namespace
 ```
 
+## Upgrading
+Helm installs the CRDs in this chart's `crds/` directory on first install only. `helm upgrade` does not update them, so new or changed fields in a newer chart version won't be available until you apply its CRDs yourself.
+
+Apply the CRDs from the chart version you are upgrading to, then upgrade the release:
+```
+helm repo update
+helm pull layer7-operator/layer7-operator --version <chart-version> --untar --untardir /tmp/layer7-operator-chart
+kubectl apply --server-side --force-conflicts -f /tmp/layer7-operator-chart/layer7-operator/crds/
+helm upgrade layer7-operator layer7-operator/layer7-operator --version <chart-version> -n layer7-operator-system
+```
+
 ## Parameters
 
 ### Common Parameters
@@ -64,7 +75,7 @@ helm upgrade -i layer7-operator layer7-operator/layer7-operator -n layer7-operat
 | `containerSecurityContext`        | Layer7 Operator Container Security Context                                                                     | `{}`                                                                                                                                             |
 | `image.registry`                  | Layer7 Operator image registry                                                                                 | `docker.io`                                                                                                                                      |
 | `image.repository`                | Layer7 Operator image repository                                                                               | `caapim/layer7-operator`                                                                                                                         |
-| `image.tag`                       | Layer7 Operator image tag                                                                                      | `v1.3.0`                                                                                                                                         |
+| `image.tag`                       | Layer7 Operator image tag                                                                                      | `v1.3.1`                                                                                                                                         |
 | `image.pullPolicy`                | Layer7 Operator image pull policy                                                                              | `IfNotPresent`                                                                                                                                   |
 | `image.pullSecrets`               | Layer7 Operator image pull secrets                                                                             | `[]`                                                                                                                                             |
 | `resources.limits.cpu`            | The cpu limits for the Layer7 Operator container                                                               | `500m`                                                                                                                                           |

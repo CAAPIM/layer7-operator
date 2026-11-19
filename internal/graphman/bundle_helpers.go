@@ -62,6 +62,8 @@ func CombineWithOverwrite(src Bundle, dest Bundle) (combined Bundle, err error) 
 			err = fmt.Errorf("panic while combining bundles: %v", r)
 		}
 	}()
+	normalizeTrustedCertThumbprints(&src)
+	normalizeTrustedCertThumbprints(&dest)
 
 	if err := checkNilEntities(src); err != nil {
 		return Bundle{}, fmt.Errorf("invalid source bundle: %w", err)
@@ -226,6 +228,8 @@ func CombineWithOverwritePreservingDeleteMappings(src Bundle, dest Bundle) (comb
 			err = fmt.Errorf("panic while combining bundles: %v", r)
 		}
 	}()
+	normalizeTrustedCertThumbprints(&src)
+	normalizeTrustedCertThumbprints(&dest)
 
 	if err := checkNilEntities(src); err != nil {
 		return Bundle{}, fmt.Errorf("invalid source bundle: %w", err)
@@ -632,6 +636,8 @@ func CalculateDelta(current Bundle, desired Bundle) (delta Bundle, combined Bund
 			combined = Bundle{}
 		}
 	}()
+	normalizeTrustedCertThumbprints(&current)
+	normalizeTrustedCertThumbprints(&desired)
 	delta = Bundle{
 		Properties: &BundleProperties{
 			Mappings: BundleMappings{},

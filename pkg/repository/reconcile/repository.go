@@ -345,10 +345,10 @@ func syncRepository(ctx context.Context, params Params) error {
 
 	if repository.Spec.StateStoreReference != "" && (!repository.Status.StateStoreSynced || commit != repository.Status.Commit) {
 		if repository.Spec.Type == securityv1.RepositoryTypeStateStore {
-    	err = BuildStateStoreRepositoryCache(ctx, params, statestore, commit)
-    } else {
-    	err = StateStorage(ctx, params, statestore, commit)
-    }
+			err = BuildStateStoreRepositoryCache(ctx, params, statestore, commit)
+		} else {
+			err = StateStorage(ctx, params, statestore, commit)
+		}
 		if err != nil {
 			params.Log.V(2).Info("failed to reconcile state storage", "name", repository.Name+"-repository", "namespace", repository.Namespace, "error", err.Error())
 			stateStoreSynced = false
